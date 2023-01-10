@@ -1,0 +1,33 @@
+[package]
+name = "proxmox-yew-comp"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+lazy_static = "1.4"
+yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }
+web-sys = { version = "0.3", features = [ "DomRect", "Element" ] }
+js-sys = "0.3"
+log = "0.4.6"
+indexmap = { version = "1", features = ["std"] }
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+wasm-logger = "0.2"
+gloo-events = "0.1"
+gloo-timers = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+wasm-bindgen-futures = "0.4"
+url = "2.1"
+percent-encoding = "2.1"
+
+pwt = { path = "../proxmox-yew-widget-toolkit" }
+pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
+
+proxmox-schema = "1"
+proxmox-time = "1"
+proxmox-uuid = "1"
+
+pbs-api-types = { path = "../proxmox-backup/pbs-api-types" }
