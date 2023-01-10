@@ -11,11 +11,8 @@ use pwt::prelude::*;
 use pwt::state::Loader;
 use pwt::widget::{Button, InputPanel, Panel, Toolbar};
 use pwt::widget::form2::{Field, FormContext};
-use pwt::component::{EditWindow, KVGrid, KVGridRow};
 
-use crate::HelpButton;
-
-use super::ProxmoxProduct;
+use crate::{HelpButton, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct SubscriptionPanel {

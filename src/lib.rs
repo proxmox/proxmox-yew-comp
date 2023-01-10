@@ -13,6 +13,15 @@ pub use calendar_event_selector::CalendarEventSelector;
 mod config_panel;
 pub use config_panel::{PwtConfigPanel, ConfigPanel};
 
+mod edit_window;
+pub use edit_window::{EditWindow, PwtEditWindow};
+
+mod key_value_grid;
+pub use key_value_grid::{KVGrid, KVGridRow, PwtKVGrid, RenderKVGridRecordFn};
+
+mod object_grid;
+pub use object_grid::{ObjectGrid, ObjectGridRow, PwtObjectGrid, RenderObjectGridItemFn};
+
 mod realm_selector;
 pub use realm_selector::RealmSelector;
 

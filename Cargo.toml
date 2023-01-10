@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
+derivative = "2.2.0"
 lazy_static = "1.4"
 yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }
 web-sys = { version = "0.3", features = [ "DomRect", "Element" ] }
@@ -31,3 +32,20 @@ proxmox-time = "1"
 proxmox-uuid = "1"
 
 pbs-api-types = { path = "../proxmox-backup/pbs-api-types" }
+
+# Patch repo paths until we upload to crates-io
+
+[patch.crates-io.proxmox-lang]
+path = "../proxmox/proxmox-lang"
+
+[patch.crates-io.proxmox-schema]
+path = "../proxmox/proxmox-schema"
+
+[patch.crates-io.proxmox-time]
+path = "../proxmox/proxmox-time"
+
+[patch.crates-io.proxmox-uuid]
+path = "../proxmox/proxmox-uuid"
+
+[patch.crates-io.proxmox-serde]
+path = "../proxmox/proxmox-serde"

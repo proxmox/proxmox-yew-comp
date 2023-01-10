@@ -12,9 +12,8 @@ use yew::html::IntoEventCallback;
 use pwt::prelude::*;
 use pwt::state::Loader;
 use pwt::widget::{Button, Column, Dialog, TabPanel, Toolbar};
-use pwt::component::{KVGrid, KVGridRow};
 
-use crate::LogView;
+use crate::{LogView, KVGrid, KVGridRow};
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct TaskViewer {
