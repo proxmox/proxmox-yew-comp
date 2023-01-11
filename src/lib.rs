@@ -53,7 +53,7 @@ pub enum ProxmoxProduct {
     PBS,
 }
 
-// Bindgen java code from js-helper-module.js
+// Bindgen javascript code from js-helper-module.js
 
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::{self, prelude::*};
