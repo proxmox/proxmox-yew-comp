@@ -24,7 +24,7 @@ wasm-bindgen-futures = "0.4"
 url = "2.1"
 percent-encoding = "2.1"
 
-pwt = { path = "../proxmox-yew-widget-toolkit" }
+pwt = { path = "../proxmox-yew-widget-toolkit", features = [ "proxmox-schema" ] }
 pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
 
 proxmox-schema = "1"
