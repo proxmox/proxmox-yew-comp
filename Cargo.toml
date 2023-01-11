@@ -1,15 +1,17 @@
 [package]
 name = "proxmox-yew-comp"
 version = "0.1.0"
+authors = [
+  "Dietmar Maurer <dietmar@proxmox.com>",
+]
+license = "AGPLv3"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0"
 derivative = "2.2.0"
 lazy_static = "1.4"
-yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }
+yew = { version = "0.20",  features = ["csr"] }
 web-sys = { version = "0.3", features = [ "DomRect", "Element" ] }
 js-sys = "0.3"
 log = "0.4.6"
@@ -24,28 +26,13 @@ wasm-bindgen-futures = "0.4"
 url = "2.1"
 percent-encoding = "2.1"
 
-pwt = { path = "../proxmox-yew-widget-toolkit", features = [ "proxmox-schema" ] }
-pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
+#pwt = { path = "../proxmox-yew-widget-toolkit", features = [ "proxmox-schema" ] }
+#pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
+pwt = { version = "0.2", features = [ "proxmox-schema" ] }
+pwt-macros = "0.1"
 
 proxmox-schema = "1"
 proxmox-time = "1"
 proxmox-uuid = "1"
 
 pbs-api-types = { path = "../proxmox-backup/pbs-api-types" }
-
-# Patch repo paths until we upload to crates-io
-
-[patch.crates-io.proxmox-lang]
-path = "../proxmox/proxmox-lang"
-
-[patch.crates-io.proxmox-schema]
-path = "../proxmox/proxmox-schema"
-
-[patch.crates-io.proxmox-time]
-path = "../proxmox/proxmox-time"
-
-[patch.crates-io.proxmox-uuid]
-path = "../proxmox/proxmox-uuid"
-
-[patch.crates-io.proxmox-serde]
-path = "../proxmox/proxmox-serde"
