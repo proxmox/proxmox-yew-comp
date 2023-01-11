@@ -55,6 +55,7 @@ pub enum ProxmoxProduct {
 
 // Bindgen java code from js-helper-module.js
 
+#[cfg(target_arch="wasm32")]
 use wasm_bindgen::{self, prelude::*};
 #[wasm_bindgen(module = "/js-helper-module.js")]
 #[cfg(target_arch="wasm32")]
@@ -72,6 +73,24 @@ extern "C" {
    
     pub fn render_server_epoch(epoch: f64) -> String;
     pub fn render_timestamp(epoch: f64) -> String;
+}
+
+// Create wrapper which panics if called from target_arch!=wasm32
+// This allows us to build with "cargo build" and run tests with "cargo test".
+#[cfg(not(target_arch="wasm32"))]
+pub use panic_wrapper::*;
+#[cfg(not(target_arch="wasm32"))]
+mod panic_wrapper {
+    use wasm_bindgen::JsValue;
+    pub fn async_sleep(_ms: i32) -> js_sys::Promise { unreachable!() }
+    pub fn get_cookie() -> String { unreachable!() }
+    pub fn set_auth_cookie(_value: &str) { unreachable!() }
+    pub fn clear_auth_cookie() { unreachable!() }
+    pub fn uplot(_opts: &JsValue, _data: &JsValue, _node: web_sys::Node) -> JsValue { unreachable!() }
+    pub fn uplot_set_data(_uplot: &JsValue, _data: &JsValue) { unreachable!() }
+    pub fn uplot_set_size(_uplot: &JsValue, _width: usize, _height: usize) { unreachable!() }
+    pub fn render_server_epoch(_epoch: f64) -> String { unreachable!() }
+    pub fn render_timestamp(_epoch: f64) -> String { unreachable!() }
 }
 
 pub fn store_csrf_token(crsf_token: &str) {
