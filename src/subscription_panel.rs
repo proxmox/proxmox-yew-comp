@@ -4,7 +4,6 @@ use serde_json::Value;
 
 use pbs_api_types::{SUBSCRIPTION_KEY_SCHEMA};
 
-use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;

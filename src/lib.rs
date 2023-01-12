@@ -46,12 +46,8 @@ pub use time_zone_selector::{TimezoneSelector, ProxmoxTimezoneSelector};
 mod task_viewer;
 pub use task_viewer::*;
 
-#[derive(PartialEq, Debug, Clone)]
-pub enum ProxmoxProduct {
-    PVE,
-    PMG,
-    PBS,
-}
+mod proxmox_product;
+pub use proxmox_product::ProxmoxProduct;
 
 // Bindgen javascript code from js-helper-module.js
 
