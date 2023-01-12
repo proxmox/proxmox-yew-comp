@@ -35,4 +35,7 @@ proxmox-schema = "1"
 proxmox-time = "1"
 proxmox-uuid = "1"
 
-pbs-api-types = { path = "../proxmox-backup/pbs-api-types" }
+pbs-api-types = "0.1"
+
+[patch.crates-io.pbs-api-types]
+path = "../proxmox-backup/pbs-api-types"
