@@ -31,11 +31,4 @@ percent-encoding = "2.1"
 pwt = { version = "0.2", features = [ "proxmox-schema" ] }
 pwt-macros = "0.1"
 
-proxmox-schema = "1"
 proxmox-time = "1"
-proxmox-uuid = "1"
-
-pbs-api-types = "0.1"
-
-[patch.crates-io.pbs-api-types]
-path = "../proxmox-backup/pbs-api-types"
