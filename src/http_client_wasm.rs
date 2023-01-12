@@ -5,14 +5,12 @@ use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
 use percent_encoding::percent_encode;
 
-use pbs_api_types::Authid;
-
 use crate::percent_encoding::DEFAULT_ENCODE_SET;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct LoginInfo {
-    pub username: Authid,
+    pub username: String,
     pub CSRFPreventionToken: String,
     pub ticket: String,
 }
@@ -21,8 +19,8 @@ impl LoginInfo {
 
     pub fn from_cookie() -> Option<Self> {
 
-        if let Some((auth_id_str, ticket, csrf_token)) = Self::extract_auth_from_cookie() {
-            if let Ok(auth_id) = auth_id_str.parse::<Authid>() {
+        if let Some((auth_id, ticket, csrf_token)) = Self::extract_auth_from_cookie() {
+            if !auth_id.is_empty() {
                 //log::info!("HAS COOKIE {} {}", ticket, csrf_token);
                 return Some(LoginInfo {
                     username: auth_id,
@@ -208,7 +206,7 @@ impl HttpClient {
             headers.append( "CSRFPreventionToken", &auth.CSRFPreventionToken)
                 .map_err(|err| format_err!("{:?}", err))?;
 
-            if auth.username.is_token() {
+            if auth.username.contains('!') /* is_token */ {
                 let enc_api_token = format!(
                     "PBSAPIToken {}:{}",
                     auth.username,
