@@ -118,7 +118,7 @@ pub async fn http_put(
 /// You can directly pass the result of an API call that returns a UPID.
 pub async fn http_task_result(task: Result<Value, Error>) -> Result<Value, Error> {
 
-    use pbs_api_types::percent_encoding::percent_encode_component;
+    use crate::percent_encoding::percent_encode_component;
 
     let upid = match task {
         Ok(value) => {

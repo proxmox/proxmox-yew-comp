@@ -1,7 +1,6 @@
 use std::rc::Rc;
 
 use serde_json::Value;
-use pbs_api_types::percent_encoding::percent_encode_component;
 
 use gloo_timers::callback::Timeout;
 
@@ -14,6 +13,7 @@ use pwt::state::Loader;
 use pwt::widget::{Button, Column, Dialog, TabPanel, Toolbar};
 
 use crate::{LogView, KVGrid, KVGridRow};
+use crate::percent_encoding::percent_encode_component;
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct TaskViewer {

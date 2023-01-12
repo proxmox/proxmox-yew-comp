@@ -6,7 +6,8 @@ use serde_json::{json, Value};
 use percent_encoding::percent_encode;
 
 use pbs_api_types::Authid;
-use pbs_api_types::percent_encoding::DEFAULT_ENCODE_SET;
+
+use crate::percent_encoding::DEFAULT_ENCODE_SET;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
