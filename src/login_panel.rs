@@ -1,8 +1,5 @@
 use yew::prelude::*;
 
-use proxmox_schema::ApiType;
-use pbs_api_types::{Username, PASSWORD_SCHEMA};
-
 use pwt::prelude::*;
 use crate::LoginInfo;
 use pwt::widget::{Column, InputPanel, Mask, Row};
@@ -94,31 +91,21 @@ impl Component for LoginPanel {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let link = ctx.link().clone();
 
-        let validate_username = |value: &String| {
-            Username::API_SCHEMA.parse_simple_value(value)?;
-            Ok(())
-        };
-
-        let validate_password = |value: &String| {
-            PASSWORD_SCHEMA.parse_simple_value(value)?;
-            Ok(())
-        };
-
         let input_panel = InputPanel::new()
             .class("pwt-p-2")
             .with_field(
                 "User name",
                 Field::new()
                     .name("username")
-                    .validate(validate_username)
                     .default("root")
+                    .required(true)
                     .autofocus(true)
             )
             .with_field(
                 "Password",
                 Field::new()
                     .name("password")
-                    .validate(validate_password)
+                    .required(true)
                     .input_type("password")
             )
             .with_field(
