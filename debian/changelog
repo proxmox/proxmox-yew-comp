@@ -1,0 +1,6 @@
+rust-proxmox-yew-comp (0.1.0-1) unstable; urgency=medium
+
+  * initial Debian package
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 12 Jan 2023 11:59:39 +0100
+

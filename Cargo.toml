@@ -7,6 +7,8 @@ authors = [
 license = "AGPLv3"
 edition = "2021"
 
+exclude = [ "debian" ]
+
 [dependencies]
 anyhow = "1.0"
 derivative = "2.2.0"
