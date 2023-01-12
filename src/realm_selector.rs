@@ -1,16 +1,24 @@
 use std::rc::Rc;
 use anyhow::{format_err};
+use serde::{Serialize, Deserialize};
 
 use yew::prelude::*;
 use yew::virtual_dom::Key;
-
-use pbs_api_types::BasicRealmInfo;
 
 use pwt::props::RenderFn;
 use pwt::state::Store;
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::GridPicker;
 use pwt::widget::form2::{Selector, SelectorRenderArgs, ValidateFn};
+
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
+struct BasicRealmInfo {
+    realm: String,
+    #[serde(rename = "type")]
+    pub ty: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+}
 
 thread_local!{
     static COLUMNS: Rc<Vec<DataTableHeader<BasicRealmInfo>>> = Rc::new(vec![
