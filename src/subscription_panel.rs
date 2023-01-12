@@ -2,8 +2,6 @@ use std::rc::Rc;
 
 use serde_json::Value;
 
-use pbs_api_types::{SUBSCRIPTION_KEY_SCHEMA};
-
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
@@ -171,7 +169,6 @@ impl PwtSubscriptionPanel {
                     Field::new()
                         .name("key")
                         .required(true)
-                        .schema(&SUBSCRIPTION_KEY_SCHEMA)
                         .autofocus(true)
                 )
                 .into()
