@@ -3,7 +3,7 @@ use yew::prelude::*;
 use pwt::prelude::*;
 use crate::LoginInfo;
 use pwt::widget::{Column, InputPanel, Mask, Row};
-use pwt::widget::form2::{Field, Form, FormContext, SubmitButton, ResetButton};
+use pwt::widget::form::{Field, Form, FormContext, SubmitButton, ResetButton};
 
 use crate::RealmSelector;
 

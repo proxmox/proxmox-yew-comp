@@ -11,7 +11,7 @@ use pwt::prelude::*;
 use pwt::props::{LoadCallback, IntoLoadCallback};
 use pwt::state::Loader;
 use pwt::widget::{Button, Toolbar};
-use pwt::widget::form2::{FormContext, SubmitCallback, IntoSubmitCallback};
+use pwt::widget::form::{FormContext, SubmitCallback, IntoSubmitCallback};
 use pwt::widget::data_table::{DataTableKeyboardEvent, DataTableMouseEvent};
 
 use crate::{EditWindow, KVGrid, KVGridRow};

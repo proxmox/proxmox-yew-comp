@@ -10,7 +10,7 @@ use yew::html::IntoEventCallback;
 use pwt::prelude::*;
 use pwt::props::{LoadCallback, IntoLoadCallback, RenderFn};
 use pwt::widget::{AlertDialog, Column, Dialog, Mask, Row};
-use pwt::widget::form2::{
+use pwt::widget::form::{
     Checkbox, Form, FormContext, SubmitButton, ResetButton,
     SubmitCallback, IntoSubmitCallback,
 };

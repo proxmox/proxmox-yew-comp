@@ -7,7 +7,7 @@ use yew::virtual_dom::{VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::Loader;
 use pwt::widget::{Button, InputPanel, Panel, Toolbar};
-use pwt::widget::form2::{Field, FormContext};
+use pwt::widget::form::{Field, FormContext};
 
 use crate::{HelpButton, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
 

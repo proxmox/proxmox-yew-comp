@@ -9,7 +9,7 @@ use pwt::state::Store;
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::GridPicker;
 
-use pwt::widget::form2::{Selector, SelectorRenderArgs, ValidateFn};
+use pwt::widget::form::{Selector, SelectorRenderArgs, ValidateFn};
 
 type Record = (&'static str, &'static str);
 

@@ -3,7 +3,7 @@ use std::rc::Rc;
 use yew::prelude::*;
 use yew::html::IntoPropValue;
 
-use pwt::widget::form2::Combobox;
+use pwt::widget::form::Combobox;
 
 use pwt_macros::widget;
 use pwt::props::{FieldBuilder, WidgetBuilder};
