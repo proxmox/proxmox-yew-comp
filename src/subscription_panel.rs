@@ -82,7 +82,7 @@ impl Component for PwtSubscriptionPanel {
             .class("pwt-fit")
             .border(false)
             .title("Subscription")
-            .tool(HelpButton::new().section("subscription"))
+            .with_tool(HelpButton::new().section("subscription"))
             .with_child(toolbar)
             .with_child(main_view)
             .with_optional_child(dialog)
@@ -129,7 +129,7 @@ impl PwtSubscriptionPanel {
 
     fn create_toolbar(&self, ctx: &Context<Self>) -> Html {
         Toolbar::new()
-            .border((false, false, true, false))
+            .border_bottom(true)
             .with_child({
                 let link = ctx.link().clone();
                 Button::new("Upload Subscription Key").icon_class("fa fa-ticket")
