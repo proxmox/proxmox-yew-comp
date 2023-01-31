@@ -129,7 +129,6 @@ impl PwtSubscriptionPanel {
 
     fn create_toolbar(&self, ctx: &Context<Self>) -> Html {
         Toolbar::new()
-            .border_bottom(true)
             .with_child({
                 let link = ctx.link().clone();
                 Button::new("Upload Subscription Key").icon_class("fa fa-ticket")

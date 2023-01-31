@@ -188,7 +188,6 @@ impl PwtTaskViewer {
         let link = ctx.link();
 
         let toolbar = Toolbar::new()
-            .class("pwt-border-bottom")
             .with_child(
                 Button::new("Stop")
                     .disabled(!active)

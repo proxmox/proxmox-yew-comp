@@ -270,7 +270,6 @@ impl PwtObjectGrid {
 
     fn toolbar(&self, ctx: &Context<Self>, disable_edit: bool) -> Html {
         Toolbar::new()
-            .class("pwt-border-bottom")
             .with_child(
                 Button::new("Edit")
                     .disabled(disable_edit)

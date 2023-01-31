@@ -39,7 +39,7 @@ impl HelpButton {
 #[function_component(PbsHelpButton)]
 pub fn pbs_help_button(props: &HelpButton) -> Html {
     let button = if props.section.is_some() {
-        Button::new("?").class("rounded secondary-container")
+        Button::new("?").class("circle")
             .aria_label("help")
     } else {
         Button::new("Documentation").icon_class("fa fa-book")
