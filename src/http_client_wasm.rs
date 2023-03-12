@@ -1,11 +1,12 @@
 use std::sync::Mutex;
 
 use anyhow::{bail, format_err, Error};
-use serde::{Serialize, Deserialize};
-use serde_json::{json, Value};
 use percent_encoding::percent_encode;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 
 use crate::percent_encoding::DEFAULT_ENCODE_SET;
+use crate::ProxmoxProduct;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -16,10 +17,8 @@ pub struct LoginInfo {
 }
 
 impl LoginInfo {
-
-    pub fn from_cookie() -> Option<Self> {
-
-        if let Some((auth_id, ticket, csrf_token)) = Self::extract_auth_from_cookie() {
+    pub fn from_cookie(product: ProxmoxProduct) -> Option<Self> {
+        if let Some((auth_id, ticket, csrf_token)) = Self::extract_auth_from_cookie(product) {
             if !auth_id.is_empty() {
                 //log::info!("HAS COOKIE {} {}", ticket, csrf_token);
                 return Some(LoginInfo {
@@ -33,17 +32,30 @@ impl LoginInfo {
         None
     }
 
-    fn extract_auth_from_cookie() -> Option<(String, String, String)> {
-
+    fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String, String)> {
         let cookie = crate::get_cookie();
         //log::info!("COOKIE: {}", cookie);
 
         for part in cookie.split(';') {
             let part = part.trim();
             if let Some((key, value)) = part.split_once('=') {
-                if key == "PBSAuthCookie" {
+                if product == ProxmoxProduct::PBS && key == "PBSAuthCookie" {
                     let items: Vec<&str> = value.split(':').take(2).collect();
                     if items[0] == "PBS" {
+                        let csrf_token = crate::load_csrf_token().unwrap_or(String::new());
+                        return Some((items[1].to_string(), value.to_string(), csrf_token));
+                    }
+                }
+                if product == ProxmoxProduct::PVE && key == "PVEAuthCookie" {
+                    let items: Vec<&str> = value.split(':').take(2).collect();
+                    if items[0] == "PVE" {
+                        let csrf_token = crate::load_csrf_token().unwrap_or(String::new());
+                        return Some((items[1].to_string(), value.to_string(), csrf_token));
+                    }
+                }
+                if product == ProxmoxProduct::PMG && key == "PMGAuthCookie" {
+                    let items: Vec<&str> = value.split(':').take(2).collect();
+                    if items[0] == "PMG" || items[0] == "PMGQUAR" {
                         let csrf_token = crate::load_csrf_token().unwrap_or(String::new());
                         return Some((items[1].to_string(), value.to_string(), csrf_token));
                     }
@@ -56,14 +68,26 @@ impl LoginInfo {
 }
 
 pub struct HttpClient {
+    product: ProxmoxProduct,
     auth: Mutex<Option<LoginInfo>>,
     credentials: Option<(String, String)>,
 }
 
 impl HttpClient {
+    pub fn new(product: ProxmoxProduct) -> Self {
+        Self {
+            product,
+            auth: Mutex::new(None),
+            credentials: None,
+        }
+    }
 
-    pub fn new() -> Self {
-        Self { auth: Mutex::new(None), credentials: None }
+    pub fn product(&self) -> ProxmoxProduct {
+        self.product
+    }
+
+    pub fn set_product(&mut self, product: ProxmoxProduct) {
+        self.product = product;
     }
 
     pub fn with_credentials(
@@ -75,11 +99,7 @@ impl HttpClient {
         self
     }
 
-    pub fn set_credentials(
-        &mut self,
-        username: impl Into<String>,
-        password: impl Into<String>,
-    ) {
+    pub fn set_credentials(&mut self, username: impl Into<String>, password: impl Into<String>) {
         self.credentials = Some((username.into(), password.into()));
     }
 
@@ -91,38 +111,22 @@ impl HttpClient {
         *self.auth.lock().unwrap() = None;
     }
 
-    pub async fn get(
-        &self,
-        path: &str,
-        data: Option<Value>,
-    ) -> Result<Value, Error> {
+    pub async fn get(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
         let req = Self::request_builder("GET", path, data)?;
         self.request(req).await
     }
 
-    pub async fn delete(
-        &self,
-        path: &str,
-        data: Option<Value>,
-    ) -> Result<Value, Error> {
+    pub async fn delete(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
         let req = Self::request_builder("DELETE", path, data)?;
         self.request(req).await
     }
 
-    pub async fn post(
-        &self,
-        path: &str,
-        data: Option<Value>,
-    ) -> Result<Value, Error> {
+    pub async fn post(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
         let req = Self::request_builder("POST", path, data)?;
         self.request(req).await
     }
 
-    pub async fn put(
-        &self,
-        path: &str,
-        data: Option<Value>,
-    ) -> Result<Value, Error> {
+    pub async fn put(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
         let req = Self::request_builder("PUT", path, data)?;
         self.request(req).await
     }
@@ -135,7 +139,6 @@ impl HttpClient {
         match self.credentials {
             None => bail!("no credentials provided - unable to login"),
             Some((ref username, ref password)) => {
-
                 let data = json!({ "username": username, "password": password });
                 let req = Self::request_builder("POST", "/api2/json/access/ticket", Some(data))?;
                 let mut resp = self.api_request(req).await?;
@@ -144,7 +147,7 @@ impl HttpClient {
                 let info: LoginInfo = serde_json::from_value(data)?;
 
                 let enc_ticket = percent_encode(info.ticket.as_bytes(), DEFAULT_ENCODE_SET);
-                crate::set_auth_cookie(&enc_ticket.to_string());
+                crate::set_auth_cookie(self.product.auth_cookie_name(), &enc_ticket.to_string());
                 crate::store_csrf_token(&info.CSRFPreventionToken);
 
                 *self.auth.lock().unwrap() = Some(info.clone());
@@ -154,32 +157,38 @@ impl HttpClient {
         }
     }
 
-    fn request_builder(method: &str, url: &str, data: Option<Value>) -> Result<web_sys::Request, Error> {
-
+    fn request_builder(
+        method: &str,
+        url: &str,
+        data: Option<Value>,
+    ) -> Result<web_sys::Request, Error> {
         let mut init = web_sys::RequestInit::new();
         init.method(method);
 
-        let js_headers = web_sys::Headers::new()
-            .map_err(|err| format_err!("{:?}", err))?;
+        let js_headers = web_sys::Headers::new().map_err(|err| format_err!("{:?}", err))?;
 
-        js_headers.append("cache-control", "no-cache")
-           .map_err(|err| format_err!("{:?}", err))?;
+        js_headers
+            .append("cache-control", "no-cache")
+            .map_err(|err| format_err!("{:?}", err))?;
 
         let url_with_data = if let Some(data) = data {
             if method == "POST" {
                 let body = data.to_string();
-                js_headers.append("content-type","application/json")
+                js_headers
+                    .append("content-type", "application/json")
                     .map_err(|err| format_err!("{:?}", err))?;
                 init.body(Some(&wasm_bindgen::JsValue::from_str(&body)));
                 url.to_string()
             } else {
-                js_headers.append("content-type", "application/x-www-form-urlencoded")
+                js_headers
+                    .append("content-type", "application/x-www-form-urlencoded")
                     .map_err(|err| format_err!("{:?}", err))?;
                 let query = json_object_to_query(data)?;
                 format!("{}?{}", url, query)
             }
         } else {
-            js_headers.append("content-type", "application/x-www-form-urlencoded")
+            js_headers
+                .append("content-type", "application/x-www-form-urlencoded")
                 .map_err(|err| format_err!("{:?}", err))?;
             url.to_string()
         };
@@ -193,7 +202,6 @@ impl HttpClient {
     }
 
     async fn request(&self, js_req: web_sys::Request) -> Result<Value, Error> {
-
         let mut auth = self.auth.lock().unwrap().clone();
 
         if auth.is_none() && self.credentials.is_some() {
@@ -203,21 +211,24 @@ impl HttpClient {
 
         if let Some(auth) = &auth {
             let headers = js_req.headers();
-            headers.append( "CSRFPreventionToken", &auth.CSRFPreventionToken)
+            headers
+                .append("CSRFPreventionToken", &auth.CSRFPreventionToken)
                 .map_err(|err| format_err!("{:?}", err))?;
 
-            if auth.username.contains('!') /* is_token */ {
+            if auth.username.contains('!')
+            /* is_token */
+            {
                 let enc_api_token = format!(
                     "PBSAPIToken {}:{}",
                     auth.username,
                     percent_encode(auth.ticket.as_bytes(), DEFAULT_ENCODE_SET),
                 );
-                headers.append("Authorization", &enc_api_token)
+                headers
+                    .append("Authorization", &enc_api_token)
                     .map_err(|err| format_err!("{:?}", err))?;
-
             } else {
                 let enc_ticket = percent_encode(auth.ticket.as_bytes(), DEFAULT_ENCODE_SET);
-                crate::set_auth_cookie(&enc_ticket.to_string());
+                crate::set_auth_cookie(self.product.auth_cookie_name(), &enc_ticket.to_string());
             }
         }
 
@@ -225,26 +236,23 @@ impl HttpClient {
     }
 
     async fn api_request(&self, js_req: web_sys::Request) -> Result<Value, Error> {
-        let window = web_sys::window()
-            .ok_or_else(|| format_err!("unable to get window object"))?;
+        let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
 
         let promise = window.fetch_with_request(&js_req);
-        let js_fut =  wasm_bindgen_futures::JsFuture::from(promise);
-        let js_resp = js_fut.await
-            .map_err(|err| format_err!("{:?}", err))?;
+        let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
+        let js_resp = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
 
         let resp: web_sys::Response = js_resp.into();
 
-        let promise = resp.text()
-            .map_err(|err| format_err!("{:?}", err))?;
+        let promise = resp.text().map_err(|err| format_err!("{:?}", err))?;
 
-        let js_fut =  wasm_bindgen_futures::JsFuture::from(promise);
-        let body = js_fut.await
-            .map_err(|err| format_err!("{:?}", err))?;
+        let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
+        let body = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
 
         //web_sys::console::log_1(&body);
 
-        let text = body.as_string()
+        let text = body
+            .as_string()
             .ok_or_else(|| format_err!("Got non-utf8-string response"))?;
 
         if resp.ok() {
@@ -252,8 +260,8 @@ impl HttpClient {
                 return Ok(Value::Null);
             }
 
-            let json = serde_json::from_str(&text)
-                .map_err(|err| format_err!("invalid json: {}", err))?;
+            let json =
+                serde_json::from_str(&text).map_err(|err| format_err!("invalid json: {}", err))?;
 
             Ok(json)
         } else {

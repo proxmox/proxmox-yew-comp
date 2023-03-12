@@ -4,12 +4,14 @@ function async_sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function set_auth_cookie(value) {
-    document.cookie = "PBSAuthCookie=" + value;
+// name is PBSAuthCookie, PVEAuthCookie or PMGAuthCookie
+function set_auth_cookie(name, value) {
+    document.cookie = name + "=" + value;
 }
 
-function clear_auth_cookie() {
-    document.cookie = "PBSAuthCookie=; expires=Thu, 01-Jan-1970 00:00:01 GMT;";
+// name is PBSAuthCookie, PVEAuthCookie or PMGAuthCookie
+function clear_auth_cookie(name) {
+    document.cookie = name + "=; expires=Thu, 01-Jan-1970 00:00:01 GMT;";
 }
 
 function get_cookie() {

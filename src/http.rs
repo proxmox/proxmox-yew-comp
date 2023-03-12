@@ -5,12 +5,17 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::{LoginInfo, HttpClient};
+use crate::{HttpClient, LoginInfo, ProxmoxProduct};
 
-lazy_static::lazy_static!{
+lazy_static::lazy_static! {
     pub static ref CLIENT: Mutex<Arc<HttpClient>> = {
-        Mutex::new(Arc::new(HttpClient::new()))
+        Mutex::new(Arc::new(HttpClient::new(ProxmoxProduct::PBS)))
     };
+}
+
+pub fn http_setup(product: ProxmoxProduct) {
+    let client = HttpClient::new(product);
+    *CLIENT.lock().unwrap() = Arc::new(client);
 }
 
 pub fn http_set_auth(info: LoginInfo) {
@@ -21,7 +26,7 @@ pub fn http_set_auth(info: LoginInfo) {
 pub fn http_clear_auth() {
     let client = &*CLIENT.lock().unwrap();
     client.clear_auth();
-    crate::clear_auth_cookie();
+    crate::clear_auth_cookie(client.product().auth_cookie_name());
 }
 
 pub async fn http_login(
@@ -33,9 +38,9 @@ pub async fn http_login(
     let password = password.into();
     let realm = realm.into();
 
-    let client = HttpClient::new()
-        .with_credentials(format!("{}@{}", username, realm), password);
-
+    let product = CLIENT.lock().unwrap().product();
+    let client =
+        HttpClient::new(product).with_credentials(format!("{}@{}", username, realm), password);
 
     let info = client.login().await?;
 
@@ -52,10 +57,21 @@ pub struct Metadata {
 }
 
 fn extract_result_full<T: DeserializeOwned>(mut resp: Value) -> Result<(T, Metadata), Error> {
+    if let Some(success_integer) = resp["success"].as_u64() {
+        if success_integer == 0 {
+            resp["success"] = false.into();
+        }
+        if success_integer == 1 {
+            resp["success"] = true.into();
+        }
+    }
+
     let meta = Metadata::deserialize(&resp)?;
 
     if !meta.success {
-        let message = meta.message.unwrap_or_else(|| String::from("unknown error"));
+        let message = meta
+            .message
+            .unwrap_or_else(|| String::from("unknown error"));
         return Err(Error::msg(message));
     }
 
@@ -77,37 +93,25 @@ pub async fn http_get_full<T: DeserializeOwned>(
     extract_result_full(resp)
 }
 
-pub async fn http_get<T: DeserializeOwned>(
-    path: &str,
-    data: Option<Value>,
-) -> Result<T, Error> {
+pub async fn http_get<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
     let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.get(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
 
-pub async fn http_delete(
-    path: &str,
-    data: Option<Value>,
-) -> Result<Value, Error> {
+pub async fn http_delete(path: &str, data: Option<Value>) -> Result<Value, Error> {
     let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.delete(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
 
-pub async fn http_post(
-    path: &str,
-    data: Option<Value>,
-) -> Result<Value, Error> {
+pub async fn http_post(path: &str, data: Option<Value>) -> Result<Value, Error> {
     let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.post(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
 
-pub async fn http_put(
-    path: &str,
-    data: Option<Value>,
-) -> Result<Value, Error> {
+pub async fn http_put(path: &str, data: Option<Value>) -> Result<Value, Error> {
     let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.put(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
@@ -117,20 +121,20 @@ pub async fn http_put(
 ///
 /// You can directly pass the result of an API call that returns a UPID.
 pub async fn http_task_result(task: Result<Value, Error>) -> Result<Value, Error> {
-
     use crate::percent_encoding::percent_encode_component;
 
     let upid = match task {
-        Ok(value) => {
-            match value.as_str() {
-                None => bail!("http_task_result: missing UPID"),
-                Some(upid) => upid.to_string(),
-            }
-        }
+        Ok(value) => match value.as_str() {
+            None => bail!("http_task_result: missing UPID"),
+            Some(upid) => upid.to_string(),
+        },
         err => return err,
     };
 
-    let url = format!("/nodes/localhost/tasks/{}/status", percent_encode_component(&upid));
+    let url = format!(
+        "/nodes/localhost/tasks/{}/status",
+        percent_encode_component(&upid)
+    );
     log::info!("url {}", url);
 
     let mut stat: Value;
@@ -145,7 +149,9 @@ pub async fn http_task_result(task: Result<Value, Error>) -> Result<Value, Error
         let future: wasm_bindgen_futures::JsFuture = crate::async_sleep(sleep_time_ms).into();
         future.await.unwrap();
 
-        if sleep_time_ms < 1600 { sleep_time_ms *= 2; }
+        if sleep_time_ms < 1600 {
+            sleep_time_ms *= 2;
+        }
     }
 
     let status = stat["exitstatus"].as_str().unwrap_or("unknown");
