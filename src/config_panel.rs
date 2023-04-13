@@ -9,7 +9,7 @@ use yew::html::IntoPropValue;
 use pwt::prelude::*;
 use pwt::props::RenderFn;
 use pwt::state::NavigationContainer;
-use pwt::widget::TabBar;
+use pwt::widget::{TabBar, TabBarItem};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct ConfigPanel {
@@ -44,8 +44,9 @@ impl ConfigPanel {
         renderer: impl 'static + Fn(&()) -> Html,
     ) -> Self {
         let key = key.into();
+        let label = label.into();
 
-        self.bar.add_item(key.clone(), label, icon_class);
+        self.bar.add_item(TabBarItem::new().key(key.clone()).label(label).icon_class(icon_class));
 
         self.tabs.insert(key, RenderFn::new(renderer));
 

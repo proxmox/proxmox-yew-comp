@@ -10,7 +10,7 @@ use yew::html::IntoEventCallback;
 
 use pwt::prelude::*;
 use pwt::state::Loader;
-use pwt::widget::{Button, Column, Dialog, TabPanel, Toolbar};
+use pwt::widget::{Button, Column, Dialog, TabPanel, TabBarItem, Toolbar};
 
 use crate::{LogView, KVGrid, KVGridRow};
 use crate::percent_encoding::percent_encode_component;
@@ -148,8 +148,8 @@ impl Component for PwtTaskViewer {
 
             TabPanel::new()
                 .class("pwt-flex-fill pwt-overflow-auto")
-                .with_item("output", "Output", None::<&str>, self.view_output(ctx))
-                .with_item("status", "Status", None::<&str>, self.view_status(ctx, data.clone()))
+                .with_item(TabBarItem::new().label("Output"), self.view_output(ctx))
+                .with_item(TabBarItem::new().label("Status"), self.view_status(ctx, data.clone()))
         });
 
         Dialog::new("Task Viewer")
