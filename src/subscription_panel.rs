@@ -129,6 +129,7 @@ impl PwtSubscriptionPanel {
 
     fn create_toolbar(&self, ctx: &Context<Self>) -> Html {
         Toolbar::new()
+            .class("pwt-overflow-hidden")
             .with_child({
                 let link = ctx.link().clone();
                 Button::new("Upload Subscription Key").icon_class("fa fa-ticket")
