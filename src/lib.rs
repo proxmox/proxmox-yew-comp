@@ -10,9 +10,6 @@ pub use help_button::{HelpButton, PbsHelpButton};
 mod calendar_event_selector;
 pub use calendar_event_selector::CalendarEventSelector;
 
-mod config_panel;
-pub use config_panel::{PwtConfigPanel, ConfigPanel};
-
 mod edit_window;
 pub use edit_window::{EditWindow, PwtEditWindow};
 
@@ -68,7 +65,7 @@ extern "C" {
     pub fn uplot(opts: &JsValue, data: &JsValue, node: web_sys::Node) -> JsValue;
     pub fn uplot_set_data(uplot: &JsValue, data: &JsValue);
     pub fn uplot_set_size(uplot: &JsValue, width: usize, height: usize);
-   
+
     pub fn render_server_epoch(epoch: f64) -> String;
     pub fn render_timestamp(epoch: f64) -> String;
 }
