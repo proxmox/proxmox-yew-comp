@@ -70,7 +70,6 @@ impl LoginInfo {
 pub struct HttpClient {
     product: ProxmoxProduct,
     auth: Mutex<Option<LoginInfo>>,
-    credentials: Option<(String, String)>,
 }
 
 impl HttpClient {
@@ -78,8 +77,7 @@ impl HttpClient {
         Self {
             product,
             auth: Mutex::new(None),
-            credentials: None,
-        }
+       }
     }
 
     pub fn product(&self) -> ProxmoxProduct {
@@ -88,19 +86,6 @@ impl HttpClient {
 
     pub fn set_product(&mut self, product: ProxmoxProduct) {
         self.product = product;
-    }
-
-    pub fn with_credentials(
-        mut self,
-        username: impl Into<String>,
-        password: impl Into<String>,
-    ) -> Self {
-        self.set_credentials(username, password);
-        self
-    }
-
-    pub fn set_credentials(&mut self, username: impl Into<String>, password: impl Into<String>) {
-        self.credentials = Some((username.into(), password.into()));
     }
 
     pub fn set_auth(&self, info: LoginInfo) {
@@ -131,30 +116,32 @@ impl HttpClient {
         self.request(req).await
     }
 
-    pub async fn login(&self) -> Result<LoginInfo, Error> {
+    pub async fn login(
+        &self,
+        username: impl Into<String>,
+        password: impl Into<String>,
+    ) -> Result<LoginInfo, Error> {
+        let username = username.into();
+        let password = password.into();
+
         if let Some(auth) = self.auth.lock().unwrap().clone() {
             return Ok(auth);
         }
 
-        match self.credentials {
-            None => bail!("no credentials provided - unable to login"),
-            Some((ref username, ref password)) => {
-                let data = json!({ "username": username, "password": password });
-                let req = Self::request_builder("POST", "/api2/json/access/ticket", Some(data))?;
-                let mut resp = self.api_request(req).await?;
+        let data = json!({ "username": username, "password": password });
+        let req = Self::request_builder("POST", "/api2/json/access/ticket", Some(data))?;
+        let mut resp = self.api_request(req).await?;
 
-                let data = resp["data"].take();
-                let info: LoginInfo = serde_json::from_value(data)?;
+        let data = resp["data"].take();
+        let info: LoginInfo = serde_json::from_value(data)?;
 
-                let enc_ticket = percent_encode(info.ticket.as_bytes(), DEFAULT_ENCODE_SET);
-                crate::set_auth_cookie(self.product.auth_cookie_name(), &enc_ticket.to_string());
-                crate::store_csrf_token(&info.CSRFPreventionToken);
+        let enc_ticket = percent_encode(info.ticket.as_bytes(), DEFAULT_ENCODE_SET);
+        crate::set_auth_cookie(self.product.auth_cookie_name(), &enc_ticket.to_string());
+        crate::store_csrf_token(&info.CSRFPreventionToken);
 
-                *self.auth.lock().unwrap() = Some(info.clone());
+        *self.auth.lock().unwrap() = Some(info.clone());
 
-                Ok(info)
-            }
-        }
+        Ok(info)
     }
 
     fn request_builder(
@@ -202,11 +189,10 @@ impl HttpClient {
     }
 
     async fn request(&self, js_req: web_sys::Request) -> Result<Value, Error> {
-        let mut auth = self.auth.lock().unwrap().clone();
+        let auth = self.auth.lock().unwrap().clone();
 
-        if auth.is_none() && self.credentials.is_some() {
-            auth = Some(self.login().await?);
-            //log::info!("GOT AUTH {:?}", auth);
+        if auth.is_none() {
+            bail!("client is not authenticated - please login first");
         }
 
         if let Some(auth) = &auth {

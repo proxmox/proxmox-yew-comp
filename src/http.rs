@@ -39,10 +39,8 @@ pub async fn http_login(
     let realm = realm.into();
 
     let product = CLIENT.lock().unwrap().product();
-    let client =
-        HttpClient::new(product).with_credentials(format!("{}@{}", username, realm), password);
-
-    let info = client.login().await?;
+    let client = HttpClient::new(product);
+    let info = client.login(format!("{username}@{realm}"), password).await?;
 
     *CLIENT.lock().unwrap() = Arc::new(client);
 
