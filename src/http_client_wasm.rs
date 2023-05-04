@@ -3,7 +3,9 @@ use std::sync::Mutex;
 use anyhow::{bail, format_err, Error};
 use percent_encoding::percent_encode;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
+
+use proxmox_login::Login;
 
 use crate::percent_encoding::DEFAULT_ENCODE_SET;
 use crate::ProxmoxProduct;
@@ -128,8 +130,8 @@ impl HttpClient {
             return Ok(auth);
         }
 
-        let data = json!({ "username": username, "password": password });
-        let req = Self::request_builder("POST", "/api2/json/access/ticket", Some(data))?;
+        let login = Login::new("", username, password).request();
+        let req = Self::post_request_builder(&login.url, &login.content_type, &login.body)?;
         let mut resp = self.api_request(req).await?;
 
         let data = resp["data"].take();
@@ -142,6 +144,31 @@ impl HttpClient {
         *self.auth.lock().unwrap() = Some(info.clone());
 
         Ok(info)
+    }
+
+    fn post_request_builder(
+        url: &str,
+        content_type: &'static str,
+        data: &str,
+    ) -> Result<web_sys::Request, Error> {
+        let mut init = web_sys::RequestInit::new();
+        init.method("POST");
+
+        let js_headers = web_sys::Headers::new().map_err(|err| format_err!("{:?}", err))?;
+
+        js_headers
+            .append("cache-control", "no-cache")
+            .map_err(|err| format_err!("{:?}", err))?;
+
+        js_headers
+            .append("content-type", content_type)
+            .map_err(|err| format_err!("{:?}", err))?;
+
+        init.body(Some(&wasm_bindgen::JsValue::from_str(&data)));
+        init.headers(&js_headers);
+
+        web_sys::Request::new_with_str_and_init(&url, &init)
+            .map_err(|err| format_err!("{:?}", err))
     }
 
     fn request_builder(
@@ -222,6 +249,14 @@ impl HttpClient {
     }
 
     async fn api_request(&self, js_req: web_sys::Request) -> Result<Value, Error> {
+        let text = self.api_request_raw(js_req).await?;
+        if text.is_empty() {
+            return Ok(Value::Null);
+        }
+        serde_json::from_str(&text).map_err(|err| format_err!("invalid json: {}", err))
+    }
+
+    async fn api_request_raw(&self, js_req: web_sys::Request) -> Result<String, Error> {
         let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
 
         let promise = window.fetch_with_request(&js_req);
@@ -242,14 +277,7 @@ impl HttpClient {
             .ok_or_else(|| format_err!("Got non-utf8-string response"))?;
 
         if resp.ok() {
-            if text.is_empty() {
-                return Ok(Value::Null);
-            }
-
-            let json =
-                serde_json::from_str(&text).map_err(|err| format_err!("invalid json: {}", err))?;
-
-            Ok(json)
+            return Ok(text);
         } else {
             bail!("HTTP status {}: {}", resp.status(), resp.status_text());
         }
