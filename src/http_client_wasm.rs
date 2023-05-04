@@ -124,7 +124,8 @@ impl HttpClient {
 
         let login = Login::new("", username, password);
         let request = login.request();
-        let request = Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
+        let request =
+            Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
         let resp = self.api_request_raw(request).await?;
 
         let ticket_result = login.response(&resp)?;
@@ -221,25 +222,8 @@ impl HttpClient {
                 .append("CSRFPreventionToken", &auth.csrfprevention_token)
                 .map_err(|err| format_err!("{:?}", err))?;
 
-            if auth.ticket.userid().contains('!') // fixme:
-            /* is_token */
-            {
-                /*
-                let enc_api_token = format!(
-                    "{}APIToken {}:{}",
-                    auth.product(),
-                    auth.username,
-                    percent_encode(auth.ticket.as_bytes(), DEFAULT_ENCODE_SET),
-                );
-                headers
-                    .append("Authorization", &enc_api_token)
-                    .map_err(|err| format_err!("{:?}", err))?;
-                */
-                todo!();
-            } else {
-                let cookie = auth.ticket.cookie();
-                crate::set_cookie(&cookie);
-            }
+            let cookie = auth.ticket.cookie();
+            crate::set_cookie(&cookie);
         }
 
         self.api_request(js_req).await
