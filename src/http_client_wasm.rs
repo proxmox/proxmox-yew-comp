@@ -218,10 +218,6 @@ impl HttpClient {
     async fn request(&self, js_req: web_sys::Request) -> Result<Value, Error> {
         let auth = self.auth.lock().unwrap().clone();
 
-        if auth.is_none() {
-            bail!("client is not authenticated - please login first");
-        }
-
         if let Some(auth) = &auth {
             let headers = js_req.headers();
             headers
