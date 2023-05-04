@@ -1,15 +1,16 @@
 use yew::prelude::*;
 
 use pwt::prelude::*;
-use crate::LoginInfo;
 use pwt::widget::{Column, InputPanel, Mask, Row};
 use pwt::widget::form::{Field, Form, FormContext, SubmitButton, ResetButton};
+
+use proxmox_login::Authentication;
 
 use crate::RealmSelector;
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct LoginPanelProps {
-   pub onlogin: Callback<LoginInfo>,
+   pub onlogin: Callback<Authentication>,
 }
 
 pub enum Msg {

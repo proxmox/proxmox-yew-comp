@@ -5,7 +5,9 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::{HttpClient, LoginInfo, ProxmoxProduct};
+use proxmox_login::Authentication;
+
+use crate::{HttpClient, ProxmoxProduct};
 
 lazy_static::lazy_static! {
     pub static ref CLIENT: Mutex<Arc<HttpClient>> = {
@@ -18,7 +20,7 @@ pub fn http_setup(product: ProxmoxProduct) {
     *CLIENT.lock().unwrap() = Arc::new(client);
 }
 
-pub fn http_set_auth(info: LoginInfo) {
+pub fn http_set_auth(info: Authentication) {
     let client = &*CLIENT.lock().unwrap();
     client.set_auth(info);
 }
@@ -33,7 +35,7 @@ pub async fn http_login(
     username: impl Into<String>,
     password: impl Into<String>,
     realm: impl Into<String>,
-) -> Result<LoginInfo, Error> {
+) -> Result<Authentication, Error> {
     let username = username.into();
     let password = password.into();
     let realm = realm.into();
