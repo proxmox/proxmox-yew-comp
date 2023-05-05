@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use anyhow::{bail, format_err, Error};
-//use percent_encoding::percent_encode;
+use percent_encoding::percent_decode_str;
 //use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -34,6 +34,12 @@ fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String)>
     for part in cookie.split(';') {
         let part = part.trim();
         if let Some((key, value)) = part.split_once('=') {
+            // cookie value can be percent encoded
+            let value = match percent_decode_str(value).decode_utf8() {
+                Ok(value) => value,
+                Err(_) => continue,
+            };
+
             if product == ProxmoxProduct::PBS && key == "PBSAuthCookie" {
                 let items: Vec<&str> = value.split(':').take(2).collect();
                 if items[0] == "PBS" {
@@ -82,8 +88,11 @@ impl HttpClient {
         self.product = product;
     }
 
-    pub fn set_auth(&self, info: Authentication) {
-        *self.auth.lock().unwrap() = Some(info);
+    pub fn set_auth(&self, auth: Authentication) {
+        let cookie = auth.ticket.cookie();
+        crate::set_cookie(&cookie);
+        crate::store_csrf_token(&auth.csrfprevention_token);
+        *self.auth.lock().unwrap() = Some(auth);
     }
 
     pub fn clear_auth(&self) {
@@ -114,13 +123,9 @@ impl HttpClient {
         &self,
         username: impl Into<String>,
         password: impl Into<String>,
-    ) -> Result<Authentication, Error> {
+    ) -> Result<TicketResult, Error> {
         let username = username.into();
         let password = password.into();
-
-        if let Some(auth) = self.auth.lock().unwrap().clone() {
-            return Ok(auth);
-        }
 
         let login = Login::new("", username, password);
         let request = login.request();
@@ -128,7 +133,9 @@ impl HttpClient {
             Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
         let resp = self.api_request_raw(request).await?;
 
-        let ticket_result = login.response(&resp)?;
+        Ok(login.response(&resp)?)
+
+        /*
         match ticket_result {
             TicketResult::Full(auth) => {
                 let cookie = auth.ticket.cookie();
@@ -142,6 +149,7 @@ impl HttpClient {
                 bail!("TFA required but not implemented");
             }
         }
+        */
     }
 
     // This is useful to create web_sys::Request from proxmox-login::Request

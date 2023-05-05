@@ -4,7 +4,7 @@ use pwt::prelude::*;
 use pwt::widget::{Column, InputPanel, Mask, Row};
 use pwt::widget::form::{Field, Form, FormContext, SubmitButton, ResetButton};
 
-use proxmox_login::Authentication;
+use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
 
 use crate::RealmSelector;
 
@@ -18,12 +18,14 @@ pub enum Msg {
     Submit,
     Login,
     LoginError(String),
+    Challenge(SecondFactorChallenge),
 }
 
 pub struct LoginPanel {
     loading: bool,
     login_error: Option<String>,
     form_ctx: FormContext,
+    challenge: Option<SecondFactorChallenge>,
 }
 
 impl Component for LoginPanel {
@@ -37,6 +39,7 @@ impl Component for LoginPanel {
             form_ctx,
             loading: false,
             login_error: None,
+            challenge: None,
         }
     }
 
@@ -45,6 +48,10 @@ impl Component for LoginPanel {
         match msg {
             Msg::FormDataChange => {
                 self.login_error = None;
+                true
+            }
+            Msg::Challenge(challenge) => {
+                //self.challenge = Some(challenge);
                 true
             }
             Msg::Submit => {
@@ -63,9 +70,12 @@ impl Component for LoginPanel {
                 //log::info!("Submit {} {}", username, realm);
                 wasm_bindgen_futures::spawn_local(async move {
                     match crate::http_login(username, password, realm).await {
-                        Ok(info) => {
+                        Ok(TicketResult::Full(info)) => {
                             props.onlogin.emit(info);
                             link.send_message(Msg::Login);
+                        }
+                        Ok(TicketResult::TfaRequired(challenge)) => {
+                            link.send_message(Msg::Challenge(challenge));
                         }
                         Err(err) => {
                             log::error!("ERROR: {:?}", err);
@@ -92,7 +102,7 @@ impl Component for LoginPanel {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let link = ctx.link().clone();
 
-        let input_panel = InputPanel::new()
+        let mut input_panel = InputPanel::new()
             .class("pwt-p-2")
             .with_field(
                 "User name",
@@ -113,6 +123,10 @@ impl Component for LoginPanel {
                 "Realm",
                 RealmSelector::new().name("realm"),
             );
+
+        if self.challenge.is_some() {
+            // TODO
+        }
 
         let toolbar = Row::new()
             .padding(2)

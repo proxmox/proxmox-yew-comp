@@ -4,8 +4,8 @@ function async_sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function set_cookie(name, value) {
-    document.cookie = name + "=" + value;
+function set_cookie(value) {
+    document.cookie = value;
 }
 
 // name is PBSAuthCookie, PVEAuthCookie or PMGAuthCookie

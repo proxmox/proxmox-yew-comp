@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use proxmox_login::Authentication;
+use proxmox_login::{Authentication, TicketResult};
 
 use crate::{HttpClient, ProxmoxProduct};
 
@@ -35,19 +35,25 @@ pub async fn http_login(
     username: impl Into<String>,
     password: impl Into<String>,
     realm: impl Into<String>,
-) -> Result<Authentication, Error> {
+) -> Result<TicketResult, Error> {
     let username = username.into();
     let password = password.into();
     let realm = realm.into();
 
     let product = CLIENT.lock().unwrap().product();
     let client = HttpClient::new(product);
-    let info = client.login(format!("{username}@{realm}"), password).await?;
+    let ticket_result = client.login(format!("{username}@{realm}"), password).await?;
 
-    *CLIENT.lock().unwrap() = Arc::new(client);
-
-    Ok(info)
+    match ticket_result {
+        TicketResult::Full(auth) => {
+            client.set_auth(auth.clone());
+            *CLIENT.lock().unwrap() = Arc::new(client);
+            Ok(TicketResult::Full(auth))
+        }
+        challenge => Ok(challenge),
+    }
 }
+
 
 #[derive(Deserialize)]
 pub struct Metadata {
