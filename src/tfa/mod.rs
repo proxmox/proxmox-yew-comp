@@ -46,11 +46,13 @@ pub struct PbsTfaDialog {}
 fn render_totp(callback: Option<Callback<String>>) -> Html {
     Form::new()
         .padding(2)
-        .class("pwt-d-flex pwt-flex-direction-column pwt-gap-2")
+        .class("pwt-flex-fill pwt-d-flex pwt-flex-direction-column pwt-gap-2")
         .with_child(html! {<div>{"Please enter your TOTP verification code"}</div>})
         .with_child(Field::new().name("data").required(true).autofocus(true))
+        .with_child(html!{<div style="flex: 1 1 auto;"/>})
         .with_child(
             SubmitButton::new()
+                .class("pwt-align-self-flex-end")
                 .class("pwt-scheme-primary")
                 .text("Confirm")
                 .on_submit({
@@ -68,11 +70,13 @@ fn render_totp(callback: Option<Callback<String>>) -> Html {
 fn render_yubico(callback: Option<Callback<String>>) -> Html {
     Form::new()
         .padding(2)
-        .class("pwt-d-flex pwt-flex-direction-column pwt-gap-2")
+        .class("pwt-flex-fill pwt-d-flex pwt-flex-direction-column pwt-gap-2")
         .with_child(html! {<div>{"Please enter your Yubico OTP code"}</div>})
         .with_child(Field::new().name("data").required(true).autofocus(true))
+        .with_child(html!{<div style="flex: 1 1 auto;"/>})
         .with_child(
             SubmitButton::new()
+                .class("pwt-align-self-flex-end")
                 .class("pwt-scheme-primary")
                 .text("Confirm")
                 .on_submit({
@@ -87,14 +91,30 @@ fn render_yubico(callback: Option<Callback<String>>) -> Html {
         .into()
 }
 
-fn render_recovery(callback: Option<Callback<String>>) -> Html {
+fn render_recovery(callback: Option<Callback<String>>, available_keys: &[usize]) -> Html {
+    if available_keys.is_empty() {
+        let msg = "No more recovery keys available.";
+        return pwt::widget::error_message(msg, "pwt-p-2");
+    }
+
     Form::new()
         .padding(2)
-        .class("pwt-d-flex pwt-flex-direction-column pwt-gap-2")
+        .class("pwt-flex-fill pwt-d-flex pwt-flex-direction-column pwt-gap-2")
         .with_child(html! {<div>{"Please enter one of your single-use recovery keys"}</div>})
+        .with_child(html! {<div>{format!{"Available recovery keys: {:?}", available_keys}}</div>})
         .with_child(Field::new().name("data").required(true).autofocus(true))
+        .with_optional_child((available_keys.len() <= 13).then(|| {
+            html! {<div>{
+                format!(
+                    "Less than {0} recovery keys available. Please generate a new set after login!",
+                    available_keys.len() + 1,
+                )
+            }</div>}
+        }))
+        .with_child(html!{<div style="flex: 1 1 auto;"/>})
         .with_child(
             SubmitButton::new()
+                .class("pwt-align-self-flex-end")
                 .class("pwt-scheme-primary")
                 .text("Confirm")
                 .on_submit({
@@ -120,7 +140,7 @@ impl Component for PbsTfaDialog {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let mut panel = TabPanel::new();
+        let mut panel = TabPanel::new().class("pwt-flex-fill");
 
         if props.challenge.challenge.totp {
             panel.add_item_builder(TabBarItem::new().key("totp").label("TOTP App"), {
@@ -139,11 +159,13 @@ impl Component for PbsTfaDialog {
         if props.challenge.challenge.recovery.is_available() {
             panel.add_item_builder(TabBarItem::new().key("recovery").label("Recovery Key"), {
                 let on_recovery = props.on_recovery.clone();
-                move |_| render_recovery(on_recovery.clone())
+                let available_keys = props.challenge.challenge.recovery.0.clone();
+                move |_| render_recovery(on_recovery.clone(), &available_keys)
             });
         }
 
         Dialog::new("Second login factor required")
+            .style("min-width:600px;min-height:300px;")
             .with_child(panel)
             .on_close(props.on_close.clone())
             .into()
