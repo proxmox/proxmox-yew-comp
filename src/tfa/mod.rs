@@ -27,6 +27,9 @@ pub struct TfaDialog {
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
     pub on_totp: Option<Callback<String>>,
 
+    #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    pub on_yubico: Option<Callback<String>>,
+
 }
 
 impl TfaDialog {
@@ -38,7 +41,7 @@ impl TfaDialog {
 
 pub struct PbsTfaDialog {}
 
-fn render_totp(on_totp: Option<Callback<String>>) -> Html {
+fn render_totp(callback: Option<Callback<String>>) -> Html {
     Form::new()
         .padding(2)
         .class("pwt-d-flex pwt-flex-direction-column pwt-gap-2")
@@ -51,8 +54,30 @@ fn render_totp(on_totp: Option<Callback<String>>) -> Html {
                 .on_submit({
                     move |form_ctx: FormContext| {
                         let data = form_ctx.read().get_field_text("data");
-                        if let Some(on_totp) = &on_totp {
-                            on_totp.emit(data);
+                        if let Some(callback) = &callback {
+                            callback.emit(data);
+                        }
+                    }
+                }),
+        )
+        .into()
+}
+
+fn render_yubico(callback: Option<Callback<String>>) -> Html {
+    Form::new()
+        .padding(2)
+        .class("pwt-d-flex pwt-flex-direction-column pwt-gap-2")
+        .with_child(html! {<div>{"Please enter your Yubico OTP code"}</div>})
+        .with_child(Field::new().name("data").required(true).autofocus(true))
+        .with_child(
+            SubmitButton::new()
+                .class("pwt-scheme-primary")
+                .text("Confirm")
+                .on_submit({
+                    move |form_ctx: FormContext| {
+                        let data = form_ctx.read().get_field_text("data");
+                        if let Some(callback) = &callback {
+                            callback.emit(data);
                         }
                     }
                 }),
@@ -77,6 +102,13 @@ impl Component for PbsTfaDialog {
             panel.add_item_builder(TabBarItem::new().key("totp").label("TOPT"), {
                 let on_totp = props.on_totp.clone();
                 move |_| render_totp(on_totp.clone())
+            });
+        }
+
+        if props.challenge.challenge.yubico {
+            panel.add_item_builder(TabBarItem::new().key("yubico").label("Yubico"), {
+                let on_yubico = props.on_yubico.clone();
+                move |_| render_totp(on_yubico.clone())
             });
         }
 

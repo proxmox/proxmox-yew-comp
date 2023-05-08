@@ -23,6 +23,7 @@ pub enum Msg {
     Challenge(SecondFactorChallenge),
     AbortTfa,
     Totp(String),
+    Yubico(String),
 }
 
 pub struct LoginPanel {
@@ -126,6 +127,23 @@ impl Component for LoginPanel {
                 Self::send_tfa_response(ctx, challenge, response);
                 true
             }
+            Msg::Yubico(data) => {
+                let challenge = match self.challenge.take() {
+                    Some(challenge) => challenge,
+                    None => return true, // should never happen
+                };
+
+                let response = match challenge.respond_yubico(&data) {
+                    Ok(response) => response,
+                    Err(err) => {
+                        ctx.link().send_message(Msg::LoginError(err.to_string()));
+                        return true;
+                    }
+                };
+
+                Self::send_tfa_response(ctx, challenge, response);
+                true
+            }
             Msg::Submit => {
                 self.loading = true;
 
@@ -175,7 +193,8 @@ impl Component for LoginPanel {
             Some(challenge) => Some(
                 TfaDialog::new(challenge.clone())
                     .on_close(ctx.link().callback(|_| Msg::AbortTfa))
-                    .on_totp(ctx.link().callback(Msg::Totp)),
+                    .on_totp(ctx.link().callback(Msg::Totp))
+                    .on_yubico(ctx.link().callback(Msg::Yubico))
             ),
             None => None,
         };
