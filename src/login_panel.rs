@@ -33,6 +33,31 @@ pub struct LoginPanel {
 }
 
 impl LoginPanel {
+    fn send_login(
+        ctx: &Context<Self>,
+        username: String,
+        password: String,
+        realm: String,
+    ) {
+        let link = ctx.link().clone();
+        let onlogin = ctx.props().onlogin.clone();
+
+        wasm_bindgen_futures::spawn_local(async move {
+            match crate::http_login(username, password, realm).await {
+                Ok(TicketResult::Full(info)) => {
+                    onlogin.emit(info);
+                    link.send_message(Msg::Login);
+                }
+                Ok(TicketResult::TfaRequired(challenge)) => {
+                    link.send_message(Msg::Challenge(challenge));
+                }
+                Err(err) => {
+                    link.send_message(Msg::LoginError(err.to_string()));
+                }
+            }
+        });
+    }
+
     fn send_tfa_response(
         ctx: &Context<Self>,
         challenge: Rc<proxmox_login::SecondFactorChallenge>,
@@ -48,7 +73,6 @@ impl LoginPanel {
                     link.send_message(Msg::Login);
                 }
                 Err(err) => {
-                    log::error!("ERROR: {:?}", err);
                     link.send_message(Msg::LoginError(err.to_string()));
                 }
             }
@@ -105,33 +129,11 @@ impl Component for LoginPanel {
             Msg::Submit => {
                 self.loading = true;
 
-                //let data = self.form_state.get_submit_data();
-                //log::info!("Submit Data {:?}", data);
-
-                let props = ctx.props().clone();
-                let link = ctx.link().clone();
-
                 let username = self.form_ctx.read().get_field_text("username");
                 let password = self.form_ctx.read().get_field_text("password");
                 let realm = self.form_ctx.read().get_field_text("realm");
 
-                //log::info!("Submit {} {}", username, realm);
-                wasm_bindgen_futures::spawn_local(async move {
-                    match crate::http_login(username, password, realm).await {
-                        Ok(TicketResult::Full(info)) => {
-                            props.onlogin.emit(info);
-                            link.send_message(Msg::Login);
-                        }
-                        Ok(TicketResult::TfaRequired(challenge)) => {
-                            link.send_message(Msg::Challenge(challenge));
-                        }
-                        Err(err) => {
-                            log::error!("ERROR: {:?}", err);
-                            link.send_message(Msg::LoginError(err.to_string()));
-                        }
-                    }
-                });
-
+                Self::send_login(ctx, username, password, realm);
                 true
             }
             Msg::Login => {
