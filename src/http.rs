@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{bail, Error};
@@ -52,6 +53,18 @@ pub async fn http_login(
         }
         challenge => Ok(challenge),
     }
+}
+
+pub async fn http_login_tfa(
+    challenge: Rc<proxmox_login::SecondFactorChallenge>,
+    request: proxmox_login::Request,
+) -> Result<Authentication, Error> {
+    let product = CLIENT.lock().unwrap().product();
+    let client = HttpClient::new(product);
+    let auth = client.login_tfa(challenge, request).await?;
+    client.set_auth(auth.clone());
+    *CLIENT.lock().unwrap() = Arc::new(client);
+    Ok(auth)
 }
 
 

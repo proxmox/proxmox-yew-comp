@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::Mutex;
 
 use anyhow::{bail, format_err, Error};
@@ -134,22 +135,16 @@ impl HttpClient {
         let resp = self.api_request_raw(request).await?;
 
         Ok(login.response(&resp)?)
+    }
 
-        /*
-        match ticket_result {
-            TicketResult::Full(auth) => {
-                let cookie = auth.ticket.cookie();
-                //let enc_ticket = percent_encode(auth.ticket.as_bytes(), DEFAULT_ENCODE_SET);
-                crate::set_cookie(&cookie);
-                crate::store_csrf_token(&auth.csrfprevention_token);
-                *self.auth.lock().unwrap() = Some(auth.clone());
-                Ok(auth)
-            }
-            TicketResult::TfaRequired(_challenge) => {
-                bail!("TFA required but not implemented");
-            }
-        }
-        */
+    pub async fn login_tfa(
+        &self,
+        challenge: Rc<proxmox_login::SecondFactorChallenge>,
+        request: proxmox_login::Request,
+    ) -> Result<Authentication, Error> {
+        let request = Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
+        let resp = self.api_request_raw(request).await?;
+        Ok(challenge.response(&resp)?)
     }
 
     // This is useful to create web_sys::Request from proxmox-login::Request

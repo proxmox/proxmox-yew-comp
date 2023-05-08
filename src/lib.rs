@@ -37,6 +37,9 @@ pub use journal_view::JournalView;
 mod subscription_panel;
 pub use subscription_panel::{SubscriptionPanel, PwtSubscriptionPanel};
 
+mod tfa;
+pub use tfa::{TfaDialog, PbsTfaDialog};
+
 mod time_zone_selector;
 pub use time_zone_selector::{TimezoneSelector, ProxmoxTimezoneSelector};
 

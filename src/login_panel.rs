@@ -1,16 +1,18 @@
+use std::rc::Rc;
+
 use yew::prelude::*;
 
 use pwt::prelude::*;
+use pwt::widget::form::{Field, Form, FormContext, ResetButton, SubmitButton};
 use pwt::widget::{Column, InputPanel, Mask, Row};
-use pwt::widget::form::{Field, Form, FormContext, SubmitButton, ResetButton};
 
 use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
 
-use crate::RealmSelector;
+use crate::{RealmSelector, TfaDialog};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct LoginPanelProps {
-   pub onlogin: Callback<Authentication>,
+    pub onlogin: Callback<Authentication>,
 }
 
 pub enum Msg {
@@ -19,13 +21,39 @@ pub enum Msg {
     Login,
     LoginError(String),
     Challenge(SecondFactorChallenge),
+    AbortTfa,
+    Totp(String),
 }
 
 pub struct LoginPanel {
     loading: bool,
     login_error: Option<String>,
     form_ctx: FormContext,
-    challenge: Option<SecondFactorChallenge>,
+    challenge: Option<Rc<SecondFactorChallenge>>,
+}
+
+impl LoginPanel {
+    fn send_tfa_response(
+        ctx: &Context<Self>,
+        challenge: Rc<proxmox_login::SecondFactorChallenge>,
+        response: proxmox_login::Request,
+    ) {
+        let link = ctx.link().clone();
+        let onlogin = ctx.props().onlogin.clone();
+
+        wasm_bindgen_futures::spawn_local(async move {
+            match crate::http_login_tfa(challenge, response).await {
+                Ok(info) => {
+                    onlogin.emit(info);
+                    link.send_message(Msg::Login);
+                }
+                Err(err) => {
+                    log::error!("ERROR: {:?}", err);
+                    link.send_message(Msg::LoginError(err.to_string()));
+                }
+            }
+        });
+    }
 }
 
 impl Component for LoginPanel {
@@ -33,8 +61,7 @@ impl Component for LoginPanel {
     type Properties = LoginPanelProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let form_ctx = FormContext::new()
-            .on_change(ctx.link().callback(|_| Msg::FormDataChange));
+        let form_ctx = FormContext::new().on_change(ctx.link().callback(|_| Msg::FormDataChange));
         Self {
             form_ctx,
             loading: false,
@@ -43,7 +70,6 @@ impl Component for LoginPanel {
         }
     }
 
-
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::FormDataChange => {
@@ -51,7 +77,29 @@ impl Component for LoginPanel {
                 true
             }
             Msg::Challenge(challenge) => {
-                //self.challenge = Some(challenge);
+                self.challenge = Some(Rc::new(challenge));
+                true
+            }
+            Msg::AbortTfa => {
+                self.loading = false;
+                self.challenge = None;
+                true
+            }
+            Msg::Totp(data) => {
+                let challenge = match self.challenge.take() {
+                    Some(challenge) => challenge,
+                    None => return true, // should never happen
+                };
+
+                let response = match challenge.respond_totp(&data) {
+                    Ok(response) => response,
+                    Err(err) => {
+                        ctx.link().send_message(Msg::LoginError(err.to_string()));
+                        return true;
+                    }
+                };
+
+                Self::send_tfa_response(ctx, challenge, response);
                 true
             }
             Msg::Submit => {
@@ -82,8 +130,7 @@ impl Component for LoginPanel {
                             link.send_message(Msg::LoginError(err.to_string()));
                         }
                     }
-
-                 });
+                });
 
                 true
             }
@@ -93,6 +140,7 @@ impl Component for LoginPanel {
             }
             Msg::LoginError(msg) => {
                 self.loading = false;
+                self.challenge = None;
                 self.login_error = Some(msg);
                 true
             }
@@ -102,7 +150,7 @@ impl Component for LoginPanel {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let link = ctx.link().clone();
 
-        let mut input_panel = InputPanel::new()
+        let input_panel = InputPanel::new()
             .class("pwt-p-2")
             .with_field(
                 "User name",
@@ -110,23 +158,25 @@ impl Component for LoginPanel {
                     .name("username")
                     .default("root")
                     .required(true)
-                    .autofocus(true)
+                    .autofocus(true),
             )
             .with_field(
                 "Password",
                 Field::new()
                     .name("password")
                     .required(true)
-                    .input_type("password")
+                    .input_type("password"),
             )
-            .with_field(
-                "Realm",
-                RealmSelector::new().name("realm"),
-            );
+            .with_field("Realm", RealmSelector::new().name("realm"));
 
-        if self.challenge.is_some() {
-            // TODO
-        }
+        let tfa_dialog = match &self.challenge {
+            Some(challenge) => Some(
+                TfaDialog::new(challenge.clone())
+                    .on_close(ctx.link().callback(|_| Msg::AbortTfa))
+                    .on_totp(ctx.link().callback(Msg::Totp)),
+            ),
+            None => None,
+        };
 
         let toolbar = Row::new()
             .padding(2)
@@ -137,14 +187,17 @@ impl Component for LoginPanel {
             .with_child(
                 SubmitButton::new()
                     .text("Login")
-                    .on_submit(link.callback(move |_| Msg::Submit))
+                    .on_submit(link.callback(move |_| Msg::Submit)),
             );
 
         let form_panel = Column::new()
             .with_child(input_panel)
-            .with_optional_child(self.login_error.as_ref().map(|msg| {
-                pwt::widget::error_message(msg, "pwt-p-2")
-            }))
+            .with_optional_child(tfa_dialog)
+            .with_optional_child(
+                self.login_error
+                    .as_ref()
+                    .map(|msg| pwt::widget::error_message(msg, "pwt-p-2")),
+            )
             .with_child(toolbar);
 
         Mask::new()
@@ -152,7 +205,7 @@ impl Component for LoginPanel {
             .with_child(
                 Form::new()
                     .form_context(self.form_ctx.clone())
-                    .with_child(form_panel)
+                    .with_child(form_panel),
             )
             .into()
     }
