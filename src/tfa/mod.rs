@@ -30,6 +30,8 @@ pub struct TfaDialog {
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
     pub on_yubico: Option<Callback<String>>,
 
+    #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    pub on_recovery: Option<Callback<String>>,
 }
 
 impl TfaDialog {
@@ -85,6 +87,28 @@ fn render_yubico(callback: Option<Callback<String>>) -> Html {
         .into()
 }
 
+fn render_recovery(callback: Option<Callback<String>>) -> Html {
+    Form::new()
+        .padding(2)
+        .class("pwt-d-flex pwt-flex-direction-column pwt-gap-2")
+        .with_child(html! {<div>{"Please enter one of your single-use recovery keys"}</div>})
+        .with_child(Field::new().name("data").required(true).autofocus(true))
+        .with_child(
+            SubmitButton::new()
+                .class("pwt-scheme-primary")
+                .text("Confirm")
+                .on_submit({
+                    move |form_ctx: FormContext| {
+                        let data = form_ctx.read().get_field_text("data");
+                        if let Some(callback) = &callback {
+                            callback.emit(data);
+                        }
+                    }
+                }),
+        )
+        .into()
+}
+
 impl Component for PbsTfaDialog {
     type Message = ();
     type Properties = TfaDialog;
@@ -99,16 +123,23 @@ impl Component for PbsTfaDialog {
         let mut panel = TabPanel::new();
 
         if props.challenge.challenge.totp {
-            panel.add_item_builder(TabBarItem::new().key("totp").label("TOPT"), {
+            panel.add_item_builder(TabBarItem::new().key("totp").label("TOTP App"), {
                 let on_totp = props.on_totp.clone();
                 move |_| render_totp(on_totp.clone())
             });
         }
 
         if props.challenge.challenge.yubico {
-            panel.add_item_builder(TabBarItem::new().key("yubico").label("Yubico"), {
+            panel.add_item_builder(TabBarItem::new().key("yubico").label("Yubico OTP"), {
                 let on_yubico = props.on_yubico.clone();
                 move |_| render_totp(on_yubico.clone())
+            });
+        }
+
+        if props.challenge.challenge.recovery.is_available() {
+            panel.add_item_builder(TabBarItem::new().key("recovery").label("Recovery Key"), {
+                let on_recovery = props.on_recovery.clone();
+                move |_| render_recovery(on_recovery.clone())
             });
         }
 

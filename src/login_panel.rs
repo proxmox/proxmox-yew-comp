@@ -24,6 +24,7 @@ pub enum Msg {
     AbortTfa,
     Totp(String),
     Yubico(String),
+    RecoveryKey(String),
 }
 
 pub struct LoginPanel {
@@ -144,6 +145,23 @@ impl Component for LoginPanel {
                 Self::send_tfa_response(ctx, challenge, response);
                 true
             }
+            Msg::RecoveryKey(data) => {
+                let challenge = match self.challenge.take() {
+                    Some(challenge) => challenge,
+                    None => return true, // should never happen
+                };
+
+                let response = match challenge.respond_recovery(&data) {
+                    Ok(response) => response,
+                    Err(err) => {
+                        ctx.link().send_message(Msg::LoginError(err.to_string()));
+                        return true;
+                    }
+                };
+
+                Self::send_tfa_response(ctx, challenge, response);
+                true
+            }
             Msg::Submit => {
                 self.loading = true;
 
@@ -195,6 +213,7 @@ impl Component for LoginPanel {
                     .on_close(ctx.link().callback(|_| Msg::AbortTfa))
                     .on_totp(ctx.link().callback(Msg::Totp))
                     .on_yubico(ctx.link().callback(Msg::Yubico))
+                    .on_recovery(ctx.link().callback(Msg::RecoveryKey))
             ),
             None => None,
         };
