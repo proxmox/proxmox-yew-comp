@@ -166,6 +166,7 @@ impl Component for PbsTfaDialog {
 
         Dialog::new("Second login factor required")
             .style("min-width:600px;min-height:300px;")
+            .resizable(true)
             .with_child(panel)
             .on_close(props.on_close.clone())
             .into()
