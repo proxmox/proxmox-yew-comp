@@ -25,6 +25,7 @@ pub enum Msg {
     Totp(String),
     Yubico(String),
     RecoveryKey(String),
+    WebAuthn(String),
 }
 
 pub struct LoginPanel {
@@ -162,6 +163,26 @@ impl Component for LoginPanel {
                 Self::send_tfa_response(ctx, challenge, response);
                 true
             }
+
+            Msg::WebAuthn(_data) => {
+                let _challenge = match self.challenge.take() {
+                    Some(challenge) => challenge,
+                    None => return true, // should never happen
+                };
+
+                /* diabled for now (requires feature webauthn)
+                let response = match challenge.respond_webauthn(&data) {
+                    Ok(response) => response,
+                    Err(err) => {
+                        ctx.link().send_message(Msg::LoginError(err.to_string()));
+                        return true;
+                    }
+                };
+
+                Self::send_tfa_response(ctx, challenge, response);
+                */
+                true
+            }
             Msg::Submit => {
                 self.loading = true;
 
@@ -214,6 +235,7 @@ impl Component for LoginPanel {
                     .on_totp(ctx.link().callback(Msg::Totp))
                     .on_yubico(ctx.link().callback(Msg::Yubico))
                     .on_recovery(ctx.link().callback(Msg::RecoveryKey))
+                    .on_webauthn(ctx.link().callback(Msg::WebAuthn))
             ),
             None => None,
         };

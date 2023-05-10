@@ -1,3 +1,6 @@
+mod webauthn;
+pub use webauthn::{WebAuthn, ProxmoxWebAuthn};
+
 use std::rc::Rc;
 
 use derivative::Derivative;
@@ -7,7 +10,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::widget::form::{Field, Form, FormContext, SubmitButton};
-use pwt::widget::{Dialog, TabBarItem, TabPanel};
+use pwt::widget::{Dialog, TabBarItem, TabPanel, SelectionViewRenderInfo};
 
 use pwt_macros::builder;
 
@@ -32,6 +35,9 @@ pub struct TfaDialog {
 
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
     pub on_recovery: Option<Callback<String>>,
+
+    #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    pub on_webauthn: Option<Callback<String>>,
 }
 
 impl TfaDialog {
@@ -152,7 +158,7 @@ impl Component for PbsTfaDialog {
         if props.challenge.challenge.yubico {
             panel.add_item_builder(TabBarItem::new().key("yubico").label("Yubico OTP"), {
                 let on_yubico = props.on_yubico.clone();
-                move |_| render_totp(on_yubico.clone())
+                move |_| render_yubico(on_yubico.clone())
             });
         }
 
@@ -161,6 +167,19 @@ impl Component for PbsTfaDialog {
                 let on_recovery = props.on_recovery.clone();
                 let available_keys = props.challenge.challenge.recovery.0.clone();
                 move |_| render_recovery(on_recovery.clone(), &available_keys)
+            });
+        }
+
+        // webauthn not implemented - delayed to debian bookworm for newer rust packages ..
+        if true /* props.challenge.challenge.webauthn.is_some() */ {
+            panel.add_item_builder(TabBarItem::new().key("webauthn").label("WebAuthN"), {
+                let on_webauthn = props.on_webauthn.clone();
+                move |info: &SelectionViewRenderInfo| {
+                    WebAuthn::new()
+                        .visible(info.visible)
+                        .on_webauthn(on_webauthn.clone())
+                        .into()
+                }
             });
         }
 
