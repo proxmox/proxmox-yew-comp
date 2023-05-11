@@ -68,7 +68,6 @@ impl Component for ProxmoxWebAuthn {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let panel = Column::new()
-            .class("pwt-flex-fill")
             .padding(2)
             .gap(2)
             .with_child(html! {<div>{"WARNING: THIS IS NOT IMPLEMENTED"}</div>})

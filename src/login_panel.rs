@@ -253,6 +253,7 @@ impl Component for LoginPanel {
             );
 
         let form_panel = Column::new()
+            .class("pwt-flex-fill")
             .with_child(input_panel)
             .with_optional_child(tfa_dialog)
             .with_optional_child(
@@ -260,9 +261,11 @@ impl Component for LoginPanel {
                     .as_ref()
                     .map(|msg| pwt::widget::error_message(msg, "pwt-p-2")),
             )
+            .with_flex_spacer()
             .with_child(toolbar);
 
         Mask::new()
+            .class("pwt-flex-fill")
             .visible(self.loading)
             .with_child(
                 Form::new()
