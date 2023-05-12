@@ -80,11 +80,10 @@ impl Component for ProxmoxWebAuthn {
                     .onclick(ctx.link().callback(|_| Msg::Start))
             );
 
-        Mask::new()
+        Mask::new(panel)
             .class("pwt-flex-fill")
             .text("Please insert your authentication device and press its button")
             .visible(self.running)
-            .with_child(panel)
             .into()
     }
 }

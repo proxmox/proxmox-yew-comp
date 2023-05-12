@@ -250,13 +250,11 @@ impl Component for PwtEditWindow {
             None => html!{},
         };
 
-        let input_panel = Mask::new()
-            .visible(loading)
-            .with_child(
-                Column::new()
-                    .with_child(form)
-                    .with_child(toolbar.clone())
-            );
+        let input_panel = Mask::new(
+            Column::new()
+                .with_child(form)
+                .with_child(toolbar.clone())
+        ).visible(loading);
 
         let alert = match self.submit_error.as_ref() {
             None => None,

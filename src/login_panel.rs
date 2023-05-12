@@ -245,9 +245,10 @@ impl Component for LoginPanel {
             .gap(2)
             .class("pwt-border-top pwt-bg-color-neutral-emphased")
             .with_flex_spacer()
-            .with_child(ResetButton::new())
+            .with_child(ResetButton::new().class("pwt-button-text"))
             .with_child(
                 SubmitButton::new()
+                    .class("pwt-scheme-primary")
                     .text("Login")
                     .on_submit(link.callback(move |_| Msg::Submit)),
             );
@@ -264,14 +265,13 @@ impl Component for LoginPanel {
             .with_flex_spacer()
             .with_child(toolbar);
 
-        Mask::new()
+        let form = Form::new()
+            .form_context(self.form_ctx.clone())
+            .with_child(form_panel);
+
+        Mask::new(form)
             .class("pwt-flex-fill")
             .visible(self.loading)
-            .with_child(
-                Form::new()
-                    .form_context(self.form_ctx.clone())
-                    .with_child(form_panel),
-            )
             .into()
     }
 }
