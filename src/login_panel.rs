@@ -1,6 +1,8 @@
 use std::rc::Rc;
 
+use yew::html::IntoEventCallback;
 use yew::prelude::*;
+use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::widget::form::{Field, Form, FormContext, ResetButton, SubmitButton};
@@ -11,14 +13,27 @@ use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
 use crate::{RealmSelector, TfaDialog};
 
 #[derive(Clone, PartialEq, Properties)]
-pub struct LoginPanelProps {
-    pub onlogin: Callback<Authentication>,
+pub struct LoginPanel {
+    pub on_login: Option<Callback<Authentication>>,
+}
+
+impl LoginPanel {
+
+    pub fn new() -> Self {
+        yew::props!(Self {})
+    }
+
+    pub fn on_login(mut self, cb: impl IntoEventCallback<Authentication>) -> Self {
+        self.on_login = cb.into_event_callback();
+        self
+    }
+
 }
 
 pub enum Msg {
     FormDataChange,
     Submit,
-    Login,
+    Login(Authentication),
     LoginError(String),
     Challenge(SecondFactorChallenge),
     AbortTfa,
@@ -28,14 +43,14 @@ pub enum Msg {
     WebAuthn(String),
 }
 
-pub struct LoginPanel {
+pub struct ProxmoxLoginPanel {
     loading: bool,
     login_error: Option<String>,
     form_ctx: FormContext,
     challenge: Option<Rc<SecondFactorChallenge>>,
 }
 
-impl LoginPanel {
+impl ProxmoxLoginPanel {
     fn send_login(
         ctx: &Context<Self>,
         username: String,
@@ -43,13 +58,11 @@ impl LoginPanel {
         realm: String,
     ) {
         let link = ctx.link().clone();
-        let onlogin = ctx.props().onlogin.clone();
 
         wasm_bindgen_futures::spawn_local(async move {
             match crate::http_login(username, password, realm).await {
                 Ok(TicketResult::Full(info)) => {
-                    onlogin.emit(info);
-                    link.send_message(Msg::Login);
+                    link.send_message(Msg::Login(info));
                 }
                 Ok(TicketResult::TfaRequired(challenge)) => {
                     link.send_message(Msg::Challenge(challenge));
@@ -67,13 +80,11 @@ impl LoginPanel {
         response: proxmox_login::Request,
     ) {
         let link = ctx.link().clone();
-        let onlogin = ctx.props().onlogin.clone();
 
         wasm_bindgen_futures::spawn_local(async move {
             match crate::http_login_tfa(challenge, response).await {
                 Ok(info) => {
-                    onlogin.emit(info);
-                    link.send_message(Msg::Login);
+                    link.send_message(Msg::Login(info));
                 }
                 Err(err) => {
                     link.send_message(Msg::LoginError(err.to_string()));
@@ -83,9 +94,9 @@ impl LoginPanel {
     }
 }
 
-impl Component for LoginPanel {
+impl Component for ProxmoxLoginPanel {
     type Message = Msg;
-    type Properties = LoginPanelProps;
+    type Properties = LoginPanel;
 
     fn create(ctx: &Context<Self>) -> Self {
         let form_ctx = FormContext::new().on_change(ctx.link().callback(|_| Msg::FormDataChange));
@@ -98,6 +109,7 @@ impl Component for LoginPanel {
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        let props = ctx.props();
         match msg {
             Msg::FormDataChange => {
                 self.login_error = None;
@@ -193,8 +205,11 @@ impl Component for LoginPanel {
                 Self::send_login(ctx, username, password, realm);
                 true
             }
-            Msg::Login => {
+            Msg::Login(info) => {
                 self.loading = false;
+                if let Some(on_login) = &props.on_login {
+                    on_login.emit(info);
+                }
                 true
             }
             Msg::LoginError(msg) => {
@@ -273,5 +288,12 @@ impl Component for LoginPanel {
             .class("pwt-flex-fill")
             .visible(self.loading)
             .into()
+    }
+}
+
+impl Into<VNode> for LoginPanel {
+    fn into(self) -> VNode {
+        let comp = VComp::new::<ProxmoxLoginPanel>(Rc::new(self), None);
+        VNode::from(comp)
     }
 }
