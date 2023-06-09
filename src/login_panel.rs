@@ -225,6 +225,7 @@ impl Component for ProxmoxLoginPanel {
         let link = ctx.link().clone();
 
         let input_panel = InputPanel::new()
+            .class("pwt-overflow-auto")
             .class("pwt-p-2")
             .with_field(
                 "User name",
