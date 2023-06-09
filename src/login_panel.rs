@@ -269,7 +269,7 @@ impl Component for ProxmoxLoginPanel {
             );
 
         let form_panel = Column::new()
-            .class("pwt-flex-fill")
+            .class("pwt-flex-fill pwt-overflow-auto")
             .with_child(input_panel)
             .with_optional_child(tfa_dialog)
             .with_optional_child(
@@ -281,6 +281,7 @@ impl Component for ProxmoxLoginPanel {
             .with_child(toolbar);
 
         let form = Form::new()
+            .class("pwt-overflow-auto")
             .form_context(self.form_ctx.clone())
             .with_child(form_panel);
 
