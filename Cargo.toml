@@ -30,7 +30,7 @@ percent-encoding = "2.1"
 
 #pwt = { path = "../proxmox-yew-widget-toolkit", features = [ "proxmox-schema" ] }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
-pwt = { version = "0.2", features = [ "proxmox-schema" ] }
+pwt = "0.2"
 pwt-macros = "0.1"
 
 proxmox-time = "1"
