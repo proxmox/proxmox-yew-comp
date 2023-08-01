@@ -33,6 +33,8 @@ percent-encoding = "2.1"
 pwt = "0.2"
 pwt-macros = "0.1"
 
+proxmox-schema = "2"
+
 proxmox-time = "1"
 
 proxmox-login = "0.1"

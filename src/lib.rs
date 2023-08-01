@@ -34,6 +34,9 @@ pub use log_view::LogView;
 mod journal_view;
 pub use journal_view::JournalView;
 
+mod schema_validation;
+pub use schema_validation::*;
+
 mod subscription_panel;
 pub use subscription_panel::{SubscriptionPanel, PwtSubscriptionPanel};
 
