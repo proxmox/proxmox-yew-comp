@@ -1,3 +1,5 @@
+use std::future::Future;
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Mutex;
 
@@ -132,7 +134,7 @@ impl HttpClient {
         let request = login.request();
         let request =
             Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
-        let resp = self.api_request_raw(request).await?;
+        let resp = self.api_request_text(request).await?;
 
         Ok(login.response(&resp)?)
     }
@@ -142,8 +144,9 @@ impl HttpClient {
         challenge: Rc<proxmox_login::SecondFactorChallenge>,
         request: proxmox_login::Request,
     ) -> Result<Authentication, Error> {
-        let request = Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
-        let resp = self.api_request_raw(request).await?;
+        let request =
+            Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
+        let resp = self.api_request_text(request).await?;
         Ok(challenge.response(&resp)?)
     }
 
@@ -233,38 +236,108 @@ impl HttpClient {
     }
 
     async fn api_request(&self, js_req: web_sys::Request) -> Result<Value, Error> {
-        let text = self.api_request_raw(js_req).await?;
+        let text = self.api_request_text(js_req).await?;
         if text.is_empty() {
             return Ok(Value::Null);
         }
         serde_json::from_str(&text).map_err(|err| format_err!("invalid json: {}", err))
     }
 
-    async fn api_request_raw(&self, js_req: web_sys::Request) -> Result<String, Error> {
-        let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
+    async fn api_request_text(&self, js_req: web_sys::Request) -> Result<String, Error> {
+        let response = api_request_raw(js_req).await?;
+        let (parts, body) = response.into_parts();
 
-        let promise = window.fetch_with_request(&js_req);
-        let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
-        let js_resp = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
-
-        let resp: web_sys::Response = js_resp.into();
-
-        let promise = resp.text().map_err(|err| format_err!("{:?}", err))?;
-
-        let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
-        let body = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
-
-        //web_sys::console::log_1(&body);
-
-        let text = body
-            .as_string()
-            .ok_or_else(|| format_err!("Got non-utf8-string response"))?;
-
-        if resp.ok() {
-            return Ok(text);
-        } else {
-            bail!("HTTP status {}: {}", resp.status(), resp.status_text());
+        if !parts.status.is_success() {
+            bail!("HTTP status {}", parts.status);
         }
+
+        let text = String::from_utf8(body)?;
+
+        return Ok(text);
+    }
+}
+
+async fn web_sys_response_to_http_response(
+    resp: web_sys::Response,
+) -> Result<http::Response<Vec<u8>>, Error> {
+    let promise = resp
+        .array_buffer()
+        .map_err(|err| format_err!("{:?}", err))?;
+
+    let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
+    let body = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
+    let body = js_sys::Uint8Array::new(&body).to_vec();
+
+    let mut response = http::response::Builder::new().status(resp.status());
+
+    if let Some(js_iter) =
+        js_sys::try_iter(&resp.headers()).map_err(|err| format_err!("{:?}", err))?
+    {
+        for item in js_iter {
+            if let Ok(item) = item {
+                let item: js_sys::Array = item.into();
+                if let Some(key) = item.get(0).as_string() {
+                    if let Some(value) = item.get(1).as_string() {
+                        //log::info!("HEADER {}: {}", key, value);
+                        response = response.header(&key, &value);
+                    }
+                }
+
+            }
+        }
+    }
+
+    Ok(response.body(body)?)
+}
+
+async fn api_request_raw(js_req: web_sys::Request) -> Result<http::Response<Vec<u8>>, Error> {
+    let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
+
+    let promise = window.fetch_with_request(&js_req);
+    let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
+    let js_resp = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
+
+    let resp: web_sys::Response = js_resp.into();
+
+    web_sys_response_to_http_response(resp).await
+}
+
+impl proxmox_client::HttpClient for HttpClient {
+    type Error = anyhow::Error;
+    type Request = Pin<
+        Box<dyn Future<Output = Result<http::response::Response<Vec<u8>>, anyhow::Error>>>,
+    >;
+
+    fn request(&self, request: http::Request<Vec<u8>>) -> Self::Request {
+        let (parts, body) = request.into_parts();
+
+        let mut init = web_sys::RequestInit::new();
+        init.method(parts.method.as_str());
+
+        // Howto handle erors here? unwrap() is wrong!
+
+        let js_headers = web_sys::Headers::new().unwrap();
+
+        js_headers.append("cache-control", "no-cache").unwrap();
+
+        for (key, value) in parts.headers.iter() {
+            if let Ok(value) = value.to_str() {
+                js_headers.append(key.as_str(), value).unwrap();
+            }
+        }
+
+        if !body.is_empty() {
+            let js_body = js_sys::Uint8Array::new_with_length(body.len() as u32);
+            js_body.copy_from(&body);
+            init.body(Some(&js_body));
+        }
+
+        init.headers(&js_headers);
+
+        let js_req =
+            web_sys::Request::new_with_str_and_init(&parts.uri.to_string(), &init).unwrap();
+
+        Box::pin(async move { api_request_raw(js_req).await })
     }
 }
 

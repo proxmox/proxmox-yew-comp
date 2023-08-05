@@ -1,8 +1,8 @@
 mod http_client_wasm;
 pub use  http_client_wasm::*;
 
-mod http;
-pub use http::*;
+mod http_helpers;
+pub use http_helpers::*;
 
 mod help_button;
 pub use help_button::{HelpButton, PbsHelpButton};
