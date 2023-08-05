@@ -8,6 +8,7 @@ use percent_encoding::percent_decode_str;
 //use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use proxmox_client::HttpClient;
 use proxmox_login::{Authentication, Login, Ticket, TicketResult};
 
 //use crate::percent_encoding::DEFAULT_ENCODE_SET;
@@ -70,12 +71,12 @@ fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String)>
     None
 }
 
-pub struct HttpClient {
+pub struct HttpClientWasm {
     product: ProxmoxProduct,
     auth: Mutex<Option<Authentication>>,
 }
 
-impl HttpClient {
+impl HttpClientWasm {
     pub fn new(product: ProxmoxProduct) -> Self {
         Self {
             product,
@@ -104,22 +105,22 @@ impl HttpClient {
 
     pub async fn get(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
         let req = Self::request_builder("GET", path, data)?;
-        self.request(req).await
+        self.api_request(req).await
     }
 
     pub async fn delete(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
         let req = Self::request_builder("DELETE", path, data)?;
-        self.request(req).await
+        self.api_request(req).await
     }
 
     pub async fn post(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
         let req = Self::request_builder("POST", path, data)?;
-        self.request(req).await
+        self.api_request(req).await
     }
 
     pub async fn put(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
         let req = Self::request_builder("PUT", path, data)?;
-        self.request(req).await
+        self.api_request(req).await
     }
 
     pub async fn login(
@@ -155,96 +156,63 @@ impl HttpClient {
         url: &str,
         content_type: &'static str,
         data: &str,
-    ) -> Result<web_sys::Request, Error> {
-        let mut init = web_sys::RequestInit::new();
-        init.method("POST");
+    ) -> Result<http::Request<Vec<u8>>, Error> {
+        let request = http::Request::builder()
+            .method("POST")
+            .uri(url)
+            .header("cache-control", "no-cache")
+            .header("content-type", content_type)
+            .body(data.as_bytes().to_vec())?;
 
-        let js_headers = web_sys::Headers::new().map_err(|err| format_err!("{:?}", err))?;
-
-        js_headers
-            .append("cache-control", "no-cache")
-            .map_err(|err| format_err!("{:?}", err))?;
-
-        js_headers
-            .append("content-type", content_type)
-            .map_err(|err| format_err!("{:?}", err))?;
-
-        init.body(Some(&wasm_bindgen::JsValue::from_str(&data)));
-        init.headers(&js_headers);
-
-        web_sys::Request::new_with_str_and_init(&url, &init).map_err(|err| format_err!("{:?}", err))
+        Ok(request)
     }
 
     fn request_builder(
         method: &str,
         url: &str,
         data: Option<Value>,
-    ) -> Result<web_sys::Request, Error> {
-        let mut init = web_sys::RequestInit::new();
-        init.method(method);
+    ) -> Result<http::Request<Vec<u8>>, Error> {
+        let request = http::Request::builder()
+            .method(method)
+            .header("cache-control", "no-cache");
 
-        let js_headers = web_sys::Headers::new().map_err(|err| format_err!("{:?}", err))?;
-
-        js_headers
-            .append("cache-control", "no-cache")
-            .map_err(|err| format_err!("{:?}", err))?;
-
-        let url_with_data = if let Some(data) = data {
-            if method == "POST" {
-                let body = data.to_string();
-                js_headers
-                    .append("content-type", "application/json")
-                    .map_err(|err| format_err!("{:?}", err))?;
-                init.body(Some(&wasm_bindgen::JsValue::from_str(&body)));
-                url.to_string()
+        let request = if method == "POST" {
+            let body = if let Some(data) = data {
+                data.to_string().as_bytes().to_vec()
             } else {
-                js_headers
-                    .append("content-type", "application/x-www-form-urlencoded")
-                    .map_err(|err| format_err!("{:?}", err))?;
+                Vec::new()
+            };
+
+            request
+                .header("content-type", "application/json")
+                .uri(url)
+                .body(body)?
+        } else {
+            let url = if let Some(data) = data {
                 let query = json_object_to_query(data)?;
                 format!("{}?{}", url, query)
-            }
-        } else {
-            js_headers
-                .append("content-type", "application/x-www-form-urlencoded")
-                .map_err(|err| format_err!("{:?}", err))?;
-            url.to_string()
+            } else {
+                url.to_string()
+            };
+            request
+                .header("content-type", "application/x-www-form-urlencoded")
+                .uri(url)
+                .body(Vec::new())?
         };
 
-        init.headers(&js_headers);
-
-        let js_req = web_sys::Request::new_with_str_and_init(&url_with_data, &init)
-            .map_err(|err| format_err!("{:?}", err))?;
-
-        Ok(js_req)
+        Ok(request)
     }
 
-    async fn request(&self, js_req: web_sys::Request) -> Result<Value, Error> {
-        let auth = self.auth.lock().unwrap().clone();
-
-        if let Some(auth) = &auth {
-            let headers = js_req.headers();
-            headers
-                .append("CSRFPreventionToken", &auth.csrfprevention_token)
-                .map_err(|err| format_err!("{:?}", err))?;
-
-            let cookie = auth.ticket.cookie();
-            crate::set_cookie(&cookie);
-        }
-
-        self.api_request(js_req).await
-    }
-
-    async fn api_request(&self, js_req: web_sys::Request) -> Result<Value, Error> {
-        let text = self.api_request_text(js_req).await?;
+    async fn api_request(&self, request: http::Request<Vec<u8>>) -> Result<Value, Error> {
+        let text = self.api_request_text(request).await?;
         if text.is_empty() {
             return Ok(Value::Null);
         }
         serde_json::from_str(&text).map_err(|err| format_err!("invalid json: {}", err))
     }
 
-    async fn api_request_text(&self, js_req: web_sys::Request) -> Result<String, Error> {
-        let response = api_request_raw(js_req).await?;
+    async fn api_request_text(&self, request: http::Request<Vec<u8>>) -> Result<String, Error> {
+        let response = self.request(request).await?;
         let (parts, body) = response.into_parts();
 
         if !parts.status.is_success() {
@@ -282,7 +250,6 @@ async fn web_sys_response_to_http_response(
                         response = response.header(&key, &value);
                     }
                 }
-
             }
         }
     }
@@ -302,13 +269,27 @@ async fn api_request_raw(js_req: web_sys::Request) -> Result<http::Response<Vec<
     web_sys_response_to_http_response(resp).await
 }
 
-impl proxmox_client::HttpClient for HttpClient {
+impl proxmox_client::HttpClient for HttpClientWasm {
     type Error = anyhow::Error;
-    type Request = Pin<
-        Box<dyn Future<Output = Result<http::response::Response<Vec<u8>>, anyhow::Error>>>,
-    >;
+    type Request =
+        Pin<Box<dyn Future<Output = Result<http::response::Response<Vec<u8>>, anyhow::Error>>>>;
 
-    fn request(&self, request: http::Request<Vec<u8>>) -> Self::Request {
+    fn request(&self, mut request: http::Request<Vec<u8>>) -> Self::Request {
+        let auth = self.auth.lock().unwrap().clone();
+
+        if let Some(auth) = &auth {
+            if let Ok(csrfprevention_token) =
+                http::HeaderValue::from_str(&auth.csrfprevention_token)
+            {
+                request
+                    .headers_mut()
+                    .insert("CSRFPreventionToken", csrfprevention_token);
+            }
+
+            let cookie = auth.ticket.cookie();
+            crate::set_cookie(&cookie);
+        }
+
         let (parts, body) = request.into_parts();
 
         let mut init = web_sys::RequestInit::new();
