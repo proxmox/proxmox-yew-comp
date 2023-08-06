@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 use anyhow::{bail, format_err, Error};
 use percent_encoding::percent_decode_str;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 
 use proxmox_client::HttpClient;
@@ -103,22 +103,22 @@ impl HttpClientWasm {
         *self.auth.lock().unwrap() = None;
     }
 
-    pub async fn get<P: Serialize>(&self, path: &str, data: Option<P>) -> Result<Value, Error> {
+    pub async fn get<P: Serialize, T:DeserializeOwned>(&self, path: &str, data: Option<P>) -> Result<T, Error> {
         let req = Self::request_builder("GET", path, data)?;
         self.api_request(req).await
     }
 
-    pub async fn delete<P: Serialize>(&self, path: &str, data: Option<P>) -> Result<Value, Error> {
+    pub async fn delete<P: Serialize, T:DeserializeOwned>(&self, path: &str, data: Option<P>) -> Result<T, Error> {
         let req = Self::request_builder("DELETE", path, data)?;
         self.api_request(req).await
     }
 
-    pub async fn post<P: Serialize>(&self, path: &str, data: Option<P>) -> Result<Value, Error> {
+    pub async fn post<P: Serialize, T:DeserializeOwned>(&self, path: &str, data: Option<P>) -> Result<T, Error> {
         let req = Self::request_builder("POST", path, data)?;
         self.api_request(req).await
     }
 
-    pub async fn put<P: Serialize>(&self, path: &str, data: Option<P>) -> Result<Value, Error> {
+    pub async fn put<P: Serialize, T:DeserializeOwned>(&self, path: &str, data: Option<P>) -> Result<T, Error> {
         let req = Self::request_builder("PUT", path, data)?;
         self.api_request(req).await
     }
@@ -204,12 +204,15 @@ impl HttpClientWasm {
         Ok(request)
     }
 
-    async fn api_request(&self, request: http::Request<Vec<u8>>) -> Result<Value, Error> {
-        let text = self.api_request_text(request).await?;
-        if text.is_empty() {
-            return Ok(Value::Null);
+    async fn api_request<T: DeserializeOwned>(&self, request: http::Request<Vec<u8>>) -> Result<T, Error> {
+        let response = self.request(request).await?;
+        let (parts, body) = response.into_parts();
+
+        if !parts.status.is_success() {
+            bail!("HTTP status {}", parts.status);
         }
-        serde_json::from_str(&text).map_err(|err| format_err!("invalid json: {}", err))
+
+        serde_json::from_slice(&body).map_err(|err| format_err!("invalid json: {}", err))
     }
 
     async fn api_request_text(&self, request: http::Request<Vec<u8>>) -> Result<String, Error> {
