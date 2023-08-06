@@ -322,6 +322,9 @@ impl proxmox_client::HttpClient for HttpClientWasm {
     }
 }
 
+// dummy - no really used, but required by proxmox-client api code
+impl proxmox_client::Environment for HttpClientWasm { type Error = anyhow::Error; }
+
 pub fn json_object_to_query(data: Value) -> Result<String, Error> {
     let mut query = url::form_urlencoded::Serializer::new(String::new());
 
