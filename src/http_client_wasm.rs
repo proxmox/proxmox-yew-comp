@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 use anyhow::{bail, format_err, Error};
 use percent_encoding::percent_decode_str;
-//use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use proxmox_client::HttpClient;
@@ -103,22 +103,22 @@ impl HttpClientWasm {
         *self.auth.lock().unwrap() = None;
     }
 
-    pub async fn get(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
+    pub async fn get<P: Serialize>(&self, path: &str, data: Option<P>) -> Result<Value, Error> {
         let req = Self::request_builder("GET", path, data)?;
         self.api_request(req).await
     }
 
-    pub async fn delete(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
+    pub async fn delete<P: Serialize>(&self, path: &str, data: Option<P>) -> Result<Value, Error> {
         let req = Self::request_builder("DELETE", path, data)?;
         self.api_request(req).await
     }
 
-    pub async fn post(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
+    pub async fn post<P: Serialize>(&self, path: &str, data: Option<P>) -> Result<Value, Error> {
         let req = Self::request_builder("POST", path, data)?;
         self.api_request(req).await
     }
 
-    pub async fn put(&self, path: &str, data: Option<Value>) -> Result<Value, Error> {
+    pub async fn put<P: Serialize>(&self, path: &str, data: Option<P>) -> Result<Value, Error> {
         let req = Self::request_builder("PUT", path, data)?;
         self.api_request(req).await
     }
@@ -167,10 +167,10 @@ impl HttpClientWasm {
         Ok(request)
     }
 
-    fn request_builder(
+    fn request_builder<P: Serialize>(
         method: &str,
         url: &str,
-        data: Option<Value>,
+        data: Option<P>,
     ) -> Result<http::Request<Vec<u8>>, Error> {
         let request = http::Request::builder()
             .method(method)
@@ -178,7 +178,7 @@ impl HttpClientWasm {
 
         let request = if method == "POST" {
             let body = if let Some(data) = data {
-                data.to_string().as_bytes().to_vec()
+                serde_json::to_vec(&data).map_err(|err| format_err!("serialize failure: {}", err))?
             } else {
                 Vec::new()
             };
@@ -189,6 +189,7 @@ impl HttpClientWasm {
                 .body(body)?
         } else {
             let url = if let Some(data) = data {
+                let data = serde_json::to_value(data).map_err(|err| format_err!("serialize failure: {}", err))?;
                 let query = json_object_to_query(data)?;
                 format!("{}?{}", url, query)
             } else {
