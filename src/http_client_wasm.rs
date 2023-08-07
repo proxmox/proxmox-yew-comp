@@ -99,6 +99,10 @@ impl HttpClientWasm {
         *self.auth.lock().unwrap() = Some(auth);
     }
 
+    pub fn get_auth(&self) -> Option<Authentication> {
+        self.auth.lock().unwrap().clone()
+    }
+
     pub fn clear_auth(&self) {
         *self.auth.lock().unwrap() = None;
     }
@@ -279,7 +283,7 @@ impl proxmox_client::HttpClient for HttpClientWasm {
         Pin<Box<dyn Future<Output = Result<http::response::Response<Vec<u8>>, anyhow::Error>>>>;
 
     fn request(&self, mut request: http::Request<Vec<u8>>) -> Self::Request {
-        let auth = self.auth.lock().unwrap().clone();
+        let auth = self.get_auth();
 
         if let Some(auth) = &auth {
             if let Ok(csrfprevention_token) =

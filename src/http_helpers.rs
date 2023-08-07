@@ -2,19 +2,54 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{bail, Error};
-use serde::Deserialize;
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 
-use proxmox_login::{Authentication, TicketResult};
+use proxmox_login::{Authentication, TicketResult, ticket::Validity};
 
 use crate::{HttpClientWasm, ProxmoxProduct};
 
 lazy_static::lazy_static! {
     pub static ref CLIENT: Mutex<Arc<HttpClientWasm>> = {
+        start_ticket_refresh_loop();
         Mutex::new(Arc::new(HttpClientWasm::new(ProxmoxProduct::PBS)))
     };
 }
+
+fn start_ticket_refresh_loop() {
+    wasm_bindgen_futures::spawn_local(async move {
+
+        loop {
+            let sleep_time_ms = 5000;
+            let future: wasm_bindgen_futures::JsFuture = crate::async_sleep(sleep_time_ms).into();
+            future.await.unwrap();
+
+            let auth = CLIENT.lock().unwrap().get_auth();
+
+             if let Some(data) = &auth {
+                match data.ticket.validity() {
+                    Validity::Expired => {
+                        log::info!("ticket_refresh_loop: Ticket is expired.");
+                        let client = Arc::clone(&*CLIENT.lock().unwrap());
+                        client.clear_auth();
+                    }
+                    Validity::Refresh => {
+                        let client = Arc::clone(&*CLIENT.lock().unwrap());
+                        if let Ok(TicketResult::Full(auth)) = client.login(&data.userid, &data.ticket.to_string()).await {
+                            log::info!("ticket_refresh_loop: Got ticket update.");
+                            client.set_auth(auth.clone());
+                        }
+                    }
+                    Validity::Valid => {
+                        /* do nothing  */
+                    }
+                }
+            };
+
+        }
+    });
+}
+
 
 pub fn http_setup(product: ProxmoxProduct) {
     let client = HttpClientWasm::new(product);
