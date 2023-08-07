@@ -1,5 +1,6 @@
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+use std::thread_local;
 
 use anyhow::{bail, Error};
 use serde::{Deserialize, de::DeserializeOwned};
@@ -9,10 +10,10 @@ use proxmox_login::{Authentication, TicketResult, ticket::Validity};
 
 use crate::{HttpClientWasm, ProxmoxProduct};
 
-lazy_static::lazy_static! {
-    pub static ref CLIENT: Mutex<Arc<HttpClientWasm>> = {
+thread_local! {
+    static CLIENT: RefCell<Rc<HttpClientWasm>> = {
         start_ticket_refresh_loop();
-        Mutex::new(Arc::new(HttpClientWasm::new(ProxmoxProduct::PBS)))
+        RefCell::new(Rc::new(HttpClientWasm::new(ProxmoxProduct::PBS)))
     };
 }
 
@@ -24,17 +25,16 @@ fn start_ticket_refresh_loop() {
             let future: wasm_bindgen_futures::JsFuture = crate::async_sleep(sleep_time_ms).into();
             future.await.unwrap();
 
-            let auth = CLIENT.lock().unwrap().get_auth();
+            let auth = CLIENT.with(|c| c.borrow().get_auth());
 
              if let Some(data) = &auth {
                 match data.ticket.validity() {
                     Validity::Expired => {
                         log::info!("ticket_refresh_loop: Ticket is expired.");
-                        let client = Arc::clone(&*CLIENT.lock().unwrap());
-                        client.clear_auth();
+                        http_clear_auth()
                     }
                     Validity::Refresh => {
-                        let client = Arc::clone(&*CLIENT.lock().unwrap());
+                        let client = CLIENT.with(|c| Rc::clone(&*c.borrow()));
                         if let Ok(TicketResult::Full(auth)) = client.login(&data.userid, &data.ticket.to_string()).await {
                             log::info!("ticket_refresh_loop: Got ticket update.");
                             client.set_auth(auth.clone());
@@ -53,18 +53,18 @@ fn start_ticket_refresh_loop() {
 
 pub fn http_setup(product: ProxmoxProduct) {
     let client = HttpClientWasm::new(product);
-    *CLIENT.lock().unwrap() = Arc::new(client);
+    CLIENT.with(move |c| *c.borrow_mut() = Rc::new(client));
 }
 
 pub fn http_set_auth(info: Authentication) {
-    let client = &*CLIENT.lock().unwrap();
-    client.set_auth(info);
+    CLIENT.with(move |c| c.borrow_mut().set_auth(info));
 }
 
 pub fn http_clear_auth() {
-    let client = &*CLIENT.lock().unwrap();
-    client.clear_auth();
-    crate::clear_auth_cookie(client.product().auth_cookie_name());
+    CLIENT.with(move |c| {
+        c.borrow_mut().clear_auth();
+        crate::clear_auth_cookie(c.borrow().product().auth_cookie_name());
+    });
 }
 
 pub async fn http_login(
@@ -76,14 +76,16 @@ pub async fn http_login(
     let password = password.into();
     let realm = realm.into();
 
-    let product = CLIENT.lock().unwrap().product();
+    let product = CLIENT.with(|c| c.borrow().product());
     let client = HttpClientWasm::new(product);
     let ticket_result = client.login(format!("{username}@{realm}"), password).await?;
 
     match ticket_result {
         TicketResult::Full(auth) => {
             client.set_auth(auth.clone());
-            *CLIENT.lock().unwrap() = Arc::new(client);
+            CLIENT.with(|c| *c.borrow_mut() = Rc::new(client));
+
+            //*CLIENT.lock().unwrap() = Arc::new(client);
             Ok(TicketResult::Full(auth))
         }
         challenge => Ok(challenge),
@@ -94,11 +96,11 @@ pub async fn http_login_tfa(
     challenge: Rc<proxmox_login::SecondFactorChallenge>,
     request: proxmox_login::Request,
 ) -> Result<Authentication, Error> {
-    let product = CLIENT.lock().unwrap().product();
+    let product = CLIENT.with(|c| c.borrow().product());
     let client = HttpClientWasm::new(product);
     let auth = client.login_tfa(challenge, request).await?;
     client.set_auth(auth.clone());
-    *CLIENT.lock().unwrap() = Arc::new(client);
+    CLIENT.with(|c| *c.borrow_mut() = Rc::new(client));
     Ok(auth)
 }
 
@@ -142,31 +144,36 @@ pub async fn http_get_full<T: DeserializeOwned>(
     path: &str,
     data: Option<Value>,
 ) -> Result<(T, Metadata), Error> {
-    let client = Arc::clone(&*CLIENT.lock().unwrap());
+    let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
     let resp = client.get(&format!("/api2/extjs{}", path), data).await?;
     extract_result_full(resp)
 }
 
 pub async fn http_get<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
-    let client = Arc::clone(&*CLIENT.lock().unwrap());
+    let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
     let resp = client.get(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
 
 pub async fn http_delete(path: &str, data: Option<Value>) -> Result<Value, Error> {
-    let client = Arc::clone(&*CLIENT.lock().unwrap());
+    let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
+    //    let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.delete(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
 
 pub async fn http_post(path: &str, data: Option<Value>) -> Result<Value, Error> {
-    let client = Arc::clone(&*CLIENT.lock().unwrap());
+    let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
+
+//    let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.post(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
 
 pub async fn http_put(path: &str, data: Option<Value>) -> Result<Value, Error> {
-    let client = Arc::clone(&*CLIENT.lock().unwrap());
+    let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
+
+//    let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.put(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
