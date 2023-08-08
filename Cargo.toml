@@ -12,7 +12,6 @@ exclude = [ "debian" ]
 [dependencies]
 anyhow = "1.0"
 derivative = "2.2.0"
-lazy_static = "1.4"
 yew = { version = "0.20",  features = ["csr"] }
 web-sys = { version = "0.3", features = [ "DomRect", "Element" ] }
 js-sys = "0.3"
