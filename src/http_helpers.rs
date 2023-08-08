@@ -84,8 +84,6 @@ pub async fn http_login(
         TicketResult::Full(auth) => {
             client.set_auth(auth.clone());
             CLIENT.with(|c| *c.borrow_mut() = Rc::new(client));
-
-            //*CLIENT.lock().unwrap() = Arc::new(client);
             Ok(TicketResult::Full(auth))
         }
         challenge => Ok(challenge),
@@ -155,25 +153,20 @@ pub async fn http_get<T: DeserializeOwned>(path: &str, data: Option<Value>) -> R
     extract_result(resp)
 }
 
-pub async fn http_delete(path: &str, data: Option<Value>) -> Result<Value, Error> {
+pub async fn http_delete(path: &str, data: Option<Value>) -> Result<(), Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
-    //    let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.delete(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
 
-pub async fn http_post(path: &str, data: Option<Value>) -> Result<Value, Error> {
+pub async fn http_post<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
-
-//    let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.post(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
 
-pub async fn http_put(path: &str, data: Option<Value>) -> Result<Value, Error> {
+pub async fn http_put<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
-
-//    let client = Arc::clone(&*CLIENT.lock().unwrap());
     let resp = client.put(&format!("/api2/extjs{}", path), data).await?;
     extract_result(resp)
 }
