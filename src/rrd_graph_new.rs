@@ -518,10 +518,10 @@ impl PwtRRDGraph {
                 }
 
                 let max_y = compute_y(min_data);
-                let min_x = self.layout.left_offset;
-                let max_x = self.layout.width;
+                let min_x = self.layout.left_offset + self.layout.grid_border;
+                let max_x = self.layout.width - self.layout.grid_border;
 
-                let x = x.max(min_x as i32);
+                let x = x.max(min_x as i32).min(max_x as i32);
                 let y = y.min(max_y as i32);
 
                 children.push(
@@ -582,8 +582,13 @@ impl PwtRRDGraph {
         let t: i64 = ((fraction * (time_span as f64)) as i64) + start_time;
         let start_index = data0.partition_point(|&x| x < t);
 
+
         // Select nearest point
         if start_index > 0 {
+            if start_index >= data0.len() {
+                return data0.len() - 1;
+            }
+
             if let Some(next_t) = data0.get(start_index) {
                 if let Some(prev_t) = data0.get(start_index - 1) {
                     if (t - prev_t) < (next_t - t) {
