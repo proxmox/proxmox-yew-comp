@@ -319,23 +319,23 @@ impl PwtRRDGraph {
                         continue;
                     }
                     last_undefined = false;
-                    path.push_str(&format!(",M {x} {y0}"));
+                    path.push_str(&format!(" M {x} {y0}"));
                 } else {
                     if value.is_nan() {
                         last_undefined = true;
-                        path.push_str(&format!(",L {x} {y0}"));
+                        path.push_str(&format!(" L {x} {y0}"));
 
                         continue;
                     }
                 }
                 let y = compute_y(value);
-                path.push_str(&format!(",L {x} {y}"));
+                path.push_str(&format!(" L {x} {y}"));
             }
 
             if let Some(t) = data0.last() {
                 if !last_undefined {
                     let x = compute_x(*t);
-                    path.push_str(&format!(",L {x} {y0}"));
+                    path.push_str(&format!(" L {x} {y0}"));
                 }
             }
 
@@ -355,14 +355,14 @@ impl PwtRRDGraph {
                 }
                 last_undefined = false;
                 let y = compute_y(value);
-                path.push_str(&format!(",M {x} {y}"));
+                path.push_str(&format!(" M {x} {y}"));
             } else {
                 if value.is_nan() {
                     last_undefined = true;
                     continue;
                 }
                 let y = compute_y(value);
-                path.push_str(&format!(",L {x} {y}"));
+                path.push_str(&format!(" L {x} {y}"));
             }
         }
 
@@ -382,7 +382,7 @@ impl PwtRRDGraph {
                 let mut v = min_data;
                 while v <= max_data {
                     let y = compute_y(v);
-                    grid_path.push_str(&format!("M {x0} {y}, L {x1} {y}"));
+                    grid_path.push_str(&format!("M {x0} {y} L {x1} {y}"));
 
                     // round value to 4 relevant digits
                     let rounded_value = if v == 0.0 {
@@ -414,7 +414,7 @@ impl PwtRRDGraph {
 
                 while t <= *end {
                     let x = compute_x(t);
-                    grid_path.push_str(&format!("M {x} {ymin}, L {x} {ymax}"));
+                    grid_path.push_str(&format!("M {x} {ymin} L {x} {ymax}"));
 
                     let (time, date) = format_time(t);
 
@@ -444,13 +444,13 @@ impl PwtRRDGraph {
         }
 
         let mut children: Vec<Html> = vec![
-            Path::new().stroke("#94ae0a").fill("none").d(path).into(),
             Path::new()
-                .key("grid-path")
                 .stroke("black")
                 .stroke_width(0.1)
                 .d(grid_path)
                 .into(),
+
+            Path::new().stroke("#94ae0a").fill("none").d(path).into(),
             Path::new()
                 .stroke("none")
                 .fill("#94ae0a80")
@@ -525,7 +525,7 @@ impl PwtRRDGraph {
                         .stroke_width(0.3)
                         .attribute("stroke-dasharray", "10 3")
                         .d(format!(
-                            "M {x} 0, L {x} {max_y}, M {min_x} {y}, L {max_x} {y}"
+                            "M {x} 0 L {x} {max_y} M {min_x} {y} L {max_x} {y}"
                         ))
                         .into(),
                 )
