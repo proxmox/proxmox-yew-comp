@@ -5,13 +5,14 @@ use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::{Panel, Row};
+use pwt::widget::align::{align_to, AlignOptions};
+use pwt::widget::{Container, Panel};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct RRDGraph {
     pub title: Option<AttrValue>,
     // Legend Label
-    pub label: Option<String>,
+    pub label: Option<AttrValue>,
     #[prop_or_default]
     pub class: Classes,
 
@@ -32,8 +33,8 @@ impl RRDGraph {
         self.title = title.into_prop_value();
     }
 
-    pub fn label(mut self, label: impl Into<String>) -> Self {
-        self.label = Some(label.into());
+    pub fn label(mut self, label: impl IntoPropValue<Option<AttrValue>>) -> Self {
+        self.label = label.into_prop_value();
         self
     }
 
@@ -67,6 +68,9 @@ pub struct PwtRRDGraph {
     captured_pointer_id: Option<i32>,
     draw_cross: bool,
     cross_pos: Option<(i32, i32)>,
+    tooltip_ref: NodeRef,
+    datapoint_ref: NodeRef,
+    align_options: AlignOptions,
 }
 
 pub struct LayoutProps {
@@ -454,7 +458,6 @@ impl PwtRRDGraph {
                 .stroke_width(0.1)
                 .d(grid_path)
                 .into(),
-
             Path::new().stroke("#94ae0a").fill("none").d(path).into(),
             Path::new()
                 .stroke("none")
@@ -529,11 +532,20 @@ impl PwtRRDGraph {
                         .stroke("red")
                         .stroke_width(0.3)
                         .attribute("stroke-dasharray", "10 3")
-                        .d(format!(
-                            "M {x} 0 L {x} {max_y} M {min_x} {y} L {max_x} {y}"
-                        ))
+                        .d(format!("M {x} 0 L {x} {max_y} M {min_x} {y} L {max_x} {y}"))
                         .into(),
-                )
+                );
+
+                // Add invisible circle to position the tooltip
+                children.push(
+                    Circle::new()
+                        .node_ref(self.datapoint_ref.clone())
+                        .fill("none")
+                        .stroke("none")
+                        .position(x, y)
+                        .r(0)
+                    .into(),
+                );
             }
         }
 
@@ -582,7 +594,6 @@ impl PwtRRDGraph {
         let t: i64 = ((fraction * (time_span as f64)) as i64) + start_time;
         let start_index = data0.partition_point(|&x| x < t);
 
-
         // Select nearest point
         if start_index > 0 {
             if start_index >= data0.len() {
@@ -610,6 +621,9 @@ impl Component for PwtRRDGraph {
 
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link().send_message(Msg::Reload);
+
+        let align_options = AlignOptions::default().offset(20.0, 20.0);
+
         Self {
             canvas_ref: NodeRef::default(),
             layout: LayoutProps::default(),
@@ -618,6 +632,9 @@ impl Component for PwtRRDGraph {
             captured_pointer_id: None,
             draw_cross: false,
             cross_pos: None,
+            tooltip_ref: NodeRef::default(),
+            datapoint_ref: NodeRef::default(),
+            align_options,
         }
     }
 
@@ -698,7 +715,7 @@ impl Component for PwtRRDGraph {
         }
     }
 
-    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+    fn changed(&mut self, _ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         log::info!("FIXME DATA CHANGE");
         true
     }
@@ -713,27 +730,40 @@ impl Component for PwtRRDGraph {
                 let idx = self.offset_to_time_index(x, data0);
                 if let Some(t) = data0.get(idx) {
                     if let Some(v) = data1.get(idx) {
-                        log::info!("KV {t} {v} {}", format_date_time(*t));
                         data_point = (format_date_time(*t), v.to_string());
                     }
                 }
             }
         }
 
-        let info_row = Row::new()
-            .class("pwt-justify-content-center")
-            .padding_x(2)
-            .padding_bottom(2)
-            .gap(2)
-            .with_child(html!{<div style="width:200px;">{format!("Time: {}", data_point.0)}</div>})
-            .with_child(html!{<div style="width:300px;">{format!("Value: {}", data_point.1)}</div>});
+        let tip = Container::new()
+            .node_ref(self.tooltip_ref.clone())
+        .attribute("role", "tooltip")
+        .attribute("aria-live", "polite")
+        .attribute("data-show", self.draw_cross.then(|| ""))
+        .class("pwt-tooltip")
+        .class("pwt-tooltip-rich")
+        .with_child(html!{
+            <>
+                <div style="min-width: 300px;">{props.label.clone().unwrap_or(AttrValue::Static("Value"))}{": "}{&data_point.1}</div>
+                <div>{&data_point.0}</div>
+            </>
+        });
 
         Panel::new()
             .title(props.title.clone())
             .class(props.class.clone())
             .with_child(self.custom_view(ctx))
-            .with_child(info_row)
+            .with_child(tip)
             .into()
+    }
+
+    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
+        if let Some(content_node) = self.datapoint_ref.get() {
+            if let Some(tooltip_node) = self.tooltip_ref.get() {
+                let _ = align_to(content_node, tooltip_node, Some(self.align_options.clone()));
+            }
+        }
     }
 }
 
