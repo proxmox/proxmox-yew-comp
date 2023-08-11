@@ -701,7 +701,7 @@ impl Component for PwtRRDGraph {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let mut data_point = (String::from("-"), String::from("_"));
+        let mut data_point = (String::from("-"), String::from("-"));
         if self.draw_cross {
             if let Some((x, _)) = self.cross_pos {
                 let (data0, data1) = self.get_view_data(ctx);
