@@ -5,7 +5,7 @@ use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::Panel;
+use pwt::widget::{Panel, Row};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct RRDGraph {
@@ -84,7 +84,7 @@ impl Default for LayoutProps {
             height: 250,
             grid_border: 10,
             left_offset: 50,
-            bottom_offset: 50,
+            bottom_offset: 40,
         }
     }
 }
@@ -161,6 +161,11 @@ fn get_time_grid_unit(min: i64, max: i64) -> i64 {
     //log::info!("TIMERANG {l}");
 
     l
+}
+
+fn format_date_time(t: i64) -> String {
+    let (time, date) = format_time(t);
+    format!("{date} {time}")
 }
 
 fn format_time(t: i64) -> (String, String) {
@@ -696,10 +701,33 @@ impl Component for PwtRRDGraph {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
+        let mut data_point = (String::from("-"), String::from("_"));
+        if self.draw_cross {
+            if let Some((x, _)) = self.cross_pos {
+                let (data0, data1) = self.get_view_data(ctx);
+                let idx = self.offset_to_time_index(x, data0);
+                if let Some(t) = data0.get(idx) {
+                    if let Some(v) = data1.get(idx) {
+                        log::info!("KV {t} {v} {}", format_date_time(*t));
+                        data_point = (format_date_time(*t), v.to_string());
+                    }
+                }
+            }
+        }
+
+        let info_row = Row::new()
+            .class("pwt-justify-content-center")
+            .padding_x(2)
+            .padding_bottom(2)
+            .gap(2)
+            .with_child(html!{<div style="width:200px;">{format!("Time: {}", data_point.0)}</div>})
+            .with_child(html!{<div style="width:300px;">{format!("Value: {}", data_point.1)}</div>});
+
         Panel::new()
             .title(props.title.clone())
             .class(props.class.clone())
             .with_child(self.custom_view(ctx))
+            .with_child(info_row)
             .into()
     }
 }
