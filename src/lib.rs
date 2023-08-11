@@ -22,8 +22,8 @@ pub use object_grid::{ObjectGrid, ObjectGridRow, PwtObjectGrid, RenderObjectGrid
 mod realm_selector;
 pub use realm_selector::RealmSelector;
 
-mod rrd_graph;
-pub use rrd_graph::RRDGraph;
+mod rrd_graph_new;
+pub use rrd_graph_new::RRDGraph;
 
 mod login_panel;
 pub use login_panel::LoginPanel;
