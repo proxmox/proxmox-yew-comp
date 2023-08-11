@@ -575,7 +575,16 @@ impl PwtRRDGraph {
         let fraction: f64 = ((x - (layout.left_offset + layout.grid_border) as i32) as f64) / width;
 
         let t: i64 = ((fraction * (time_span as f64)) as i64) + start_time;
-        let start_index = data0.partition_point(|&x| x <= t);
+        let start_index = data0.partition_point(|&x| x < t);
+
+        // Select nearest point
+        if let Some(next_t) = data0.get(start_index) {
+            if let Some(prev_t) = data0.get(start_index - 1) {
+                if (t - prev_t) < (next_t - t) {
+                    return start_index - 1;
+                }
+            }
+        }
 
         //log::info!("START SELECTION {x} {fraction} {start_time} {t} {end_time} {start_index}");
 
