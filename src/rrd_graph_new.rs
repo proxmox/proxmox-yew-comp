@@ -179,7 +179,7 @@ fn format_time(t: i64) -> (String, String) {
     let year = date.get_full_year();
     let mon = date.get_month() + 1;
     let day = date.get_date();
-    let date = format!("{}/{}/{}", year, mon, day);
+    let date = format!("{}-{:02}-{:02}", year, mon, day);
 
     (time, date)
 }
