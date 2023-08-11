@@ -188,6 +188,16 @@ fn format_time(t: i64) -> (String, String) {
     (time, date)
 }
 
+fn reduce_float_precision(v: f64) -> f64 {
+    // round value to 3-4 relevant digits
+    if v == 0.0 {
+        return 0.0;
+    }
+    let mag = v.abs().log10().floor().abs();
+    let base = 10.0f64.powf(3.0 + mag);
+    (v * base).round() / base
+}
+
 impl PwtRRDGraph {
     fn get_view_data<'a>(&self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64]) {
         let props = ctx.props();
@@ -393,15 +403,7 @@ impl PwtRRDGraph {
                     let y = compute_y(v);
                     grid_path.push_str(&format!("M {x0} {y} L {x1} {y}"));
 
-                    // round value to 4 relevant digits
-                    let rounded_value = if v == 0.0 {
-                        0.0
-                    } else {
-                        let mag = v.log10();
-                        let base = 10.0f64.powf((mag + 4.0).floor());
-                        (v * base).round() / base
-                    };
-
+                    let rounded_value = reduce_float_precision(v);
                     value_labels.push(
                         Text::new(format!("{rounded_value}"))
                             .position(x0 as f32, y as f32)
@@ -544,7 +546,7 @@ impl PwtRRDGraph {
                         .stroke("none")
                         .position(x, y)
                         .r(1)
-                    .into(),
+                        .into(),
                 );
             }
         }
@@ -730,7 +732,7 @@ impl Component for PwtRRDGraph {
                 let idx = self.offset_to_time_index(x, data0);
                 if let Some(t) = data0.get(idx) {
                     if let Some(v) = data1.get(idx) {
-                        data_point = (format_date_time(*t), v.to_string());
+                        data_point = (format_date_time(*t), reduce_float_precision(*v).to_string());
                     }
                 }
             }
