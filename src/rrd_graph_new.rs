@@ -543,7 +543,7 @@ impl PwtRRDGraph {
                         .fill("none")
                         .stroke("none")
                         .position(x, y)
-                        .r(0)
+                        .r(1)
                     .into(),
                 );
             }
