@@ -578,10 +578,12 @@ impl PwtRRDGraph {
         let start_index = data0.partition_point(|&x| x < t);
 
         // Select nearest point
-        if let Some(next_t) = data0.get(start_index) {
-            if let Some(prev_t) = data0.get(start_index - 1) {
-                if (t - prev_t) < (next_t - t) {
-                    return start_index - 1;
+        if start_index > 0 {
+            if let Some(next_t) = data0.get(start_index) {
+                if let Some(prev_t) = data0.get(start_index - 1) {
+                    if (t - prev_t) < (next_t - t) {
+                        return start_index - 1;
+                    }
                 }
             }
         }
@@ -618,7 +620,7 @@ impl Component for PwtRRDGraph {
                 true
             }
             Msg::PointerEnter => {
-              self.draw_cross = true;
+                self.draw_cross = true;
                 true
             }
             Msg::PointerLeave => {
@@ -700,8 +702,6 @@ impl Component for PwtRRDGraph {
             .with_child(self.custom_view(ctx))
             .into()
     }
-
-
 }
 
 impl Into<VNode> for RRDGraph {
