@@ -52,6 +52,7 @@ impl RRDGraph {
 
 pub enum Msg {
     Reload,
+    AdjustLeftOffset(usize),
     StartSelection(i32, i32),
     EndSelection(i32),
     PointerMove(i32, i32),
@@ -71,6 +72,7 @@ pub struct PwtRRDGraph {
     tooltip_ref: NodeRef,
     datapoint_ref: NodeRef,
     align_options: AlignOptions,
+    y_label_ref: NodeRef,
 }
 
 pub struct LayoutProps {
@@ -93,7 +95,7 @@ impl Default for LayoutProps {
     }
 }
 
-use pwt::widget::canvas::{Canvas, Circle, Path, Rect, SvgLength, Text};
+use pwt::widget::canvas::{Canvas, Circle, Group, Path, Rect, SvgLength, Text};
 
 fn get_grid_unit(min: f64, max: f64) -> f64 {
     let range = max - min;
@@ -473,8 +475,13 @@ impl PwtRRDGraph {
                 .into(),
         ];
 
-        children.extend(value_labels);
         children.extend(time_labels);
+
+        let y_label_group = Group::new()
+            .node_ref(self.y_label_ref.clone())
+            .children(value_labels);
+
+        children.push(y_label_group.into());
 
         if let Some((start, end)) = &self.selection {
             let start = (*start).min(data0.len() - 1);
@@ -637,6 +644,7 @@ impl Component for PwtRRDGraph {
             tooltip_ref: NodeRef::default(),
             datapoint_ref: NodeRef::default(),
             align_options,
+            y_label_ref: NodeRef::default(),
         }
     }
 
@@ -646,6 +654,10 @@ impl Component for PwtRRDGraph {
             Msg::Reload => true,
             Msg::ClearViewRange => {
                 self.view_range = None;
+                true
+            }
+            Msg::AdjustLeftOffset(offset) => {
+                self.layout.left_offset = offset;
                 true
             }
             Msg::PointerEnter => {
@@ -760,10 +772,18 @@ impl Component for PwtRRDGraph {
             .into()
     }
 
-    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
+    fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
         if let Some(content_node) = self.datapoint_ref.get() {
             if let Some(tooltip_node) = self.tooltip_ref.get() {
                 let _ = align_to(content_node, tooltip_node, Some(self.align_options.clone()));
+            }
+        }
+        if let Some(el) = self.y_label_ref.cast::<web_sys::SvgsvgElement>() {
+            if let Ok(bbox) = el.get_b_box() {
+                let offset = (bbox.width() + 10.0) as usize;
+                if self.layout.left_offset != offset {
+                    ctx.link().send_message(Msg::AdjustLeftOffset(offset));
+                }
             }
         }
     }
