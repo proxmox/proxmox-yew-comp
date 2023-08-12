@@ -214,7 +214,7 @@ impl PwtRRDGraph {
         }
     }
 
-    fn custom_view(&self, ctx: &Context<Self>) -> Html {
+    fn create_graph(&self, ctx: &Context<Self>) -> Html {
         let layout = &self.layout;
 
         let (data0, data1) = self.get_view_data(ctx);
@@ -767,7 +767,7 @@ impl Component for PwtRRDGraph {
         Panel::new()
             .title(props.title.clone())
             .class(props.class.clone())
-            .with_child(self.custom_view(ctx))
+            .with_child(self.create_graph(ctx))
             .with_child(tip)
             .into()
     }
