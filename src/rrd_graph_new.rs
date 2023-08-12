@@ -251,15 +251,6 @@ impl PwtRRDGraph {
         let points = data0.len();
         let time_span = (end_time - start_time) as f64;
 
-        /*
-        let shift = (max_data - min_data) / 3.0;
-        for i in 0..points {
-            data1[i] -= shift;
-        }
-        max_data -= shift;
-        min_data -= shift;
-        */
-
         let grid_unit = get_grid_unit(min_data, max_data);
 
         let t = (((min_data / grid_unit) as i64) as f64) * grid_unit;
@@ -277,16 +268,6 @@ impl PwtRRDGraph {
         }
 
         let data_range = max_data - min_data;
-
-        //log::info!("POINTS {points} MIN {:?} MAX {:?}", min_data, max_data);
-
-        /*
-        if data1.len() > 100 {
-            for i in 30..100 {
-                data1[i] = f64::NAN;
-            }
-        }
-        */
 
         let compute_x = {
             let width = (layout.width - layout.left_offset - layout.grid_border * 2) as f64;
