@@ -291,8 +291,6 @@ impl PwtRRDGraph {
             }
         };
 
-        let y0 = compute_y(0.0);
-
         let compute_fill = |fill_dir: bool| -> String {
             let mut y0 = compute_y(0.0);
             if fill_dir {
@@ -304,7 +302,7 @@ impl PwtRRDGraph {
                     y0 = compute_y(max_data)
                 }
             }
-            let mut path = format!("M 0 {y0}"); // not used
+            let mut path = String::new();
             let mut last_undefined = true;
             for i in 0..points {
                 let t = data0[i];
@@ -350,7 +348,7 @@ impl PwtRRDGraph {
             path
         };
 
-        let mut path = format!("M 0 {y0}");
+        let mut path = String::new();
         let mut last_undefined = true;
         for i in 0..points {
             let t = data0[i];
