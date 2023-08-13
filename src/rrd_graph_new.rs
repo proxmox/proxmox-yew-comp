@@ -200,6 +200,33 @@ fn reduce_float_precision(v: f64) -> f64 {
     (v * base).round() / base
 }
 
+fn compute_min_max(data: &[f64]) -> (Option<f64>, Option<f64>) {
+    let mut min_data: Option<f64> = None;
+    let mut max_data: Option<f64> = None;
+
+    for v in data.iter() {
+        if !v.is_finite() {
+            continue; // NaN, INFINITY
+        }
+        if let Some(min) = min_data {
+            if *v < min {
+                min_data = Some(*v);
+            }
+        } else {
+            min_data = Some(*v);
+        }
+
+        if let Some(max) = max_data {
+            if *v > max {
+                max_data = Some(*v);
+            }
+        } else {
+            max_data = Some(*v);
+        }
+    }
+    (min_data, max_data)
+}
+
 impl PwtRRDGraph {
     fn get_view_data<'a>(&self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64]) {
         let props = ctx.props();
@@ -222,29 +249,7 @@ impl PwtRRDGraph {
         let start_time = data0.first().unwrap_or(&0);
         let end_time = data0.last().unwrap_or(&0);
 
-        let mut min_data: Option<f64> = None;
-        let mut max_data: Option<f64> = None;
-
-        for v in data1.iter() {
-            if v.is_nan() {
-                continue;
-            }
-            if let Some(min) = min_data {
-                if *v < min {
-                    min_data = Some(*v);
-                }
-            } else {
-                min_data = Some(*v);
-            }
-            if let Some(max) = max_data {
-                if *v > max {
-                    max_data = Some(*v);
-                }
-            } else {
-                max_data = Some(*v);
-            }
-        }
-
+        let (min_data, max_data) = compute_min_max(data1);
         let mut max_data = max_data.unwrap_or(1.0);
         let mut min_data = min_data.unwrap_or(0.0);
 
