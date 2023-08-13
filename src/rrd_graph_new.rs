@@ -247,6 +247,103 @@ fn compute_min_max(data: &[f64]) -> (f64, f64, f64) {
     (min_data, max_data, grid_unit)
 }
 
+fn compute_outline_path(
+    time_data: &[i64],
+    values: &[f64],
+    compute_x: impl Fn(i64) -> f64,
+    compute_y: impl Fn(f64) -> f64,
+) -> String {
+    let mut path = String::new();
+    let mut last_undefined = true;
+    for i in 0..time_data.len() {
+        let t = time_data[i];
+        let value = *values.get(i).unwrap_or(&f64::NAN);
+        let x = compute_x(t);
+
+        if last_undefined {
+            if value.is_nan() {
+                continue;
+            }
+            last_undefined = false;
+            let y = compute_y(value);
+            path.push_str(&format!(" M {x} {y}"));
+        } else {
+            if value.is_nan() {
+                last_undefined = true;
+                continue;
+            }
+            let y = compute_y(value);
+            path.push_str(&format!(" L {x} {y}"));
+        }
+    }
+    path
+}
+
+fn compute_fill_path(
+    time_data: &[i64],
+    values: &[f64],
+    fill_dir: bool,
+    min_data: f64,
+    max_data: f64,
+    compute_x: impl Fn(i64) -> f64,
+    compute_y: impl Fn(f64) -> f64,
+) -> String {
+    let mut y0 = compute_y(0.0);
+    if fill_dir {
+        if min_data > 0.0 {
+            y0 = compute_y(min_data)
+        }
+    } else {
+        if max_data < 0.0 {
+            y0 = compute_y(max_data)
+        }
+    }
+    let mut path = String::new();
+    let mut last_undefined = true;
+    for i in 0..time_data.len() {
+        let t = time_data[i];
+        let mut value = *values.get(i).unwrap_or(&f64::NAN);
+
+        if fill_dir {
+            if value < 0.0 {
+                value = f64::NAN;
+            }
+        } else {
+            if value > 0.0 {
+                value = f64::NAN;
+            }
+        }
+
+        let x = compute_x(t);
+
+        if last_undefined {
+            if value.is_nan() {
+                continue;
+            }
+            last_undefined = false;
+            path.push_str(&format!(" M {x} {y0}"));
+        } else {
+            if value.is_nan() {
+                last_undefined = true;
+                path.push_str(&format!(" L {x} {y0}"));
+
+                continue;
+            }
+        }
+        let y = compute_y(value);
+        path.push_str(&format!(" L {x} {y}"));
+    }
+
+    if let Some(t) = time_data.last() {
+        if !last_undefined {
+            let x = compute_x(*t);
+            path.push_str(&format!(" L {x} {y0}"));
+        }
+    }
+
+    path
+}
+
 impl PwtRRDGraph {
     fn get_view_data<'a>(&self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64]) {
         let props = ctx.props();
@@ -291,89 +388,13 @@ impl PwtRRDGraph {
             }
         };
 
-        let compute_fill = |fill_dir: bool| -> String {
-            let mut y0 = compute_y(0.0);
-            if fill_dir {
-                if min_data > 0.0 {
-                    y0 = compute_y(min_data)
-                }
-            } else {
-                if max_data < 0.0 {
-                    y0 = compute_y(max_data)
-                }
-            }
-            let mut path = String::new();
-            let mut last_undefined = true;
-            for i in 0..points {
-                let t = data0[i];
-                let mut value = *data1.get(i).unwrap_or(&f64::NAN);
+        let path = compute_outline_path(data0, data1, compute_x, compute_y);
 
-                if fill_dir {
-                    if value < 0.0 {
-                        value = f64::NAN;
-                    }
-                } else {
-                    if value > 0.0 {
-                        value = f64::NAN;
-                    }
-                }
-
-                let x = compute_x(t);
-
-                if last_undefined {
-                    if value.is_nan() {
-                        continue;
-                    }
-                    last_undefined = false;
-                    path.push_str(&format!(" M {x} {y0}"));
-                } else {
-                    if value.is_nan() {
-                        last_undefined = true;
-                        path.push_str(&format!(" L {x} {y0}"));
-
-                        continue;
-                    }
-                }
-                let y = compute_y(value);
-                path.push_str(&format!(" L {x} {y}"));
-            }
-
-            if let Some(t) = data0.last() {
-                if !last_undefined {
-                    let x = compute_x(*t);
-                    path.push_str(&format!(" L {x} {y0}"));
-                }
-            }
-
-            path
-        };
-
-        let mut path = String::new();
-        let mut last_undefined = true;
-        for i in 0..points {
-            let t = data0[i];
-            let value = *data1.get(i).unwrap_or(&f64::NAN);
-            let x = compute_x(t);
-
-            if last_undefined {
-                if value.is_nan() {
-                    continue;
-                }
-                last_undefined = false;
-                let y = compute_y(value);
-                path.push_str(&format!(" M {x} {y}"));
-            } else {
-                if value.is_nan() {
-                    last_undefined = true;
-                    continue;
-                }
-                let y = compute_y(value);
-                path.push_str(&format!(" L {x} {y}"));
-            }
-        }
-
-        let pos_fill_path = compute_fill(true);
-        let neg_fill_path = compute_fill(false);
+        let pos_fill_path =
+            compute_fill_path(data0, data1, true, min_data, max_data, compute_x, compute_y);
+        let neg_fill_path = compute_fill_path(
+            data0, data1, false, min_data, max_data, compute_x, compute_y,
+        );
 
         let mut grid_path = String::new();
 
