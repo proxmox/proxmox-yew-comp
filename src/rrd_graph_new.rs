@@ -200,7 +200,7 @@ fn reduce_float_precision(v: f64) -> f64 {
     (v * base).round() / base
 }
 
-fn compute_min_max(data: &[f64]) -> (Option<f64>, Option<f64>) {
+fn compute_min_max(data: &[f64]) -> (f64, f64, f64) {
     let mut min_data: Option<f64> = None;
     let mut max_data: Option<f64> = None;
 
@@ -224,7 +224,27 @@ fn compute_min_max(data: &[f64]) -> (Option<f64>, Option<f64>) {
             max_data = Some(*v);
         }
     }
-    (min_data, max_data)
+
+    let mut max_data = max_data.unwrap_or(1.0);
+    let mut min_data = min_data.unwrap_or(0.0);
+
+    let grid_unit = get_grid_unit(min_data, max_data);
+
+    let snapped = (((min_data / grid_unit) as i64) as f64) * grid_unit;
+    if snapped > min_data {
+        min_data = snapped - grid_unit;
+    } else {
+        min_data = snapped;
+    }
+
+    let snapped = (((max_data / grid_unit) as i64) as f64) * grid_unit;
+    if snapped < max_data {
+        max_data = snapped + grid_unit;
+    } else {
+        max_data = snapped;
+    }
+
+    (min_data, max_data, grid_unit)
 }
 
 impl PwtRRDGraph {
@@ -249,29 +269,10 @@ impl PwtRRDGraph {
         let start_time = data0.first().unwrap_or(&0);
         let end_time = data0.last().unwrap_or(&0);
 
-        let (min_data, max_data) = compute_min_max(data1);
-        let mut max_data = max_data.unwrap_or(1.0);
-        let mut min_data = min_data.unwrap_or(0.0);
+        let (min_data, max_data, grid_unit) = compute_min_max(data1);
 
         let points = data0.len();
         let time_span = (end_time - start_time) as f64;
-
-        let grid_unit = get_grid_unit(min_data, max_data);
-
-        let t = (((min_data / grid_unit) as i64) as f64) * grid_unit;
-        if t > min_data {
-            min_data = t - grid_unit;
-        } else {
-            min_data = t;
-        }
-
-        let t = (((max_data / grid_unit) as i64) as f64) * grid_unit;
-        if t < max_data {
-            max_data = t + grid_unit;
-        } else {
-            max_data = t;
-        }
-
         let data_range = max_data - min_data;
 
         let compute_x = {
