@@ -604,6 +604,17 @@ impl PwtRRDGraph {
                                 .into(),
                         )
                     }
+                    if let Some(v) = data2.get(idx) {
+                        let px = compute_x(*t) as f32;
+                        let py = compute_y(*v) as f32;
+                        children.push(
+                            Circle::new()
+                                .class("pwt-rrd-selected-datapoint")
+                                .position(px, py)
+                                .r(5)
+                                .into(),
+                        )
+                    }
                 }
 
                 let max_y = compute_y(min_data);
@@ -813,15 +824,23 @@ impl Component for PwtRRDGraph {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let mut data_point = (String::from("-"), String::from("-"));
+        let mut data_time = None;
+        let mut serie0_value =  None;
+        let mut serie1_value =  None;
+
         if self.draw_cross {
             if let Some((x, _)) = self.cross_pos {
-                let (data0, data1, _data2) = self.get_view_data(ctx);
+                let (data0, data1, data2) = self.get_view_data(ctx);
                 let idx = self.offset_to_time_index(x, data0);
                 if let Some(t) = data0.get(idx) {
+                    data_time = Some(format_date_time(*t));
                     if let Some(v) = data1.get(idx) {
-                        data_point = (format_date_time(*t), reduce_float_precision(*v).to_string());
+                        serie0_value = Some(reduce_float_precision(*v).to_string());
                     }
+                    if let Some(v) = data2.get(idx) {
+                        serie1_value = Some(reduce_float_precision(*v).to_string());
+                    }
+
                 }
             }
         }
@@ -830,15 +849,18 @@ impl Component for PwtRRDGraph {
             .node_ref(self.tooltip_ref.clone())
         .attribute("role", "tooltip")
         .attribute("aria-live", "polite")
-        .attribute("data-show", self.draw_cross.then(|| ""))
+        .attribute("data-show", (self.draw_cross && data_time.is_some()).then(|| ""))
         .class("pwt-tooltip")
         .class("pwt-tooltip-rich")
-        .with_child(html!{
-            <>
-                <div style="min-width: 300px;">{props.label.clone().unwrap_or(AttrValue::Static("Value"))}{": "}{&data_point.1}</div>
-                <div>{&data_point.0}</div>
-            </>
-        });
+        .with_optional_child(match &props.serie0 {
+            Some(serie) => Some(html!{<div>{format!("{}: {}", serie.label.clone(), serie0_value.as_deref().unwrap_or("-"))}</div>}),
+            None => None,
+        })
+        .with_optional_child(match &props.serie1 {
+            Some(serie) => Some(html!{<div>{format!("{}: {}", serie.label.clone(), serie1_value.as_deref().unwrap_or("-"))}</div>}),
+            None => None,
+        })
+        .with_child(html!{<div>{data_time.as_deref().unwrap_or("-")}</div>});
 
         Panel::new()
             .title(props.title.clone())
