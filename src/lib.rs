@@ -23,7 +23,7 @@ mod realm_selector;
 pub use realm_selector::RealmSelector;
 
 mod rrd_graph_new;
-pub use rrd_graph_new::RRDGraph;
+pub use rrd_graph_new::{RRDGraph, Series};
 
 mod login_panel;
 pub use login_panel::LoginPanel;

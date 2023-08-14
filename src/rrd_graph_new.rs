@@ -1,14 +1,33 @@
 use std::rc::Rc;
 
+use derivative::Derivative;
+
 use yew::html::IntoPropValue;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::state::optional_rc_ptr_eq;
 use pwt::widget::align::{align_to, AlignOptions};
 use pwt::widget::{Container, Panel};
 
-#[derive(Clone, PartialEq, Properties)]
+pub struct Series {
+    pub label: AttrValue,
+    pub data: Vec<f64>,
+}
+
+impl Series {
+    pub fn new(label: impl Into<AttrValue>, data: Vec<f64>) -> Self {
+        Self {
+            label: label.into(),
+            data,
+        }
+    }
+}
+
+#[derive(Derivative)]
+#[derivative(Clone, PartialEq)]
+#[derive(Properties)]
 pub struct RRDGraph {
     pub title: Option<AttrValue>,
     // Legend Label
@@ -16,12 +35,31 @@ pub struct RRDGraph {
     #[prop_or_default]
     pub class: Classes,
 
-    pub data: Rc<(Vec<i64>, Vec<f64>)>,
+    #[prop_or_default]
+    pub time_data: Rc<Vec<i64>>,
+
+    #[prop_or_default]
+    #[derivative(PartialEq(compare_with = "optional_rc_ptr_eq"))]
+    pub serie0: Option<Rc<Series>>,
+
+    #[prop_or_default]
+    #[derivative(PartialEq(compare_with = "optional_rc_ptr_eq"))]
+    pub serie1: Option<Rc<Series>>,
 }
 
 impl RRDGraph {
-    pub fn new(data: Rc<(Vec<i64>, Vec<f64>)>) -> Self {
-        yew::props!(RRDGraph { data })
+    pub fn new(time_data: Rc<Vec<i64>>) -> Self {
+        yew::props!(RRDGraph { time_data })
+    }
+
+    pub fn serie0(mut self, serie: Option<Rc<Series>>) -> Self {
+        self.serie0 = serie;
+        self
+    }
+
+    pub fn serie1(mut self, serie: Option<Rc<Series>>) -> Self {
+        self.serie1 = serie;
+        self
     }
 
     pub fn title(mut self, title: impl IntoPropValue<Option<AttrValue>>) -> Self {
@@ -73,6 +111,7 @@ pub struct PwtRRDGraph {
     datapoint_ref: NodeRef,
     align_options: AlignOptions,
     y_label_ref: NodeRef,
+    no_data: Vec<f64>,
 }
 
 pub struct LayoutProps {
@@ -200,28 +239,30 @@ fn reduce_float_precision(v: f64) -> f64 {
     (v * base).round() / base
 }
 
-fn compute_min_max(data: &[f64]) -> (f64, f64, f64) {
+fn compute_min_max(data1: &[f64], data2: &[f64]) -> (f64, f64, f64) {
     let mut min_data: Option<f64> = None;
     let mut max_data: Option<f64> = None;
 
-    for v in data.iter() {
-        if !v.is_finite() {
-            continue; // NaN, INFINITY
-        }
-        if let Some(min) = min_data {
-            if *v < min {
+    for data in [data1, data2] {
+        for v in data.iter() {
+            if !v.is_finite() {
+                continue; // NaN, INFINITY
+            }
+            if let Some(min) = min_data {
+                if *v < min {
+                    min_data = Some(*v);
+                }
+            } else {
                 min_data = Some(*v);
             }
-        } else {
-            min_data = Some(*v);
-        }
 
-        if let Some(max) = max_data {
-            if *v > max {
+            if let Some(max) = max_data {
+                if *v > max {
+                    max_data = Some(*v);
+                }
+            } else {
                 max_data = Some(*v);
             }
-        } else {
-            max_data = Some(*v);
         }
     }
 
@@ -345,28 +386,41 @@ fn compute_fill_path(
 }
 
 impl PwtRRDGraph {
-    fn get_view_data<'a>(&self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64]) {
+    fn get_view_data<'a>(&'a self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64], &'a [f64]) {
         let props = ctx.props();
 
-        let data0 = &props.data.0;
-        let data1 = &props.data.1;
+        let time_data = &props.time_data;
+        let serie0_data = match &props.serie0 {
+            Some(serie) => &serie.data,
+            None => &self.no_data,
+        };
+        let serie1_data = match &props.serie1 {
+            Some(serie) => &serie.data,
+            None => &self.no_data,
+        };
 
         if let Some((start, end)) = self.view_range {
-            (&data0[start..end], &data1[start..end])
+            (
+                &time_data[start..end],
+                &serie0_data[start..end],
+                &serie1_data[start..end],
+            )
         } else {
-            (&data0, &data1)
+            (&time_data, &serie0_data, &serie1_data)
         }
     }
 
     fn create_graph(&self, ctx: &Context<Self>) -> Html {
+        let props = ctx.props();
+
         let layout = &self.layout;
 
-        let (data0, data1) = self.get_view_data(ctx);
+        let (data0, data1, data2) = self.get_view_data(ctx);
 
         let start_time = data0.first().unwrap_or(&0);
         let end_time = data0.last().unwrap_or(&0);
 
-        let (min_data, max_data, grid_unit) = compute_min_max(data1);
+        let (min_data, max_data, grid_unit) = compute_min_max(data1, data2);
 
         let time_span = (end_time - start_time) as f64;
         let data_range = max_data - min_data;
@@ -386,14 +440,6 @@ impl PwtRRDGraph {
                     - ((value - min_data) * height) / data_range
             }
         };
-
-        let path = compute_outline_path(data0, data1, compute_x, compute_y);
-
-        let pos_fill_path =
-            compute_fill_path(data0, data1, true, min_data, max_data, compute_x, compute_y);
-        let neg_fill_path = compute_fill_path(
-            data0, data1, false, min_data, max_data, compute_x, compute_y,
-        );
 
         let mut grid_path = String::new();
 
@@ -463,23 +509,9 @@ impl PwtRRDGraph {
                 }
             }
         }
+        let mut children: Vec<Html> = Vec::new();
 
-        let mut children: Vec<Html> = vec![
-            Path::new()
-                .class("pwt-rrd-grid")
-                .d(grid_path)
-                .into(),
-            Path::new().class("pwt-rrd-outline-path1").d(path).into(),
-            Path::new()
-                .class("pwt-rrd-fill-path1")
-                .d(pos_fill_path)
-                .into(),
-            Path::new()
-                .class("pwt-rrd-fill-path1")
-                .d(neg_fill_path)
-                .into(),
-        ];
-
+        children.push(Path::new().class("pwt-rrd-grid").d(grid_path).into());
         children.extend(time_labels);
 
         let y_label_group = Group::new()
@@ -487,6 +519,48 @@ impl PwtRRDGraph {
             .children(value_labels);
 
         children.push(y_label_group.into());
+
+        if props.serie0.is_some() {
+            let path = compute_outline_path(data0, data1, compute_x, compute_y);
+            let pos_fill_path =
+                compute_fill_path(data0, data1, true, min_data, max_data, compute_x, compute_y);
+            let neg_fill_path = compute_fill_path(
+                data0, data1, false, min_data, max_data, compute_x, compute_y,
+            );
+
+            children.extend(vec![
+                Path::new().class("pwt-rrd-outline-path1").d(path).into(),
+                Path::new()
+                    .class("pwt-rrd-fill-path1")
+                    .d(pos_fill_path)
+                    .into(),
+                Path::new()
+                    .class("pwt-rrd-fill-path1")
+                    .d(neg_fill_path)
+                    .into(),
+            ]);
+        }
+
+        if props.serie1.is_some() {
+            let path = compute_outline_path(data0, data2, compute_x, compute_y);
+            let pos_fill_path =
+                compute_fill_path(data0, data2, true, min_data, max_data, compute_x, compute_y);
+            let neg_fill_path = compute_fill_path(
+                data0, data2, false, min_data, max_data, compute_x, compute_y,
+            );
+
+            children.extend(vec![
+                Path::new().class("pwt-rrd-outline-path2").d(path).into(),
+                Path::new()
+                    .class("pwt-rrd-fill-path2")
+                    .d(pos_fill_path)
+                    .into(),
+                Path::new()
+                    .class("pwt-rrd-fill-path2")
+                    .d(neg_fill_path)
+                    .into(),
+            ]);
+        }
 
         if let Some((start, end)) = &self.selection {
             let start = (*start).min(data0.len() - 1);
@@ -646,6 +720,7 @@ impl Component for PwtRRDGraph {
             datapoint_ref: NodeRef::default(),
             align_options,
             y_label_ref: NodeRef::default(),
+            no_data: Vec::new(),
         }
     }
 
@@ -674,7 +749,7 @@ impl Component for PwtRRDGraph {
                 if let Some(el) = self.canvas_ref.cast::<web_sys::Element>() {
                     let _ = el.set_pointer_capture(pointer_id);
                 }
-                let (data0, _) = self.get_view_data(ctx);
+                let (data0, _, _) = self.get_view_data(ctx);
                 let start_index = self.offset_to_time_index(x, data0);
                 self.selection = Some((start_index, start_index));
                 true
@@ -683,7 +758,7 @@ impl Component for PwtRRDGraph {
                 self.cross_pos = Some((x, y));
                 self.selection = match self.selection {
                     Some((start, _)) => {
-                        let (data0, _) = self.get_view_data(ctx);
+                        let (data0, _, _) = self.get_view_data(ctx);
                         let end_index = self.offset_to_time_index(x, data0);
                         //log::info!("Move SELECTION {start} {end_index}");
                         Some((start, end_index))
@@ -700,7 +775,7 @@ impl Component for PwtRRDGraph {
                 }
                 self.selection = match self.selection {
                     Some((start, _)) => {
-                        let (data0, _) = self.get_view_data(ctx);
+                        let (data0, _, _) = self.get_view_data(ctx);
                         let end_index = self.offset_to_time_index(x, data0);
                         let (start, end_index) = if start > end_index {
                             (end_index, start)
@@ -741,7 +816,7 @@ impl Component for PwtRRDGraph {
         let mut data_point = (String::from("-"), String::from("-"));
         if self.draw_cross {
             if let Some((x, _)) = self.cross_pos {
-                let (data0, data1) = self.get_view_data(ctx);
+                let (data0, data1, _data2) = self.get_view_data(ctx);
                 let idx = self.offset_to_time_index(x, data0);
                 if let Some(t) = data0.get(idx) {
                     if let Some(v) = data1.get(idx) {
