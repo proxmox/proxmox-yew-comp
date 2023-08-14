@@ -266,14 +266,14 @@ fn compute_outline_path(
             }
             last_undefined = false;
             let y = compute_y(value);
-            path.push_str(&format!(" M {x} {y}"));
+            path.push_str(&format!(" M {:.1} {:.1}", x, y));
         } else {
             if value.is_nan() {
                 last_undefined = true;
                 continue;
             }
             let y = compute_y(value);
-            path.push_str(&format!(" L {x} {y}"));
+            path.push_str(&format!(" L {:.1} {:.1}", x, y));
         }
     }
     path
@@ -321,23 +321,23 @@ fn compute_fill_path(
                 continue;
             }
             last_undefined = false;
-            path.push_str(&format!(" M {x} {y0}"));
+            path.push_str(&format!(" M {:.1} {:.1}", x, y0));
         } else {
             if value.is_nan() {
                 last_undefined = true;
-                path.push_str(&format!(" L {x} {y0}"));
+                path.push_str(&format!(" L {:.1} {:.1}", x, y0));
 
                 continue;
             }
         }
         let y = compute_y(value);
-        path.push_str(&format!(" L {x} {y}"));
+        path.push_str(&format!(" L {:.1} {:.1}", x, y));
     }
 
     if let Some(t) = time_data.last() {
         if !last_undefined {
             let x = compute_x(*t);
-            path.push_str(&format!(" L {x} {y0}"));
+            path.push_str(&format!(" L {:.1} {:.1}", x, y0));
         }
     }
 
@@ -368,7 +368,6 @@ impl PwtRRDGraph {
 
         let (min_data, max_data, grid_unit) = compute_min_max(data1);
 
-        let points = data0.len();
         let time_span = (end_time - start_time) as f64;
         let data_range = max_data - min_data;
 
@@ -409,11 +408,12 @@ impl PwtRRDGraph {
                 let mut v = min_data;
                 while v <= max_data {
                     let y = compute_y(v);
-                    grid_path.push_str(&format!("M {x0} {y} L {x1} {y}"));
+                    grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x0, y, x1, y));
 
                     let rounded_value = reduce_float_precision(v);
                     value_labels.push(
                         Text::new(format!("{rounded_value}"))
+                            .class("pwt-rrd-label-text")
                             .position(x0 as f32, y as f32)
                             .dy(SvgLength::Px(4.0))
                             .dx(SvgLength::Px(-4.0))
@@ -433,12 +433,13 @@ impl PwtRRDGraph {
 
                 while t <= *end {
                     let x = compute_x(t);
-                    grid_path.push_str(&format!("M {x} {ymin} L {x} {ymax}"));
+                    grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x, ymin, x, ymax));
 
                     let (time, date) = format_time(t);
 
                     time_labels.push(
                         Text::new(time)
+                            .class("pwt-rrd-label-text")
                             .position(x as f32, ymin as f32)
                             .dy(SvgLength::Px(10.0))
                             .attribute("text-anchor", "middle")
@@ -448,6 +449,7 @@ impl PwtRRDGraph {
                     if date != last_date {
                         time_labels.push(
                             Text::new(date.clone())
+                                .class("pwt-rrd-label-text")
                                 .position(x as f32, ymin as f32)
                                 .dy(SvgLength::Px(10.0 + 16.0))
                                 .attribute("text-anchor", "middle")
@@ -464,19 +466,16 @@ impl PwtRRDGraph {
 
         let mut children: Vec<Html> = vec![
             Path::new()
-                .stroke("black")
-                .stroke_width(0.1)
+                .class("pwt-rrd-grid")
                 .d(grid_path)
                 .into(),
-            Path::new().stroke("#94ae0a").fill("none").d(path).into(),
+            Path::new().class("pwt-rrd-outline-path1").d(path).into(),
             Path::new()
-                .stroke("none")
-                .fill("#94ae0a80")
+                .class("pwt-rrd-fill-path1")
                 .d(pos_fill_path)
                 .into(),
             Path::new()
-                .stroke("none")
-                .fill("#94ae0a80")
+                .class("pwt-rrd-fill-path1")
                 .d(neg_fill_path)
                 .into(),
         ];
@@ -507,10 +506,10 @@ impl PwtRRDGraph {
 
             children.push(
                 Rect::new()
+                    .class("pwt-rrd-selection")
                     .position(start_x as f32, end_y as f32)
                     .width((end_x - start_x) as f32)
                     .height((start_y - end_y) as f32)
-                    .fill("#cccccc80")
                     .into(),
             );
         }
@@ -525,9 +524,7 @@ impl PwtRRDGraph {
                         let py = compute_y(*v) as f32;
                         children.push(
                             Circle::new()
-                                .stroke("red")
-                                .stroke_width(0.5)
-                                .fill("none")
+                                .class("pwt-rrd-selected-datapoint")
                                 .position(px, py)
                                 .r(5)
                                 .into(),
@@ -544,9 +541,7 @@ impl PwtRRDGraph {
 
                 children.push(
                     Path::new()
-                        .stroke("red")
-                        .stroke_width(0.3)
-                        .attribute("stroke-dasharray", "10 3")
+                        .class("pwt-rrd-cross")
                         .d(format!("M {x} 0 L {x} {max_y} M {min_x} {y} L {max_x} {y}"))
                         .into(),
                 );
@@ -566,7 +561,7 @@ impl PwtRRDGraph {
 
         Canvas::new()
             .node_ref(self.canvas_ref.clone())
-            .class("proxmox-comp-rdd")
+            .class("pwt-rrd")
             .class("pwt-user-select-none")
             .class("pwt-pt-2 pwt-pe-2")
             .width(layout.width)
