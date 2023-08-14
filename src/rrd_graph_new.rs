@@ -9,7 +9,7 @@ use yew::virtual_dom::{VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::optional_rc_ptr_eq;
 use pwt::widget::align::{align_to, AlignOptions};
-use pwt::widget::{Container, Panel};
+use pwt::widget::{Button, Container, Panel};
 
 pub struct Series {
     pub label: AttrValue,
@@ -97,6 +97,8 @@ pub enum Msg {
     PointerEnter,
     PointerLeave,
     ClearViewRange,
+    ToogleSerie0,
+    ToogleSerie1,
 }
 
 pub struct PwtRRDGraph {
@@ -112,6 +114,8 @@ pub struct PwtRRDGraph {
     align_options: AlignOptions,
     y_label_ref: NodeRef,
     no_data: Vec<f64>,
+    serie0_visible: bool,
+    serie1_visible: bool,
 }
 
 pub struct LayoutProps {
@@ -390,13 +394,13 @@ impl PwtRRDGraph {
         let props = ctx.props();
 
         let time_data = &props.time_data;
-        let serie0_data = match &props.serie0 {
-            Some(serie) => &serie.data,
-            None => &self.no_data,
+        let serie0_data = match (self.serie0_visible, &props.serie0) {
+            (true, Some(serie)) => &serie.data,
+            _ => &self.no_data,
         };
-        let serie1_data = match &props.serie1 {
-            Some(serie) => &serie.data,
-            None => &self.no_data,
+        let serie1_data = match (self.serie1_visible, &props.serie1) {
+            (true, Some(serie)) => &serie.data,
+            _ => &self.no_data,
         };
 
         if let Some((start, end)) = self.view_range {
@@ -732,6 +736,8 @@ impl Component for PwtRRDGraph {
             align_options,
             y_label_ref: NodeRef::default(),
             no_data: Vec::new(),
+            serie0_visible: true,
+            serie1_visible: true,
         }
     }
 
@@ -739,6 +745,14 @@ impl Component for PwtRRDGraph {
         //let props = ctx.props();
         match msg {
             Msg::Reload => true,
+            Msg::ToogleSerie0 => {
+                self.serie0_visible = !self.serie0_visible;
+                true
+            }
+            Msg::ToogleSerie1 => {
+                self.serie1_visible = !self.serie1_visible;
+                true
+            }
             Msg::ClearViewRange => {
                 self.view_range = None;
                 true
@@ -825,8 +839,8 @@ impl Component for PwtRRDGraph {
         let props = ctx.props();
 
         let mut data_time = None;
-        let mut serie0_value =  None;
-        let mut serie1_value =  None;
+        let mut serie0_value = None;
+        let mut serie1_value = None;
 
         if self.draw_cross {
             if let Some((x, _)) = self.cross_pos {
@@ -840,7 +854,6 @@ impl Component for PwtRRDGraph {
                     if let Some(v) = data2.get(idx) {
                         serie1_value = Some(reduce_float_precision(*v).to_string());
                     }
-
                 }
             }
         }
@@ -852,22 +865,50 @@ impl Component for PwtRRDGraph {
         .attribute("data-show", (self.draw_cross && data_time.is_some()).then(|| ""))
         .class("pwt-tooltip")
         .class("pwt-tooltip-rich")
-        .with_optional_child(match &props.serie0 {
-            Some(serie) => Some(html!{<div>{format!("{}: {}", serie.label.clone(), serie0_value.as_deref().unwrap_or("-"))}</div>}),
-            None => None,
+        .with_optional_child(match (self.serie0_visible, &props.serie0) {
+            (true, Some(serie)) => Some(html!{<div>{format!("{}: {}", serie.label.clone(), serie0_value.as_deref().unwrap_or("-"))}</div>}),
+            _ => None,
         })
-        .with_optional_child(match &props.serie1 {
-            Some(serie) => Some(html!{<div>{format!("{}: {}", serie.label.clone(), serie1_value.as_deref().unwrap_or("-"))}</div>}),
-            None => None,
+        .with_optional_child(match (self.serie1_visible, &props.serie1) {
+            (true, Some(serie)) => Some(html!{<div>{format!("{}: {}", serie.label.clone(), serie1_value.as_deref().unwrap_or("-"))}</div>}),
+            _ => None,
         })
         .with_child(html!{<div>{data_time.as_deref().unwrap_or("-")}</div>});
 
-        Panel::new()
+        let mut panel = Panel::new()
             .title(props.title.clone())
             .class(props.class.clone())
             .with_child(self.create_graph(ctx))
-            .with_child(tip)
-            .into()
+            .with_child(tip);
+
+        if let Some(serie0) = &props.serie0 {
+            if let Some(serie1) = &props.serie1 {
+                let icon_class0 = classes!(
+                    "pwt-rrd-legend-marker0",
+                    "fa",
+                    "fa-circle",
+                    (!self.serie0_visible).then(|| "disabled")
+                );
+                panel.add_tool(
+                    Button::new(serie0.label.clone())
+                        .icon_class(icon_class0)
+                        .onclick(ctx.link().callback(|_| Msg::ToogleSerie0)),
+                );
+                let icon_class1 = classes!(
+                    "pwt-rrd-legend-marker1",
+                    "fa",
+                    "fa-circle",
+                    (!self.serie1_visible).then(|| "disabled")
+                );
+                panel.add_tool(
+                    Button::new(serie1.label.clone())
+                        .icon_class(icon_class1)
+                        .onclick(ctx.link().callback(|_| Msg::ToogleSerie1)),
+                );
+            }
+        }
+
+        panel.into()
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
