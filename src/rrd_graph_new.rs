@@ -287,7 +287,7 @@ fn compute_min_max(props: &RRDGraph, data1: &[f64], data2: &[f64]) -> (f64, f64,
     let mut max_data = max_data.unwrap_or(1.0);
     let mut min_data = min_data.unwrap_or(0.0);
 
-    if props.include_zero || true {
+    if props.include_zero {
         max_data = max_data.max(0.0);
         min_data = min_data.min(0.0);
     }
