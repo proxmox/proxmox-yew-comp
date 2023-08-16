@@ -53,6 +53,11 @@ pub struct RRDGraph {
     #[prop_or(true)]
     #[builder]
     pub include_zero: bool,
+
+    /// Compute axis range using log2 instead of log10.
+    #[prop_or_default]
+    #[builder]
+    pub binary: bool,
 }
 
 impl RRDGraph {
@@ -148,11 +153,11 @@ impl Default for LayoutProps {
 
 use pwt::widget::canvas::{Canvas, Circle, Group, Path, Rect, SvgLength, Text};
 
-fn get_grid_unit(min: f64, max: f64) -> f64 {
+fn get_grid_unit_base10(min: f64, max: f64) -> f64 {
     let range = max - min;
 
     if range == 0.0 {
-        return 0.1; // avoid returning 0 (avoid endless loops, division by zero)
+        panic!("get_grid_unit_base10: got zero range - internal error");
     }
 
     let mut l = range.log10() as i32;
@@ -173,6 +178,32 @@ fn get_grid_unit(min: f64, max: f64) -> f64 {
 
     res
 }
+
+fn get_grid_unit_base2(min: f64, max: f64) -> f64 {
+    let range = max - min;
+
+    if range == 0.0 {
+        panic!("get_grid_unit_base2: got zero range - internal error");
+    }
+
+    let mut l = range.log2() as i32;
+
+    while (range / (2.0 as f64).powi(l)) < 4.0 {
+        l -= 1;
+    }
+
+    let mut res = (2.0 as f64).powi(l);
+
+    let count = range / res;
+
+    if count > 15.0 {
+        res = res * 2.0;
+    }
+
+    res
+}
+
+
 
 fn get_time_grid_unit(min: i64, max: i64) -> i64 {
     let range = max - min;
@@ -296,7 +327,11 @@ fn compute_min_max(props: &RRDGraph, data1: &[f64], data2: &[f64]) -> (f64, f64,
         max_data += 0.0002;
         min_data -= 0.0003;
     }
-    let grid_unit = get_grid_unit(min_data, max_data);
+    let grid_unit = if props.binary {
+        get_grid_unit_base2(min_data, max_data)
+    } else {
+        get_grid_unit_base10(min_data, max_data)
+    };
 
     let snapped = (((min_data / grid_unit) as i64) as f64) * grid_unit;
     if snapped > min_data {
