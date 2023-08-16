@@ -11,6 +11,8 @@ use pwt::state::optional_rc_ptr_eq;
 use pwt::widget::align::{align_to, AlignOptions};
 use pwt::widget::{Button, Container, Panel};
 
+use pwt_macros::builder;
+
 pub struct Series {
     pub label: AttrValue,
     pub data: Vec<f64>,
@@ -28,6 +30,7 @@ impl Series {
 #[derive(Derivative)]
 #[derivative(Clone, PartialEq)]
 #[derive(Properties)]
+#[builder]
 pub struct RRDGraph {
     pub title: Option<AttrValue>,
     // Legend Label
@@ -45,6 +48,11 @@ pub struct RRDGraph {
     #[prop_or_default]
     #[derivative(PartialEq(compare_with = "optional_rc_ptr_eq"))]
     pub serie1: Option<Rc<Series>>,
+
+    /// Always include zero in displayed data range.
+    #[prop_or(true)]
+    #[builder]
+    pub include_zero: bool,
 }
 
 impl RRDGraph {
@@ -249,7 +257,7 @@ fn reduce_float_precision(v: f64) -> f64 {
     }
 }
 
-fn compute_min_max(data1: &[f64], data2: &[f64]) -> (f64, f64, f64) {
+fn compute_min_max(props: &RRDGraph, data1: &[f64], data2: &[f64]) -> (f64, f64, f64) {
     let mut min_data: Option<f64> = None;
     let mut max_data: Option<f64> = None;
 
@@ -278,6 +286,11 @@ fn compute_min_max(data1: &[f64], data2: &[f64]) -> (f64, f64, f64) {
 
     let mut max_data = max_data.unwrap_or(1.0);
     let mut min_data = min_data.unwrap_or(0.0);
+
+    if props.include_zero || true {
+        max_data = max_data.max(0.0);
+        min_data = min_data.min(0.0);
+    }
 
     let grid_unit = get_grid_unit(min_data, max_data);
 
@@ -409,7 +422,7 @@ impl PwtRRDGraph {
             _ => &self.no_data,
         };
 
-        if let Some((start, end)) = self.view_range {;
+        if let Some((start, end)) = self.view_range {
             let serie0_start = start.min(serie0_data.len().saturating_sub(1));
             let serie0_end = end.min(serie0_data.len());
             let serie1_start = start.min(serie1_data.len().saturating_sub(1));
@@ -434,7 +447,7 @@ impl PwtRRDGraph {
         let start_time = data0.first().unwrap_or(&0);
         let end_time = data0.last().unwrap_or(&0);
 
-        let (min_data, max_data, grid_unit) = compute_min_max(data1, data2);
+        let (min_data, max_data, grid_unit) = compute_min_max(props, data1, data2);
 
         let time_span = (end_time - start_time) as f64;
         let data_range = max_data - min_data;
