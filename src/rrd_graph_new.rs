@@ -403,11 +403,15 @@ impl PwtRRDGraph {
             _ => &self.no_data,
         };
 
-        if let Some((start, end)) = self.view_range {
+        if let Some((start, end)) = self.view_range {;
+            let serie0_start = start.min(serie0_data.len().saturating_sub(1));
+            let serie0_end = end.min(serie0_data.len());
+            let serie1_start = start.min(serie1_data.len().saturating_sub(1));
+            let serie1_end = end.min(serie1_data.len());
             (
                 &time_data[start..end],
-                &serie0_data[start..end],
-                &serie1_data[start..end],
+                &serie0_data[serie0_start..serie0_end],
+                &serie1_data[serie1_start..serie1_end],
             )
         } else {
             (&time_data, &serie0_data, &serie1_data)
@@ -524,7 +528,7 @@ impl PwtRRDGraph {
 
         children.push(y_label_group.into());
 
-        if props.serie0.is_some() {
+        if self.serie0_visible && props.serie0.is_some() {
             let path = compute_outline_path(data0, data1, compute_x, compute_y);
             let pos_fill_path =
                 compute_fill_path(data0, data1, true, min_data, max_data, compute_x, compute_y);
@@ -545,7 +549,7 @@ impl PwtRRDGraph {
             ]);
         }
 
-        if props.serie1.is_some() {
+        if self.serie1_visible && props.serie1.is_some() {
             let path = compute_outline_path(data0, data2, compute_x, compute_y);
             let pos_fill_path =
                 compute_fill_path(data0, data2, true, min_data, max_data, compute_x, compute_y);
