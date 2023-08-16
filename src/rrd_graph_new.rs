@@ -826,10 +826,16 @@ impl Component for PwtRRDGraph {
             Msg::Reload => true,
             Msg::ToogleSerie0 => {
                 self.serie0_visible = !self.serie0_visible;
+                if !(self.serie0_visible || self.serie1_visible) {
+                    self.serie1_visible = true;
+                }
                 true
             }
             Msg::ToogleSerie1 => {
                 self.serie1_visible = !self.serie1_visible;
+                if !(self.serie0_visible || self.serie1_visible) {
+                    self.serie0_visible = true;
+                }
                 true
             }
             Msg::ClearViewRange => {
