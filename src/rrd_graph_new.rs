@@ -292,6 +292,10 @@ fn compute_min_max(props: &RRDGraph, data1: &[f64], data2: &[f64]) -> (f64, f64,
         min_data = min_data.min(0.0);
     }
 
+    if (max_data - min_data) < 0.0005 {
+        max_data += 0.0002;
+        min_data -= 0.0003;
+    }
     let grid_unit = get_grid_unit(min_data, max_data);
 
     let snapped = (((min_data / grid_unit) as i64) as f64) * grid_unit;
@@ -621,26 +625,30 @@ impl PwtRRDGraph {
 
                 if let Some(t) = data0.get(idx) {
                     if let Some(v) = data1.get(idx) {
-                        let px = compute_x(*t) as f32;
-                        let py = compute_y(*v) as f32;
-                        children.push(
-                            Circle::new()
-                                .class("pwt-rrd-selected-datapoint")
-                                .position(px, py)
-                                .r(5)
-                                .into(),
-                        )
+                        if v.is_finite() {
+                            let px = compute_x(*t) as f32;
+                            let py = compute_y(*v) as f32;
+                            children.push(
+                                Circle::new()
+                                    .class("pwt-rrd-selected-datapoint")
+                                    .position(px, py)
+                                    .r(5)
+                                    .into(),
+                            );
+                        }
                     }
                     if let Some(v) = data2.get(idx) {
-                        let px = compute_x(*t) as f32;
-                        let py = compute_y(*v) as f32;
-                        children.push(
-                            Circle::new()
-                                .class("pwt-rrd-selected-datapoint")
-                                .position(px, py)
-                                .r(5)
-                                .into(),
-                        )
+                        if v.is_finite() {
+                            let px = compute_x(*t) as f32;
+                            let py = compute_y(*v) as f32;
+                            children.push(
+                                Circle::new()
+                                    .class("pwt-rrd-selected-datapoint")
+                                    .position(px, py)
+                                    .r(5)
+                                    .into(),
+                            );
+                        }
                     }
                 }
 
