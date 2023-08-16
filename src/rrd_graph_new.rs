@@ -234,13 +234,19 @@ fn format_time(t: i64) -> (String, String) {
 }
 
 fn reduce_float_precision(v: f64) -> f64 {
-    // round value to 3-4 relevant digits
     if v == 0.0 {
         return 0.0;
     }
-    let mag = v.abs().log10().floor().abs();
-    let base = 10.0f64.powf(3.0 + mag);
-    (v * base).round() / base
+
+    let mag = v.abs().log10().floor();
+
+    if mag > 0.0 {
+        let base = 10.0f64.powf(mag.min(3.0));
+        (v * base).round() / base
+    } else {
+        let base = 10.0f64.powf(3.0 - mag);
+        (v * base).round() / base
+    }
 }
 
 fn compute_min_max(data1: &[f64], data2: &[f64]) -> (f64, f64, f64) {
