@@ -7,6 +7,7 @@ use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::{IntoOptionalTextRenderFn, TextRenderFn};
 use pwt::state::optional_rc_ptr_eq;
 use pwt::widget::align::{align_to, AlignOptions};
 use pwt::widget::{Button, Container, Panel};
@@ -58,6 +59,8 @@ pub struct RRDGraph {
     #[prop_or_default]
     #[builder]
     pub binary: bool,
+
+    pub render_value: Option<TextRenderFn<f64>>,
 }
 
 impl RRDGraph {
@@ -98,6 +101,11 @@ impl RRDGraph {
     /// Method to add a html class
     pub fn add_class(&mut self, class: impl Into<Classes>) {
         self.class.push(class);
+    }
+
+    pub fn render_value(mut self, renderer: impl IntoOptionalTextRenderFn<f64>) -> Self {
+        self.render_value = renderer.into_optional_text_render_fn();
+        self
     }
 }
 
@@ -203,8 +211,6 @@ fn get_grid_unit_base2(min: f64, max: f64) -> f64 {
     res
 }
 
-
-
 fn get_time_grid_unit(min: i64, max: i64) -> i64 {
     let range = max - min;
 
@@ -285,6 +291,13 @@ fn reduce_float_precision(v: f64) -> f64 {
     } else {
         let base = 10.0f64.powf(3.0 - mag);
         (v * base).round() / base
+    }
+}
+
+fn render_value(props: &RRDGraph, v: f64) -> String {
+    match &props.render_value {
+        Some(render) => render.apply(&v),
+        None => reduce_float_precision(v).to_string(),
     }
 }
 
@@ -522,9 +535,9 @@ impl PwtRRDGraph {
                     let y = compute_y(v);
                     grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x0, y, x1, y));
 
-                    let rounded_value = reduce_float_precision(v);
+                    let label = render_value(props, v);
                     value_labels.push(
-                        Text::new(format!("{rounded_value}"))
+                        Text::new(label)
                             .class("pwt-rrd-label-text")
                             .position(x0 as f32, y as f32)
                             .dy(SvgLength::Px(4.0))
@@ -915,10 +928,10 @@ impl Component for PwtRRDGraph {
                 if let Some(t) = data0.get(idx) {
                     data_time = Some(format_date_time(*t));
                     if let Some(v) = data1.get(idx) {
-                        serie0_value = Some(reduce_float_precision(*v).to_string());
+                        serie0_value = Some(render_value(props, *v));
                     }
                     if let Some(v) = data2.get(idx) {
-                        serie1_value = Some(reduce_float_precision(*v).to_string());
+                        serie1_value = Some(render_value(props, *v));
                     }
                 }
             }
