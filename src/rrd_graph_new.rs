@@ -61,6 +61,14 @@ pub struct RRDGraph {
     pub binary: bool,
 
     pub render_value: Option<TextRenderFn<f64>>,
+
+    /// Graph width in pixels (minimum is 800)
+    #[builder(IntoPropValue, into_prop_value)]
+    pub width: Option<usize>,
+
+    /// Graph height in pixels (minimum is 250)
+    #[builder(IntoPropValue, into_prop_value)]
+    pub height: Option<usize>,
 }
 
 impl RRDGraph {
@@ -149,13 +157,25 @@ pub struct LayoutProps {
 
 impl Default for LayoutProps {
     fn default() -> Self {
-        Self {
-            width: 800,
-            height: 250,
+        let mut me = Self {
+            width: 0,
+            height: 0,
             grid_border: 10,
             left_offset: 50,
-            bottom_offset: 40,
-        }
+            bottom_offset: 30,
+        };
+        me.update_layout_width(None);
+        me.update_layout_height(None);
+        me
+    }
+}
+impl LayoutProps {
+    fn update_layout_width(&mut self, width: Option<usize>) {
+        self.width = width.unwrap_or(0).max(800) - 12;
+    }
+
+    fn update_layout_height(&mut self, height: Option<usize>) {
+        self.height = height.unwrap_or(0).max(250) - 12;
     }
 }
 
@@ -736,7 +756,7 @@ impl PwtRRDGraph {
             .node_ref(self.canvas_ref.clone())
             .class("pwt-rrd")
             .class("pwt-user-select-none")
-            .class("pwt-pt-2 pwt-pe-2")
+            .class("pwt-p-2")
             .width(layout.width)
             .height(layout.height)
             .children(children)
@@ -803,13 +823,16 @@ impl Component for PwtRRDGraph {
     type Properties = RRDGraph;
 
     fn create(ctx: &Context<Self>) -> Self {
+        let props = ctx.props();
         ctx.link().send_message(Msg::Reload);
 
         let align_options = AlignOptions::default().offset(20.0, 20.0);
+        let mut layout = LayoutProps::default();
+        layout.update_layout_width(props.width);
 
         Self {
             canvas_ref: NodeRef::default(),
-            layout: LayoutProps::default(),
+            layout,
             selection: None,
             view_range: None,
             captured_pointer_id: None,
@@ -920,8 +943,9 @@ impl Component for PwtRRDGraph {
         }
     }
 
-    fn changed(&mut self, _ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
-        log::info!("FIXME DATA CHANGE");
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        let props = ctx.props();
+        self.layout.update_layout_width(props.width);
         true
     }
 
