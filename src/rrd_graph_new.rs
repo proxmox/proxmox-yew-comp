@@ -337,9 +337,14 @@ fn compute_min_max(props: &RRDGraph, data1: &[f64], data2: &[f64]) -> (f64, f64,
     }
 
     if (max_data - min_data) < 0.0005 {
-        max_data += 0.0002;
-        min_data -= 0.0003;
+        if min_data > 0.0003 {
+            max_data += 0.0002;
+            min_data -= 0.0003;
+        } else {
+            max_data += 0.0005;
+        }
     }
+
     let grid_unit = if props.binary {
         get_grid_unit_base2(min_data, max_data)
     } else {
