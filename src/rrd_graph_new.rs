@@ -971,6 +971,7 @@ impl Component for PwtRRDGraph {
         let mut panel = Panel::new()
             .title(props.title.clone())
             .class(props.class.clone())
+            .class("pwt-rrd-panel")
             .class("pwt-overflow-auto")
             .with_child(
                 Container::new()
