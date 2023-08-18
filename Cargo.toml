@@ -28,7 +28,7 @@ url = "2.1"
 percent-encoding = "2.1"
 http = "0.2"
 
-#pwt = { path = "../proxmox-yew-widget-toolkit", features = [ "proxmox-schema" ] }
+#pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
 pwt = "0.2"
 pwt-macros = "0.1"

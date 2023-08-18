@@ -10,7 +10,7 @@ use pwt::prelude::*;
 use pwt::props::{IntoOptionalTextRenderFn, TextRenderFn};
 use pwt::state::optional_rc_ptr_eq;
 use pwt::widget::align::{align_to, AlignOptions};
-use pwt::widget::{Button, Container, Panel};
+use pwt::widget::{Button, Container, Panel, SizeObserver};
 
 use pwt_macros::builder;
 
@@ -61,14 +61,6 @@ pub struct RRDGraph {
     pub binary: bool,
 
     pub render_value: Option<TextRenderFn<f64>>,
-
-    /// Graph width in pixels (minimum is 800)
-    #[builder(IntoPropValue, into_prop_value)]
-    pub width: Option<usize>,
-
-    /// Graph height in pixels (minimum is 250)
-    #[builder(IntoPropValue, into_prop_value)]
-    pub height: Option<usize>,
 }
 
 impl RRDGraph {
@@ -119,6 +111,7 @@ impl RRDGraph {
 
 pub enum Msg {
     Reload,
+    ViewportResize(f64, f64),
     AdjustLeftOffset(usize),
     StartSelection(i32, i32),
     EndSelection(i32),
@@ -131,6 +124,8 @@ pub enum Msg {
 }
 
 pub struct PwtRRDGraph {
+    node_ref: NodeRef,
+    size_observer: Option<SizeObserver>,
     canvas_ref: NodeRef,
     layout: LayoutProps,
     selection: Option<(usize, usize)>,
@@ -157,25 +152,13 @@ pub struct LayoutProps {
 
 impl Default for LayoutProps {
     fn default() -> Self {
-        let mut me = Self {
-            width: 0,
-            height: 0,
+        Self {
+            width: 800,
+            height: 250,
             grid_border: 10,
             left_offset: 50,
             bottom_offset: 30,
-        };
-        me.update_layout_width(None);
-        me.update_layout_height(None);
-        me
-    }
-}
-impl LayoutProps {
-    fn update_layout_width(&mut self, width: Option<usize>) {
-        self.width = width.unwrap_or(0).max(800) - 12;
-    }
-
-    fn update_layout_height(&mut self, height: Option<usize>) {
-        self.height = height.unwrap_or(0).max(250) - 12;
+        }
     }
 }
 
@@ -754,9 +737,7 @@ impl PwtRRDGraph {
 
         Canvas::new()
             .node_ref(self.canvas_ref.clone())
-            .class("pwt-rrd")
-            .class("pwt-user-select-none")
-            .class("pwt-p-2")
+            .class("pwt-rrd-svg")
             .width(layout.width)
             .height(layout.height)
             .children(children)
@@ -823,16 +804,15 @@ impl Component for PwtRRDGraph {
     type Properties = RRDGraph;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let props = ctx.props();
         ctx.link().send_message(Msg::Reload);
 
         let align_options = AlignOptions::default().offset(20.0, 20.0);
-        let mut layout = LayoutProps::default();
-        layout.update_layout_width(props.width);
 
         Self {
+            node_ref: NodeRef::default(),
+            size_observer: None,
             canvas_ref: NodeRef::default(),
-            layout,
+            layout: LayoutProps::default(),
             selection: None,
             view_range: None,
             captured_pointer_id: None,
@@ -852,6 +832,11 @@ impl Component for PwtRRDGraph {
         //let props = ctx.props();
         match msg {
             Msg::Reload => true,
+            Msg::ViewportResize(width, height) => {
+                log::info!("VR {width} {height}");
+                self.layout.width = width as usize;
+                true
+            }
             Msg::ToogleSerie0 => {
                 self.serie0_visible = !self.serie0_visible;
                 if !(self.serie0_visible || self.serie1_visible) {
@@ -943,12 +928,6 @@ impl Component for PwtRRDGraph {
         }
     }
 
-    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
-        let props = ctx.props();
-        self.layout.update_layout_width(props.width);
-        true
-    }
-
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
@@ -992,8 +971,15 @@ impl Component for PwtRRDGraph {
         let mut panel = Panel::new()
             .title(props.title.clone())
             .class(props.class.clone())
-            .with_child(self.create_graph(ctx))
-            .with_child(tip);
+            .class("pwt-overflow-auto")
+            .with_child(
+                Container::new()
+                    .node_ref(self.node_ref.clone())
+                    .class("pwt-rrd-container")
+                    .class("pwt-flex-fill pwt-overflow-auto")
+                    .with_child(self.create_graph(ctx))
+                    .with_child(tip)
+            );
 
         if let Some(serie0) = &props.serie0 {
             if let Some(serie1) = &props.serie1 {
@@ -1025,7 +1011,15 @@ impl Component for PwtRRDGraph {
         panel.into()
     }
 
-    fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
+        if first_render {
+            if let Some(el) = self.node_ref.cast::<web_sys::Element>() {
+                let link = ctx.link().clone();
+                let size_observer = SizeObserver::new(&el, move |(width, height)| {
+                    link.send_message(Msg::ViewportResize(width, height));
+                });
+                self.size_observer = Some(size_observer);           }
+        }
         if let Some(content_node) = self.datapoint_ref.get() {
             if let Some(tooltip_node) = self.tooltip_ref.get() {
                 let _ = align_to(content_node, tooltip_node, Some(self.align_options.clone()));

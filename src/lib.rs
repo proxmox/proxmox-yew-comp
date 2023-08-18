@@ -25,6 +25,9 @@ pub use realm_selector::RealmSelector;
 mod rrd_graph_new;
 pub use rrd_graph_new::{RRDGraph, Series};
 
+mod rrd_grid;
+pub use rrd_grid::RRDGrid;
+
 mod login_panel;
 pub use login_panel::LoginPanel;
 
