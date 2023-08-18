@@ -833,7 +833,6 @@ impl Component for PwtRRDGraph {
         match msg {
             Msg::Reload => true,
             Msg::ViewportResize(width, height) => {
-                log::info!("VR {width} {height}");
                 self.layout.width = width as usize;
                 true
             }
