@@ -993,6 +993,7 @@ impl Component for PwtRRDGraph {
                 );
                 panel.add_tool(
                     Button::new(serie0.label.clone())
+                        .class("pwt-button-elevated")
                         .icon_class(icon_class0)
                         .onclick(ctx.link().callback(|_| Msg::ToogleSerie0)),
                 );
@@ -1004,6 +1005,7 @@ impl Component for PwtRRDGraph {
                 );
                 panel.add_tool(
                     Button::new(serie1.label.clone())
+                        .class("pwt-button-elevated")
                         .icon_class(icon_class1)
                         .onclick(ctx.link().callback(|_| Msg::ToogleSerie1)),
                 );
