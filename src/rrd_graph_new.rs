@@ -832,8 +832,10 @@ impl Component for PwtRRDGraph {
         //let props = ctx.props();
         match msg {
             Msg::Reload => true,
-            Msg::ViewportResize(width, height) => {
-                self.layout.width = width as usize;
+            Msg::ViewportResize(width, _height) => {
+                if width > 0.0 {
+                    self.layout.width = width as usize;
+                }
                 true
             }
             Msg::ToogleSerie0 => {
@@ -978,7 +980,7 @@ impl Component for PwtRRDGraph {
                     .class("pwt-rrd-container")
                     .class("pwt-flex-fill pwt-overflow-auto")
                     .with_child(self.create_graph(ctx))
-                    .with_child(tip)
+                    .with_child(tip),
             );
 
         if let Some(serie0) = &props.serie0 {
@@ -1018,7 +1020,8 @@ impl Component for PwtRRDGraph {
                 let size_observer = SizeObserver::new(&el, move |(width, height)| {
                     link.send_message(Msg::ViewportResize(width, height));
                 });
-                self.size_observer = Some(size_observer);           }
+                self.size_observer = Some(size_observer);
+            }
         }
         if let Some(content_node) = self.datapoint_ref.get() {
             if let Some(tooltip_node) = self.tooltip_ref.get() {
