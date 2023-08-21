@@ -251,7 +251,7 @@ fn get_time_grid_unit(min: i64, max: i64) -> i64 {
         }
     }
 
-    while (l > *units.first().unwrap()) && (range / l) > 10 {
+    while (l >= *units.first().unwrap()) && (range / l) > 10 {
         l = l * 2;
     }
 
