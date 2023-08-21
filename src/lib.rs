@@ -28,6 +28,9 @@ pub use rrd_graph_new::{RRDGraph, Series};
 mod rrd_grid;
 pub use rrd_grid::RRDGrid;
 
+mod rrd_timeframe_selector;
+pub use rrd_timeframe_selector::{RRDTimeframe, RRDTimeframeSelector};
+
 mod login_panel;
 pub use login_panel::LoginPanel;
 
