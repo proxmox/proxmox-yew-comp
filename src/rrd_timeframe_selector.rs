@@ -204,6 +204,7 @@ impl Component for PwtRRDTimeframeSelector {
         Combobox::new()
             .class(props.class.clone())
             .default(self.timeframe.to_string())
+            .show_filter(false)
             .items(self.items.clone())
             .on_change(ctx.link().callback(|timeframe: String| {
                 let timeframe = RRDTimeframe::try_from(timeframe.as_str()).unwrap_or_default();
