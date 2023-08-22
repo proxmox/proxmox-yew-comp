@@ -967,6 +967,7 @@ impl Component for PwtRRDGraph {
             (true, Some(serie)) => Some(html!{<div>{format!("{}: {}", serie.label.clone(), serie1_value.as_deref().unwrap_or("-"))}</div>}),
             _ => None,
         })
+        .with_child(html!{<hr/>})
         .with_child(html!{<div>{data_time.as_deref().unwrap_or("-")}</div>});
 
         let mut panel = Panel::new()
