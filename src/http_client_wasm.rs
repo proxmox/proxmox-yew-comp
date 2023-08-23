@@ -196,7 +196,7 @@ impl HttpClientWasm {
             .method(method)
             .header("cache-control", "no-cache");
 
-        let request = if method == "POST" {
+        let request = if method == "POST" || method == "PUT" {
             let body = if let Some(data) = data {
                 serde_json::to_vec(&data)
                     .map_err(|err| format_err!("serialize failure: {}", err))?
