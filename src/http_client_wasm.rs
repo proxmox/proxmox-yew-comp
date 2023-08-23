@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 use anyhow::{bail, format_err, Error};
 use percent_encoding::percent_decode_str;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
 use proxmox_client::HttpClient;
@@ -107,22 +107,38 @@ impl HttpClientWasm {
         *self.auth.lock().unwrap() = None;
     }
 
-    pub async fn get<P: Serialize, T:DeserializeOwned>(&self, path: &str, data: Option<P>) -> Result<T, Error> {
+    pub async fn get<P: Serialize, T: DeserializeOwned>(
+        &self,
+        path: &str,
+        data: Option<P>,
+    ) -> Result<T, Error> {
         let req = Self::request_builder("GET", path, data)?;
         self.api_request(req).await
     }
 
-    pub async fn delete<P: Serialize, T:DeserializeOwned>(&self, path: &str, data: Option<P>) -> Result<T, Error> {
+    pub async fn delete<P: Serialize, T: DeserializeOwned>(
+        &self,
+        path: &str,
+        data: Option<P>,
+    ) -> Result<T, Error> {
         let req = Self::request_builder("DELETE", path, data)?;
         self.api_request(req).await
     }
 
-    pub async fn post<P: Serialize, T:DeserializeOwned>(&self, path: &str, data: Option<P>) -> Result<T, Error> {
+    pub async fn post<P: Serialize, T: DeserializeOwned>(
+        &self,
+        path: &str,
+        data: Option<P>,
+    ) -> Result<T, Error> {
         let req = Self::request_builder("POST", path, data)?;
         self.api_request(req).await
     }
 
-    pub async fn put<P: Serialize, T:DeserializeOwned>(&self, path: &str, data: Option<P>) -> Result<T, Error> {
+    pub async fn put<P: Serialize, T: DeserializeOwned>(
+        &self,
+        path: &str,
+        data: Option<P>,
+    ) -> Result<T, Error> {
         let req = Self::request_builder("PUT", path, data)?;
         self.api_request(req).await
     }
@@ -182,7 +198,8 @@ impl HttpClientWasm {
 
         let request = if method == "POST" {
             let body = if let Some(data) = data {
-                serde_json::to_vec(&data).map_err(|err| format_err!("serialize failure: {}", err))?
+                serde_json::to_vec(&data)
+                    .map_err(|err| format_err!("serialize failure: {}", err))?
             } else {
                 Vec::new()
             };
@@ -193,7 +210,8 @@ impl HttpClientWasm {
                 .body(body)?
         } else {
             let url = if let Some(data) = data {
-                let data = serde_json::to_value(data).map_err(|err| format_err!("serialize failure: {}", err))?;
+                let data = serde_json::to_value(data)
+                    .map_err(|err| format_err!("serialize failure: {}", err))?;
                 let query = json_object_to_query(data)?;
                 format!("{}?{}", url, query)
             } else {
@@ -208,7 +226,10 @@ impl HttpClientWasm {
         Ok(request)
     }
 
-    async fn api_request<T: DeserializeOwned>(&self, request: http::Request<Vec<u8>>) -> Result<T, Error> {
+    async fn api_request<T: DeserializeOwned>(
+        &self,
+        request: http::Request<Vec<u8>>,
+    ) -> Result<T, Error> {
         let response = self.request(request).await?;
         let (parts, body) = response.into_parts();
 
@@ -279,10 +300,10 @@ async fn api_request_raw(js_req: web_sys::Request) -> Result<http::Response<Vec<
 
 impl proxmox_client::HttpClient for HttpClientWasm {
     type Error = anyhow::Error;
-    type Request =
+    type ResponseFuture =
         Pin<Box<dyn Future<Output = Result<http::response::Response<Vec<u8>>, anyhow::Error>>>>;
 
-    fn request(&self, mut request: http::Request<Vec<u8>>) -> Self::Request {
+    fn request(&self, mut request: http::Request<Vec<u8>>) -> Self::ResponseFuture {
         let auth = self.get_auth();
 
         if let Some(auth) = &auth {
@@ -331,7 +352,9 @@ impl proxmox_client::HttpClient for HttpClientWasm {
 }
 
 // dummy - no really used, but required by proxmox-client api code
-impl proxmox_client::Environment for HttpClientWasm { type Error = anyhow::Error; }
+impl proxmox_client::Environment for HttpClientWasm {
+    type Error = anyhow::Error;
+}
 
 pub fn json_object_to_query(data: Value) -> Result<String, Error> {
     let mut query = url::form_urlencoded::Serializer::new(String::new());
