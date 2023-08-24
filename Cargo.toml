@@ -38,4 +38,4 @@ proxmox-schema = "2"
 proxmox-time = "1"
 
 proxmox-login = "0.1"
-proxmox-client = "0.1"
+proxmox-client = "0.2"

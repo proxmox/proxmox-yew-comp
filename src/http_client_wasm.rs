@@ -1,5 +1,3 @@
-use std::future::Future;
-use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Mutex;
 
@@ -8,7 +6,6 @@ use percent_encoding::percent_decode_str;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
-use proxmox_client::HttpClient;
 use proxmox_login::{Authentication, Login, Ticket, TicketResult};
 
 //use crate::percent_encoding::DEFAULT_ENCODE_SET;
@@ -298,12 +295,9 @@ async fn api_request_raw(js_req: web_sys::Request) -> Result<http::Response<Vec<
     web_sys_response_to_http_response(resp).await
 }
 
-impl proxmox_client::HttpClient for HttpClientWasm {
-    type Error = anyhow::Error;
-    type ResponseFuture =
-        Pin<Box<dyn Future<Output = Result<http::response::Response<Vec<u8>>, anyhow::Error>>>>;
+impl HttpClientWasm {
 
-    fn request(&self, mut request: http::Request<Vec<u8>>) -> Self::ResponseFuture {
+    async fn request(&self, mut request: http::Request<Vec<u8>>) ->  Result<http::response::Response<Vec<u8>>, anyhow::Error> {
         let auth = self.get_auth();
 
         if let Some(auth) = &auth {
@@ -347,13 +341,8 @@ impl proxmox_client::HttpClient for HttpClientWasm {
         let js_req =
             web_sys::Request::new_with_str_and_init(&parts.uri.to_string(), &init).unwrap();
 
-        Box::pin(async move { api_request_raw(js_req).await })
+        api_request_raw(js_req).await
     }
-}
-
-// dummy - no really used, but required by proxmox-client api code
-impl proxmox_client::Environment for HttpClientWasm {
-    type Error = anyhow::Error;
 }
 
 pub fn json_object_to_query(data: Value) -> Result<String, Error> {
