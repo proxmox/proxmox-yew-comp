@@ -22,7 +22,7 @@ use pwt::widget::SizeObserver;
 
 #[derive(Deserialize)]
 struct LogEntry {
-    n: u64,
+    _n: u64,
     t: String,
 }
 
@@ -321,7 +321,7 @@ impl Component for PwtLogView {
                         );
 
                         for item in page.lines.iter() {
-                            tag.add_child(format!("{}: {}\n", item.n, item.t).into());
+                            tag.add_child(format!("{}\n", item.t).into());
                         }
 
                         let html: Html = tag.into();
