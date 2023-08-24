@@ -22,7 +22,8 @@ use pwt::widget::SizeObserver;
 
 #[derive(Deserialize)]
 struct LogEntry {
-    _n: u64,
+    #[allow(dead_code)]
+    n: u64,
     t: String,
 }
 
