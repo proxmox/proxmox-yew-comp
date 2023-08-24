@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
+use pwt_macros::builder;
 use serde_json::Value;
 
 use gloo_timers::callback::Timeout;
 
-use yew::html::IntoEventCallback;
+use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
@@ -15,6 +16,7 @@ use pwt::widget::{Button, Column, Dialog, TabBarItem, TabPanel, Toolbar};
 use crate::percent_encoding::percent_encode_component;
 use crate::{KVGrid, KVGridRow, LogView};
 
+#[builder]
 #[derive(Properties, PartialEq, Clone)]
 pub struct TaskViewer {
     #[prop_or_default]
@@ -25,6 +27,11 @@ pub struct TaskViewer {
     pub endtime: Option<f64>,
 
     pub on_close: Option<Callback<()>>,
+
+    #[prop_or("/nodes/localhost/tasks".into())]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The base url for
+    pub base_url: AttrValue,
 }
 
 impl TaskViewer {
@@ -78,7 +85,8 @@ impl Component for PwtTaskViewer {
         let props = ctx.props();
 
         let url = format!(
-            "/nodes/localhost/tasks/{}/status",
+            "{}/{}/status",
+            props.base_url,
             percent_encode_component(&props.task_id),
         );
         let endtime = props.endtime;
@@ -122,7 +130,8 @@ impl Component for PwtTaskViewer {
             }
             Msg::StopTask => {
                 let url = format!(
-                    "/nodes/localhost/tasks/{}",
+                    "{}/{}",
+                    props.base_url,
                     percent_encode_component(&props.task_id),
                 );
                 ctx.link().send_future(async move {
@@ -275,7 +284,8 @@ impl PwtTaskViewer {
         );
 
         let url = format!(
-            "/nodes/localhost/tasks/{}/log",
+            "{}/{}/log",
+            props.base_url,
             percent_encode_component(&task_id),
         );
 
