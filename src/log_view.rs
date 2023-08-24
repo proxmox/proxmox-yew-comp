@@ -1,5 +1,5 @@
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
-use std::collections::{HashSet, HashMap};
 
 use anyhow::Error;
 use serde::Deserialize;
@@ -45,7 +45,11 @@ async fn load_log_page(url: &str, page: u64) -> Result<LogPage, Error> {
     let data_len = data.len() as u64;
     //log::info!("DFATA LEN {}", data_len);
 
-    Ok(LogPage { page, lines: data, total: meta.total.unwrap_or(data_len) })
+    Ok(LogPage {
+        page,
+        lines: data,
+        total: meta.total.unwrap_or(data_len),
+    })
 }
 
 #[derive(Properties, PartialEq, Clone)]
@@ -61,12 +65,9 @@ pub struct LogView {
     pub class: Classes,
 }
 
-
 impl LogView {
     pub fn new(url: impl Into<AttrValue>) -> Self {
-        yew::props!(Self {
-            url: url.into(),
-        })
+        yew::props!(Self { url: url.into() })
     }
 
     /// Builder style method to add a html class
@@ -112,11 +113,9 @@ pub struct PwtLogView {
 
 impl PwtLogView {
     fn page_index(&self, page: u64) -> Option<usize> {
-        self.pages.iter().position(|item| {
-            match item {
-                Some(item) => item.page == page,
-                None => false,
-            }
+        self.pages.iter().position(|item| match item {
+            Some(item) => item.page == page,
+            None => false,
         })
     }
 
@@ -141,9 +140,8 @@ impl PwtLogView {
     }
 
     fn request_pages(&mut self, ctx: &Context<Self>) {
-
         let last_page = match self.total {
-            Some(total) => total/PAGE_HEIGHT,
+            Some(total) => total / PAGE_HEIGHT,
             None => 0,
         };
 
@@ -159,13 +157,17 @@ impl PwtLogView {
             return;
         }
 
-        let line = (self.scroll_top as u64)/self.line_height;
+        let line = (self.scroll_top as u64) / self.line_height;
 
-        let prev = if line > 100 { (line as u64 - 100)/PAGE_HEIGHT } else { 0 };
-        let start = (line as u64)/PAGE_HEIGHT;
-        let end = (line + self.viewport_lines)/PAGE_HEIGHT;
-        let next = if line + 100 <  self.total.unwrap_or(0) {
-            (line as u64 + self.viewport_lines + 100)/PAGE_HEIGHT
+        let prev = if line > 100 {
+            (line as u64 - 100) / PAGE_HEIGHT
+        } else {
+            0
+        };
+        let start = (line as u64) / PAGE_HEIGHT;
+        let end = (line + self.viewport_lines) / PAGE_HEIGHT;
+        let next = if line + 100 < self.total.unwrap_or(0) {
+            (line as u64 + self.viewport_lines + 100) / PAGE_HEIGHT
         } else {
             end
         };
@@ -180,7 +182,8 @@ impl PwtLogView {
             }
         }
 
-        self.pending_pages.retain(|page, _| required_pages.contains(&page));
+        self.pending_pages
+            .retain(|page, _| required_pages.contains(&page));
     }
 }
 
@@ -214,24 +217,24 @@ impl Component for PwtLogView {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-           Msg::ScrollTo(_x, y, at_end) => {
-               self.scroll_top = y;
-               self.request_pages(ctx);
+            Msg::ScrollTo(_x, y, at_end) => {
+                self.scroll_top = y;
+                self.request_pages(ctx);
 
-               if self.enable_tail_view {
-                   if !at_end {
-                       self.enable_tail_view = false;
-                   }
-               } else {
-                   if at_end && ctx.props().active {
-                       self.enable_tail_view = true;
-                   }
-               }
+                if self.enable_tail_view {
+                    if !at_end {
+                        self.enable_tail_view = false;
+                    }
+                } else {
+                    if at_end && ctx.props().active {
+                        self.enable_tail_view = true;
+                    }
+                }
 
-               true
+                true
             }
             Msg::ViewportResize(_width, height) => {
-                let lines = (height as u64 + self.line_height -1)/self.line_height;
+                let lines = (height as u64 + self.line_height - 1) / self.line_height;
                 self.viewport_lines = lines;
                 self.request_pages(ctx);
                 true
@@ -267,15 +270,19 @@ impl Component for PwtLogView {
                             self.pages[i] = Some(info);
                             found = true;
                             break;
-                       }
+                        }
                     }
-                    if !found { log::error!("no empty page slot"); }
+                    if !found {
+                        log::error!("no empty page slot");
+                    }
                 }
 
                 true
             }
             Msg::TailView => {
-                if !self.enable_tail_view { return false; }
+                if !self.enable_tail_view {
+                    return false;
+                }
                 self.request_pages(ctx);
                 if !ctx.props().active {
                     //log::info!("STOP TAIL VIEW");
@@ -293,31 +300,37 @@ impl Component for PwtLogView {
         let props = ctx.props();
         let lines = self.total.unwrap_or(0);
 
-        let pages: Html = self.pages.iter().filter_map(|page| {
-            match page {
-                Some(page) => {
-                    let offset = page.page*PAGE_HEIGHT*self.line_height;
-                    //log::info!("render PAGE {} AT OFFSET {}", page.page, offset);
+        let pages: Html = self
+            .pages
+            .iter()
+            .filter_map(|page| {
+                match page {
+                    Some(page) => {
+                        let offset = page.page * PAGE_HEIGHT * self.line_height;
+                        //log::info!("render PAGE {} AT OFFSET {}", page.page, offset);
 
-                    let mut tag = VTag::new("div");
-                    // Note: we set class "pwt-log-content", but overwrite "line-height" (use integer value)
-                    tag.add_attribute("class", "pwt-log-content");
-                    tag.add_attribute("style", format!(
-                        "position:absolute;line-height:{}px;top:{}px;",
-                        self.line_height, offset,
-                    ));
+                        let mut tag = VTag::new("div");
+                        // Note: we set class "pwt-log-content", but overwrite "line-height" (use integer value)
+                        tag.add_attribute("class", "pwt-log-content");
+                        tag.add_attribute(
+                            "style",
+                            format!(
+                                "position:absolute;line-height:{}px;top:{}px;",
+                                self.line_height, offset,
+                            ),
+                        );
 
-                    for item in page.lines.iter() {
-                        tag.add_child(format!("{}: {}\n", item.n, item.t).into());
+                        for item in page.lines.iter() {
+                            tag.add_child(format!("{}: {}\n", item.n, item.t).into());
+                        }
+
+                        let html: Html = tag.into();
+                        Some(html)
                     }
-
-                    let html: Html = tag.into();
-                    Some(html)
+                    None => None,
                 }
-                None => None
-            }
-        }).collect();
-
+            })
+            .collect();
 
         let viewport_ref = self.viewport_ref.clone();
         let onscroll = ctx.link().batch_callback(move |_: Event| {
@@ -335,13 +348,13 @@ impl Component for PwtLogView {
             }
         });
 
-        let class = classes!{
+        let class = classes! {
             "pwt-log-content",
             "pwt-overflow-auto",
             props.class.clone(),
         };
 
-        html!{
+        html! {
             // Note: we set class "pwt-log-content" her, so that we can query the font size
             <div ref={self.viewport_ref.clone()} {class} {onscroll}>
                 <div style={format!("height:{}px;position:relative;", lines*self.line_height)}>
@@ -377,7 +390,7 @@ impl Component for PwtLogView {
             let top = match self.total {
                 Some(total) => {
                     if total > self.viewport_lines {
-                        (total - self.viewport_lines + self.line_height - 1)*self.line_height
+                        (total - self.viewport_lines + self.line_height - 1) * self.line_height
                     } else {
                         0
                     }
