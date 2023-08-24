@@ -165,6 +165,7 @@ impl Component for PwtTaskViewer {
         });
 
         Dialog::new("Task Viewer")
+            .resizable(true)
             .style("width: 800px; height:500px;")
             .node_ref(props.node_ref.clone())
             .on_close(props.on_close.clone())
