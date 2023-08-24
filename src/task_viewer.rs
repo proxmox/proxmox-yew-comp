@@ -4,16 +4,16 @@ use serde_json::Value;
 
 use gloo_timers::callback::Timeout;
 
+use yew::html::IntoEventCallback;
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
-use yew::html::IntoEventCallback;
 
 use pwt::prelude::*;
 use pwt::state::Loader;
-use pwt::widget::{Button, Column, Dialog, TabPanel, TabBarItem, Toolbar};
+use pwt::widget::{Button, Column, Dialog, TabBarItem, TabPanel, Toolbar};
 
-use crate::{LogView, KVGrid, KVGridRow};
 use crate::percent_encoding::percent_encode_component;
+use crate::{KVGrid, KVGridRow, LogView};
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct TaskViewer {
@@ -83,17 +83,16 @@ impl Component for PwtTaskViewer {
         );
         let endtime = props.endtime;
 
-        let loader = Loader::new(ctx.link().callback(|_| Msg::DataChange))
-            .loader(move || {
-                let url = url.clone();
-                async move {
-                    let mut data: Value = crate::http_get(&url, None).await?;
-                    if let Some(endtime) = endtime {
-                        data["endtime"] = endtime.into();
-                    }
-                    Ok(data)
+        let loader = Loader::new(ctx.link().callback(|_| Msg::DataChange)).loader(move || {
+            let url = url.clone();
+            async move {
+                let mut data: Value = crate::http_get(&url, None).await?;
+                if let Some(endtime) = endtime {
+                    data["endtime"] = endtime.into();
                 }
-            });
+                Ok(data)
+            }
+        });
 
         loader.load();
         Self {
@@ -135,7 +134,9 @@ impl Component for PwtTaskViewer {
             }
             Msg::Reload => {
                 self.active = self.task_is_active();
-                if self.active { self.loader.load(); }
+                if self.active {
+                    self.loader.load();
+                }
                 true
             }
         }
@@ -145,11 +146,13 @@ impl Component for PwtTaskViewer {
         let props = ctx.props();
 
         let panel = self.loader.render(|data| {
-
             TabPanel::new()
                 .class("pwt-flex-fill pwt-overflow-auto")
                 .with_item(TabBarItem::new().label("Output"), self.view_output(ctx))
-                .with_item(TabBarItem::new().label("Status"), self.view_status(ctx, data.clone()))
+                .with_item(
+                    TabBarItem::new().label("Status"),
+                    self.view_status(ctx, data.clone()),
+                )
         });
 
         Dialog::new("Task Viewer")
@@ -170,7 +173,6 @@ impl Into<VNode> for TaskViewer {
 }
 
 impl PwtTaskViewer {
-
     fn task_is_active(&self) -> bool {
         self.loader.with_state(|state| {
             if let Some(Ok(data)) = state.data.as_ref() {
@@ -187,77 +189,71 @@ impl PwtTaskViewer {
         let endtime = self.endtime;
         let link = ctx.link();
 
-        let toolbar = Toolbar::new()
-            .with_child(
-                Button::new("Stop")
-                    .disabled(!active)
-                    .onclick(link.callback(|_| Msg::StopTask))
-            );
+        let toolbar = Toolbar::new().with_child(
+            Button::new("Stop")
+                .disabled(!active)
+                .onclick(link.callback(|_| Msg::StopTask)),
+        );
 
-        let grid = KVGrid::new()
-            .data(data)
-            .rows(Rc::new(vec![
-                KVGridRow::new("status", "Status")
-                    .renderer(|_name, value, record|  {
-                        let value = match  value.as_str() {
-                            Some(s) => s,
-                            None => return html!{"unknown"},
-                        };
-                        if value != "stopped" {
-                            return html!{{value}};
-                        }
-                        let status = record["exitstatus"].as_str().unwrap_or("unknown");
-                        html!{{format!("{}: {}", value, status)}}
-                    })
-                    .placeholder("unknown"),
-                KVGridRow::new("type", "Task type").required(true),
-                KVGridRow::new("user", "User name")
-                    .renderer(|_name, value, record|  {
-                        let mut user = match  value.as_str() {
-                            Some(s) => s.to_owned(),
-                            None => return html!{"unknown"},
-                        };
-                        if let Some(tokenid) = record["tokenid"].as_str() {
-                            user.push_str(&format!("!{} (API Token)", tokenid));
-                        }
-                        html!{{user}}
-                    })
-                    .required(true),
-                KVGridRow::new("node", "Node").required(true),
-                KVGridRow::new("pid", "Process ID").required(true),
-                KVGridRow::new("task_id", "Task ID"),
-                KVGridRow::new("starttime", "Start Time")
-                    .renderer(|_name, value, _record| {
-                        match value.as_f64() {
-                            None => html!{"unknown (wrong format)"},
-                            Some(epoch) => html!{ {crate::render_server_epoch(epoch)} },
-                        }
-                    })
-                    .required(true),
-                KVGridRow::new("endtime", "End Time")
-                    .renderer(|_name, value, _record| {
-                        match value.as_f64() {
-                            None => html!{"unknown (wrong format)"},
-                            Some(epoch) => html!{ {crate::render_server_epoch(epoch)} },
-                        }
-                    }),
-                KVGridRow::new("duration", "Duration")
-                    .renderer(move |_name, _value, record| {
-                        if let Some(starttime) = record["starttime"].as_f64() {
-                            if let Some(endtime) = record["endtime"].as_f64() {
-                                if endtime >= starttime {
-                                    return html!{{format!("{:.0}s", endtime - starttime)}};
-                                }
-                            } else {
-                                let now = endtime.unwrap_or_else(|| proxmox_time::epoch_f64());
-                                return html!{{format!("{:.0}s", now - starttime)}};
+        let grid = KVGrid::new().data(data).rows(Rc::new(vec![
+            KVGridRow::new("status", "Status")
+                .renderer(|_name, value, record| {
+                    let value = match value.as_str() {
+                        Some(s) => s,
+                        None => return html! {"unknown"},
+                    };
+                    if value != "stopped" {
+                        return html! {{value}};
+                    }
+                    let status = record["exitstatus"].as_str().unwrap_or("unknown");
+                    html! {{format!("{}: {}", value, status)}}
+                })
+                .placeholder("unknown"),
+            KVGridRow::new("type", "Task type").required(true),
+            KVGridRow::new("user", "User name")
+                .renderer(|_name, value, record| {
+                    let mut user = match value.as_str() {
+                        Some(s) => s.to_owned(),
+                        None => return html! {"unknown"},
+                    };
+                    if let Some(tokenid) = record["tokenid"].as_str() {
+                        user.push_str(&format!("!{} (API Token)", tokenid));
+                    }
+                    html! {{user}}
+                })
+                .required(true),
+            KVGridRow::new("node", "Node").required(true),
+            KVGridRow::new("pid", "Process ID").required(true),
+            KVGridRow::new("task_id", "Task ID"),
+            KVGridRow::new("starttime", "Start Time")
+                .renderer(|_name, value, _record| match value.as_f64() {
+                    None => html! {"unknown (wrong format)"},
+                    Some(epoch) => html! { {crate::render_server_epoch(epoch)} },
+                })
+                .required(true),
+            KVGridRow::new("endtime", "End Time").renderer(|_name, value, _record| {
+                match value.as_f64() {
+                    None => html! {"unknown (wrong format)"},
+                    Some(epoch) => html! { {crate::render_server_epoch(epoch)} },
+                }
+            }),
+            KVGridRow::new("duration", "Duration")
+                .renderer(move |_name, _value, record| {
+                    if let Some(starttime) = record["starttime"].as_f64() {
+                        if let Some(endtime) = record["endtime"].as_f64() {
+                            if endtime >= starttime {
+                                return html! {{format!("{:.0}s", endtime - starttime)}};
                             }
+                        } else {
+                            let now = endtime.unwrap_or_else(|| proxmox_time::epoch_f64());
+                            return html! {{format!("{:.0}s", now - starttime)}};
                         }
-                        html!{"-"}
-                    })
-                    .required(true),
-                KVGridRow::new("upid", "Unique task ID"),
-            ]));
+                    }
+                    html! {"-"}
+                })
+                .required(true),
+            KVGridRow::new("upid", "Unique task ID"),
+        ]));
 
         Column::new()
             .class("pwt-fit")
@@ -272,13 +268,11 @@ impl PwtTaskViewer {
         let active = self.active;
         let link = ctx.link();
 
-        let toolbar = Toolbar::new()
-            .class("pwt-border-bottom")
-            .with_child(
-                Button::new("Stop")
-                    .disabled(!active)
-                    .onclick(link.callback(|_| Msg::StopTask))
-            );
+        let toolbar = Toolbar::new().class("pwt-border-bottom").with_child(
+            Button::new("Stop")
+                .disabled(!active)
+                .onclick(link.callback(|_| Msg::StopTask)),
+        );
 
         let url = format!(
             "/nodes/localhost/tasks/{}/log",
@@ -288,11 +282,7 @@ impl PwtTaskViewer {
         Column::new()
             .class("pwt-fit")
             .with_child(toolbar)
-            .with_child(
-                LogView::new(url)
-                    .class("pwt-p-2")
-                    .active(active)
-            )
+            .with_child(LogView::new(url).class("pwt-p-2").active(active))
             .into()
     }
 }
