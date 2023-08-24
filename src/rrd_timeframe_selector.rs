@@ -191,6 +191,24 @@ pub enum Msg {
     SetRRDTimeframe(String),
 }
 
+fn display_value(v: &AttrValue) -> &str {
+    match v.as_str() {
+        "hour-avg" => "Hour (average)",
+        "hour-max" => "Hour (maximum)",
+        "day-avg" => "Day (average)",
+        "day-max" => "Day (maximum)",
+        "week-avg" => "Week (average)",
+        "week-max" => "Week (maximum)",
+        "month-avg" => "Month (average)",
+        "month-max" => "Month (maximum)",
+        "year-avg" => "Year (average)",
+        "year-max" => "Year (maximum)",
+        "decade-avg" => "Decade (average)",
+        "decade-max" => "Decade (maximum)",
+        _ => v,
+    }
+}
+
 impl Component for PwtRRDTimeframeSelector {
     type Message = Msg;
     type Properties = RRDTimeframeSelector;
@@ -239,28 +257,16 @@ impl Component for PwtRRDTimeframeSelector {
         let props = ctx.props();
 
         Combobox::new()
+            .attribute("style", "min-width:150px;")
             .class(props.class.clone())
             .default(self.timeframe.serialize())
-            .show_filter(false)
             .items(self.items.clone())
             .on_change(ctx.link().callback(Msg::SetRRDTimeframe))
-            .render_value(|v: &AttrValue| {
-                let text = match v.as_str() {
-                    "hour-avg" => "Hour (average)",
-                    "hour-max" => "Hour (maximum)",
-                    "day-avg" => "Day (average)",
-                    "day-max" => "Day (maximum)",
-                    "week-avg" => "Week (average)",
-                    "week-max" => "Week (maximum)",
-                    "month-avg" => "Month (average)",
-                    "month-max" => "Month (maximum)",
-                    "year-avg" => "Year (average)",
-                    "year-max" => "Year (maximum)",
-                    "decade-avg" => "Decade (average)",
-                    "decade-max" => "Decade (maximum)",
-                    _ => v,
-                };
-                html!{text}
+            .render_value(|v: &AttrValue| { html!{display_value(v)} })
+            .show_filter(false)
+            // Note: This is just for completeness. Not used because we do not show the filter...
+            .filter(|item: &AttrValue, query: &str| {
+                display_value(item).to_lowercase().contains(&query.to_lowercase())
             })
             .into()
     }
