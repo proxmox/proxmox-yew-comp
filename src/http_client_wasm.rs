@@ -119,7 +119,7 @@ impl HttpClientWasm {
         let request = login.request();
         let request =
             Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
-        let resp = self.api_request_text(request).await?;
+        let resp = self.fetch_request_text(request).await?;
 
         Ok(login.response(&resp)?)
     }
@@ -131,7 +131,7 @@ impl HttpClientWasm {
     ) -> Result<Authentication, Error> {
         let request =
             Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
-        let resp = self.api_request_text(request).await?;
+        let resp = self.fetch_request_text(request).await?;
         Ok(challenge.response(&resp)?)
     }
 
@@ -205,7 +205,7 @@ impl HttpClientWasm {
         }
     }
 
-    async fn api_request_text(&self, request: web_sys::Request) -> Result<String, Error> {
+    async fn fetch_request_text(&self, request: web_sys::Request) -> Result<String, Error> {
         let response = self.fetch_request(request).await?;
 
         if !(response.status >= 200 && response.status < 300) {
