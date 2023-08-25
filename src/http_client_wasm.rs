@@ -7,6 +7,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
 use proxmox_login::{Authentication, Login, Ticket, TicketResult};
+use proxmox_client::HttpApiResponse;
 
 //use crate::percent_encoding::DEFAULT_ENCODE_SET;
 use crate::ProxmoxProduct;
@@ -173,138 +174,126 @@ impl HttpClientWasm {
         url: &str,
         content_type: &'static str,
         data: &str,
-    ) -> Result<http::Request<Vec<u8>>, Error> {
-        let request = http::Request::builder()
-            .method("POST")
-            .uri(url)
-            .header("cache-control", "no-cache")
-            .header("content-type", content_type)
-            .body(data.as_bytes().to_vec())?;
+    ) -> Result<web_sys::Request, Error> {
+        let mut init = web_sys::RequestInit::new();
+        init.method("POST");
 
-        Ok(request)
+        let js_headers = web_sys::Headers::new().map_err(|err| format_err!("{:?}", err))?;
+
+        js_headers
+            .append("cache-control", "no-cache")
+            .map_err(|err| format_err!("{:?}", err))?;
+
+        js_headers
+            .append("content-type", content_type)
+            .map_err(|err| format_err!("{:?}", err))?;
+
+        init.body(Some(&wasm_bindgen::JsValue::from_str(&data)));
+        init.headers(&js_headers);
+
+        web_sys::Request::new_with_str_and_init(&url, &init).map_err(|err| format_err!("{:?}", err))
     }
 
     fn request_builder<P: Serialize>(
         method: &str,
         url: &str,
         data: Option<P>,
-    ) -> Result<http::Request<Vec<u8>>, Error> {
-        let request = http::Request::builder()
-            .method(method)
-            .header("cache-control", "no-cache");
+    ) -> Result<web_sys::Request, Error> {
+        let mut init = web_sys::RequestInit::new();
+        init.method(method);
 
-        let request = if method == "POST" || method == "PUT" {
-            let body = if let Some(data) = data {
-                serde_json::to_vec(&data)
-                    .map_err(|err| format_err!("serialize failure: {}", err))?
-            } else {
-                Vec::new()
-            };
+        let js_headers = web_sys::Headers::new().map_err(|err| format_err!("{:?}", err))?;
 
-            request
-                .header("content-type", "application/json")
-                .uri(url)
-                .body(body)?
+        js_headers
+            .append("cache-control", "no-cache")
+            .map_err(|err| format_err!("{:?}", err))?;
+
+        if method == "POST" || method == "PUT" {
+            if let Some(data) = data {
+                js_headers
+                    .append("content-type", "application/json")
+                    .map_err(|err| format_err!("{:?}", err))?;
+                let body: Vec<u8> = serde_json::to_vec(&data)
+                    .map_err(|err| format_err!("serialize failure: {}", err))?;
+                let js_body = js_sys::Uint8Array::new_with_length(body.len() as u32);
+                js_body.copy_from(&body);
+                init.body(Some(&js_body));
+            }
+            web_sys::Request::new_with_str_and_init(url, &init)
+                .map_err(|err| format_err!("{:?}", err))
         } else {
-            let url = if let Some(data) = data {
+            if let Some(data) = data {
+                js_headers
+                    .append("content-type", "application/x-www-form-urlencoded")
+                    .map_err(|err| format_err!("{:?}", err))?;
                 let data = serde_json::to_value(data)
                     .map_err(|err| format_err!("serialize failure: {}", err))?;
                 let query = json_object_to_query(data)?;
-                format!("{}?{}", url, query)
+                let url = format!("{}?{}", url, query);
+                web_sys::Request::new_with_str_and_init(&url, &init)
+                    .map_err(|err| format_err!("{:?}", err))
             } else {
-                url.to_string()
-            };
-            request
-                .header("content-type", "application/x-www-form-urlencoded")
-                .uri(url)
-                .body(Vec::new())?
-        };
-
-        Ok(request)
+                web_sys::Request::new_with_str_and_init(url, &init)
+                    .map_err(|err| format_err!("{:?}", err))
+            }
+        }
     }
 
     async fn api_request<T: DeserializeOwned>(
         &self,
-        request: http::Request<Vec<u8>>,
+        request: web_sys::Request,
     ) -> Result<T, Error> {
         let response = self.request(request).await?;
-        let (parts, body) = response.into_parts();
 
-        if !parts.status.is_success() {
-            bail!("HTTP status {}", parts.status);
+        if !(response.status >= 200 && response.status < 300) {
+            bail!("HTTP status {}", response.status);
         }
 
-        serde_json::from_slice(&body).map_err(|err| format_err!("invalid json: {}", err))
+        serde_json::from_slice(&response.body).map_err(|err| format_err!("invalid json: {}", err))
     }
 
-    async fn api_request_text(&self, request: http::Request<Vec<u8>>) -> Result<String, Error> {
+    async fn api_request_text(&self, request: web_sys::Request) -> Result<String, Error> {
         let response = self.request(request).await?;
-        let (parts, body) = response.into_parts();
 
-        if !parts.status.is_success() {
-            bail!("HTTP status {}", parts.status);
+        if !(response.status >= 200 && response.status < 300) {
+            bail!("HTTP status {}", response.status);
         }
 
-        let text = String::from_utf8(body)?;
+        let text = String::from_utf8(response.body)?;
 
         return Ok(text);
     }
 
     async fn request(
         &self,
-        mut request: http::Request<Vec<u8>>,
-    ) -> Result<http::response::Response<Vec<u8>>, anyhow::Error> {
+        request: web_sys::Request,
+    ) -> Result<HttpApiResponse, Error> {
         let auth = self.get_auth();
+        let headers = request.headers();
 
         if let Some(auth) = &auth {
-            if let Ok(csrfprevention_token) =
-                http::HeaderValue::from_str(&auth.csrfprevention_token)
-            {
-                request
-                    .headers_mut()
-                    .insert("CSRFPreventionToken", csrfprevention_token);
-            }
+            headers
+                .append("CSRFPreventionToken", &auth.csrfprevention_token)
+                .map_err(|err| format_err!("{:?}", err))?;
 
             let cookie = auth.ticket.cookie();
             crate::set_cookie(&cookie);
         }
 
-        let (parts, body) = request.into_parts();
+        let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
+        let promise = window.fetch_with_request(&request);
+        let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
+        let js_resp = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
+        let resp: web_sys::Response = js_resp.into();
 
-        let mut init = web_sys::RequestInit::new();
-        init.method(parts.method.as_str());
-
-        // Howto handle erors here? unwrap() is wrong!
-
-        let js_headers = web_sys::Headers::new().unwrap();
-
-        js_headers.append("cache-control", "no-cache").unwrap();
-
-        for (key, value) in parts.headers.iter() {
-            if let Ok(value) = value.to_str() {
-                js_headers.append(key.as_str(), value).unwrap();
-            }
-        }
-
-        if !body.is_empty() {
-            let js_body = js_sys::Uint8Array::new_with_length(body.len() as u32);
-            js_body.copy_from(&body);
-            init.body(Some(&js_body));
-        }
-
-        init.headers(&js_headers);
-
-        let js_req =
-            web_sys::Request::new_with_str_and_init(&parts.uri.to_string(), &init).unwrap();
-
-        api_request_raw(js_req).await
+        web_sys_response_to_http_api_response(resp).await
     }
 }
 
-async fn web_sys_response_to_http_response(
-    resp: web_sys::Response,
-) -> Result<http::Response<Vec<u8>>, Error> {
-    let promise = resp
+async fn web_sys_response_to_http_api_response(
+    response: web_sys::Response,
+) -> Result<HttpApiResponse, Error> {
+    let promise = response
         .array_buffer()
         .map_err(|err| format_err!("{:?}", err))?;
 
@@ -312,37 +301,11 @@ async fn web_sys_response_to_http_response(
     let body = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
     let body = js_sys::Uint8Array::new(&body).to_vec();
 
-    let mut response = http::response::Builder::new().status(resp.status());
-
-    if let Some(js_iter) =
-        js_sys::try_iter(&resp.headers()).map_err(|err| format_err!("{:?}", err))?
-    {
-        for item in js_iter {
-            if let Ok(item) = item {
-                let item: js_sys::Array = item.into();
-                if let Some(key) = item.get(0).as_string() {
-                    if let Some(value) = item.get(1).as_string() {
-                        //log::info!("HEADER {}: {}", key, value);
-                        response = response.header(&key, &value);
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(response.body(body)?)
-}
-
-async fn api_request_raw(js_req: web_sys::Request) -> Result<http::Response<Vec<u8>>, Error> {
-    let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
-
-    let promise = window.fetch_with_request(&js_req);
-    let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
-    let js_resp = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
-
-    let resp: web_sys::Response = js_resp.into();
-
-    web_sys_response_to_http_response(resp).await
+    Ok(HttpApiResponse {
+        status: response.status(),
+        content_type: response.headers().get("content-type").unwrap_or(None),
+        body,
+    })
 }
 
 pub fn json_object_to_query(data: Value) -> Result<String, Error> {

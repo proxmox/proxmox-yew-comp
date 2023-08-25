@@ -26,7 +26,6 @@ serde_json = "1.0"
 wasm-bindgen-futures = "0.4"
 url = "2.1"
 percent-encoding = "2.1"
-http = "0.2"
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
