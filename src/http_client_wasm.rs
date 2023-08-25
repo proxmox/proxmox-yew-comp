@@ -249,55 +249,11 @@ impl HttpClientWasm {
 
         return Ok(text);
     }
-}
 
-async fn web_sys_response_to_http_response(
-    resp: web_sys::Response,
-) -> Result<http::Response<Vec<u8>>, Error> {
-    let promise = resp
-        .array_buffer()
-        .map_err(|err| format_err!("{:?}", err))?;
-
-    let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
-    let body = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
-    let body = js_sys::Uint8Array::new(&body).to_vec();
-
-    let mut response = http::response::Builder::new().status(resp.status());
-
-    if let Some(js_iter) =
-        js_sys::try_iter(&resp.headers()).map_err(|err| format_err!("{:?}", err))?
-    {
-        for item in js_iter {
-            if let Ok(item) = item {
-                let item: js_sys::Array = item.into();
-                if let Some(key) = item.get(0).as_string() {
-                    if let Some(value) = item.get(1).as_string() {
-                        //log::info!("HEADER {}: {}", key, value);
-                        response = response.header(&key, &value);
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(response.body(body)?)
-}
-
-async fn api_request_raw(js_req: web_sys::Request) -> Result<http::Response<Vec<u8>>, Error> {
-    let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
-
-    let promise = window.fetch_with_request(&js_req);
-    let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
-    let js_resp = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
-
-    let resp: web_sys::Response = js_resp.into();
-
-    web_sys_response_to_http_response(resp).await
-}
-
-impl HttpClientWasm {
-
-    async fn request(&self, mut request: http::Request<Vec<u8>>) ->  Result<http::response::Response<Vec<u8>>, anyhow::Error> {
+    async fn request(
+        &self,
+        mut request: http::Request<Vec<u8>>,
+    ) -> Result<http::response::Response<Vec<u8>>, anyhow::Error> {
         let auth = self.get_auth();
 
         if let Some(auth) = &auth {
@@ -343,6 +299,50 @@ impl HttpClientWasm {
 
         api_request_raw(js_req).await
     }
+}
+
+async fn web_sys_response_to_http_response(
+    resp: web_sys::Response,
+) -> Result<http::Response<Vec<u8>>, Error> {
+    let promise = resp
+        .array_buffer()
+        .map_err(|err| format_err!("{:?}", err))?;
+
+    let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
+    let body = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
+    let body = js_sys::Uint8Array::new(&body).to_vec();
+
+    let mut response = http::response::Builder::new().status(resp.status());
+
+    if let Some(js_iter) =
+        js_sys::try_iter(&resp.headers()).map_err(|err| format_err!("{:?}", err))?
+    {
+        for item in js_iter {
+            if let Ok(item) = item {
+                let item: js_sys::Array = item.into();
+                if let Some(key) = item.get(0).as_string() {
+                    if let Some(value) = item.get(1).as_string() {
+                        //log::info!("HEADER {}: {}", key, value);
+                        response = response.header(&key, &value);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(response.body(body)?)
+}
+
+async fn api_request_raw(js_req: web_sys::Request) -> Result<http::Response<Vec<u8>>, Error> {
+    let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
+
+    let promise = window.fetch_with_request(&js_req);
+    let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
+    let js_resp = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
+
+    let resp: web_sys::Response = js_resp.into();
+
+    web_sys_response_to_http_response(resp).await
 }
 
 pub fn json_object_to_query(data: Value) -> Result<String, Error> {
