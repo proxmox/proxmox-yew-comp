@@ -157,7 +157,7 @@ impl HttpClientWasm {
         init.body(Some(&wasm_bindgen::JsValue::from_str(&data)));
         init.headers(&js_headers);
 
-        web_sys::Request::new_with_str_and_init(&url, &init).map_err(|err| convert_js_error(err))?
+        web_sys::Request::new_with_str_and_init(&url, &init).map_err(|err| convert_js_error(err))
     }
 
     fn request_builder<P: Serialize>(
