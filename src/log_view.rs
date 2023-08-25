@@ -41,15 +41,15 @@ async fn load_log_page(url: &str, page: u64) -> Result<LogPage, Error> {
         "start": page * PAGE_HEIGHT,
         "limit": PAGE_HEIGHT,
     });
-    let (data, meta) = crate::http_get_full::<Vec<LogEntry>>(url, Some(param)).await?;
+    let resp = crate::http_get_full::<Vec<LogEntry>>(url, Some(param)).await?;
 
-    let data_len = data.len() as u64;
-    //log::info!("DFATA LEN {}", data_len);
+    let data_len = resp.data.len() as u64;
+    //log::info!("DFATA LEN {}", resp.data_len);
 
     Ok(LogPage {
         page,
-        lines: data,
-        total: meta.total.unwrap_or(data_len),
+        lines: resp.data,
+        total: resp.attribs.get("total").map(|v| v.as_u64()).flatten().unwrap_or(data_len),
     })
 }
 

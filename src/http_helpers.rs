@@ -3,12 +3,15 @@ use std::cell::RefCell;
 use std::thread_local;
 
 use anyhow::{bail, Error};
-use serde::{Deserialize, de::DeserializeOwned};
+
+use proxmox_client::ApiResponseData;
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 
 use proxmox_login::{Authentication, TicketResult, ticket::Validity};
+use proxmox_client::HttpApiClient;
 
-use crate::{HttpClientWasm, ProxmoxProduct};
+use crate::{HttpClientWasm, ProxmoxProduct, json_object_to_query};
 
 thread_local! {
     static CLIENT: RefCell<Rc<HttpClientWasm>> = {
@@ -102,73 +105,59 @@ pub async fn http_login_tfa(
     Ok(auth)
 }
 
-
-#[derive(Deserialize)]
-pub struct Metadata {
-    pub success: bool,
-    pub message: Option<String>,
-    pub total: Option<u64>,
-}
-
-fn extract_result_full<T: DeserializeOwned>(mut resp: Value) -> Result<(T, Metadata), Error> {
-    if let Some(success_integer) = resp["success"].as_u64() {
-        if success_integer == 0 {
-            resp["success"] = false.into();
-        }
-        if success_integer == 1 {
-            resp["success"] = true.into();
-        }
-    }
-
-    let meta = Metadata::deserialize(&resp)?;
-
-    if !meta.success {
-        let message = meta
-            .message
-            .unwrap_or_else(|| String::from("unknown error"));
-        return Err(Error::msg(message));
-    }
-
-    let data = serde_json::from_value(resp["data"].take())?;
-    Ok((data, meta))
-}
-
-fn extract_result<T: DeserializeOwned>(resp: Value) -> Result<T, Error> {
-    let (data, _meta) = extract_result_full(resp)?;
-    Ok(data)
+fn path_and_param_to_api_url<P: Serialize>(path: &str, data: Option<P>) -> Result<String, Error> {
+    let path_and_query = if let Some(data) = data {
+        let data = serde_json::to_value(data)?;
+        let query = json_object_to_query(data)?;
+        format!("/api2/extjs{}?{}", path, query)
+    } else {
+        format!("/api2/extjs{}", path)
+    };
+    Ok(path_and_query)
 }
 
 pub async fn http_get_full<T: DeserializeOwned>(
     path: &str,
     data: Option<Value>,
-) -> Result<(T, Metadata), Error> {
+) -> Result<ApiResponseData<T>, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
-    let resp = client.get(&format!("/api2/extjs{}", path), data).await?;
-    extract_result_full(resp)
+
+    let path_and_query = path_and_param_to_api_url(path, data)?;
+
+    let resp: proxmox_client::HttpApiResponse = client.get(&path_and_query).await?;
+    let resp: ApiResponseData<T> = resp.expect_json()?;
+    Ok(resp)
 }
 
 pub async fn http_get<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
-    let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
-    let resp = client.get(&format!("/api2/extjs{}", path), data).await?;
-    extract_result(resp)
+    let resp = http_get_full(path, data).await?;
+    Ok(resp.data)
 }
 
 pub async fn http_delete(path: &str, data: Option<Value>) -> Result<(), Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
-    let resp = client.delete(&format!("/api2/extjs{}", path), data).await?;
-    extract_result(resp)
+
+    let path_and_query = path_and_param_to_api_url(path, data)?;
+
+    let resp: proxmox_client::HttpApiResponse = client.delete(&path_and_query).await?;
+    resp.nodata()?; // we do not expect and data here
+    Ok(())
 }
 
 pub async fn http_post<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
-    let resp = client.post(&format!("/api2/extjs{}", path), data).await?;
-    extract_result(resp)
+
+    let resp: proxmox_client::HttpApiResponse = client.post(&path, &data).await?;
+    let resp: ApiResponseData<T> = resp.expect_json()?;
+    Ok(resp.data)
 }
 
 pub async fn http_put<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
-    let resp = client.put(&format!("/api2/extjs{}", path), data).await?;
-    extract_result(resp)
+
+    let resp: proxmox_client::HttpApiResponse = client.put(&path, &data).await?;
+    let resp: ApiResponseData<T> = resp.expect_json()?;
+    Ok(resp.data)
 }
 
 /// Helper to wait for a task result

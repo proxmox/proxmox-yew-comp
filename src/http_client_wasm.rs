@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 use anyhow::{bail, format_err, Error};
 use percent_encoding::percent_decode_str;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
 use proxmox_client::{HttpApiClient, HttpApiResponse};
@@ -107,42 +107,6 @@ impl HttpClientWasm {
         *self.auth.lock().unwrap() = None;
     }
 
-    pub async fn get<P: Serialize, T: DeserializeOwned>(
-        &self,
-        path: &str,
-        data: Option<P>,
-    ) -> Result<T, Error> {
-        let req = Self::request_builder("GET", path, data)?;
-        self.api_request(req).await
-    }
-
-    pub async fn delete<P: Serialize, T: DeserializeOwned>(
-        &self,
-        path: &str,
-        data: Option<P>,
-    ) -> Result<T, Error> {
-        let req = Self::request_builder("DELETE", path, data)?;
-        self.api_request(req).await
-    }
-
-    pub async fn post<P: Serialize, T: DeserializeOwned>(
-        &self,
-        path: &str,
-        data: Option<P>,
-    ) -> Result<T, Error> {
-        let req = Self::request_builder("POST", path, data)?;
-        self.api_request(req).await
-    }
-
-    pub async fn put<P: Serialize, T: DeserializeOwned>(
-        &self,
-        path: &str,
-        data: Option<P>,
-    ) -> Result<T, Error> {
-        let req = Self::request_builder("PUT", path, data)?;
-        self.api_request(req).await
-    }
-
     pub async fn login(
         &self,
         username: impl Into<String>,
@@ -241,19 +205,6 @@ impl HttpClientWasm {
         }
     }
 
-    async fn api_request<T: DeserializeOwned>(
-        &self,
-        request: web_sys::Request,
-    ) -> Result<T, Error> {
-        let response = self.request(request).await?;
-
-        if !(response.status >= 200 && response.status < 300) {
-            bail!("HTTP status {}", response.status);
-        }
-
-        serde_json::from_slice(&response.body).map_err(|err| format_err!("invalid json: {}", err))
-    }
-
     async fn api_request_text(&self, request: web_sys::Request) -> Result<String, Error> {
         let response = self.request(request).await?;
 
@@ -300,9 +251,17 @@ async fn web_sys_response_to_http_api_response(
     let body = js_fut.await.map_err(|err| format_err!("{:?}", err))?;
     let body = js_sys::Uint8Array::new(&body).to_vec();
 
+    let mut content_type = response.headers().get("content-type").unwrap_or(None);
+    if let Some(ct) = &content_type {
+        if ct.starts_with("application/json;") {
+            // strip rest of information (i.e. charset=UTF8;),
+            // Note: proxmox_client crate expects "application/json"
+            content_type = Some(String::from("application/json"));
+        }
+    }
     Ok(HttpApiResponse {
         status: response.status(),
-        content_type: response.headers().get("content-type").unwrap_or(None),
+        content_type: content_type,
         body,
     })
 }
