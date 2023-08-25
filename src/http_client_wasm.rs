@@ -1,3 +1,5 @@
+use std::future::Future;
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Mutex;
 
@@ -6,8 +8,8 @@ use percent_encoding::percent_decode_str;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
+use proxmox_client::{HttpApiClient, HttpApiResponse};
 use proxmox_login::{Authentication, Login, Ticket, TicketResult};
-use proxmox_client::HttpApiResponse;
 
 //use crate::percent_encoding::DEFAULT_ENCODE_SET;
 use crate::ProxmoxProduct;
@@ -264,10 +266,7 @@ impl HttpClientWasm {
         return Ok(text);
     }
 
-    async fn request(
-        &self,
-        request: web_sys::Request,
-    ) -> Result<HttpApiResponse, Error> {
+    async fn request(&self, request: web_sys::Request) -> Result<HttpApiResponse, Error> {
         let auth = self.get_auth();
         let headers = request.headers();
 
@@ -349,4 +348,75 @@ pub fn json_object_to_query(data: Value) -> Result<String, Error> {
     }
 
     Ok(query.finish())
+}
+
+impl HttpApiClient for HttpClientWasm {
+    type ResponseFuture<'a> = Pin<Box<dyn Future<Output=Result<HttpApiResponse, proxmox_client::Error>> + 'a>>
+        where Self: 'a;
+
+    fn get<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
+        Box::pin(async move {
+            let request = Self::request_builder("GET", path_and_query, None::<()>)
+                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let response = self
+                .request(request)
+                .await
+                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            Ok(response)
+        })
+    }
+
+    fn post<'a, T>(&'a self, path_and_query: &'a str, params: &T) -> Self::ResponseFuture<'a>
+    where
+        T: ?Sized + Serialize,
+    {
+        let request = Self::request_builder("POST", path_and_query, Some(params));
+        Box::pin(async move {
+            let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let response = self
+                .request(request)
+                .await
+                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            Ok(response)
+        })
+    }
+
+    fn put<'a, T>(&'a self, path_and_query: &'a str, params: &T) -> Self::ResponseFuture<'a>
+    where
+        T: ?Sized + Serialize,
+    {
+        let request = Self::request_builder("PUT", path_and_query, Some(params));
+        Box::pin(async move {
+            let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let response = self
+                .request(request)
+                .await
+                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            Ok(response)
+        })
+    }
+
+    fn put_without_body<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
+        let request = Self::request_builder("PUT", path_and_query, None::<()>);
+        Box::pin(async move {
+            let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let response = self
+                .request(request)
+                .await
+                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            Ok(response)
+        })
+    }
+
+    fn delete<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
+        Box::pin(async move {
+            let request = Self::request_builder("DELETE", path_and_query, None::<()>)
+                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let response = self
+                .request(request)
+                .await
+                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            Ok(response)
+        })
+    }
 }
