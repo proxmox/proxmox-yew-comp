@@ -206,7 +206,7 @@ impl HttpClientWasm {
     }
 
     async fn api_request_text(&self, request: web_sys::Request) -> Result<String, Error> {
-        let response = self.request(request).await?;
+        let response = self.fetch_request(request).await?;
 
         if !(response.status >= 200 && response.status < 300) {
             bail!("HTTP status {}", response.status);
@@ -217,7 +217,7 @@ impl HttpClientWasm {
         return Ok(text);
     }
 
-    async fn request(&self, request: web_sys::Request) -> Result<HttpApiResponse, Error> {
+    async fn fetch_request(&self, request: web_sys::Request) -> Result<HttpApiResponse, Error> {
         let auth = self.get_auth();
         let headers = request.headers();
 
@@ -318,7 +318,7 @@ impl HttpApiClient for HttpClientWasm {
             let request = Self::request_builder("GET", path_and_query, None::<()>)
                 .map_err(|err| proxmox_client::Error::Anyhow(err))?;
             let response = self
-                .request(request)
+                .fetch_request(request)
                 .await
                 .map_err(|err| proxmox_client::Error::Anyhow(err))?;
             Ok(response)
@@ -333,7 +333,7 @@ impl HttpApiClient for HttpClientWasm {
         Box::pin(async move {
             let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
             let response = self
-                .request(request)
+                .fetch_request(request)
                 .await
                 .map_err(|err| proxmox_client::Error::Anyhow(err))?;
             Ok(response)
@@ -348,7 +348,7 @@ impl HttpApiClient for HttpClientWasm {
         Box::pin(async move {
             let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
             let response = self
-                .request(request)
+                .fetch_request(request)
                 .await
                 .map_err(|err| proxmox_client::Error::Anyhow(err))?;
             Ok(response)
@@ -360,7 +360,7 @@ impl HttpApiClient for HttpClientWasm {
         Box::pin(async move {
             let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
             let response = self
-                .request(request)
+                .fetch_request(request)
                 .await
                 .map_err(|err| proxmox_client::Error::Anyhow(err))?;
             Ok(response)
@@ -372,7 +372,7 @@ impl HttpApiClient for HttpClientWasm {
             let request = Self::request_builder("DELETE", path_and_query, None::<()>)
                 .map_err(|err| proxmox_client::Error::Anyhow(err))?;
             let response = self
-                .request(request)
+                .fetch_request(request)
                 .await
                 .map_err(|err| proxmox_client::Error::Anyhow(err))?;
             Ok(response)
