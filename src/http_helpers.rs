@@ -147,7 +147,9 @@ pub async fn http_delete(path: &str, data: Option<Value>) -> Result<(), Error> {
 pub async fn http_post<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
-    let resp: proxmox_client::HttpApiResponse = client.post(&path, &data).await?;
+    let path_and_query = path_and_param_to_api_url(path, None::<()>)?;
+
+    let resp: proxmox_client::HttpApiResponse = client.post(&path_and_query, &data).await?;
     let resp: ApiResponseData<T> = resp.expect_json()?;
     Ok(resp.data)
 }
@@ -155,7 +157,9 @@ pub async fn http_post<T: DeserializeOwned>(path: &str, data: Option<Value>) -> 
 pub async fn http_put<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
-    let resp: proxmox_client::HttpApiResponse = client.put(&path, &data).await?;
+    let path_and_query = path_and_param_to_api_url(path, None::<()>)?;
+
+    let resp: proxmox_client::HttpApiResponse = client.put(&path_and_query, &data).await?;
     let resp: ApiResponseData<T> = resp.expect_json()?;
     Ok(resp.data)
 }
