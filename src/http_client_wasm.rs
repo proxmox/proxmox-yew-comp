@@ -350,6 +350,18 @@ impl HttpApiClient for HttpClientWasm {
         })
     }
 
+    fn post_without_body<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
+        let request = Self::request_builder("POST", path_and_query, None::<()>);
+        Box::pin(async move {
+            let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let response = self
+                .fetch_request(request)
+                .await
+                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            Ok(response)
+        })
+    }
+
     fn put<'a, T>(&'a self, path_and_query: &'a str, params: &T) -> Self::ResponseFuture<'a>
     where
         T: ?Sized + Serialize,

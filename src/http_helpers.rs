@@ -149,7 +149,11 @@ pub async fn http_post<T: DeserializeOwned>(path: &str, data: Option<Value>) -> 
 
     let path_and_query = path_and_param_to_api_url(path, None::<()>)?;
 
-    let resp: proxmox_client::HttpApiResponse = client.post(&path_and_query, &data).await?;
+    let resp: proxmox_client::HttpApiResponse  = if let Some(data) = &data {
+        client.post(&path_and_query, &data).await?
+    } else {
+        client.post_without_body(&path_and_query).await?
+    };
     let resp: ApiResponseData<T> = resp.expect_json()?;
     Ok(resp.data)
 }
@@ -159,7 +163,11 @@ pub async fn http_put<T: DeserializeOwned>(path: &str, data: Option<Value>) -> R
 
     let path_and_query = path_and_param_to_api_url(path, None::<()>)?;
 
-    let resp: proxmox_client::HttpApiResponse = client.put(&path_and_query, &data).await?;
+    let resp: proxmox_client::HttpApiResponse  = if let Some(data) = &data {
+        client.put(&path_and_query, &data).await?
+    } else {
+        client.put_without_body(&path_and_query).await?
+    };
     let resp: ApiResponseData<T> = resp.expect_json()?;
     Ok(resp.data)
 }
