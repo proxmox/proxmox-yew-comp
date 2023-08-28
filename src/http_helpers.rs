@@ -117,37 +117,37 @@ fn path_and_param_to_api_url<P: Serialize>(path: &str, data: Option<P>) -> Resul
 }
 
 pub async fn http_get_full<T: DeserializeOwned>(
-    path: &str,
+    path: impl Into<String>,
     data: Option<Value>,
 ) -> Result<ApiResponseData<T>, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
-    let path_and_query = path_and_param_to_api_url(path, data)?;
+    let path_and_query = path_and_param_to_api_url(&path.into(), data)?;
 
     let resp: proxmox_client::HttpApiResponse = client.get(&path_and_query).await?;
     let resp: ApiResponseData<T> = resp.expect_json()?;
     Ok(resp)
 }
 
-pub async fn http_get<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
+pub async fn http_get<T: DeserializeOwned>(path: impl Into<String>, data: Option<Value>) -> Result<T, Error> {
     let resp = http_get_full(path, data).await?;
     Ok(resp.data)
 }
 
-pub async fn http_delete(path: &str, data: Option<Value>) -> Result<(), Error> {
+pub async fn http_delete(path: impl Into<String>, data: Option<Value>) -> Result<(), Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
-    let path_and_query = path_and_param_to_api_url(path, data)?;
+    let path_and_query = path_and_param_to_api_url(&path.into(), data)?;
 
     let resp: proxmox_client::HttpApiResponse = client.delete(&path_and_query).await?;
     resp.nodata()?; // we do not expect and data here
     Ok(())
 }
 
-pub async fn http_post<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
+pub async fn http_post<T: DeserializeOwned>(path: impl Into<String>, data: Option<Value>) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
-    let path_and_query = path_and_param_to_api_url(path, None::<()>)?;
+    let path_and_query = path_and_param_to_api_url(&path.into(), None::<()>)?;
 
     let resp: proxmox_client::HttpApiResponse  = if let Some(data) = &data {
         client.post(&path_and_query, &data).await?
@@ -158,10 +158,10 @@ pub async fn http_post<T: DeserializeOwned>(path: &str, data: Option<Value>) -> 
     Ok(resp.data)
 }
 
-pub async fn http_put<T: DeserializeOwned>(path: &str, data: Option<Value>) -> Result<T, Error> {
+pub async fn http_put<T: DeserializeOwned>(path: impl Into<String>, data: Option<Value>) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
-    let path_and_query = path_and_param_to_api_url(path, None::<()>)?;
+    let path_and_query = path_and_param_to_api_url(&path.into(), None::<()>)?;
 
     let resp: proxmox_client::HttpApiResponse  = if let Some(data) = &data {
         client.put(&path_and_query, &data).await?

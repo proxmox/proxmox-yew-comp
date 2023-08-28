@@ -55,6 +55,9 @@ pub use time_zone_selector::{TimezoneSelector, ProxmoxTimezoneSelector};
 mod task_viewer;
 pub use task_viewer::*;
 
+mod task_progress;
+pub use task_progress::TaskProgress;
+
 pub mod percent_encoding;
 
 mod proxmox_product;
