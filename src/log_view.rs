@@ -20,6 +20,10 @@ use pwt::widget::SizeObserver;
 // Firefox shows wrong scrollbar, because it usese real client height
 // instead of height property.
 
+// possible solution: https://github.com/bvaughn/react-virtualized/issues/396
+
+const MAX_PHYSICAL: f64 = 17_000_000.0;
+
 #[derive(Deserialize)]
 struct LogEntry {
     #[allow(dead_code)]
@@ -44,12 +48,12 @@ async fn load_log_page(url: &str, page: u64) -> Result<LogPage, Error> {
     let resp = crate::http_get_full::<Vec<LogEntry>>(url, Some(param)).await?;
 
     let data_len = resp.data.len() as u64;
-    //log::info!("DFATA LEN {}", resp.data_len);
+    let total = resp.attribs.get("total").map(|v| v.as_u64()).flatten().unwrap_or(data_len);
 
     Ok(LogPage {
         page,
         lines: resp.data,
-        total: resp.attribs.get("total").map(|v| v.as_u64()).flatten().unwrap_or(data_len),
+        total,
     })
 }
 
@@ -103,6 +107,10 @@ pub struct PwtLogView {
     viewport_lines: u64,
     scroll_top: i32,
 
+    // Note: We just do stupid scaleing top avoid browser scrolling bugs.
+    // This is probably good enouth until scale gets larger than line_height...
+    scale: f64,
+
     size_observer: Option<SizeObserver>,
 
     tailview_trigger: Option<Interval>,
@@ -113,6 +121,15 @@ pub struct PwtLogView {
 }
 
 impl PwtLogView {
+
+    fn physical_to_logical(&self, physical: i32) -> u64 {
+        (physical as f64 * self.scale) as u64
+    }
+
+    fn logical_to_physical(&self, logical: u64) -> i32 {
+        (logical as f64 / self.scale) as i32
+    }
+
     fn page_index(&self, page: u64) -> Option<usize> {
         self.pages.iter().position(|item| match item {
             Some(item) => item.page == page,
@@ -158,7 +175,7 @@ impl PwtLogView {
             return;
         }
 
-        let line = (self.scroll_top as u64) / self.line_height;
+        let line = self.physical_to_logical(self.scroll_top) / self.line_height;
 
         let prev = if line > 100 {
             (line as u64 - 100) / PAGE_HEIGHT
@@ -213,6 +230,7 @@ impl Component for PwtLogView {
             enable_tail_view: ctx.props().active,
             // Note: we use window.get_computed_style() to get the real value in rendered()
             line_height: 18,
+            scale: 1.0,
         }
     }
 
@@ -243,6 +261,10 @@ impl Component for PwtLogView {
             Msg::PageLoad(info) => {
                 let total = info.total;
                 self.total = Some(total);
+                let scale = (total as f64 * self.line_height as f64) /  MAX_PHYSICAL;
+                self.scale = scale.max(1.0);
+                //log::info!("SCALE1 {}", self.scale);
+
                 if !self.pending_pages.contains_key(&info.page) {
                     //log::info!("SKIP PageLoad {}", info.page);
                     return false;
@@ -308,6 +330,7 @@ impl Component for PwtLogView {
                 match page {
                     Some(page) => {
                         let offset = page.page * PAGE_HEIGHT * self.line_height;
+                        let offset = self.logical_to_physical(offset);
                         //log::info!("render PAGE {} AT OFFSET {}", page.page, offset);
 
                         let mut tag = VTag::new("div");
@@ -355,12 +378,13 @@ impl Component for PwtLogView {
             props.class.clone(),
         };
 
+        let physical_height = self.logical_to_physical(lines*self.line_height);
         html! {
             // Note: we set class "pwt-log-content" her, so that we can query the font size
             <div ref={self.viewport_ref.clone()} {class} {onscroll}>
-                <div style={format!("height:{}px;position:relative;", lines*self.line_height)}>
-                {pages}
-                </div>
+               <div style={format!("height:{}px;position:relative;", physical_height)}>
+                 {pages}
+               </div>
             </div>
         }
     }
