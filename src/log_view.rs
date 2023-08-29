@@ -53,6 +53,36 @@ async fn load_log_page(props: &LogView, page: u64) -> Result<LogPage, Error> {
         param["service"] = service.into();
     }
 
+    if let Some(since) = props.since {
+        let date = js_sys::Date::new_0();
+        date.set_time((since as f64) * 1000.0);
+        let since = format!(
+            "{}-{:02}-{:02} {:02}:{:02}:{:02}",
+            date.get_full_year(),
+            date.get_month() + 1,
+            date.get_date(),
+            date.get_hours(),
+            date.get_minutes(),
+            date.get_seconds(),
+        );
+        param["since"] = since.into();
+    }
+
+    if let Some(until) = props.until {
+        let date = js_sys::Date::new_0();
+        date.set_time((until as f64) * 1000.0);
+        let until = format!(
+            "{}-{:02}-{:02} {:02}:{:02}:{:02}",
+            date.get_full_year(),
+            date.get_month() + 1,
+            date.get_date(),
+            date.get_hours(),
+            date.get_minutes(),
+            date.get_seconds(),
+        );
+        param["until"] = until.into();
+    }
+
     let url = props.url.as_str().clone();
     let resp = crate::http_get_full::<Vec<LogEntry>>(url, Some(param)).await?;
 
@@ -73,14 +103,25 @@ pub struct LogView {
     node_ref: NodeRef,
     pub key: Option<Key>,
     pub url: AttrValue,
+
     #[prop_or_default]
+    #[builder]
     pub active: bool,
 
     #[prop_or_default]
     pub class: Classes,
 
+    /// View logs for the specified service,
     #[builder(IntoPropValue, into_prop_value)]
     pub service: Option<AttrValue>,
+
+    /// Since when (unix epoch)
+    #[builder(IntoPropValue, into_prop_value)]
+    pub since: Option<i64>,
+
+    /// Until when (unix epoch)
+    #[builder(IntoPropValue, into_prop_value)]
+    pub until: Option<i64>,
 }
 
 impl LogView {
@@ -97,11 +138,6 @@ impl LogView {
     /// Method to add a html class
     pub fn add_class(&mut self, class: impl Into<Classes>) {
         self.class.push(class);
-    }
-
-    pub fn active(mut self, active: bool) -> Self {
-        self.active = active;
-        self
     }
 }
 
