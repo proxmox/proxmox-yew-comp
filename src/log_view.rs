@@ -436,7 +436,7 @@ impl Component for PwtLogView {
         });
 
         let class = classes! {
-            "pwt-log-content",
+            "pwt-log",
             "pwt-overflow-auto",
             props.class.clone(),
         };
