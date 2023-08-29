@@ -9,8 +9,11 @@ use gloo_timers::callback::{Interval, Timeout};
 
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode, VTag};
+use yew::html::IntoPropValue;
 
 use pwt::widget::SizeObserver;
+
+use pwt_macros::builder;
 
 // Note: virtual scrolling fails when log is large:
 // See: https://bugs.chromium.org/p/chromium/issues/detail?id=932109
@@ -40,11 +43,17 @@ pub struct LogPage {
 const PAGE_HEIGHT: u64 = 500;
 const PAGE_LOAD_DELAY: u32 = 20; // Load delay in milliseconds
 
-async fn load_log_page(url: &str, page: u64) -> Result<LogPage, Error> {
-    let param = json!({
+async fn load_log_page(props: &LogView, page: u64) -> Result<LogPage, Error> {
+    let mut param = json!({
         "start": page * PAGE_HEIGHT,
         "limit": PAGE_HEIGHT,
     });
+
+    if let Some(service) = props.service.as_deref() {
+        param["service"] = service.into();
+    }
+
+    let url = props.url.as_str().clone();
     let resp = crate::http_get_full::<Vec<LogEntry>>(url, Some(param)).await?;
 
     let data_len = resp.data.len() as u64;
@@ -58,6 +67,7 @@ async fn load_log_page(url: &str, page: u64) -> Result<LogPage, Error> {
 }
 
 #[derive(Properties, PartialEq, Clone)]
+#[builder]
 pub struct LogView {
     #[prop_or_default]
     node_ref: NodeRef,
@@ -68,6 +78,9 @@ pub struct LogView {
 
     #[prop_or_default]
     pub class: Classes,
+
+    #[builder(IntoPropValue, into_prop_value)]
+    pub service: Option<AttrValue>,
 }
 
 impl LogView {
@@ -139,12 +152,12 @@ impl PwtLogView {
 
     fn request_page(&mut self, ctx: &Context<Self>, page_num: u64, delay: u32) {
         if !self.pending_pages.contains_key(&page_num) {
-            let url = ctx.props().url.clone();
+            let props = ctx.props().clone();
             let link = ctx.link().clone();
             //log::info!("REQUEST {}", page_num);
             let timeout = Timeout::new(delay, move || {
                 link.send_future_batch(async move {
-                    match load_log_page(&url, page_num).await {
+                    match load_log_page(&props, page_num).await {
                         Ok(page) => Some(Msg::PageLoad(page)),
                         Err(err) => {
                             log::error!("Page load failed: {}", err);
