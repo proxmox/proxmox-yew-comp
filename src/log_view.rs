@@ -43,6 +43,20 @@ pub struct LogPage {
 const PAGE_HEIGHT: u64 = 500;
 const PAGE_LOAD_DELAY: u32 = 20; // Load delay in milliseconds
 
+fn epoch_to_syslog_api(epoch: i64) -> String {
+    let date = js_sys::Date::new_0();
+    date.set_time((epoch as f64) * 1000.0);
+    format!(
+        "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+        date.get_full_year(),
+        date.get_month() + 1,
+        date.get_date(),
+        date.get_hours(),
+        date.get_minutes(),
+        date.get_seconds(),
+    )
+}
+
 async fn load_log_page(props: &LogView, page: u64) -> Result<LogPage, Error> {
     let mut param = json!({
         "start": page * PAGE_HEIGHT,
@@ -54,33 +68,11 @@ async fn load_log_page(props: &LogView, page: u64) -> Result<LogPage, Error> {
     }
 
     if let Some(since) = props.since {
-        let date = js_sys::Date::new_0();
-        date.set_time((since as f64) * 1000.0);
-        let since = format!(
-            "{}-{:02}-{:02} {:02}:{:02}:{:02}",
-            date.get_full_year(),
-            date.get_month() + 1,
-            date.get_date(),
-            date.get_hours(),
-            date.get_minutes(),
-            date.get_seconds(),
-        );
-        param["since"] = since.into();
+        param["since"] = epoch_to_syslog_api(since).into();
     }
 
     if let Some(until) = props.until {
-        let date = js_sys::Date::new_0();
-        date.set_time((until as f64) * 1000.0);
-        let until = format!(
-            "{}-{:02}-{:02} {:02}:{:02}:{:02}",
-            date.get_full_year(),
-            date.get_month() + 1,
-            date.get_date(),
-            date.get_hours(),
-            date.get_minutes(),
-            date.get_seconds(),
-        );
-        param["until"] = until.into();
+        param["until"] = epoch_to_syslog_api(until).into();
     }
 
     let url = props.url.as_str().clone();
