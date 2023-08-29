@@ -185,6 +185,7 @@ impl HttpClientWasm {
                 js_body.copy_from(&body);
                 init.body(Some(&js_body));
             }
+            init.headers(&js_headers);
             web_sys::Request::new_with_str_and_init(url, &init).map_err(|err| convert_js_error(err))
         } else {
             if let Some(data) = data {
@@ -195,9 +196,11 @@ impl HttpClientWasm {
                     .map_err(|err| format_err!("serialize failure: {}", err))?;
                 let query = json_object_to_query(data)?;
                 let url = format!("{}?{}", url, query);
+                init.headers(&js_headers);
                 web_sys::Request::new_with_str_and_init(&url, &init)
                     .map_err(|err| convert_js_error(err))
             } else {
+                init.headers(&js_headers);
                 web_sys::Request::new_with_str_and_init(url, &init)
                     .map_err(|err| convert_js_error(err))
             }
