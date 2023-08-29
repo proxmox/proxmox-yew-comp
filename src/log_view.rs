@@ -378,9 +378,7 @@ impl Component for PwtLogView {
             || props.until != old_props.until
             || props.service != old_props.service
         {
-            log::info!("RELOAD REQUIRED");
             ctx.link().send_message(Msg::Reload);
-
         }
         true
     }
