@@ -7,9 +7,9 @@ use serde_json::json;
 
 use gloo_timers::callback::{Interval, Timeout};
 
+use yew::html::IntoPropValue;
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode, VTag};
-use yew::html::IntoPropValue;
 
 use pwt::widget::SizeObserver;
 
@@ -79,7 +79,12 @@ async fn load_log_page(props: &LogView, page: u64) -> Result<LogPage, Error> {
     let resp = crate::http_get_full::<Vec<LogEntry>>(url, Some(param)).await?;
 
     let data_len = resp.data.len() as u64;
-    let total = resp.attribs.get("total").map(|v| v.as_u64()).flatten().unwrap_or(data_len);
+    let total = resp
+        .attribs
+        .get("total")
+        .map(|v| v.as_u64())
+        .flatten()
+        .unwrap_or(data_len);
 
     Ok(LogPage {
         page,
@@ -138,6 +143,7 @@ pub enum Msg {
     ViewportResize(f64, f64),
     PageLoad(LogPage),
     TailView,
+    Reload,
 }
 
 pub struct PwtLogView {
@@ -162,7 +168,6 @@ pub struct PwtLogView {
 }
 
 impl PwtLogView {
-
     fn physical_to_logical(&self, physical: i32) -> u64 {
         (physical as f64 * self.scale) as u64
     }
@@ -277,6 +282,13 @@ impl Component for PwtLogView {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
+            Msg::Reload => {
+                self.pages = [None, None, None, None];
+                self.pending_pages.clear();
+                self.total = None;
+                self.request_pages(ctx);
+                false
+            }
             Msg::ScrollTo(_x, y, at_end) => {
                 self.scroll_top = y;
                 self.request_pages(ctx);
@@ -302,7 +314,7 @@ impl Component for PwtLogView {
             Msg::PageLoad(info) => {
                 let total = info.total;
                 self.total = Some(total);
-                let scale = (total as f64 * self.line_height as f64) /  MAX_PHYSICAL;
+                let scale = (total as f64 * self.line_height as f64) / MAX_PHYSICAL;
                 self.scale = scale.max(1.0);
                 //log::info!("SCALE1 {}", self.scale);
 
@@ -360,6 +372,18 @@ impl Component for PwtLogView {
         }
     }
 
+    fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
+        let props = ctx.props();
+        if props.since != old_props.since
+            || props.until != old_props.until
+            || props.service != old_props.service
+        {
+            log::info!("RELOAD REQUIRED");
+            ctx.link().send_message(Msg::Reload);
+
+        }
+        true
+    }
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
         let lines = self.total.unwrap_or(0);
@@ -419,7 +443,7 @@ impl Component for PwtLogView {
             props.class.clone(),
         };
 
-        let physical_height = self.logical_to_physical(lines*self.line_height);
+        let physical_height = self.logical_to_physical(lines * self.line_height);
         html! {
             // Note: we set class "pwt-log-content" her, so that we can query the font size
             <div ref={self.viewport_ref.clone()} {class} {onscroll}>
