@@ -63,6 +63,9 @@ pub mod percent_encoding;
 mod proxmox_product;
 pub use proxmox_product::ProxmoxProduct;
 
+mod render_functions;
+pub use render_functions::{render_epoch, render_epoch_short};
+
 // Bindgen javascript code from js-helper-module.js
 
 #[cfg(target_arch="wasm32")]
@@ -80,9 +83,6 @@ extern "C" {
     pub fn uplot(opts: &JsValue, data: &JsValue, node: web_sys::Node) -> JsValue;
     pub fn uplot_set_data(uplot: &JsValue, data: &JsValue);
     pub fn uplot_set_size(uplot: &JsValue, width: usize, height: usize);
-
-    pub fn render_server_epoch(epoch: f64) -> String;
-    pub fn render_timestamp(epoch: f64) -> String;
 }
 
 // Create wrapper which panics if called from target_arch!=wasm32
@@ -99,8 +99,6 @@ mod panic_wrapper {
     pub fn uplot(_opts: &JsValue, _data: &JsValue, _node: web_sys::Node) -> JsValue { unreachable!() }
     pub fn uplot_set_data(_uplot: &JsValue, _data: &JsValue) { unreachable!() }
     pub fn uplot_set_size(_uplot: &JsValue, _width: usize, _height: usize) { unreachable!() }
-    pub fn render_server_epoch(_epoch: f64) -> String { unreachable!() }
-    pub fn render_timestamp(_epoch: f64) -> String { unreachable!() }
 }
 
 pub fn store_csrf_token(crsf_token: &str) {

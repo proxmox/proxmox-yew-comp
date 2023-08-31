@@ -236,15 +236,15 @@ impl PwtTaskViewer {
             KVGridRow::new("pid", "Process ID").required(true),
             KVGridRow::new("task_id", "Task ID"),
             KVGridRow::new("starttime", "Start Time")
-                .renderer(|_name, value, _record| match value.as_f64() {
+                .renderer(|_name, value, _record| match value.as_i64() {
                     None => html! {"unknown (wrong format)"},
-                    Some(epoch) => html! { {crate::render_server_epoch(epoch)} },
+                    Some(epoch) => html! { {crate::render_epoch(epoch)} },
                 })
                 .required(true),
             KVGridRow::new("endtime", "End Time").renderer(|_name, value, _record| {
-                match value.as_f64() {
+                match value.as_i64() {
                     None => html! {"unknown (wrong format)"},
-                    Some(epoch) => html! { {crate::render_server_epoch(epoch)} },
+                    Some(epoch) => html! { {crate::render_epoch(epoch)} },
                 }
             }),
             KVGridRow::new("duration", "Duration")
