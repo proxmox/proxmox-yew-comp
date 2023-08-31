@@ -156,7 +156,7 @@ impl Component for PwtTaskViewer {
 
         let panel = self.loader.render(|data| {
             TabPanel::new()
-                .class("pwt-flex-fill pwt-overflow-auto")
+                .class("pwt-flex-fit")
                 .with_item(TabBarItem::new().label("Output"), self.view_output(ctx))
                 .with_item(
                     TabBarItem::new().label("Status"),
@@ -166,7 +166,7 @@ impl Component for PwtTaskViewer {
 
         Dialog::new("Task Viewer")
             .resizable(true)
-            .style("width: 800px; height:500px;")
+            .style("width: 840px; height:600px;")
             .node_ref(props.node_ref.clone())
             .on_close(props.on_close.clone())
             .with_child(panel)
@@ -291,9 +291,9 @@ impl PwtTaskViewer {
         );
 
         Column::new()
-            .class("pwt-fit")
+            .class("pwt-flex-fit")
             .with_child(toolbar)
-            .with_child(LogView::new(url).class("pwt-p-2").active(active))
+            .with_child(LogView::new(url).class("pwt-p-2 pwt-flex-fill").active(active))
             .into()
     }
 }
