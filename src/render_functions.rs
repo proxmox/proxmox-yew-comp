@@ -1,3 +1,6 @@
+use pwt::gettext;
+use pwt::tr;
+
 /// epoch to "M d H:i:s" (localtime)
 pub fn render_epoch_short(epoch: i64) -> String {
     let date = js_sys::Date::new_0();
@@ -31,4 +34,8 @@ pub fn render_epoch(epoch: i64) -> String {
         date.get_minutes(),
         date.get_seconds(),
     )
+}
+
+pub fn render_boolean(v: bool) -> String {
+    if v { tr!("Yes") } else { tr!("No") }
 }
