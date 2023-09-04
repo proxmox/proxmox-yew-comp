@@ -2,9 +2,9 @@ use anyhow::format_err;
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 
-use yew::prelude::*;
 use yew::virtual_dom::Key;
 
+use pwt::prelude::*;
 use pwt::props::RenderFn;
 use pwt::state::Store;
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
@@ -21,7 +21,7 @@ struct RoleInfo {
 
 thread_local! {
     static COLUMNS: Rc<Vec<DataTableHeader<RoleInfo>>> = Rc::new(vec![
-        DataTableColumn::new("Role")
+        DataTableColumn::new(tr!("Role"))
             .width("200px")
             .show_menu(false)
             .render(|record: &RoleInfo| {
@@ -32,11 +32,12 @@ thread_local! {
             })
             .sort_order(true)
             .into(),
-        DataTableColumn::new("Comment")
-            .width("300px")
+        DataTableColumn::new(tr!("Privileges"))
+            .width("400px")
             .show_menu(false)
             .render(|record: &RoleInfo| {
-                html!{record.comment.clone().unwrap_or(String::new())}
+                let text = record.privs.join(" ");
+                html!{<p class="pwt-white-space-normal">{text}</p>}
             })
             .into(),
     ]);
@@ -84,6 +85,7 @@ impl Component for ProxmoxRoleSelector {
                 DataTable::new(COLUMNS.with(Rc::clone), args.store.clone()).class("pwt-fit");
 
             GridPicker::new(table)
+                .show_filter(false)
                 .selection(args.selection.clone())
                 .on_select(args.on_select.clone())
                 .into()
