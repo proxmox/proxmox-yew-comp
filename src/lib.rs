@@ -22,6 +22,9 @@ pub use object_grid::{ObjectGrid, ObjectGridRow, PwtObjectGrid, RenderObjectGrid
 mod realm_selector;
 pub use realm_selector::RealmSelector;
 
+mod role_selector;
+pub use role_selector::RoleSelector;
+
 mod rrd_graph_new;
 pub use rrd_graph_new::{RRDGraph, Series};
 
