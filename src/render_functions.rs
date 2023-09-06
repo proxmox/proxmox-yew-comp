@@ -1,4 +1,3 @@
-use pwt::gettext;
 use pwt::tr;
 
 /// epoch to "M d H:i:s" (localtime)
