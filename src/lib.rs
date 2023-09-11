@@ -67,7 +67,7 @@ mod proxmox_product;
 pub use proxmox_product::ProxmoxProduct;
 
 mod render_functions;
-pub use render_functions::{render_epoch, render_epoch_short, render_boolean};
+pub use render_functions::{render_epoch, render_epoch_short, render_epoch_utc,  render_boolean};
 
 // Bindgen javascript code from js-helper-module.js
 

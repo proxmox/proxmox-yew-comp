@@ -35,6 +35,22 @@ pub fn render_epoch(epoch: i64) -> String {
     )
 }
 
+/// epoch to "Y-m-dTH:i:sZ" (UTC)
+pub fn render_epoch_utc(epoch: i64) -> String {
+    let date = js_sys::Date::new_0();
+    date.set_time((epoch * 1000) as f64);
+
+    format!(
+        "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+        date.get_utc_full_year(),
+        date.get_utc_month() + 1,
+        date.get_utc_date(),
+        date.get_utc_hours(),
+        date.get_utc_minutes(),
+        date.get_utc_seconds(),
+    )
+}
+
 pub fn render_boolean(v: bool) -> String {
     if v { tr!("Yes") } else { tr!("No") }
 }
