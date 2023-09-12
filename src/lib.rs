@@ -16,6 +16,9 @@ pub use edit_window::{EditWindow, PwtEditWindow};
 mod key_value_grid;
 pub use key_value_grid::{KVGrid, KVGridRow, PwtKVGrid, RenderKVGridRecordFn};
 
+mod loadable_component;
+pub use loadable_component::{LoadableComponent, LoadableComponentMaster, LoadableComponentContext};
+
 mod object_grid;
 pub use object_grid::{ObjectGrid, ObjectGridRow, PwtObjectGrid, RenderObjectGridItemFn};
 
@@ -61,13 +64,21 @@ pub use task_viewer::*;
 mod task_progress;
 pub use task_progress::TaskProgress;
 
+mod task_status_selector;
+pub use task_status_selector::{TaskStatusSelector, ProxmoxTaskStatusSelector};
+
+mod task_type_selector;
+pub use task_type_selector::{TaskTypeSelector, ProxmoxTaskTypeSelector};
+
+mod tasks;
+pub use tasks::{Tasks, ProxmoxTasks};
+
 pub mod percent_encoding;
 
 mod proxmox_product;
 pub use proxmox_product::ProxmoxProduct;
 
-mod render_functions;
-pub use render_functions::{render_epoch, render_epoch_short, render_epoch_utc,  render_boolean};
+pub mod utils;
 
 // Bindgen javascript code from js-helper-module.js
 

@@ -15,6 +15,7 @@ use pwt::widget::{Button, Column, Dialog, TabBarItem, TabPanel, Toolbar};
 
 use crate::percent_encoding::percent_encode_component;
 use crate::{KVGrid, KVGridRow, LogView};
+use crate::utils::render_epoch;
 
 #[builder]
 #[derive(Properties, PartialEq, Clone)]
@@ -238,13 +239,13 @@ impl PwtTaskViewer {
             KVGridRow::new("starttime", "Start Time")
                 .renderer(|_name, value, _record| match value.as_i64() {
                     None => html! {"unknown (wrong format)"},
-                    Some(epoch) => html! { {crate::render_epoch(epoch)} },
+                    Some(epoch) => html! { {render_epoch(epoch)} },
                 })
                 .required(true),
             KVGridRow::new("endtime", "End Time").renderer(|_name, value, _record| {
                 match value.as_i64() {
                     None => html! {"unknown (wrong format)"},
-                    Some(epoch) => html! { {crate::render_epoch(epoch)} },
+                    Some(epoch) => html! { {render_epoch(epoch)} },
                 }
             }),
             KVGridRow::new("duration", "Duration")
