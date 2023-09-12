@@ -1,3 +1,5 @@
+pub mod common_api_types;
+
 mod http_client_wasm;
 pub use  http_client_wasm::*;
 
