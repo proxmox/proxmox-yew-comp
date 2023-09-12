@@ -194,7 +194,7 @@ impl LoadableComponent for ProxmoxTasks {
                 )
             .with_child(html!{<div class="pwt-text-align-end">{tr!("Task Type")}</div>})
             .with_child(TaskTypeSelector::new().name("typefilter"))
-            .with_child(html!{<div class="pwt-text-align-end">{tr!("Task Result")}</div>})
+            .with_child(html!{<div class="pwt-text-align-end">{tr!("Status")}</div>})
             .with_child(
                 html!{<div style="grid-column-start:6; grid-column-end: -1;">{TaskStatusSelector::new().name("statusfilter")}</div>}
             )
@@ -254,13 +254,13 @@ impl LoadableComponent for ProxmoxTasks {
 
 thread_local! {
     static COLUMNS: Rc<Vec<DataTableHeader<TaskListItem>>> = Rc::new(vec![
-        DataTableColumn::new("Start Time")
+        DataTableColumn::new(tr!("Start Time"))
             .width("130px")
             .render(|item: &TaskListItem| {
                 render_epoch_short(item.starttime).into()
             })
             .into(),
-        DataTableColumn::new("End Time")
+        DataTableColumn::new(tr!("End Time"))
             .width("130px")
             .render(|item: &TaskListItem| {
                 match item.endtime {
@@ -268,19 +268,19 @@ thread_local! {
                     None => html!{},
             }})
             .into(),
-        DataTableColumn::new("User name")
+        DataTableColumn::new(tr!("User name"))
             .width("150px")
             .render(|item: &TaskListItem| {
                 html!{&item.user}
             })
             .into(),
-        DataTableColumn::new("Description")
+        DataTableColumn::new(tr!("Description"))
             .flex(1)
             .render(|item: &TaskListItem| {
                 render_upid(&item.upid)
             })
             .into(),
-        DataTableColumn::new("Status")
+        DataTableColumn::new(tr!("Status"))
             .width("200px")
             .render(|item: &TaskListItem| {
                 let text = item.status.as_deref().unwrap_or("");
