@@ -153,13 +153,7 @@ impl LoadableComponent for ProxmoxTasks {
             "fa fa-filter"
         };
 
-        // fixme: impl FormContext::dirty_count()
-        let filter_data = self.filter_form_context.read().get_submit_data();
-        let count: usize = filter_data
-            .as_object()
-            .unwrap()
-            .iter()
-            .count();
+        let dirty_count = self.filter_form_context.read().dirty_count();
 
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
@@ -174,8 +168,8 @@ impl LoadableComponent for ProxmoxTasks {
             .with_flex_spacer()
             .with_child({
                 let form_context = self.filter_form_context.clone();
-                Button::new(tr!("Clear Filter ({})", count))
-                    .disabled(count == 0)
+                Button::new(tr!("Clear Filter ({})", dirty_count))
+                    .disabled(dirty_count == 0)
                     .onclick(move |_| form_context.write().reset_form())
             })
             .with_child(
