@@ -3,6 +3,13 @@
 use serde::{Serialize, Deserialize};
 
 
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
+pub struct RoleInfo {
+    pub roleid: String,
+    pub privs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+}
 
 // copied from pbs_api_types::TaskListItem;
 #[derive(Serialize, Deserialize, Clone, PartialEq)]

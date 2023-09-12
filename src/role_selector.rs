@@ -11,13 +11,7 @@ use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::form::{Selector, SelectorRenderArgs, ValidateFn};
 use pwt::widget::GridPicker;
 
-#[derive(Serialize, Deserialize, PartialEq, Clone)]
-struct RoleInfo {
-    roleid: String,
-    pub privs: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub comment: Option<String>,
-}
+use crate::common_api_types::RoleInfo;
 
 thread_local! {
     static COLUMNS: Rc<Vec<DataTableHeader<RoleInfo>>> = Rc::new(vec![
