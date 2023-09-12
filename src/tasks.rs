@@ -14,7 +14,7 @@ use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::{Button, Column, Toolbar};
 
-use crate::utils::{render_upid, render_epoch_short};
+use crate::utils::{render_epoch_short, render_upid};
 
 use crate::common_api_types::TaskListItem;
 
@@ -186,36 +186,31 @@ impl LoadableComponent for ProxmoxTasks {
             .form_context(self.filter_form_context.clone())
             .class(filter_classes)
             .attribute("style", "grid-template-columns: minmax(100px,auto) auto minmax(100px,auto) auto minmax(100px,auto) auto 1fr;")
-                .with_child(html!{<div>{tr!("Since")}</div>})
-                .with_child(
-                    Field::new()
-                        .name("since")
-                        .input_type("date")
+            .with_child(html!{<div>{tr!("Since")}</div>})
+            .with_child(
+                Field::new()
+                    .name("since")
+                    .input_type("date")
                 )
-                .with_child(html!{<div class="pwt-text-align-end">{tr!("Task Type")}</div>})
-                .with_child(
-                    TaskTypeSelector::new().name("typefilter")
+            .with_child(html!{<div class="pwt-text-align-end">{tr!("Task Type")}</div>})
+            .with_child(TaskTypeSelector::new().name("typefilter"))
+            .with_child(html!{<div class="pwt-text-align-end">{tr!("Task Result")}</div>})
+            .with_child(
+                html!{<div style="grid-column-start:6; grid-column-end: -1;">{TaskStatusSelector::new().name("statusfilter")}</div>}
+            )
 
-                )
-                .with_child(html!{<div class="pwt-text-align-end">{tr!("Task Result")}</div>})
-                .with_child(
-                    html!{<div style="grid-column-start:6; grid-column-end: -1;">{TaskStatusSelector::new().name("statusfilter")}</div>}
-                )
-
-                // second row
-                .with_child(html!{<div>{tr!("Until:")}</div>})
-                .with_child(
-                    Field::new()
-                        .name("until")
-                        .input_type("date")
-                )
-                .with_child(html!{<div class="pwt-text-align-end">{tr!("User name")}</div>})
-                .with_child(
-                    Field::new().name("userfilter")
-                );
+            // second row
+            .with_child(html!{<div>{tr!("Until:")}</div>})
+            .with_child(
+                Field::new()
+                    .name("until")
+                    .input_type("date")
+            )
+            .with_child(html!{<div class="pwt-text-align-end">{tr!("User name")}</div>})
+            .with_child(Field::new().name("userfilter"));
 
         if let Some((label, input)) = &props.extra_filter {
-            filter.add_child(html!{<div class="pwt-text-align-end">{label}</div>});
+            filter.add_child(html! {<div class="pwt-text-align-end">{label}</div>});
             filter.add_child(input.clone());
         }
 
