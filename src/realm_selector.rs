@@ -1,6 +1,5 @@
 use std::rc::Rc;
 use anyhow::{format_err};
-use serde::{Serialize, Deserialize};
 
 use yew::prelude::*;
 use yew::virtual_dom::Key;
@@ -11,14 +10,7 @@ use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::GridPicker;
 use pwt::widget::form::{Selector, SelectorRenderArgs, ValidateFn};
 
-#[derive(Serialize, Deserialize, PartialEq, Clone)]
-struct BasicRealmInfo {
-    realm: String,
-    #[serde(rename = "type")]
-    pub ty: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub comment: Option<String>,
-}
+use crate::common_api_types::BasicRealmInfo;
 
 thread_local!{
     static COLUMNS: Rc<Vec<DataTableHeader<BasicRealmInfo>>> = Rc::new(vec![

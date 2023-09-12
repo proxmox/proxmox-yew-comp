@@ -2,6 +2,14 @@
 
 use serde::{Serialize, Deserialize};
 
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
+pub struct BasicRealmInfo {
+    pub realm: String,
+    #[serde(rename = "type")]
+    pub ty: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub struct RoleInfo {

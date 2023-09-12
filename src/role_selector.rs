@@ -1,6 +1,5 @@
-use anyhow::format_err;
-use serde::{Deserialize, Serialize};
 use std::rc::Rc;
+use anyhow::format_err;
 
 use yew::virtual_dom::Key;
 
