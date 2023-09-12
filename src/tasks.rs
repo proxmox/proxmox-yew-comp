@@ -29,11 +29,22 @@ use super::{TaskStatusSelector, TaskTypeSelector};
 pub struct Tasks {
     #[builder(IntoPropValue, into_prop_value)]
     pub nodename: Option<AttrValue>,
+
+    /// Additional Input label/widget displayed on the filter panel.
+    ///
+    /// The widget need to read/write data from/to the provided form context.
+    pub extra_filter: Option<(AttrValue, Html)>,
 }
 
 impl Tasks {
     pub fn new() -> Self {
         yew::props!(Self {})
+    }
+
+    /// Builder style method to set the extra filter input (label + widget)
+    pub fn extra_filter(mut self, label: impl Into<AttrValue>, input: impl Into<Html>) -> Self {
+        self.extra_filter = Some((label.into(), input.into()));
+        self
     }
 
     fn get_nodename(&self) -> String {
@@ -117,6 +128,7 @@ impl LoadableComponent for ProxmoxTasks {
     }
 
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+        let props = ctx.props();
         //let nodename = ctx.props().get_nodename();
         let selected_service = self.selection.selected_key().map(|k| k.to_string());
         let disabled = selected_service.is_none();
@@ -170,7 +182,7 @@ impl LoadableComponent for ProxmoxTasks {
             },
         );
 
-        let filter = Form::new()
+        let mut filter = Form::new()
             .form_context(self.filter_form_context.clone())
             .class(filter_classes)
             .attribute("style", "grid-template-columns: minmax(100px,auto) auto minmax(100px,auto) auto minmax(100px,auto) auto 1fr;")
@@ -200,14 +212,12 @@ impl LoadableComponent for ProxmoxTasks {
                 .with_child(html!{<div class="pwt-text-align-end">{tr!("User name")}</div>})
                 .with_child(
                     Field::new().name("userfilter")
-                )
-                /* fixme: add extra_filter
-                .with_child(html!{<div class="pwt-text-align-end">{tr!("Datastore")}</div>})
-                .with_child(
-                    DatastoreSelector::new().name("store").placeholder(tr!("All"))
-                )
-                */
-                .with_child(html!{<div/>});
+                );
+
+        if let Some((label, input)) = &props.extra_filter {
+            filter.add_child(html!{<div class="pwt-text-align-end">{label}</div>});
+            filter.add_child(input.clone());
+        }
 
         let column = Column::new().with_child(toolbar).with_child(filter);
 
