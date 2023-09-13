@@ -54,6 +54,9 @@ pub use schema_validation::*;
 mod subscription_panel;
 pub use subscription_panel::{SubscriptionPanel, PwtSubscriptionPanel};
 
+mod syslog;
+pub use syslog::{Syslog, ProxmoxSyslog};
+
 mod tfa;
 pub use tfa::{TfaDialog, PbsTfaDialog};
 
