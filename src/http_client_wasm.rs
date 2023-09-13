@@ -314,7 +314,8 @@ pub fn json_object_to_query(data: Value) -> Result<String, Error> {
     Ok(query.finish())
 }
 
-fn convert_js_error(js_err: ::wasm_bindgen::JsValue) -> Error {
+/// Convert JS errors to anyhow::Error
+pub fn convert_js_error(js_err: ::wasm_bindgen::JsValue) -> Error {
     if let Ok(error) = ::wasm_bindgen::JsCast::dyn_into::<js_sys::Error>(js_err) {
         format_err!("{}", error.message())
     } else {

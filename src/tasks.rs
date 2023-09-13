@@ -10,7 +10,7 @@ use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::state::{Selection, Store};
+use pwt::state::{Selection, Store, local_storage};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::{Button, Column, Toolbar};
 
@@ -85,7 +85,7 @@ impl LoadableComponent for ProxmoxTasks {
         Self {
             selection,
             store,
-            show_filter: false,
+            show_filter: get_show_filter(),
             filter_form_context,
         }
     }
@@ -113,6 +113,7 @@ impl LoadableComponent for ProxmoxTasks {
             Msg::Redraw => true,
             Msg::ToggleFilter => {
                 self.show_filter = !self.show_filter;
+                set_show_filter(self.show_filter);
                 true
             }
             Msg::UpdateFilter => {
@@ -294,5 +295,42 @@ impl Into<VNode> for Tasks {
     fn into(self) -> VNode {
         let comp = VComp::new::<LoadableComponentMaster<ProxmoxTasks>>(Rc::new(self), None);
         VNode::from(comp)
+    }
+}
+
+fn get_show_filter() -> bool {
+    let default = false;
+
+    let store = match local_storage() {
+        Some(store) => store,
+        None => {
+            log::error!("load state failed - cannot access local storage");
+            return default;
+        }
+    };
+
+    if let Ok(Some(item_str)) = store.get_item("ProxmoxTasksShowFilter") {
+        if let Ok(show_filter) = serde_json::from_str(&item_str) {
+            return show_filter;
+        }
+    }
+
+    default
+}
+
+fn set_show_filter(show_filter: bool) {
+
+    let store = match local_storage() {
+        Some(store) => store,
+        None => {
+            log::error!("store state failed - cannot access local storage");
+            return;
+        }
+    };
+
+    let item_str = serde_json::to_string(&show_filter).unwrap();
+    match store.set_item("ProxmoxTasksShowFilter", &item_str) {
+        Err(err) => log::error!("store state ProxmoxTasksShowFilter failed: {}", crate::convert_js_error(err)),
+        Ok(_) => {}
     }
 }
