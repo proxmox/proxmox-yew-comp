@@ -10,7 +10,7 @@ use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::state::{Selection, Store, local_storage};
+use pwt::state::{Selection, Store, PersistentState};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::{Button, Column, Toolbar};
 
@@ -65,7 +65,7 @@ pub enum Msg {
 pub struct ProxmoxTasks {
     selection: Selection,
     store: Store<TaskListItem>,
-    show_filter: bool,
+    show_filter: PersistentState<bool>,
     filter_form_context: FormContext,
 }
 
@@ -85,7 +85,7 @@ impl LoadableComponent for ProxmoxTasks {
         Self {
             selection,
             store,
-            show_filter: get_show_filter(),
+            show_filter: PersistentState::new("ProxmoxTasksShowFilter"),
             filter_form_context,
         }
     }
@@ -112,8 +112,7 @@ impl LoadableComponent for ProxmoxTasks {
         match msg {
             Msg::Redraw => true,
             Msg::ToggleFilter => {
-                self.show_filter = !self.show_filter;
-                set_show_filter(self.show_filter);
+                self.show_filter.update(!*self.show_filter);
                 true
             }
             Msg::UpdateFilter => {
@@ -134,7 +133,7 @@ impl LoadableComponent for ProxmoxTasks {
         let selected_service = self.selection.selected_key().map(|k| k.to_string());
         let disabled = selected_service.is_none();
 
-        let filter_icon_class = if self.show_filter {
+        let filter_icon_class = if *self.show_filter {
             "fa fa-filter pwt-color-primary"
         } else {
             "fa fa-filter"
@@ -176,7 +175,7 @@ impl LoadableComponent for ProxmoxTasks {
             "pwt-p-4",
             "pwt-gap-2",
             "pwt-align-items-baseline",
-            if self.show_filter {
+            if *self.show_filter {
                 "pwt-d-grid"
             } else {
                 "pwt-d-none"
@@ -295,42 +294,5 @@ impl Into<VNode> for Tasks {
     fn into(self) -> VNode {
         let comp = VComp::new::<LoadableComponentMaster<ProxmoxTasks>>(Rc::new(self), None);
         VNode::from(comp)
-    }
-}
-
-fn get_show_filter() -> bool {
-    let default = false;
-
-    let store = match local_storage() {
-        Some(store) => store,
-        None => {
-            log::error!("load state failed - cannot access local storage");
-            return default;
-        }
-    };
-
-    if let Ok(Some(item_str)) = store.get_item("ProxmoxTasksShowFilter") {
-        if let Ok(show_filter) = serde_json::from_str(&item_str) {
-            return show_filter;
-        }
-    }
-
-    default
-}
-
-fn set_show_filter(show_filter: bool) {
-
-    let store = match local_storage() {
-        Some(store) => store,
-        None => {
-            log::error!("store state failed - cannot access local storage");
-            return;
-        }
-    };
-
-    let item_str = serde_json::to_string(&show_filter).unwrap();
-    match store.set_item("ProxmoxTasksShowFilter", &item_str) {
-        Err(err) => log::error!("store state ProxmoxTasksShowFilter failed: {}", crate::convert_js_error(err)),
-        Ok(_) => {}
     }
 }

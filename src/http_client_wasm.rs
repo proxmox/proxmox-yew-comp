@@ -8,6 +8,8 @@ use percent_encoding::percent_decode_str;
 use serde::Serialize;
 use serde_json::Value;
 
+use pwt::convert_js_error;
+
 use proxmox_client::{HttpApiClient, HttpApiResponse};
 use proxmox_login::{Authentication, Login, Ticket, TicketResult};
 
@@ -312,15 +314,6 @@ pub fn json_object_to_query(data: Value) -> Result<String, Error> {
     }
 
     Ok(query.finish())
-}
-
-/// Convert JS errors to anyhow::Error
-pub fn convert_js_error(js_err: ::wasm_bindgen::JsValue) -> Error {
-    if let Ok(error) = ::wasm_bindgen::JsCast::dyn_into::<js_sys::Error>(js_err) {
-        format_err!("{}", error.message())
-    } else {
-        format_err!("unknown js error: error is no ERROR object")
-    }
 }
 
 impl HttpApiClient for HttpClientWasm {
