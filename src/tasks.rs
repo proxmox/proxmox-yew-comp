@@ -11,7 +11,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::{Selection, Store, PersistentState};
-use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
+use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableRowRenderCallback};
 use pwt::widget::{Button, Column, Toolbar};
 
 use crate::utils::{render_epoch_short, render_upid};
@@ -67,6 +67,7 @@ pub struct ProxmoxTasks {
     store: Store<TaskListItem>,
     show_filter: PersistentState<bool>,
     filter_form_context: FormContext,
+    row_render_callback: DataTableRowRenderCallback<TaskListItem>,
 }
 
 impl LoadableComponent for ProxmoxTasks {
@@ -82,11 +83,26 @@ impl LoadableComponent for ProxmoxTasks {
         let filter_form_context =
             FormContext::new().on_change(ctx.link().callback(|_| Msg::UpdateFilter));
 
+        let row_render_callback = DataTableRowRenderCallback::new(|args: &mut _| {
+            let record: &TaskListItem = args.record();
+            if let Some(status) = &record.status  {
+                if status != "OK" {
+                    if status.starts_with("WARNINGS:") {
+                        args.add_class("pwt-color-warning");
+                    } else {
+                        args.add_class("pwt-color-error");
+                    }
+                }
+            }
+        });
+
+
         Self {
             selection,
             store,
             show_filter: PersistentState::new("ProxmoxTasksShowFilter"),
             filter_form_context,
+            row_render_callback,
         }
     }
 
@@ -229,6 +245,7 @@ impl LoadableComponent for ProxmoxTasks {
             .on_row_dblclick(move |_: &mut _| {
                 link.change_view(Some(ViewDialog::TaskViewer));
             })
+            .row_render_callback(self.row_render_callback.clone())
             .into()
     }
 
