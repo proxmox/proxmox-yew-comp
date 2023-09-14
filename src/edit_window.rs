@@ -35,12 +35,17 @@ pub struct EditWindow {
     #[builder]
     pub advanced_checkbox: bool,
 
+    // Form renderer.
     pub renderer: Option<RenderFn<FormContext>>,
+
+    /// Form data loader.
     pub loader: Option<LoadCallback<Value>>,
 
+    /// Close/Abort callback.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     pub on_done: Option<Callback<()>>,
 
+    /// Submit callback.
     pub on_submit: Option<SubmitCallback>,
 
     /// Data change callback.
