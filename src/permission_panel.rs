@@ -145,7 +145,6 @@ impl LoadableComponent for ProxmoxPermissionPanel {
     fn main_view(&self, _ctx: &crate::LoadableComponentContext<Self>) -> Html {
         DataTable::new(Rc::clone(&self.columns), self.store.clone())
             .class("pwt-flex-fit")
-            //.selection(self.selection.clone())
             .into()
     }
 }

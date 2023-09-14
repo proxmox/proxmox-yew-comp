@@ -229,7 +229,7 @@ impl Component for PwtEditWindow {
 
             let advanced = Row::new()
                 .class("pwt-align-items-center")
-                .with_child(html!{<label id={advanced_label_id}>{"Advanced"}</label>})
+                .with_child(html!{<label id={advanced_label_id}>{tr!("Advanced")}</label>})
                 .with_child(advanced_field);
 
             toolbar.add_child(advanced);
@@ -238,7 +238,7 @@ impl Component for PwtEditWindow {
         toolbar.add_child(ResetButton::new());
         toolbar.add_child(
             SubmitButton::new()
-                .text(if edit_mode { "Update" } else { "Add" })
+                .text(if edit_mode { tr!("Update") } else { tr!("Add") })
                 .on_submit(submit)
         );
 
