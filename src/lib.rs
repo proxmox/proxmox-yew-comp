@@ -24,6 +24,9 @@ pub use loadable_component::{LoadableComponent, LoadableComponentMaster, Loadabl
 mod object_grid;
 pub use object_grid::{ObjectGrid, ObjectGridRow, PwtObjectGrid, RenderObjectGridItemFn};
 
+mod permission_panel;
+pub use permission_panel::{PermissionPanel, ProxmoxPermissionPanel};
+
 mod realm_selector;
 pub use realm_selector::RealmSelector;
 
