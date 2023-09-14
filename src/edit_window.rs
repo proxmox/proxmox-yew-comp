@@ -15,11 +15,15 @@ use pwt::widget::form::{
     SubmitCallback, IntoSubmitCallback,
 };
 
+use pwt_macros::builder;
+
 #[derive(Clone, PartialEq, Properties)]
+#[builder]
 pub struct EditWindow {
     /// Yew node ref
     #[prop_or_default]
     node_ref: NodeRef,
+
     /// Yew component key
     pub key: Option<Key>,
 
@@ -28,15 +32,19 @@ pub struct EditWindow {
 
     /// Show advanced checkbox
     #[prop_or_default]
+    #[builder]
     pub advanced_checkbox: bool,
-
 
     pub renderer: Option<RenderFn<FormContext>>,
     pub loader: Option<LoadCallback<Value>>,
+
+    #[builder_cb(IntoEventCallback, into_event_callback, ())]
     pub on_done: Option<Callback<()>>,
+
     pub on_submit: Option<SubmitCallback>,
 
     /// Data change callback.
+    #[builder_cb(IntoEventCallback, into_event_callback, FormContext)]
     pub on_change: Option<Callback<FormContext>>,
 }
 
@@ -48,15 +56,6 @@ impl EditWindow {
         })
     }
 
-    pub fn advanced_checkbox(mut self, advanced_checkbox: bool) -> Self {
-        self.set_advanced_checkbox(advanced_checkbox);
-        self
-    }
-
-    pub fn set_advanced_checkbox(&mut self, advanced_checkbox: bool) {
-        self.advanced_checkbox = advanced_checkbox;
-    }
-
     /// Builder style method to set the yew `node_ref`
     pub fn node_ref(mut self, node_ref: ::yew::html::NodeRef) -> Self {
         self.node_ref = node_ref;
@@ -64,8 +63,8 @@ impl EditWindow {
     }
 
     /// Builder style method to set the yew `key` property
-    pub fn key(mut self, key: impl Into<Key>) -> Self {
-        self.key = Some(key.into());
+    pub fn key(mut self, key: impl IntoOptionalKey) -> Self {
+        self.key = key.into_optional_key();
         self
     }
 
@@ -81,17 +80,6 @@ impl EditWindow {
 
     pub fn on_submit(mut self, callback: impl IntoSubmitCallback) -> Self {
         self.on_submit = callback.into_submit_callback();
-        self
-    }
-
-    pub fn on_done(mut self, cb: impl IntoEventCallback<()>) -> Self {
-        self.on_done = cb.into_event_callback();
-        self
-    }
-
-    /// Builder style method to set the on_change callback.
-    pub fn on_change(mut self, cb: impl IntoEventCallback<FormContext>) -> Self {
-        self.on_change = cb.into_event_callback();
         self
     }
 
