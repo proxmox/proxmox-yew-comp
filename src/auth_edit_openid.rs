@@ -16,7 +16,7 @@ use crate::EditWindow;
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
-pub struct AuthOpenIDWindow {
+pub struct AuthEditOpenID {
     /// Close/Abort callback
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     pub on_close: Option<Callback<()>>,
@@ -31,16 +31,16 @@ pub struct AuthOpenIDWindow {
     pub realm: Option<AttrValue>,
 }
 
-impl AuthOpenIDWindow {
+impl AuthEditOpenID {
     pub fn new() -> Self {
         yew::props!(Self {})
     }
 }
 
 #[doc(hidden)]
-pub struct ProxmoxAuthOpenIDWindow {}
+pub struct ProxmoxAuthEditOpenID {}
 
-fn render_input_form(form_ctx: FormContext, props: AuthOpenIDWindow) -> Html {
+fn render_input_form(form_ctx: FormContext, props: AuthEditOpenID) -> Html {
     let is_edit = props.realm.is_some();
 
     let username_claim_items = Rc::new(vec![
@@ -110,9 +110,9 @@ fn render_input_form(form_ctx: FormContext, props: AuthOpenIDWindow) -> Html {
         .into()
 }
 
-impl Component for ProxmoxAuthOpenIDWindow {
+impl Component for ProxmoxAuthEditOpenID {
     type Message = ();
-    type Properties = AuthOpenIDWindow;
+    type Properties = AuthEditOpenID;
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {}
@@ -140,9 +140,9 @@ impl Component for ProxmoxAuthOpenIDWindow {
     }
 }
 
-impl Into<VNode> for AuthOpenIDWindow {
+impl Into<VNode> for AuthEditOpenID {
     fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxAuthOpenIDWindow>(Rc::new(self), None);
+        let comp = VComp::new::<ProxmoxAuthEditOpenID>(Rc::new(self), None);
         VNode::from(comp)
     }
 }

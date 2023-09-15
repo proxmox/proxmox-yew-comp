@@ -18,7 +18,7 @@ use pwt::widget::{Button, Toolbar};
 
 use pwt_macros::builder;
 
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, AuthOpenIDWindow};
+use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, AuthEditOpenID};
 
 use crate::common_api_types::BasicRealmInfo;
 
@@ -218,13 +218,13 @@ impl LoadableComponent for ProxmoxAuthView {
         match view_state {
             ViewState::AddLDAP => todo!(),
             ViewState::AddOpenID => Some(
-                AuthOpenIDWindow::new()
+                AuthEditOpenID::new()
                     .base_url(props.openid_base_url.clone().unwrap())
                     .on_close(ctx.link().change_view_callback(|_| None))
                     .into()
             ),
             ViewState::EditOpenID(realm) => Some(
-                AuthOpenIDWindow::new()
+                AuthEditOpenID::new()
                     .base_url(props.openid_base_url.clone().unwrap())
                     .realm(realm.clone())
                     .on_close(ctx.link().change_view_callback(|_| None))
