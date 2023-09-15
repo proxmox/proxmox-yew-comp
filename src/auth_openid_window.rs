@@ -41,10 +41,12 @@ impl AuthOpenIDWindow {
 pub struct ProxmoxAuthOpenIDWindow {}
 
 fn render_input_form(form_ctx: FormContext, props: AuthOpenIDWindow) -> Html {
+    let is_edit = props.realm.is_some();
+
     InputPanel::new()
         .show_advanced(form_ctx.get_show_advanced())
         .class("pwt-p-2")
-        .with_field(tr!("Realm"), Field::new().name("realm"))
+        .with_field(tr!("Realm"), Field::new().name("realm").disabled(is_edit))
         .with_large_field(tr!("Comment"), Field::new().name("comment"))
         .with_advanced_spacer()
         .with_advanced_field(tr!("ACR Values"), Field::new().name("acr-values"))
