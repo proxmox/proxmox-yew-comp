@@ -2,7 +2,6 @@ use std::rc::Rc;
 use anyhow::{format_err};
 
 use yew::prelude::*;
-use yew::virtual_dom::Key;
 
 use pwt::props::RenderFn;
 use pwt::state::Store;
@@ -55,7 +54,7 @@ impl Component for  ProxmoxRealmSelector {
     type Properties =  RealmSelector;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let store = Store::with_extract_key(|item: &BasicRealmInfo| Key::from(item.realm.clone()))
+        let store = Store::new()
             .on_change(ctx.link().callback(|_| ())); // trigger redraw
 
         let validate = ValidateFn::new(|(realm, store): &(String, Store<BasicRealmInfo>)| {

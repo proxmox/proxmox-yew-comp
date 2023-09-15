@@ -1,6 +1,9 @@
 //! API types shared by different Proxmox products
 
 use serde::{Serialize, Deserialize};
+use yew::virtual_dom::Key;
+
+use pwt::props::ExtractPrimaryKey;
 
 #[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub struct BasicRealmInfo {
@@ -9,6 +12,12 @@ pub struct BasicRealmInfo {
     pub ty: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
+}
+
+impl ExtractPrimaryKey for BasicRealmInfo {
+    fn extract_key(&self) -> yew::virtual_dom::Key {
+        Key::from(self.realm.clone())
+    }
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone)]
