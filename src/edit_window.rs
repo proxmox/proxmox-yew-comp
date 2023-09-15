@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use anyhow::Error;
+use pwt::state::PersistentState;
 use serde_json::Value;
 
 use yew::prelude::*;
@@ -100,6 +101,7 @@ pub enum Msg {
     Load,
     LoadResult(Result<Value, Error>),
     ClearError,
+    ShowAdvanced(bool),
 }
 
 #[doc(hidden)]
@@ -107,6 +109,7 @@ pub struct PwtEditWindow {
     loading: bool,
     form_ctx: FormContext,
     submit_error: Option<String>,
+    show_advanced: PersistentState<bool>,
 }
 
 impl Component for PwtEditWindow {
@@ -119,16 +122,25 @@ impl Component for PwtEditWindow {
         let form_ctx = FormContext::new()
             .on_change(ctx.link().callback(|_| Msg::FormDataChange));
 
+        let show_advanced = PersistentState::new("proxmox-form-show-advanced");
+        form_ctx.set_show_advanced(*show_advanced);
+
         Self {
             form_ctx,
             loading: false,
             submit_error: None,
+            show_advanced,
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
+            Msg::ShowAdvanced(show_advanced) => {
+                self.form_ctx.set_show_advanced(show_advanced);
+                self.show_advanced.update(show_advanced);
+                true
+            }
             Msg::ClearError => {
                 self.submit_error = None;
                 true
@@ -213,12 +225,8 @@ impl Component for PwtEditWindow {
             let advanced_field = Checkbox::new()
                 .class("pwt-ms-1")
                 .label_id(advanced_label_id.clone())
-                .on_change({
-                    let form_ctx = self.form_ctx.clone();
-                    move |show| {
-                        form_ctx.set_show_advanced(show == "on");
-                    }
-                });
+                .checked(*self.show_advanced)
+                .on_change(ctx.link().callback(|value| Msg::ShowAdvanced(value == "on")));
 
             let advanced = Row::new()
                 .class("pwt-align-items-center")
