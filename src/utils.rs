@@ -63,7 +63,7 @@ pub fn render_boolean(v: bool) -> String {
     if v { tr!("Yes") } else { tr!("No") }
 }
 
-// fixme: we want to use Fn(&str, Option<&str>),
+// todo: we want to use Fn(&str, Option<&str>),
 static TASK_DESCR_TABLE: Mutex<Option<HashMap<String, Box<dyn Send + Sync + Fn(String, Option<String>) -> String>>>> = Mutex::new(None);
 
 pub trait IntoTaskDescriptionRenderFn {
@@ -159,4 +159,74 @@ pub fn render_upid(upid: &str) -> Html {
             }
         }
     }
+}
+
+pub struct AuthDomainInfo {
+    pub ty: String, // type
+    pub description: String,
+    pub add: bool,
+    pub edit: bool,
+    pub tfa: bool,
+    pub pwchange: bool,
+    pub sync: bool,
+}
+
+pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
+    if ty == "pam" {
+        return Some(AuthDomainInfo {
+            ty: ty.to_string(),
+            description: tr!("Linux PAM"),
+            add: false,
+            edit: false,
+            tfa: true,
+            pwchange: false,
+            sync: false,
+        });
+    }
+    if ty == "pve" {
+        return Some(AuthDomainInfo {
+            ty: ty.to_string(),
+            description: tr!("Proxmox VE authentication server"),
+            add: false,
+            edit: false,
+            tfa: true,
+            pwchange: true,
+            sync: false,
+        });
+    }
+    if ty == "pbs" {
+        return Some(AuthDomainInfo {
+            ty: ty.to_string(),
+            description: tr!("Proxmox Backup authentication server"),
+            add: false,
+            edit: false,
+            tfa: true,
+            pwchange: true,
+            sync: false,
+        });
+    }
+    if ty == "openid" {
+        return Some(AuthDomainInfo {
+            ty: ty.to_string(),
+            description: tr!("OpenID Connect Server"),
+            add: true,
+            edit: true,
+            tfa: false,
+            pwchange: false,
+            sync: false,
+        });
+    }
+    if ty == "ldap" {
+        return Some(AuthDomainInfo {
+            ty: ty.to_string(),
+            description: tr!("LDAP Server"),
+            add: true,
+            edit: true,
+            tfa: true,
+            pwchange: false,
+            sync: true,
+        });
+    }
+
+    None
 }
