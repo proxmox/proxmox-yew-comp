@@ -1,3 +1,6 @@
+mod auth_view;
+pub use auth_view::{AuthView, ProxmoxAuthView};
+
 pub mod common_api_types;
 
 mod http_client_wasm;
