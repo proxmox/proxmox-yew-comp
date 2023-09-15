@@ -27,6 +27,8 @@ pub struct TaskViewer {
     pub task_id: String,
     pub endtime: Option<f64>,
 
+    /// Close/Abort callback
+    #[builder_cb(IntoEventCallback, into_event_callback, ())]
     pub on_close: Option<Callback<()>>,
 
     #[prop_or("/nodes/localhost/tasks".into())]
@@ -54,13 +56,8 @@ impl TaskViewer {
     }
 
     /// Builder style method to set the yew `key` property
-    pub fn key(mut self, key: impl Into<Key>) -> Self {
-        self.key = Some(key.into());
-        self
-    }
-
-    pub fn on_close(mut self, cb: impl IntoEventCallback<()>) -> Self {
-        self.on_close = cb.into_event_callback();
+    pub fn key(mut self, key: impl IntoOptionalKey) -> Self {
+        self.key = key.into_optional_key();
         self
     }
 }

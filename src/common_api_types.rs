@@ -5,7 +5,7 @@ use yew::virtual_dom::Key;
 
 use pwt::props::ExtractPrimaryKey;
 
-#[derive(Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Ord, PartialOrd, Eq,  PartialEq, Clone)]
 pub struct BasicRealmInfo {
     pub realm: String,
     #[serde(rename = "type")]

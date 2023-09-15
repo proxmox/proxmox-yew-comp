@@ -163,7 +163,7 @@ pub fn render_upid(upid: &str) -> Html {
 
 pub struct AuthDomainInfo {
     pub ty: String, // type
-    pub description: String,
+    //pub description: String,
     pub add: bool,
     pub edit: bool,
     pub tfa: bool,
@@ -175,7 +175,7 @@ pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
     if ty == "pam" {
         return Some(AuthDomainInfo {
             ty: ty.to_string(),
-            description: tr!("Linux PAM"),
+            //description: tr!("Linux PAM"),
             add: false,
             edit: false,
             tfa: true,
@@ -186,7 +186,7 @@ pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
     if ty == "pve" {
         return Some(AuthDomainInfo {
             ty: ty.to_string(),
-            description: tr!("Proxmox VE authentication server"),
+            //description: tr!("Proxmox VE authentication server"),
             add: false,
             edit: false,
             tfa: true,
@@ -197,7 +197,7 @@ pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
     if ty == "pbs" {
         return Some(AuthDomainInfo {
             ty: ty.to_string(),
-            description: tr!("Proxmox Backup authentication server"),
+            //description: tr!("Proxmox Backup authentication server"),
             add: false,
             edit: false,
             tfa: true,
@@ -208,7 +208,7 @@ pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
     if ty == "openid" {
         return Some(AuthDomainInfo {
             ty: ty.to_string(),
-            description: tr!("OpenID Connect Server"),
+            //description: tr!("OpenID Connect Server"),
             add: true,
             edit: true,
             tfa: false,
@@ -219,7 +219,7 @@ pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
     if ty == "ldap" {
         return Some(AuthDomainInfo {
             ty: ty.to_string(),
-            description: tr!("LDAP Server"),
+            //description: tr!("LDAP Server"),
             add: true,
             edit: true,
             tfa: true,

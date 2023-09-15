@@ -4,35 +4,40 @@ use std::rc::Rc;
 
 use anyhow::Error;
 
-
 use yew::html::IntoPropValue;
-use yew::virtual_dom::{Key, VComp, VNode};
+use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::state::{PersistentState, Selection, Store};
+use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{
     DataTable, DataTableColumn, DataTableHeader,
 };
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::form::{Field, Form, FormContext};
 
-use pwt::widget::{Button, Column, Toolbar};
-
-use crate::utils::{render_epoch_short, render_upid};
+use pwt::widget::{Button, Toolbar};
 
 use pwt_macros::builder;
 
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, AuthOpenIDWindow};
 
 use crate::common_api_types::BasicRealmInfo;
 
 #[derive(PartialEq, Properties)]
 #[builder]
 pub struct AuthView {
+    /// Base API path.
     #[prop_or("/access/domains".into())]
     #[builder(IntoPropValue, into_prop_value)]
     /// The base url for
     pub base_url: AttrValue,
+
+    /// Allow to add/edit OpenID entries
+    #[builder(IntoPropValue, into_prop_value)]
+    openid_base_url: Option<AttrValue>,
+
+    /// Allow to add/edit LDAP entries
+    #[builder(IntoPropValue, into_prop_value)]
+    ldap_base_url: Option<AttrValue>,
 }
 
 impl AuthView {
@@ -45,6 +50,7 @@ impl AuthView {
 pub enum ViewState {
     AddLDAP,
     AddOpenID,
+    EditOpenID(AttrValue),
 }
 
 pub enum Msg {
@@ -57,6 +63,17 @@ pub enum Msg {
 pub struct ProxmoxAuthView {
     selection: Selection,
     store: Store<BasicRealmInfo>,
+}
+
+impl ProxmoxAuthView {
+    fn get_selected_record(&self) -> Option<BasicRealmInfo> {
+        let selected_key = self.selection.selected_key();
+        let mut selected_record = None;
+        if let Some(key) = &selected_key {
+            selected_record = self.store.read().lookup_record(key).map(|r| r.clone());
+        }
+        selected_record
+    }
 }
 
 impl LoadableComponent for ProxmoxAuthView {
@@ -78,21 +95,49 @@ impl LoadableComponent for ProxmoxAuthView {
         let base_url = props.base_url.clone();
         let store = self.store.clone();
         Box::pin(async move {
-            let data = crate::http_get(&*base_url, None).await?;
+            let mut data: Vec<BasicRealmInfo> = crate::http_get(&*base_url, None).await?;
+            data.sort();
             store.set_data(data);
             Ok(())
         })
     }
 
-    fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
-        let selected_key = self.selection.selected_key();
-        let mut selected_record = None;
-        if let Some(key) = &selected_key {
-            selected_record = self.store.read().lookup_record(key).map(|r| r.clone());
-        }
+    fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
+        let props = ctx.props();
 
-        let mut remove_disabled = selected_key.is_none();
-        let mut edit_disabled = selected_key.is_none();
+        match msg {
+            Msg::Redraw => { /* just redraw */ }
+            Msg::Remove => {
+                let _info = match self.get_selected_record() {
+                    Some(info) => info,
+                    None => return true,
+                };
+
+                todo!();
+            }
+            Msg::Edit => {
+                let info = match self.get_selected_record() {
+                    Some(info) => info,
+                    None => return true,
+                };
+                if props.openid_base_url.is_some() && info.ty == "openid" {
+                    ctx.link().change_view(Some(ViewState::EditOpenID(info.realm.into())));
+                }
+            }
+            Msg::Sync => {
+                // fixme: do something
+            }
+        }
+        true
+    }
+
+    fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+        let props = ctx.props();
+
+         let selected_record = self.get_selected_record();
+
+        let mut remove_disabled = selected_record.is_none();
+        let mut edit_disabled = selected_record.is_none();
         let mut sync_disabled = true;
 
         if let Some(realm_info) = &selected_record {
@@ -103,23 +148,29 @@ impl LoadableComponent for ProxmoxAuthView {
             }
         }
 
-        let add_menu = Menu::new()
-            .with_item(
+        let mut add_menu = Menu::new();
+
+        if props.ldap_base_url.is_some() {
+            add_menu.add_item(
                 MenuItem::new(tr!("LDAP server"))
                     .icon_class("fa fa-fw fa-address-book-o")
                     .on_select(
                         ctx.link()
                             .change_view_callback(|_| Some(ViewState::AddLDAP)),
                     ),
-            )
-        .with_item(
-            MenuItem::new(tr!("OpenId Connect Server"))
+            );
+        }
+
+        if props.openid_base_url.is_some() {
+            add_menu.add_item(
+                MenuItem::new(tr!("OpenId Connect Server"))
                 //.icon_class("fa fa-fw fa-user-o")
                 .on_select(
                     ctx.link()
                         .change_view_callback(|_| Some(ViewState::AddOpenID)),
                 ),
-        );
+            )
+        }
 
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
@@ -145,13 +196,43 @@ impl LoadableComponent for ProxmoxAuthView {
         Some(toolbar.into())
     }
 
-    fn main_view(&self, _ctx: &LoadableComponentContext<Self>) -> Html {
+    fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let columns = COLUMNS.with(Rc::clone);
         DataTable::new(columns, self.store.clone())
             .selection(self.selection.clone())
             .class("pwt-flex-fit")
+            .on_row_dblclick({
+                let link = ctx.link();
+                move |_: &mut _| { link.send_message(Msg::Edit) }
+            })
             .into()
     }
+
+    fn dialog_view(
+        &self,
+        ctx: &LoadableComponentContext<Self>,
+        view_state: &Self::ViewState,
+    ) -> Option<Html> {
+        let props = ctx.props();
+
+        match view_state {
+            ViewState::AddLDAP => todo!(),
+            ViewState::AddOpenID => Some(
+                AuthOpenIDWindow::new()
+                    .base_url(props.openid_base_url.clone().unwrap())
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .into()
+            ),
+            ViewState::EditOpenID(realm) => Some(
+                AuthOpenIDWindow::new()
+                    .base_url(props.openid_base_url.clone().unwrap())
+                    .realm(realm.clone())
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .into()
+            ),
+         }
+    }
+
 }
 
 thread_local! {

@@ -1,6 +1,9 @@
 mod auth_view;
 pub use auth_view::{AuthView, ProxmoxAuthView};
 
+mod auth_openid_window;
+pub use auth_openid_window::{AuthOpenIDWindow, ProxmoxAuthOpenIDWindow};
+
 pub mod common_api_types;
 
 mod http_client_wasm;
