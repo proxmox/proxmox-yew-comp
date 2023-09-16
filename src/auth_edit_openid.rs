@@ -1,12 +1,15 @@
 use std::rc::Rc;
 
-use pwt::widget::form::{FormContext, Boolean, Combobox};
+use anyhow::Error;
+use serde_json::Value;
+
+use pwt::widget::form::{Boolean, Combobox, FormContext};
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::widget::form::{delete_empty_values, Field};
 use pwt::widget::InputPanel;
-use pwt::widget::form::{Field};
 
 use crate::percent_encoding::percent_encode_component;
 
@@ -37,17 +40,40 @@ impl AuthEditOpenID {
     }
 }
 
+async fn create_item(form_ctx: FormContext, base_url: String) -> Result<Value, Error> {
+    let data = form_ctx.get_submit_data();
+    crate::http_post(base_url, Some(data)).await
+}
+
+async fn update_item(form_ctx: FormContext, base_url: String) -> Result<Value, Error> {
+    let data = form_ctx.get_submit_data();
+
+    let data = delete_empty_values(
+        &data,
+        &[
+            "acr-values",
+            "autocreate",
+            "comment",
+            "client-key",
+            "scopes",
+            "prompt",
+        ],
+    );
+
+    let name = form_ctx.read().get_field_text("realm");
+
+    let url = format!("{base_url}/{}", percent_encode_component(&name));
+
+    crate::http_put(&url, Some(data)).await
+}
+
 #[doc(hidden)]
 pub struct ProxmoxAuthEditOpenID {}
 
 fn render_input_form(form_ctx: FormContext, props: AuthEditOpenID) -> Html {
     let is_edit = props.realm.is_some();
 
-    let username_claim_items = Rc::new(vec![
-        "subject".into(),
-        "username".into(),
-        "email".into(),
-    ]);
+    let username_claim_items = Rc::new(vec!["subject".into(), "username".into(), "email".into()]);
 
     let prompt_items = Rc::new(vec![
         "none".into(),
@@ -61,52 +87,49 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditOpenID) -> Html {
         .class("pwt-p-2")
         .with_large_field(
             tr!("Issuer URL"),
-            Field::new().name("issuer-url").required(true)
+            Field::new().name("issuer-url").required(true),
         )
-
         .with_field(
             tr!("Realm"),
-            Field::new().name("realm").required(true).disabled(is_edit))
-        .with_right_field(
-            tr!("Autocreate Users"),
-            Boolean::new().name("autocreate")
+            Field::new()
+                .name("realm")
+                .required(true)
+                .disabled(is_edit)
+                .submit(!is_edit),
         )
-
+        .with_right_field(tr!("Autocreate Users"), Boolean::new().name("autocreate"))
         .with_field(
             tr!("Client ID"),
-            Field::new().name("client-id").required(true))
+            Field::new().name("client-id").required(true),
+        )
         .with_right_field(
             tr!("Username Claim"),
             Combobox::new()
                 .name("username-claim")
                 .disabled(is_edit)
+                .submit(!is_edit)
                 .editable(true)
                 .placeholder(tr!("Default"))
-                .items(username_claim_items)
+                .items(username_claim_items),
         )
-
-        .with_field(
-            tr!("Client Key"),
-            Field::new().name("client-key"))
+        .with_field(tr!("Client Key"), Field::new().name("client-key"))
         .with_right_field(
             tr!("Scopes"),
             Field::new()
                 .name("scopes")
-                .placeholder(tr!("Default") + " (" + &tr!("email profile") + ")")
+                .placeholder(tr!("Default") + " (" + &tr!("email profile") + ")"),
         )
-
-        .with_field(
+        .with_right_field(
             tr!("Prompt"),
             Combobox::new()
                 .name("prompt")
                 .editable(true)
                 .placeholder(tr!("Auth-Provider Default"))
-                .items(prompt_items)
+                .items(prompt_items),
         )
-
         .with_large_field(tr!("Comment"), Field::new().name("comment"))
         .with_advanced_spacer()
-        .with_advanced_field(tr!("ACR Values"), Field::new().name("acr-values"))
+        .with_large_advanced_field(tr!("ACR Values"), Field::new().name("acr-values"))
         .into()
 }
 
@@ -125,17 +148,32 @@ impl Component for ProxmoxAuthEditOpenID {
 
         let action = if is_edit { tr!("Edit") } else { tr!("Add") };
 
+        let base_url = props.base_url.to_string();
+        let on_submit = move |form_context| {
+            let base_url = base_url.clone();
+            async move {
+                if is_edit {
+                    update_item(form_context, base_url.clone()).await
+                } else {
+                    create_item(form_context, base_url.clone()).await
+                }
+            }
+        };
+
         EditWindow::new(action + ": " + &tr!("OpenID Connect Server"))
-            //.resizable(false)
-            //.style("width: 840px; height:600px;")
             .advanced_checkbox(true)
-            .loader(props.realm.as_ref().map(|realm| format!("{}/{}", props.base_url, percent_encode_component(realm))))
+            .loader(
+                props
+                    .realm
+                    .as_ref()
+                    .map(|realm| format!("{}/{}", props.base_url, percent_encode_component(realm))),
+            )
             .renderer({
                 let props = props.clone();
                 move |form_ctx: &FormContext| render_input_form(form_ctx.clone(), props.clone())
             })
             .on_done(props.on_close.clone())
-            //.with_child(panel)
+            .on_submit(on_submit)
             .into()
     }
 }
