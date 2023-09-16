@@ -48,16 +48,7 @@ async fn create_item(form_ctx: FormContext, base_url: String) -> Result<Value, E
 async fn update_item(form_ctx: FormContext, base_url: String) -> Result<Value, Error> {
     let data = form_ctx.get_submit_data();
 
-    let data = delete_empty_values(
-        &data,
-        &[
-            "server2",
-            "port",
-            "mode",
-            "verify",
-            "comment",
-        ],
-    );
+    let data = delete_empty_values(&data, &["server2", "port", "mode", "verify", "comment"]);
 
     let name = form_ctx.read().get_field_text("realm");
 
@@ -72,11 +63,7 @@ pub struct ProxmoxAuthEditLDAP {}
 fn render_input_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
     let is_edit = props.realm.is_some();
 
-    let mode_items = Rc::new(vec![
-        "ldap".into(),
-        "ldap+starttls".into(),
-        "ldaps".into(),
-    ]);
+    let mode_items = Rc::new(vec!["ldap".into(), "ldap+starttls".into(), "ldaps".into()]);
 
     let anonymous_search = form_ctx
         .read()
@@ -107,34 +94,31 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
                 .submit(!is_edit),
         )
         .with_right_field(tr!("Server"), Field::new().name("server1").required(true))
-
         .with_field(
             tr!("Base Domain Name"),
             Field::new()
                 .name("base-dn")
                 .required(true)
-                .placeholder("cn=Users,dc=company,dc=net")
+                .placeholder("cn=Users,dc=company,dc=net"),
         )
         .with_right_field(tr!("Fallback Server"), Field::new().name("server2"))
-
         .with_field(
             tr!("User Attribute Name"),
             Field::new()
                 .name("user-attr")
                 .required(true)
-                .placeholder("uid / sAMAccountName")
+                .placeholder("uid / sAMAccountName"),
         )
         .with_right_field(
             tr!("Port"),
             Number::<u16>::new()
                 .name("port")
                 .placeholder(tr!("Default"))
-                .min(1)
+                .min(1),
         )
-
         .with_field(
             tr!("Anonymous Search"),
-            Boolean::new().name("anonymous_search").default(true)
+            Boolean::new().name("anonymous_search").submit(false).default(true),
         )
         .with_right_field(
             tr!("Mode"),
@@ -150,25 +134,21 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
                         "ldaps" => "LDAPS",
                         unknown => unknown,
                     };
-                    html!{text}
-                })
+                    html! {text}
+                }),
         )
-
         .with_field(
             tr!("Bind Domain Name"),
             Field::new()
                 .name("bind-dn")
                 .required(true)
                 .disabled(anonymous_search)
-                .placeholder("cn=user,dc=company,dc=net")
+                .placeholder("cn=user,dc=company,dc=net"),
         )
         .with_right_field(
             tr!("Verify Certificate"),
-            Boolean::new()
-                .name("verify")
-                .disabled(!tls_enabled)
+            Boolean::new().name("verify").disabled(!tls_enabled),
         )
-
         .with_field(
             tr!("Bind Password"),
             Field::new()
@@ -176,11 +156,9 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
                 .disabled(anonymous_search)
                 .input_type("password")
                 .placeholder(is_edit.then(|| tr!("Unchanged")))
-                .show_peek_icon(true)
+                .show_peek_icon(true),
         )
-
         .with_large_field(tr!("Comment"), Field::new().name("comment"))
-
         .into()
 }
 
