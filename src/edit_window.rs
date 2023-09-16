@@ -255,7 +255,7 @@ impl Component for PwtEditWindow {
             Column::new()
                 .with_child(form)
                 .with_child(toolbar.clone())
-        ).visible(loading);
+        ).class("pwt-flex-fit").visible(loading);
 
         let alert = match self.submit_error.as_ref() {
             None => None,
@@ -270,6 +270,7 @@ impl Component for PwtEditWindow {
             .on_close(props.on_done.clone())
             .with_child(
                 Form::new()
+                    .class("pwt-flex-fill")
                     .form_context(self.form_ctx.clone())
                     .with_child(input_panel)
             )
