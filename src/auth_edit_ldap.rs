@@ -9,7 +9,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::widget::form::{delete_empty_values, Field};
-use pwt::widget::InputPanel;
+use pwt::widget::{InputPanel, TabBarItem, TabPanel};
 
 use crate::percent_encoding::percent_encode_component;
 
@@ -60,7 +60,25 @@ async fn update_item(form_ctx: FormContext, base_url: String) -> Result<Value, E
 #[doc(hidden)]
 pub struct ProxmoxAuthEditLDAP {}
 
-fn render_input_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
+fn render_panel(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
+    TabPanel::new()
+        .with_item_builder(TabBarItem::new().key("general").label(tr!("General")), {
+            let props = props.clone();
+            let form_ctx = form_ctx.clone();
+            move |_| render_general_form(form_ctx.clone(), props.clone())
+        })
+        .with_item_builder(
+            TabBarItem::new().key("sync").label(tr!("Sync Options")),
+            move |_| render_sync_form(form_ctx.clone(), props.clone()),
+        )
+        .into()
+}
+
+fn render_sync_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
+    html! {"SYNC PANEL DATA"}
+}
+
+fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
     let is_edit = props.realm.is_some();
 
     let mode_items = Rc::new(vec!["ldap".into(), "ldap+starttls".into(), "ldaps".into()]);
@@ -83,7 +101,6 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
         .unwrap_or(false);
 
     InputPanel::new()
-        .show_advanced(form_ctx.get_show_advanced())
         .class("pwt-p-2")
         .with_field(
             tr!("Realm"),
@@ -118,7 +135,10 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
         )
         .with_field(
             tr!("Anonymous Search"),
-            Boolean::new().name("anonymous_search").submit(false).default(true),
+            Boolean::new()
+                .name("anonymous_search")
+                .submit(false)
+                .default(true),
         )
         .with_right_field(
             tr!("Mode"),
@@ -190,7 +210,6 @@ impl Component for ProxmoxAuthEditLDAP {
         };
 
         EditWindow::new(action + ": " + &tr!("LDAP Server"))
-            .advanced_checkbox(true)
             .loader(
                 props
                     .realm
@@ -199,7 +218,7 @@ impl Component for ProxmoxAuthEditLDAP {
             )
             .renderer({
                 let props = props.clone();
-                move |form_ctx: &FormContext| render_input_form(form_ctx.clone(), props.clone())
+                move |form_ctx: &FormContext| render_panel(form_ctx.clone(), props.clone())
             })
             .on_done(props.on_close.clone())
             .on_submit(on_submit)
