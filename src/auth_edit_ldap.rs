@@ -48,7 +48,10 @@ async fn create_item(form_ctx: FormContext, base_url: String) -> Result<Value, E
 async fn update_item(form_ctx: FormContext, base_url: String) -> Result<Value, Error> {
     let data = form_ctx.get_submit_data();
 
-    let data = delete_empty_values(&data, &["server2", "port", "mode", "verify", "comment"]);
+    let data = delete_empty_values(&data, &[
+        "server2", "port", "mode", "verify", "comment",
+        "user-classes", "filter",
+    ]);
 
     let name = form_ctx.read().get_field_text("realm");
 
@@ -75,7 +78,51 @@ fn render_panel(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
 }
 
 fn render_sync_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
-    html! {"SYNC PANEL DATA"}
+    let is_edit = props.realm.is_some();
+
+
+    InputPanel::new()
+        .class("pwt-p-2")
+        .with_field(
+            tr!("First Name attribute"),
+            Field::new().name("firstname")
+        )
+        .with_right_field(
+            tr!("User classes"),
+            Field::new()
+                .name("user-classes")
+                .placeholder("inetorgperson, posixaccount, person, user")
+        )
+
+
+        .with_field(
+            tr!("Last Name attribute"),
+            Field::new().name("lastname")
+        )
+        .with_right_field(
+            tr!("User Filter"),
+            Field::new().name("filter")
+        )
+
+        .with_field(
+            tr!("E-Mail attribute"),
+            Field::new().name("email")
+        )
+
+        .with_field(
+            tr!("Remove ACLs of vanished users"),
+            Boolean::new().name("remove-vanished-acl")
+        )
+        .with_field(
+            tr!("Remove vanished user"),
+            Boolean::new().name("remove-vanished-entry")
+        )
+        .with_field(
+            tr!("Remove vanished properties"),
+            Boolean::new().name("remove-vanished-properties")
+        )
+
+        .into()
 }
 
 fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
