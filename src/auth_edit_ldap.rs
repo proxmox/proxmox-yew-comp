@@ -65,14 +65,14 @@ pub struct ProxmoxAuthEditLDAP {}
 
 fn render_panel(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
     TabPanel::new()
-        .with_item_builder(TabBarItem::new().key("general").label(tr!("General")), {
+        .with_item(TabBarItem::new().key("general").label(tr!("General")), {
             let props = props.clone();
             let form_ctx = form_ctx.clone();
-            move |_| render_general_form(form_ctx.clone(), props.clone())
+            render_general_form(form_ctx.clone(), props.clone())
         })
-        .with_item_builder(
+        .with_item(
             TabBarItem::new().key("sync").label(tr!("Sync Options")),
-            move |_| render_sync_form(form_ctx.clone(), props.clone()),
+            render_sync_form(form_ctx.clone(), props.clone()),
         )
         .into()
 }
