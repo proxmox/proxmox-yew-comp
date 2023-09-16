@@ -9,16 +9,17 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::{Selection, Store};
-use pwt::widget::data_table::{
-    DataTable, DataTableColumn, DataTableHeader,
-};
+use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 
 use pwt::widget::{Button, Toolbar};
 
 use pwt_macros::builder;
 
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, AuthEditOpenID};
+use crate::{
+    AuthEditLDAP, AuthEditOpenID, LoadableComponent, LoadableComponentContext,
+    LoadableComponentMaster,
+};
 
 use crate::common_api_types::BasicRealmInfo;
 
@@ -51,6 +52,7 @@ pub enum ViewState {
     AddLDAP,
     AddOpenID,
     EditOpenID(AttrValue),
+    EditLDAP(AttrValue),
 }
 
 pub enum Msg {
@@ -121,7 +123,12 @@ impl LoadableComponent for ProxmoxAuthView {
                     None => return true,
                 };
                 if props.openid_base_url.is_some() && info.ty == "openid" {
-                    ctx.link().change_view(Some(ViewState::EditOpenID(info.realm.into())));
+                    ctx.link()
+                        .change_view(Some(ViewState::EditOpenID(info.realm.clone().into())));
+                }
+                if props.ldap_base_url.is_some() && info.ty == "ldap" {
+                    ctx.link()
+                        .change_view(Some(ViewState::EditLDAP(info.realm.into())));
                 }
             }
             Msg::Sync => {
@@ -134,7 +141,7 @@ impl LoadableComponent for ProxmoxAuthView {
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
         let props = ctx.props();
 
-         let selected_record = self.get_selected_record();
+        let selected_record = self.get_selected_record();
 
         let mut remove_disabled = selected_record.is_none();
         let mut edit_disabled = selected_record.is_none();
@@ -152,7 +159,7 @@ impl LoadableComponent for ProxmoxAuthView {
 
         if props.ldap_base_url.is_some() {
             add_menu.add_item(
-                MenuItem::new(tr!("LDAP server"))
+                MenuItem::new(tr!("LDAP Server"))
                     .icon_class("fa fa-fw fa-address-book-o")
                     .on_select(
                         ctx.link()
@@ -164,11 +171,11 @@ impl LoadableComponent for ProxmoxAuthView {
         if props.openid_base_url.is_some() {
             add_menu.add_item(
                 MenuItem::new(tr!("OpenId Connect Server"))
-                //.icon_class("fa fa-fw fa-user-o")
-                .on_select(
-                    ctx.link()
-                        .change_view_callback(|_| Some(ViewState::AddOpenID)),
-                ),
+                    //.icon_class("fa fa-fw fa-user-o")
+                    .on_select(
+                        ctx.link()
+                            .change_view_callback(|_| Some(ViewState::AddOpenID)),
+                    ),
             )
         }
 
@@ -203,7 +210,7 @@ impl LoadableComponent for ProxmoxAuthView {
             .class("pwt-flex-fit")
             .on_row_dblclick({
                 let link = ctx.link();
-                move |_: &mut _| { link.send_message(Msg::Edit) }
+                move |_: &mut _| link.send_message(Msg::Edit)
             })
             .into()
     }
@@ -216,23 +223,34 @@ impl LoadableComponent for ProxmoxAuthView {
         let props = ctx.props();
 
         match view_state {
-            ViewState::AddLDAP => todo!(),
+            ViewState::AddLDAP => Some(
+                AuthEditLDAP::new()
+                .base_url(props.ldap_base_url.clone().unwrap())
+                .on_close(ctx.link().change_view_callback(|_| None))
+                .into(),
+            ),
+            ViewState::EditLDAP(realm) => Some(
+                AuthEditLDAP::new()
+                    .base_url(props.ldap_base_url.clone().unwrap())
+                    .realm(realm.clone())
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .into(),
+            ),
             ViewState::AddOpenID => Some(
                 AuthEditOpenID::new()
                     .base_url(props.openid_base_url.clone().unwrap())
                     .on_close(ctx.link().change_view_callback(|_| None))
-                    .into()
+                    .into(),
             ),
             ViewState::EditOpenID(realm) => Some(
                 AuthEditOpenID::new()
                     .base_url(props.openid_base_url.clone().unwrap())
                     .realm(realm.clone())
                     .on_close(ctx.link().change_view_callback(|_| None))
-                    .into()
+                    .into(),
             ),
-         }
+        }
     }
-
 }
 
 thread_local! {

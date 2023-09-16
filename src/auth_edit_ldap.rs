@@ -1,0 +1,237 @@
+use std::rc::Rc;
+
+use anyhow::Error;
+use serde_json::Value;
+
+use pwt::widget::form::{Boolean, Combobox, FormContext, Number};
+use yew::html::{IntoEventCallback, IntoPropValue};
+use yew::virtual_dom::{VComp, VNode};
+
+use pwt::prelude::*;
+use pwt::widget::form::{delete_empty_values, Field};
+use pwt::widget::InputPanel;
+
+use crate::percent_encoding::percent_encode_component;
+
+use pwt_macros::builder;
+
+use crate::EditWindow;
+
+#[derive(Clone, PartialEq, Properties)]
+#[builder]
+pub struct AuthEditLDAP {
+    /// Close/Abort callback
+    #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    pub on_close: Option<Callback<()>>,
+
+    #[prop_or("/access/domains".into())]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The base url for
+    pub base_url: AttrValue,
+
+    /// Edit existing realm
+    #[builder(IntoPropValue, into_prop_value)]
+    pub realm: Option<AttrValue>,
+}
+
+impl AuthEditLDAP {
+    pub fn new() -> Self {
+        yew::props!(Self {})
+    }
+}
+
+async fn create_item(form_ctx: FormContext, base_url: String) -> Result<Value, Error> {
+    let data = form_ctx.get_submit_data();
+    crate::http_post(base_url, Some(data)).await
+}
+
+async fn update_item(form_ctx: FormContext, base_url: String) -> Result<Value, Error> {
+    let data = form_ctx.get_submit_data();
+
+    let data = delete_empty_values(
+        &data,
+        &[
+            "server2",
+            "port",
+            "mode",
+            "verify",
+            "comment",
+        ],
+    );
+
+    let name = form_ctx.read().get_field_text("realm");
+
+    let url = format!("{base_url}/{}", percent_encode_component(&name));
+
+    crate::http_put(&url, Some(data)).await
+}
+
+#[doc(hidden)]
+pub struct ProxmoxAuthEditLDAP {}
+
+fn render_input_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
+    let is_edit = props.realm.is_some();
+
+    let mode_items = Rc::new(vec![
+        "ldap".into(),
+        "ldap+starttls".into(),
+        "ldaps".into(),
+    ]);
+
+    let anonymous_search = form_ctx
+        .read()
+        .get_field_value("anonymous_search")
+        .map(|v| v.as_bool())
+        .flatten()
+        .unwrap_or(false);
+
+    let tls_enabled = form_ctx
+        .read()
+        .get_field_value("mode")
+        .map(|v| match v.as_str() {
+            Some("ldap+starttls") => true,
+            Some("ldaps") => true,
+            _ => false,
+        })
+        .unwrap_or(false);
+
+    InputPanel::new()
+        .show_advanced(form_ctx.get_show_advanced())
+        .class("pwt-p-2")
+        .with_field(
+            tr!("Realm"),
+            Field::new()
+                .name("realm")
+                .required(true)
+                .disabled(is_edit)
+                .submit(!is_edit),
+        )
+        .with_right_field(tr!("Server"), Field::new().name("server1").required(true))
+
+        .with_field(
+            tr!("Base Domain Name"),
+            Field::new()
+                .name("base-dn")
+                .required(true)
+                .placeholder("cn=Users,dc=company,dc=net")
+        )
+        .with_right_field(tr!("Fallback Server"), Field::new().name("server2"))
+
+        .with_field(
+            tr!("User Attribute Name"),
+            Field::new()
+                .name("user-attr")
+                .required(true)
+                .placeholder("uid / sAMAccountName")
+        )
+        .with_right_field(
+            tr!("Port"),
+            Number::<u16>::new()
+                .name("port")
+                .placeholder(tr!("Default"))
+                .min(1)
+        )
+
+        .with_field(
+            tr!("Anonymous Search"),
+            Boolean::new().name("anonymous_search").default(true)
+        )
+        .with_right_field(
+            tr!("Mode"),
+            Combobox::new()
+                .name("mode")
+                .default("ldap")
+                .required(true)
+                .items(mode_items)
+                .render_value(|mode: &AttrValue| {
+                    let text = match mode.as_str() {
+                        "ldap" => "LDAP",
+                        "ldap+starttls" => "STARTTLS",
+                        "ldaps" => "LDAPS",
+                        unknown => unknown,
+                    };
+                    html!{text}
+                })
+        )
+
+        .with_field(
+            tr!("Bind Domain Name"),
+            Field::new()
+                .name("bind-dn")
+                .required(true)
+                .disabled(anonymous_search)
+                .placeholder("cn=user,dc=company,dc=net")
+        )
+        .with_right_field(
+            tr!("Verify Certificate"),
+            Boolean::new()
+                .name("verify")
+                .disabled(!tls_enabled)
+        )
+
+        .with_field(
+            tr!("Bind Password"),
+            Field::new()
+                .name("password")
+                .disabled(anonymous_search)
+                .input_type("password")
+                .placeholder(is_edit.then(|| tr!("Unchanged")))
+                .show_peek_icon(true)
+        )
+
+        .with_large_field(tr!("Comment"), Field::new().name("comment"))
+
+        .into()
+}
+
+impl Component for ProxmoxAuthEditLDAP {
+    type Message = ();
+    type Properties = AuthEditLDAP;
+
+    fn create(_ctx: &Context<Self>) -> Self {
+        Self {}
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let props = ctx.props();
+
+        let is_edit = props.realm.is_some();
+
+        let action = if is_edit { tr!("Edit") } else { tr!("Add") };
+
+        let base_url = props.base_url.to_string();
+        let on_submit = move |form_context| {
+            let base_url = base_url.clone();
+            async move {
+                if is_edit {
+                    update_item(form_context, base_url.clone()).await
+                } else {
+                    create_item(form_context, base_url.clone()).await
+                }
+            }
+        };
+
+        EditWindow::new(action + ": " + &tr!("LDAP Server"))
+            .advanced_checkbox(true)
+            .loader(
+                props
+                    .realm
+                    .as_ref()
+                    .map(|realm| format!("{}/{}", props.base_url, percent_encode_component(realm))),
+            )
+            .renderer({
+                let props = props.clone();
+                move |form_ctx: &FormContext| render_input_form(form_ctx.clone(), props.clone())
+            })
+            .on_done(props.on_close.clone())
+            .on_submit(on_submit)
+            .into()
+    }
+}
+
+impl Into<VNode> for AuthEditLDAP {
+    fn into(self) -> VNode {
+        let comp = VComp::new::<ProxmoxAuthEditLDAP>(Rc::new(self), None);
+        VNode::from(comp)
+    }
+}

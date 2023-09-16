@@ -4,6 +4,9 @@ pub use auth_view::{AuthView, ProxmoxAuthView};
 mod auth_edit_openid;
 pub use auth_edit_openid::{AuthEditOpenID, ProxmoxAuthEditOpenID};
 
+mod auth_edit_ldap;
+pub use auth_edit_ldap::{AuthEditLDAP, ProxmoxAuthEditLDAP};
+
 pub mod common_api_types;
 
 mod http_client_wasm;
