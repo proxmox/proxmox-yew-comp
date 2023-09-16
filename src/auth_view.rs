@@ -225,9 +225,9 @@ impl LoadableComponent for ProxmoxAuthView {
         match view_state {
             ViewState::AddLDAP => Some(
                 AuthEditLDAP::new()
-                .base_url(props.ldap_base_url.clone().unwrap())
-                .on_close(ctx.link().change_view_callback(|_| None))
-                .into(),
+                    .base_url(props.ldap_base_url.clone().unwrap())
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .into(),
             ),
             ViewState::EditLDAP(realm) => Some(
                 AuthEditLDAP::new()

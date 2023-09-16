@@ -8,7 +8,7 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Field};
+use pwt::widget::form::{delete_empty_values, Field, TristateBoolean};
 use pwt::widget::{InputPanel, TabBarItem, TabPanel};
 
 use crate::percent_encoding::percent_encode_component;
@@ -77,9 +77,8 @@ fn render_panel(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
         .into()
 }
 
-fn render_sync_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
-    let is_edit = props.realm.is_some();
-
+fn render_sync_form(form_ctx: FormContext, _props: AuthEditLDAP) -> Html {
+    //let is_edit = props.realm.is_some();
 
     InputPanel::new()
         .class("pwt-p-2")
@@ -107,6 +106,14 @@ fn render_sync_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
         .with_field(
             tr!("E-Mail attribute"),
             Field::new().name("email")
+        )
+
+        .with_field(
+            tr!("Enable new users"),
+            TristateBoolean::new()
+                .name("enable-new")
+                .submit_empty(true)
+                .null_text(tr!("Default") + " (" + &tr!("Yes") + ")")
         )
 
         .with_field(
