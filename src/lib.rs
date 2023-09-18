@@ -27,6 +27,9 @@ pub use edit_window::{EditWindow, PwtEditWindow};
 mod key_value_grid;
 pub use key_value_grid::{KVGrid, KVGridRow, PwtKVGrid, RenderKVGridRecordFn};
 
+mod language_selector;
+pub use language_selector::{LanguageSelector, ProxmoxLanguageSelector};
+
 mod loadable_component;
 pub use loadable_component::{LoadableComponent, LoadableComponentMaster, LoadableComponentContext};
 
