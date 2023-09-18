@@ -64,7 +64,7 @@ mod schema_validation;
 pub use schema_validation::*;
 
 mod subscription_alert;
-pub use subscription_alert::{};
+pub use subscription_alert::{SubscriptionAlert, ProxmoxSubscriptionAlert};
 
 mod subscription_panel;
 pub use subscription_panel::{SubscriptionPanel, PwtSubscriptionPanel};
