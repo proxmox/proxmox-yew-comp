@@ -48,10 +48,18 @@ async fn create_item(form_ctx: FormContext, base_url: String) -> Result<Value, E
 async fn update_item(form_ctx: FormContext, base_url: String) -> Result<Value, Error> {
     let data = form_ctx.get_submit_data();
 
-    let data = delete_empty_values(&data, &[
-        "server2", "port", "mode", "verify", "comment",
-        "user-classes", "filter",
-    ]);
+    let data = delete_empty_values(
+        &data,
+        &[
+            "server2",
+            "port",
+            "mode",
+            "verify",
+            "comment",
+            "user-classes",
+            "filter",
+        ],
+    );
 
     let name = form_ctx.read().get_field_text("realm");
 
@@ -81,54 +89,38 @@ fn render_sync_form(_form_ctx: FormContext, _props: AuthEditLDAP) -> Html {
     //let is_edit = props.realm.is_some();
 
     InputPanel::new()
+        .class(Flex::Fill)
+        .class(Overflow::Auto)
         .class("pwt-p-2")
-        .with_field(
-            tr!("First Name attribute"),
-            Field::new().name("firstname")
-        )
+        .with_field(tr!("First Name attribute"), Field::new().name("firstname"))
         .with_right_field(
             tr!("User classes"),
             Field::new()
                 .name("user-classes")
-                .placeholder("inetorgperson, posixaccount, person, user")
+                .placeholder("inetorgperson, posixaccount, person, user"),
         )
-
-
-        .with_field(
-            tr!("Last Name attribute"),
-            Field::new().name("lastname")
-        )
-        .with_right_field(
-            tr!("User Filter"),
-            Field::new().name("filter")
-        )
-
-        .with_field(
-            tr!("E-Mail attribute"),
-            Field::new().name("email")
-        )
-
+        .with_field(tr!("Last Name attribute"), Field::new().name("lastname"))
+        .with_right_field(tr!("User Filter"), Field::new().name("filter"))
+        .with_field(tr!("E-Mail attribute"), Field::new().name("email"))
         .with_field(
             tr!("Enable new users"),
             TristateBoolean::new()
                 .name("enable-new")
                 .submit_empty(true)
-                .null_text(tr!("Default") + " (" + &tr!("Yes") + ")")
+                .null_text(tr!("Default") + " (" + &tr!("Yes") + ")"),
         )
-
         .with_field(
             tr!("Remove ACLs of vanished users"),
-            Boolean::new().name("remove-vanished-acl")
+            Boolean::new().name("remove-vanished-acl"),
         )
         .with_field(
             tr!("Remove vanished user"),
-            Boolean::new().name("remove-vanished-entry")
+            Boolean::new().name("remove-vanished-entry"),
         )
         .with_field(
             tr!("Remove vanished properties"),
-            Boolean::new().name("remove-vanished-properties")
+            Boolean::new().name("remove-vanished-properties"),
         )
-
         .into()
 }
 
