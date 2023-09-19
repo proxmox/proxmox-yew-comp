@@ -77,7 +77,7 @@ fn render_panel(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
         .into()
 }
 
-fn render_sync_form(form_ctx: FormContext, _props: AuthEditLDAP) -> Html {
+fn render_sync_form(_form_ctx: FormContext, _props: AuthEditLDAP) -> Html {
     //let is_edit = props.realm.is_some();
 
     InputPanel::new()
