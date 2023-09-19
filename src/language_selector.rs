@@ -2,17 +2,18 @@ use std::rc::Rc;
 
 use pwt::props::ExtractPrimaryKey;
 use pwt::state::{Selection, Store};
-use yew::html::{IntoEventCallback, IntoPropValue};
+use yew::html::IntoEventCallback;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::state::Language;
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::{Dropdown, GridPicker};
 
 use pwt_macros::builder;
 
 #[derive(Clone, PartialEq)]
-pub struct LanguageInfo {
+struct LanguageInfo {
     lang: String,            // id (de, en, ...)
     text: String,            // Language name (native).
     translated_text: String, // Translated language name.
@@ -38,20 +39,26 @@ impl ExtractPrimaryKey for LanguageInfo {
     }
 }
 
+/// Language Selector
+///
+/// Combobox like selector to choose from a list of available languages.
+///
+/// The selected language is stored using the global [Language] state, so
+/// that the [CatalogLoader] automatically loads the new catalog.
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct LanguageSelector {
-    #[builder(IntoPropValue, into_prop_value)]
-    pub default: Option<AttrValue>,
-
     /// On change callback.
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
     on_change: Option<Callback<String>>,
+
+    /// List ofg selectable language codes (ISO 639-1), i.e. ["en, "de"].
+    languages: Rc<Vec<String>>,
 }
 
 impl LanguageSelector {
-    pub fn new() -> Self {
-        yew::props!(Self {})
+    pub fn new(languages: Rc<Vec<String>>) -> Self {
+        yew::props!(Self { languages })
     }
 }
 
@@ -62,8 +69,9 @@ pub struct ProxmoxLanguageSelector {
     lang: String,
 }
 
-fn language_list() -> Vec<LanguageInfo> {
-    vec![
+fn language_list(languages: &[String]) -> Vec<LanguageInfo> {
+    // todo: add more languages
+    let list = vec![
         LanguageInfo::new("ar", "العربية", tr!("Arabic")),
         LanguageInfo::new("ca", "Català", tr!("Catalan")),
         LanguageInfo::new("da", "Dansk", tr!("Danish")),
@@ -88,7 +96,11 @@ fn language_list() -> Vec<LanguageInfo> {
         LanguageInfo::new("tr", "Türkçe", tr!("Turkish")),
         LanguageInfo::new("zh_CN", "中文（简体）", tr!("Chinese (Simplified)")),
         LanguageInfo::new("zh_TW", "中文（繁體）", tr!("Chinese (Traditional)")),
-    ]
+    ];
+
+    let list = list.into_iter().filter(|item| languages.contains(&item.lang)).collect();
+
+    list
 }
 
 pub enum Msg {
@@ -102,10 +114,17 @@ impl Component for ProxmoxLanguageSelector {
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
         let store = Store::new();
-        store.set_data(language_list());
+        store.set_data(language_list(&props.languages));
         let selection = Selection::new();
 
-        let lang = props.default.as_deref().unwrap_or("").to_string();
+        let mut lang = Language::load();
+        if lang.is_empty() {
+            if props.languages.contains(&String::from("en")) {
+                lang = "en".into();
+            } else if let Some(first) = props.languages.first() {
+                lang = first.into();
+            }
+        }
 
         selection.select(Key::from(lang.clone()));
 
@@ -117,6 +136,7 @@ impl Component for ProxmoxLanguageSelector {
         match msg {
             Msg::Select(lang) => {
                 self.lang = lang.clone();
+                Language::store(lang.clone());
                 if let Some(on_change) = &props.on_change {
                     on_change.emit(lang);
                 }
