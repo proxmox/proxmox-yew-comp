@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use anyhow::Error;
+use pwt::css::{Flex, Overflow};
 use serde_json::Value;
 
 use pwt::widget::form::{Boolean, Combobox, FormContext, Number};
@@ -147,6 +148,8 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
         .unwrap_or(false);
 
     InputPanel::new()
+        .class(Flex::Fill)
+        .class(Overflow::Auto)
         .class("pwt-p-2")
         .with_field(
             tr!("Realm"),
