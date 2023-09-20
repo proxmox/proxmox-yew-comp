@@ -51,6 +51,9 @@ pub use rrd_grid::RRDGrid;
 mod rrd_timeframe_selector;
 pub use rrd_timeframe_selector::{RRDTimeframe, RRDTimeframeSelector};
 
+mod language_dialog;
+pub use language_dialog::{LanguageDialog, ProxmoxLanguageDialog};
+
 mod login_panel;
 pub use login_panel::LoginPanel;
 
