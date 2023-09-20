@@ -156,9 +156,8 @@ pub fn load_csrf_token() -> Option<String>{
 /// # Note
 ///
 /// All Proxmox products should support those languages.
-pub fn available_language_list(languages: &[String]) -> Vec<LanguageInfo> {
-    // todo: add more languages
-    let list = vec![
+pub fn available_language_list() -> Vec<LanguageInfo> {
+    vec![
         LanguageInfo::new("ar", "العربية", gettext_noop("Arabic")),
         LanguageInfo::new("ca", "Català", gettext_noop("Catalan")),
         LanguageInfo::new("da", "Dansk", gettext_noop("Danish")),
@@ -183,9 +182,5 @@ pub fn available_language_list(languages: &[String]) -> Vec<LanguageInfo> {
         LanguageInfo::new("tr", "Türkçe", gettext_noop("Turkish")),
         LanguageInfo::new("zh_CN", "中文（简体）", gettext_noop("Chinese (Simplified)")),
         LanguageInfo::new("zh_TW", "中文（繁體）", gettext_noop("Chinese (Traditional)")),
-    ];
-
-    let list = list.into_iter().filter(|item| languages.contains(&item.lang)).collect();
-
-    list
+    ]
 }
