@@ -15,6 +15,7 @@ pub struct LoadableComponentState {
     loading: usize,
     last_load_error: Option<String>,
     repeat_timespan: u32, /* 0 => no repeated loading */
+    task_base_url: Option<AttrValue>,
 }
 
 pub struct LoadableComponentContext<'a, L: LoadableComponent + Sized + 'static> {
@@ -102,6 +103,10 @@ impl<L: LoadableComponent + Sized> LoadableComponentLink<L> {
 
     pub fn repeated_load(&self, miliseconds: u32) {
         self.link.send_message(Msg::RepeatedLoad(miliseconds));
+    }
+
+    pub fn task_base_url(&self, base_url: impl Into<AttrValue>) {
+        self.link.send_message(Msg::TaskBaseUrl(base_url.into()));
     }
 
     pub fn show_error(
@@ -211,6 +216,7 @@ pub enum Msg<M, V: PartialEq> {
     LoadResult(Result<(), Error>),
     ChangeView(/*reload*/ bool, ViewState<V>),
     ChildMessage(M),
+    TaskBaseUrl(AttrValue),
 }
 
 pub struct LoadableComponentMaster<L: LoadableComponent> {
@@ -231,6 +237,7 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
             loading,
             last_load_error: None,
             repeat_timespan: 0,
+            task_base_url: None,
         };
 
         let sub_context = LoadableComponentContext {
@@ -323,6 +330,10 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                 self.state.update(&sub_context, child_msg);
                 true
             }
+            Msg::TaskBaseUrl(base_url) => {
+                self.comp_state.task_base_url = Some(base_url);
+                false
+            }
         }
     }
 
@@ -349,14 +360,18 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                             .into(),
                     )
                 }
-                ViewState::Task(task_id) => Some(
-                    TaskProgress::new(task_id)
-                        .on_close(
-                            ctx.link()
-                                .callback(move |_| Msg::ChangeView(true, ViewState::Main)),
-                        )
-                        .into(),
-                ),
+                ViewState::Task(task_id) => {
+                    let mut task_progress = TaskProgress::new(task_id).on_close(
+                        ctx.link()
+                            .callback(move |_| Msg::ChangeView(true, ViewState::Main)),
+                    );
+
+                    if let Some(base_url) = &self.comp_state.task_base_url {
+                        task_progress.set_base_url(base_url);
+                    }
+
+                    Some(task_progress.into())
+                }
             };
 
         let toolbar = self.state.toolbar(&sub_context);
