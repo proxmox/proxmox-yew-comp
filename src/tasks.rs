@@ -10,8 +10,10 @@ use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::state::{Selection, Store, PersistentState};
-use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableRowRenderCallback};
+use pwt::state::{PersistentState, Selection, Store};
+use pwt::widget::data_table::{
+    DataTable, DataTableColumn, DataTableHeader, DataTableRowRenderCallback,
+};
 use pwt::widget::{Button, Column, Toolbar};
 
 use crate::utils::{render_epoch_short, render_upid};
@@ -34,6 +36,11 @@ pub struct Tasks {
     ///
     /// The widget need to read/write data from/to the provided form context.
     pub extra_filter: Option<(AttrValue, Html)>,
+
+    /// The base url, default is '/nodes/<nodename>/tasks'
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    pub base_url: Option<AttrValue>,
 }
 
 impl Tasks {
@@ -85,7 +92,7 @@ impl LoadableComponent for ProxmoxTasks {
 
         let row_render_callback = DataTableRowRenderCallback::new(|args: &mut _| {
             let record: &TaskListItem = args.record();
-            if let Some(status) = &record.status  {
+            if let Some(status) = &record.status {
                 if status != "OK" {
                     if status.starts_with("WARNINGS:") {
                         args.add_class("pwt-color-warning");
@@ -95,7 +102,6 @@ impl LoadableComponent for ProxmoxTasks {
                 }
             }
         });
-
 
         Self {
             selection,
@@ -112,7 +118,11 @@ impl LoadableComponent for ProxmoxTasks {
     ) -> Pin<Box<dyn Future<Output = Result<(), Error>>>> {
         let props = ctx.props();
         let nodename = props.get_nodename();
-        let path = format!("/nodes/{nodename}/tasks");
+        let path = match &props.base_url {
+            Some(url) => url.to_string(),
+            None => format!("/nodes/{nodename}/tasks"),
+        };
+
         let store = self.store.clone();
 
         let form_context = self.filter_form_context.read();
@@ -261,8 +271,11 @@ impl LoadableComponent for ProxmoxTasks {
 
         match view_state {
             ViewDialog::TaskViewer => {
-                let dialog = TaskViewer::new(selected_task)
+                let mut dialog = TaskViewer::new(selected_task)
                     .on_close(ctx.link().change_view_callback(|_| None));
+                if let Some(base_url) = &ctx.props().base_url {
+                    dialog.set_base_url(base_url);
+                }
                 Some(dialog.into())
             }
         }
