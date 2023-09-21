@@ -1,11 +1,12 @@
 //! Define product specific things here
 
-/// Enumerate the different Proxmox products. 
+/// Enumerate the different Proxmox products.
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum ProxmoxProduct {
     PVE,
     PMG,
     PBS,
+    POM,
 }
 
 impl ProxmoxProduct {
@@ -14,6 +15,7 @@ impl ProxmoxProduct {
             ProxmoxProduct::PVE => "PVEAuthCookie",
             ProxmoxProduct::PMG => "PMGAuthCookie",
             ProxmoxProduct::PBS => "PBSAuthCookie",
+            ProxmoxProduct::POM => "POMAuthCookie",
         }
     }
 }

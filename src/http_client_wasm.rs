@@ -53,6 +53,13 @@ fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String)>
                     return Some((value.to_string(), csrf_token));
                 }
             }
+            if product == ProxmoxProduct::POM && key == "POMAuthCookie" {
+                let items: Vec<&str> = value.split(':').take(2).collect();
+                if items[0] == "POM" {
+                    let csrf_token = crate::load_csrf_token().unwrap_or(String::new());
+                    return Some((value.to_string(), csrf_token));
+                }
+            }
             if product == ProxmoxProduct::PVE && key == "PVEAuthCookie" {
                 let items: Vec<&str> = value.split(':').take(2).collect();
                 if items[0] == "PVE" {
