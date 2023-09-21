@@ -60,6 +60,9 @@ pub use login_panel::LoginPanel;
 mod log_view;
 pub use log_view::LogView;
 
+mod markdown;
+pub use markdown::{Markdown, ProxmoxMarkdown};
+
 mod journal_view;
 pub use journal_view::JournalView;
 

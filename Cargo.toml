@@ -38,6 +38,7 @@ wasm-bindgen-futures = "0.4"
 url = "2.1"
 percent-encoding = "2.1"
 html-escape = "0.2"
+pulldown-cmark = { version = "0.9", features =[] }
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
