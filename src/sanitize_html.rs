@@ -8,15 +8,15 @@ fn is_http_like(url: &str) -> bool {
     url.starts_with("http:") || url.starts_with("https:")
 }
 
-fn sanitize_url(text: &str, base_url: &str) -> Result<String, Error> {
+fn sanitize_url(text: &str, base_url: &str, allow_data_url: bool) -> Result<String, Error> {
     let text = text.trim();
     if is_http_like(text) {
         return Ok(text.to_string());
     }
 
     let url = web_sys::Url::new_with_base(text, base_url).map_err(convert_js_error)?;
-    let protocol = url.protocol();
-    if is_http_like(&protocol) {
+    let protocol = url.protocol().to_lowercase();
+    if (allow_data_url && protocol == "data:") || is_http_like(&protocol) {
         return Ok(url.href());
     } else {
         bail!("got unexpected url protocol: {protocol}");
@@ -55,7 +55,8 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str) -> Result<(), Err
                     match name.as_str() {
                         "href" | "src" => {
                             let value = attr.value();
-                            if let Ok(url) = sanitize_url(&value, base_url) {
+                            let allow_data_url = tag_name == "IMG";
+                            if let Ok(url) = sanitize_url(&value, base_url, allow_data_url) {
                                 attr.set_value(&url);
                             } else {
                                 attributes
