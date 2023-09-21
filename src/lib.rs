@@ -63,6 +63,9 @@ pub use log_view::LogView;
 mod journal_view;
 pub use journal_view::JournalView;
 
+mod sanitize_html;
+pub use sanitize_html::sanitize_html;
+
 mod schema_validation;
 pub use schema_validation::*;
 
