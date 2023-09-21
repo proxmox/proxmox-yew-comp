@@ -943,10 +943,14 @@ impl Component for PwtRRDGraph {
                 if let Some(t) = data0.get(idx) {
                     data_time = Some(format_date_time(*t));
                     if let Some(v) = data1.get(idx) {
-                        serie0_value = Some(render_value(props, *v));
+                        if v.is_finite() {
+                            serie0_value = Some(render_value(props, *v));
+                        }
                     }
                     if let Some(v) = data2.get(idx) {
-                        serie1_value = Some(render_value(props, *v));
+                        if v.is_finite() {
+                            serie1_value = Some(render_value(props, *v));
+                        }
                     }
                 }
             }
