@@ -14,8 +14,8 @@ use pwt::state::Loader;
 use pwt::widget::{Button, Column, Dialog, TabBarItem, TabPanel, Toolbar};
 
 use crate::percent_encoding::percent_encode_component;
-use crate::{KVGrid, KVGridRow, LogView};
 use crate::utils::render_epoch;
+use crate::{KVGrid, KVGridRow, LogView};
 
 #[builder]
 #[derive(Properties, PartialEq, Clone)]
@@ -291,7 +291,11 @@ impl PwtTaskViewer {
         Column::new()
             .class("pwt-flex-fit")
             .with_child(toolbar)
-            .with_child(LogView::new(url).class("pwt-p-2 pwt-flex-fill").active(active))
+            .with_child(
+                LogView::new(url)
+                    .class("pwt-p-2 pwt-flex-fill")
+                    .active(active),
+            )
             .into()
     }
 }
