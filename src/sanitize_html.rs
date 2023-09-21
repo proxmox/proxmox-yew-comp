@@ -1,7 +1,6 @@
 use anyhow::{bail, Error};
 use wasm_bindgen::JsCast;
 
-use pwt::prelude::*;
 use pwt::convert_js_error;
 
 fn is_http_like(url: &str) -> bool {
