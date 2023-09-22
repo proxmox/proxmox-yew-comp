@@ -4,17 +4,16 @@ use anyhow::Error;
 use pwt::state::PersistentState;
 use serde_json::Value;
 
+use yew::html::IntoEventCallback;
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
-use yew::html::IntoEventCallback;
 
 use pwt::prelude::*;
-use pwt::props::{LoadCallback, IntoLoadCallback, RenderFn};
-use pwt::widget::{AlertDialog, Column, Dialog, Mask, Row};
+use pwt::props::{IntoLoadCallback, LoadCallback, RenderFn};
 use pwt::widget::form::{
-    Checkbox, Form, FormContext, SubmitButton, ResetButton,
-    SubmitCallback, IntoSubmitCallback,
+    Checkbox, Form, FormContext, IntoSubmitCallback, ResetButton, SubmitButton, SubmitCallback,
 };
+use pwt::widget::{AlertDialog, Column, Dialog, Mask, Row};
 
 use pwt_macros::builder;
 
@@ -60,7 +59,6 @@ pub struct EditWindow {
 }
 
 impl EditWindow {
-
     pub fn new(title: impl Into<AttrValue>) -> Self {
         yew::props!(Self {
             title: title.into(),
@@ -124,8 +122,7 @@ impl Component for PwtEditWindow {
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link().send_message(Msg::Load);
 
-        let form_ctx = FormContext::new()
-            .on_change(ctx.link().callback(|_| Msg::FormDataChange));
+        let form_ctx = FormContext::new().on_change(ctx.link().callback(|_| Msg::FormDataChange));
 
         let show_advanced = PersistentState::new("proxmox-form-show-advanced");
         form_ctx.set_show_advanced(*show_advanced);
@@ -195,7 +192,7 @@ impl Component for PwtEditWindow {
             }
             Msg::SubmitResult(result) => {
                 self.loading = false;
-                 match result {
+                match result {
                     Ok(_) => {
                         self.submit_error = None;
                         if let Some(on_done) = &props.on_done {
@@ -231,11 +228,14 @@ impl Component for PwtEditWindow {
                 .class("pwt-ms-1")
                 .label_id(advanced_label_id.clone())
                 .checked(*self.show_advanced)
-                .on_change(ctx.link().callback(|value| Msg::ShowAdvanced(value == "on")));
+                .on_change(
+                    ctx.link()
+                        .callback(|value| Msg::ShowAdvanced(value == "on")),
+                );
 
             let advanced = Row::new()
                 .class("pwt-align-items-center")
-                .with_child(html!{<label id={advanced_label_id}>{tr!("Advanced")}</label>})
+                .with_child(html! {<label id={advanced_label_id}>{tr!("Advanced")}</label>})
                 .with_child(advanced_field);
 
             toolbar.add_child(advanced);
@@ -245,7 +245,7 @@ impl Component for PwtEditWindow {
         toolbar.add_child(
             SubmitButton::new()
                 .text(if edit_mode { tr!("Update") } else { tr!("Add") })
-                .on_submit(submit)
+                .on_submit(submit),
         );
 
         let renderer = props.renderer.clone();
@@ -253,21 +253,18 @@ impl Component for PwtEditWindow {
 
         let form = match &renderer {
             Some(renderer) => renderer.apply(&self.form_ctx),
-            None => html!{},
+            None => html! {},
         };
 
-        let input_panel = Mask::new(
-            Column::new()
-                .with_child(form)
-                .with_child(toolbar.clone())
-        ).class("pwt-flex-fit").visible(loading);
+        let input_panel = Mask::new(Column::new().with_child(form).with_child(toolbar.clone()))
+            .class("pwt-flex-fit")
+            .visible(loading);
 
         let alert = match self.submit_error.as_ref() {
             None => None,
-            Some(msg) => Some(
-                AlertDialog::new(msg)
-                    .on_close(ctx.link().callback(|_| Msg::ClearError))
-            ),
+            Some(msg) => {
+                Some(AlertDialog::new(msg).on_close(ctx.link().callback(|_| Msg::ClearError)))
+            }
         };
 
         Dialog::new(props.title.clone())
@@ -278,7 +275,7 @@ impl Component for PwtEditWindow {
                 Form::new()
                     .class("pwt-flex-fit")
                     .form_context(self.form_ctx.clone())
-                    .with_child(input_panel)
+                    .with_child(input_panel),
             )
             .with_optional_child(alert)
             .into()
