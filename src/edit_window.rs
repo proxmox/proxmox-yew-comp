@@ -276,7 +276,7 @@ impl Component for PwtEditWindow {
             .resizable(props.resizable)
             .with_child(
                 Form::new()
-                    .class("pwt-flex-fill")
+                    .class("pwt-flex-fit")
                     .form_context(self.form_ctx.clone())
                     .with_child(input_panel)
             )
