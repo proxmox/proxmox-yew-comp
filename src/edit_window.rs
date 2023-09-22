@@ -42,6 +42,11 @@ pub struct EditWindow {
     /// Form data loader.
     pub loader: Option<LoadCallback<Value>>,
 
+    /// Determines if the dialog can be resized
+    #[prop_or_default]
+    #[builder]
+    pub resizable: bool,
+
     /// Close/Abort callback.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     pub on_done: Option<Callback<()>>,
@@ -268,6 +273,7 @@ impl Component for PwtEditWindow {
         Dialog::new(props.title.clone())
             .node_ref(props.node_ref.clone())
             .on_close(props.on_done.clone())
+            .resizable(props.resizable)
             .with_child(
                 Form::new()
                     .class("pwt-flex-fill")
