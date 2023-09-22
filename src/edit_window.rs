@@ -4,7 +4,7 @@ use anyhow::Error;
 use pwt::state::PersistentState;
 use serde_json::Value;
 
-use yew::html::IntoEventCallback;
+use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
@@ -41,10 +41,24 @@ pub struct EditWindow {
     /// Form data loader.
     pub loader: Option<LoadCallback<Value>>,
 
+    /// Determines if the dialog can be moved
+    #[prop_or(true)]
+    #[builder]
+    pub draggable: bool,
+
     /// Determines if the dialog can be resized
     #[prop_or_default]
     #[builder]
     pub resizable: bool,
+
+    /// Determines if the dialog should be auto centered
+    #[prop_or(true)]
+    #[builder]
+    pub auto_center: bool,
+
+    /// CSS style for the dialog window.
+    #[builder(IntoPropValue, into_prop_value)]
+    pub style: Option<AttrValue>,
 
     /// Close/Abort callback.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
@@ -270,7 +284,10 @@ impl Component for PwtEditWindow {
         Dialog::new(props.title.clone())
             .node_ref(props.node_ref.clone())
             .on_close(props.on_done.clone())
+            .draggable(props.draggable)
             .resizable(props.resizable)
+            .auto_center(props.auto_center)
+            .style(props.style.clone())
             .with_child(
                 Form::new()
                     .class("pwt-flex-fit")
