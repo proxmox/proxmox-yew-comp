@@ -30,6 +30,9 @@ pub use key_value_grid::{KVGrid, KVGridRow, PwtKVGrid, RenderKVGridRecordFn};
 mod loadable_component;
 pub use loadable_component::{LoadableComponent, LoadableComponentMaster, LoadableComponentContext};
 
+mod notes_view;
+pub use notes_view::{NotesView, ProxmoxNotesView};
+
 mod object_grid;
 pub use object_grid::{ObjectGrid, ObjectGridRow, PwtObjectGrid, RenderObjectGridItemFn};
 
