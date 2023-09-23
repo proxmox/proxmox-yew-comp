@@ -12,7 +12,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::{SlabTree, SlabTreeNodeMut, TreeStore};
 use pwt::widget::data_table::{
-    DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader, DataTableMouseEvent,
+    DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader,
 };
 
 use pwt_macros::builder;
@@ -152,15 +152,7 @@ fn columns(store: &TreeStore<PermissionInfo>) -> Vec<DataTableHeader<PermissionI
     vec![
         DataTableColumn::new(tr!("Path") + "/" + &tr!("Permission"))
             .flex(1)
-            .on_cell_click({
-                let store = store.clone();
-                move |event: &mut DataTableMouseEvent| {
-                    if let Some(mut node) = store.write().lookup_node_mut(&event.record_key) {
-                        node.set_expanded(!node.expanded());
-                    }
-                }
-            })
-            .tree_column(Some(store.clone()))
+            .tree_column(store.clone())
             .render_cell(move |args: &mut DataTableCellRenderArgs<PermissionInfo>| {
                 let (icon_class, text) = match args.record() {
                     PermissionInfo::Path(path, _name) => (
