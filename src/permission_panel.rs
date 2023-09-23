@@ -12,8 +12,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::{SlabTree, SlabTreeNodeMut, TreeStore};
 use pwt::widget::data_table::{
-    render_tree_node, DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader,
-    DataTableMouseEvent,
+    DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader, DataTableMouseEvent,
 };
 
 use pwt_macros::builder;
@@ -161,20 +160,19 @@ fn columns(store: &TreeStore<PermissionInfo>) -> Vec<DataTableHeader<PermissionI
                     }
                 }
             })
+            .tree_column(Some(store.clone()))
             .render_cell(move |args: &mut DataTableCellRenderArgs<PermissionInfo>| {
-                render_tree_node(args, |record| {
-                    let (icon_class, text) = match record {
-                        PermissionInfo::Path(path, _name) => (
-                            Some(String::from("fa fa-fw fa-folder-o pwt-pe-2")),
-                            path.clone(),
-                        ),
-                        PermissionInfo::Permission(_path, perm, _propagate) => (
-                            Some(String::from("fa fa-fw fa-unlock pwt-pe-2")),
-                            perm.clone(),
-                        ),
-                    };
-                    (icon_class, text)
-                })
+                let (icon_class, text) = match args.record() {
+                    PermissionInfo::Path(path, _name) => (
+                        Some(String::from("fa fa-fw fa-folder-o pwt-pe-2")),
+                        path.clone(),
+                    ),
+                    PermissionInfo::Permission(_path, perm, _propagate) => (
+                        Some(String::from("fa fa-fw fa-unlock pwt-pe-2")),
+                        perm.clone(),
+                    ),
+                };
+                html! {<><i class={icon_class}/> {text}</>}
             })
             .into(),
         DataTableColumn::new(tr!("Propagate"))
