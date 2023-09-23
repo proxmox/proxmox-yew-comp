@@ -3,7 +3,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
-use pwt::props::{LoadCallback, IntoLoadCallback};
+use pwt::props::LoadCallback;
 use serde_json::Value;
 
 use yew::html::IntoPropValue;
@@ -60,10 +60,10 @@ impl LoadableComponent for ProxmoxNotesView {
     type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
-        let props = ctx.props();
-        let loader = props.base_url.into_load_callback().unwrap();
-
-        Self { text: "".into(), loader }
+        Self {
+            text: "".into(),
+            loader: ctx.props().base_url.clone().into(),
+        }
     }
 
     fn load(
