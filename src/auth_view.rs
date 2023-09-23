@@ -275,7 +275,6 @@ thread_local! {
             .into(),
         DataTableColumn::new("Comment")
             .flex(1)
-            .show_menu(false)
             .render(|record: &BasicRealmInfo| {
                 html!{record.comment.clone().unwrap_or(String::new())}
             })
