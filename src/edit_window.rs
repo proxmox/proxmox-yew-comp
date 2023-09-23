@@ -39,6 +39,7 @@ pub struct EditWindow {
     pub renderer: Option<RenderFn<FormContext>>,
 
     /// Form data loader.
+    #[builder_cb(IntoLoadCallback, into_load_callback, Value)]
     pub loader: Option<LoadCallback<Value>>,
 
     /// Determines if the dialog can be moved
@@ -93,11 +94,6 @@ impl EditWindow {
 
     pub fn renderer(mut self, renderer: impl 'static + Fn(&FormContext) -> Html) -> Self {
         self.renderer = Some(RenderFn::new(renderer));
-        self
-    }
-
-    pub fn loader(mut self, callback: impl IntoLoadCallback<Value>) -> Self {
-        self.loader = callback.into_load_callback();
         self
     }
 
