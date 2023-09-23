@@ -3,6 +3,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
+use pwt::props::{LoadCallback, IntoLoadCallback};
 use serde_json::Value;
 
 use yew::html::IntoPropValue;
@@ -50,6 +51,7 @@ pub enum Msg {
 #[doc(hidden)]
 pub struct ProxmoxNotesView {
     text: AttrValue,
+    loader: LoadCallback<Value>,
 }
 
 impl LoadableComponent for ProxmoxNotesView {
@@ -57,19 +59,21 @@ impl LoadableComponent for ProxmoxNotesView {
     type Message = Msg;
     type ViewState = ViewState;
 
-    fn create(_ctx: &LoadableComponentContext<Self>) -> Self {
-        Self { text: "".into() }
+    fn create(ctx: &LoadableComponentContext<Self>) -> Self {
+        let props = ctx.props();
+        let loader = props.base_url.into_load_callback().unwrap();
+
+        Self { text: "".into(), loader }
     }
 
     fn load(
         &self,
         ctx: &LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
-        let props = ctx.props();
-        let base_url = props.base_url.clone();
+        let loader = self.loader.clone();
         let link = ctx.link();
         Box::pin(async move {
-            let data: Value = crate::http_get(&*base_url, None).await?;
+            let data: Value = loader.apply().await?;
             let text = data["description"].as_str().unwrap_or("").to_owned();
             link.send_message(Msg::Load(text));
             Ok(())
@@ -120,7 +124,7 @@ impl LoadableComponent for ProxmoxNotesView {
                     .style("width: 800px; height: 400px;")
                     .on_done(ctx.link().change_view_callback(|_| None))
                     .resizable(true)
-                    .loader(&*props.base_url)
+                    .loader(self.loader.clone())
                     .on_submit({
                         let url = props.base_url.clone();
                         move |form_ctx: FormContext| update_item(form_ctx.clone(), url.clone())
