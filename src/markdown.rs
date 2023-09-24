@@ -30,7 +30,7 @@ pub struct ProxmoxMarkdown {
 
 /// Convert Markdown to sanitized Html
 pub fn markdown_to_html(text: &str) -> Html {
-    let options = pulldown_cmark::Options::empty();
+    let options = pulldown_cmark::Options::all();
     let parser = pulldown_cmark::Parser::new_ext(text, options);
 
     let mut html_output = String::new();
