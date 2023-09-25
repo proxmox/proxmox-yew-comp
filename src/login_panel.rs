@@ -259,9 +259,9 @@ impl Component for ProxmoxLoginPanel {
         let toolbar = Row::new()
             .padding(2)
             .gap(2)
-            .class("pwt-border-top pwt-bg-color-neutral-emphased")
+            .class("pwt-bg-color-surface")
             .with_flex_spacer()
-            .with_child(ResetButton::new().class("pwt-button-text"))
+            .with_child(ResetButton::new())
             .with_child(
                 SubmitButton::new()
                     .class("pwt-scheme-primary")
