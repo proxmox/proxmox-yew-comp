@@ -229,7 +229,7 @@ impl Component for PwtEditWindow {
         let mut toolbar = Row::new()
             .padding(2)
             .gap(2)
-            .class("pwt-bg-color-neutral-emphased")
+            .class("pwt-bg-color-surface")
             .with_flex_spacer();
 
         if props.advanced_checkbox {
@@ -254,6 +254,7 @@ impl Component for PwtEditWindow {
         toolbar.add_child(ResetButton::new());
         toolbar.add_child(
             SubmitButton::new()
+                .class("pwt-scheme-primary")
                 .text(if edit_mode { tr!("Update") } else { tr!("Add") })
                 .on_submit(submit),
         );
