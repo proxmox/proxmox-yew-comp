@@ -92,7 +92,7 @@ fn render_sync_form(_form_ctx: FormContext, _props: AuthEditLDAP) -> Html {
     InputPanel::new()
         .class(Flex::Fill)
         .class(Overflow::Auto)
-        .class("pwt-p-2")
+        .class("pwt-p-4")
         .with_field(tr!("First Name attribute"), Field::new().name("firstname"))
         .with_right_field(
             tr!("User classes"),
@@ -150,7 +150,7 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
     InputPanel::new()
         .class(Flex::Fill)
         .class(Overflow::Auto)
-        .class("pwt-p-2")
+        .class("pwt-p-4")
         .with_field(
             tr!("Realm"),
             Field::new()

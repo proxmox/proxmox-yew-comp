@@ -163,7 +163,7 @@ impl PwtSubscriptionPanel {
 
         let input_panel = |_form_state: &FormContext| -> Html {
             InputPanel::new()
-                .class("pwt-p-2")
+                .class("pwt-p-4")
                 .with_field(
                     "Subscription Key",
                     Field::new()

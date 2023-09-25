@@ -226,7 +226,7 @@ impl Component for ProxmoxLoginPanel {
 
         let input_panel = InputPanel::new()
             .class("pwt-overflow-auto")
-            .class("pwt-p-2")
+            .class("pwt-p-4")
             .with_field(
                 "User name",
                 Field::new()
