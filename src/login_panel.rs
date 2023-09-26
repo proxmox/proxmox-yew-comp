@@ -7,7 +7,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, Field, Form, FormContext, ResetButton, SubmitButton};
-use pwt::widget::{Column, InputPanel, Mask, Row};
+use pwt::widget::{Column, InputPanel, Mask, Row, LanguageSelector};
 
 use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
 
@@ -305,6 +305,7 @@ impl Component for ProxmoxLoginPanel {
             .padding(2)
             .gap(2)
             .class("pwt-bg-color-surface")
+            .with_child(LanguageSelector::new())
             .with_flex_spacer()
             .with_child(save_username)
             .with_child(ResetButton::new())
