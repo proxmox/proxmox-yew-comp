@@ -44,13 +44,15 @@ thread_local!{
 }
 
 
-use pwt_macros::widget;
+use pwt_macros::{builder, widget};
 use pwt::props::{FieldBuilder, WidgetBuilder};
 
 #[widget(comp=ProxmoxCalendarEventSelector, @input)]
 #[derive(Properties, PartialEq)]
+#[builder]
 pub struct CalendarEventSelector {
     /// The default value.
+    #[builder(IntoPropValue, into_prop_value)]
     pub default: Option<AttrValue>,
 }
 
@@ -58,17 +60,6 @@ impl CalendarEventSelector {
     /// Create a new instance.
     pub fn new() -> Self {
         yew::props!(Self {})
-    }
-
-    /// Builder style method to set the default item.
-    pub fn default(mut self, default: impl IntoPropValue<Option<AttrValue>>) -> Self {
-        self.set_default(default);
-        self
-    }
-
-    /// Method to set the default item.
-    pub fn set_default(&mut self, default: impl IntoPropValue<Option<AttrValue>>) {
-        self.default = default.into_prop_value();
     }
 }
 

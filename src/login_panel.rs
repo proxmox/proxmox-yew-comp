@@ -1,11 +1,12 @@
 use std::rc::Rc;
 
+use pwt::state::PersistentState;
 use yew::html::IntoEventCallback;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{Field, Form, FormContext, ResetButton, SubmitButton};
+use pwt::widget::form::{Checkbox, Field, Form, FormContext, ResetButton, SubmitButton};
 use pwt::widget::{Column, InputPanel, Mask, Row};
 
 use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
@@ -33,6 +34,7 @@ impl LoginPanel {
 pub enum Msg {
     FormDataChange,
     Submit,
+    SaveUsername(bool),
     Login(Authentication),
     LoginError(String),
     Challenge(SecondFactorChallenge),
@@ -48,6 +50,8 @@ pub struct ProxmoxLoginPanel {
     login_error: Option<String>,
     form_ctx: FormContext,
     challenge: Option<Rc<SecondFactorChallenge>>,
+    save_username: PersistentState<bool>,
+    last_username: PersistentState<String>,
 }
 
 impl ProxmoxLoginPanel {
@@ -100,11 +104,17 @@ impl Component for ProxmoxLoginPanel {
 
     fn create(ctx: &Context<Self>) -> Self {
         let form_ctx = FormContext::new().on_change(ctx.link().callback(|_| Msg::FormDataChange));
+
+        let save_username = PersistentState::<bool>::new("ProxmoxLoginPanelSaveUsername");
+        let last_username = PersistentState::<String>::new("ProxmoxLoginPanelUsername");
+
         Self {
             form_ctx,
             loading: false,
             login_error: None,
             challenge: None,
+            save_username,
+            last_username,
         }
     }
 
@@ -195,6 +205,10 @@ impl Component for ProxmoxLoginPanel {
                 */
                 true
             }
+            Msg::SaveUsername(save_username) => {
+                self.save_username.update(save_username);
+                true
+            }
             Msg::Submit => {
                 self.loading = true;
 
@@ -207,6 +221,9 @@ impl Component for ProxmoxLoginPanel {
             }
             Msg::Login(info) => {
                 self.loading = false;
+                if *self.save_username {
+                    self.last_username.update(info.userid.clone());
+                }
                 if let Some(on_login) = &props.on_login {
                     on_login.emit(info);
                 }
@@ -224,6 +241,19 @@ impl Component for ProxmoxLoginPanel {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let link = ctx.link().clone();
 
+        let mut default_username = String::from("root");
+        let mut default_realm = String::from("pam");
+
+        if *self.save_username {
+            let last_userid: String = (*self.last_username).to_string();
+            if !last_userid.is_empty() {
+                if let Some((user, realm)) = last_userid.rsplit_once('@') {
+                    default_username = user.to_owned();
+                    default_realm = realm.to_owned();
+                }
+            }
+        }
+
         let input_panel = InputPanel::new()
             .class("pwt-overflow-auto")
             .class("pwt-p-4")
@@ -231,7 +261,7 @@ impl Component for ProxmoxLoginPanel {
                 "User name",
                 Field::new()
                     .name("username")
-                    .default("root")
+                    .default(default_username)
                     .required(true)
                     .autofocus(true),
             )
@@ -242,7 +272,7 @@ impl Component for ProxmoxLoginPanel {
                     .required(true)
                     .input_type("password"),
             )
-            .with_field("Realm", RealmSelector::new().name("realm"));
+            .with_field("Realm", RealmSelector::new().name("realm").default(default_realm));
 
         let tfa_dialog = match &self.challenge {
             Some(challenge) => Some(
@@ -256,11 +286,27 @@ impl Component for ProxmoxLoginPanel {
             None => None,
         };
 
+        let save_username_label_id = pwt::widget::get_unique_element_id();
+        let save_username_field = Checkbox::new()
+            .class("pwt-ms-1")
+            .label_id(save_username_label_id.clone())
+            .checked(*self.save_username)
+            .on_change(
+                ctx.link()
+                    .callback(|value| Msg::SaveUsername(value == "on")),
+            );
+
+        let save_username = Row::new()
+            .class("pwt-align-items-center")
+            .with_child(html! {<label id={save_username_label_id} style="user-select:none;">{tr!("Save User name")}</label>})
+            .with_child(save_username_field);
+
         let toolbar = Row::new()
             .padding(2)
             .gap(2)
             .class("pwt-bg-color-surface")
             .with_flex_spacer()
+            .with_child(save_username)
             .with_child(ResetButton::new())
             .with_child(
                 SubmitButton::new()

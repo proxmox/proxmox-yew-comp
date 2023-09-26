@@ -2,6 +2,7 @@ use std::rc::Rc;
 use anyhow::{format_err};
 
 use yew::prelude::*;
+use yew::html::IntoPropValue;
 
 use pwt::props::RenderFn;
 use pwt::state::Store;
@@ -30,12 +31,17 @@ thread_local!{
     ]);
 }
 
-use pwt_macros::widget;
+use pwt_macros::{builder, widget};
 use pwt::props::{FieldBuilder, WidgetBuilder};
 
 #[widget(comp=ProxmoxRealmSelector, @input)]
 #[derive(Properties, PartialEq)]
-pub struct RealmSelector {}
+#[builder]
+pub struct RealmSelector {
+    /// The default value.
+    #[builder(IntoPropValue, into_prop_value)]
+    pub default: Option<AttrValue>,
+}
 
 impl RealmSelector {
     pub fn new() -> Self {
@@ -84,7 +90,7 @@ impl Component for  ProxmoxRealmSelector {
             .with_std_props(&props.std_props)
             .with_input_props(&props.input_props)
             .required(true)
-            .default("pam")
+            .default(props.default.as_deref().unwrap_or("pam").to_string())
             .loader("/access/domains")
             .validate(self.validate.clone())
             .into()
