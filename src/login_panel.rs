@@ -305,6 +305,7 @@ impl Component for ProxmoxLoginPanel {
             .padding(2)
             .gap(2)
             .class("pwt-bg-color-surface")
+            .class("pwt-align-items-baseline")
             .with_child(LanguageSelector::new())
             .with_flex_spacer()
             .with_child(save_username)
