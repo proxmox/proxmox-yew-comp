@@ -108,7 +108,6 @@ impl Component for ProxmoxSubscriptionInfo {
 
 
         Panel::new()
-            .class("pwt-fit")
             .border(true)
             .title("Subscription")
             .with_tool(HelpButton::new().section("subscription"))
