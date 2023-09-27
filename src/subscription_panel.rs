@@ -32,12 +32,12 @@ pub enum Msg {
     ChangeView(ViewState),
 }
 
-pub struct PwtSubscriptionPanel {
+pub struct ProxmoxSubscriptionPanel {
     loader: Loader<Value>,
     view_state: ViewState,
 }
 
-impl Component for PwtSubscriptionPanel {
+impl Component for ProxmoxSubscriptionPanel {
     type Message = Msg;
     type Properties = SubscriptionPanel;
 
@@ -93,7 +93,7 @@ impl Component for PwtSubscriptionPanel {
 
 impl Into<VNode> for SubscriptionPanel {
     fn into(self) -> VNode {
-        let comp = VComp::new::<PwtSubscriptionPanel>(Rc::new(self), None);
+        let comp = VComp::new::<ProxmoxSubscriptionPanel>(Rc::new(self), None);
         VNode::from(comp)
     }
 }
@@ -125,7 +125,7 @@ thread_local!{
             }),
     ]);
 }
-impl PwtSubscriptionPanel {
+impl ProxmoxSubscriptionPanel {
 
     fn create_toolbar(&self, ctx: &Context<Self>) -> Html {
         Toolbar::new()

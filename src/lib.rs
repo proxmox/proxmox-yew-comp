@@ -79,7 +79,10 @@ mod subscription_alert;
 pub use subscription_alert::{SubscriptionAlert, ProxmoxSubscriptionAlert};
 
 mod subscription_panel;
-pub use subscription_panel::{SubscriptionPanel, PwtSubscriptionPanel};
+pub use subscription_panel::{SubscriptionPanel, ProxmoxSubscriptionPanel};
+
+mod subscription_info;
+pub use subscription_info::{SubscriptionInfo, ProxmoxSubscriptionInfo};
 
 mod syslog;
 pub use syslog::{Syslog, ProxmoxSyslog};
