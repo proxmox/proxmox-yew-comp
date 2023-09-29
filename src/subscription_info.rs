@@ -3,10 +3,13 @@ use std::rc::Rc;
 use serde_json::Value;
 
 use yew::virtual_dom::{VComp, VNode};
+use yew::html::IntoEventCallback;
 
 use pwt::prelude::*;
 use pwt::state::Loader;
 use pwt::widget::Panel;
+
+use pwt_macros::builder;
 
 use crate::{HelpButton, ProxmoxProduct};
 
@@ -61,13 +64,17 @@ fn subscription_status_message(status: &str, url: Option<&str>) -> Html {
 }
 
 #[derive(Properties, PartialEq, Clone)]
+#[builder]
 pub struct SubscriptionInfo {
-    product: ProxmoxProduct,
+    pub product: ProxmoxProduct,
+
+    #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    pub on_status_change: Option<Callback<String>>,
 }
 
 impl SubscriptionInfo {
     pub fn new(product: ProxmoxProduct) -> Self {
-        Self { product }
+        yew::props!(Self { product })
     }
 }
 
@@ -92,9 +99,23 @@ impl Component for ProxmoxSubscriptionInfo {
         Self { loader }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        let props = ctx.props();
         match msg {
-            Msg::DataChange => true,
+            Msg::DataChange => {
+                self.loader.with_state(|state| {
+                    let status = match &state.data {
+                        Some(Ok(data)) => {
+                            data["status"].as_str().unwrap_or("").to_owned()
+                        }
+                        _ => String::from("unknown"),
+                    };
+                    if let Some(on_status_change) = &props.on_status_change {
+                        on_status_change.emit(status);
+                    }
+                });
+                true
+            }
         }
     }
 
