@@ -69,11 +69,17 @@ pub use markdown::{Markdown, ProxmoxMarkdown};
 mod journal_view;
 pub use journal_view::JournalView;
 
+mod progress_label;
+pub use progress_label::{ProgressLabel, ProxmoxProgressLabel};
+
 mod sanitize_html;
 pub use sanitize_html::sanitize_html;
 
 mod schema_validation;
 pub use schema_validation::*;
+
+mod status_row;
+pub use status_row::{StatusRow, ProxmoxStatusRow};
 
 mod subscription_alert;
 pub use subscription_alert::{SubscriptionAlert, ProxmoxSubscriptionAlert};
