@@ -54,3 +54,9 @@ pub struct TaskListItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
 }
+
+impl ExtractPrimaryKey for TaskListItem {
+    fn extract_key(&self) -> Key {
+        Key::from(self.upid.clone())
+    }
+}

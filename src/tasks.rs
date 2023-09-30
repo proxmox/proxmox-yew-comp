@@ -7,7 +7,7 @@ use anyhow::Error;
 use pwt::widget::form::{Field, Form, FormContext};
 
 use yew::html::IntoPropValue;
-use yew::virtual_dom::{Key, VComp, VNode};
+use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::{PersistentState, Selection, Store};
@@ -85,7 +85,7 @@ impl LoadableComponent for ProxmoxTasks {
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let link = ctx.link();
         let selection = Selection::new().on_select(link.callback(|_| Msg::Redraw));
-        let store = Store::with_extract_key(|record: &TaskListItem| Key::from(record.upid.clone()));
+        let store = Store::new();
 
         let filter_form_context =
             FormContext::new().on_change(ctx.link().callback(|_| Msg::UpdateFilter));
