@@ -8,6 +8,52 @@ use proxmox_schema::upid::UPID;
 
 use pwt::tr;
 
+/// Somewhat like a human would tell durations, omit zero values and do not
+/// give seconds precision if we talk days already
+pub fn format_duration_human(ut: f64) -> String {
+    let mut minutes = 0;
+    let mut hours = 0;
+    let mut days = 0;
+    let mut years = 0;
+
+    if ut < 1.0 {
+	    return "<1s".into();
+	}
+	let mut remaining = ut as u64;
+	let seconds = remaining % 60;
+	remaining = remaining / 60;
+    if remaining > 0 {
+        minutes = remaining % 60;
+	    remaining = remaining / 60;
+        if remaining > 0 {
+            hours = remaining % 24;
+            remaining = remaining / 24;
+            if remaining > 0 {
+                days = remaining % 365;
+                remaining = remaining / 365; // yea, just lets ignore leap years...
+                if remaining > 0 {
+                    years = remaining;
+                }
+            }
+        }
+    }
+
+    let mut parts = Vec::new();
+
+    if years > 0 { parts.push(format!("{years}y")) };
+    if days > 0 { parts.push(format!("{days}d")) };
+    if hours > 0 { parts.push(format!("{hours}h")) };
+
+    if years == 0 {
+        if minutes > 0 { parts.push(format!("{minutes}m")) };
+        if days == 0 {
+            if seconds > 0 { parts.push(format!("{seconds}s")) };
+        }
+    }
+
+    parts.join(" ")
+}
+
 /// epoch to "M d H:i:s" (localtime)
 pub fn render_epoch_short(epoch: i64) -> String {
     let date = js_sys::Date::new_0();
