@@ -16,7 +16,7 @@ use pwt::widget::data_table::{
 };
 use pwt::widget::{Button, Column, Toolbar};
 
-use crate::utils::{render_epoch_short, render_upid};
+use crate::utils::{render_epoch_short, format_upid};
 
 use crate::common_api_types::TaskListItem;
 
@@ -307,7 +307,7 @@ thread_local! {
         DataTableColumn::new(tr!("Description"))
             .flex(1)
             .render(|item: &TaskListItem| {
-                render_upid(&item.upid)
+                html!{format_upid(&item.upid)}
             })
             .into(),
         DataTableColumn::new(tr!("Status"))

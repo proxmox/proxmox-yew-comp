@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::fmt::Display;
 
-use yew::prelude::*;
-
 use proxmox_schema::upid::UPID;
 
 use pwt::tr;
@@ -190,18 +188,17 @@ pub fn init_task_descr_table_base() {
     register_task_description("srvreload", (tr!("Service"), tr!("Reload")));
 }
 
-pub fn render_upid(upid: &str) -> Html {
+pub fn format_upid(upid: &str) -> String {
     match upid.parse::<UPID>() {
-        Err(_) => { html!{upid} }
+        Err(_) => { upid.to_string() }
         Ok(upid) => {
             if let Some(text) = lookup_task_description(upid.worker_type.as_str(), upid.worker_id.as_deref()) {
-                html!{text}
+                text
             } else {
-                let text = match (upid.worker_type.as_str(), upid.worker_id) {
+                match (upid.worker_type.as_str(), upid.worker_id) {
                     (worker_type, Some(id)) => format!("{} {}", worker_type, id),
                     (worker_type, None) =>  format!("{}", worker_type),
-                };
-                html!{text}
+                }
             }
         }
     }

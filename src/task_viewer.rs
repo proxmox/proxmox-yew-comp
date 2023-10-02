@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-use pwt_macros::builder;
 use serde_json::Value;
 
 use gloo_timers::callback::Timeout;
@@ -14,18 +13,22 @@ use pwt::state::Loader;
 use pwt::widget::{Button, Column, Dialog, TabBarItem, TabPanel, Toolbar};
 
 use crate::percent_encoding::percent_encode_component;
-use crate::utils::render_epoch;
+use crate::utils::{format_duration_human, render_epoch, format_upid};
 use crate::{KVGrid, KVGridRow, LogView};
 
-#[builder]
+use pwt_macros::builder;
+
 #[derive(Properties, PartialEq, Clone)]
+#[builder]
 pub struct TaskViewer {
     #[prop_or_default]
     node_ref: NodeRef,
     pub key: Option<Key>,
 
     pub task_id: String,
-    pub endtime: Option<f64>,
+
+    #[builder(IntoPropValue, into_prop_value)]
+    pub endtime: Option<i64>,
 
     /// Close/Abort callback
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
@@ -42,11 +45,6 @@ impl TaskViewer {
         yew::props!(Self {
             task_id: task_id.into(),
         })
-    }
-
-    pub fn endtime(mut self, endtime: f64) -> Self {
-        self.endtime = Some(endtime);
-        self
     }
 
     /// Builder style method to set the yew `node_ref`
@@ -72,7 +70,7 @@ pub struct PwtTaskViewer {
     loader: Loader<Value>,
     reload_timeout: Option<Timeout>,
     active: bool,
-    endtime: Option<f64>,
+    endtime: Option<i64>,
 }
 
 impl Component for PwtTaskViewer {
@@ -121,7 +119,7 @@ impl Component for PwtTaskViewer {
                     }));
                 } else {
                     if self.endtime.is_none() {
-                        self.endtime = Some(proxmox_time::epoch_f64());
+                        self.endtime = Some(proxmox_time::epoch_i64());
                     }
                 }
                 true
@@ -162,7 +160,9 @@ impl Component for PwtTaskViewer {
                 )
         });
 
-        Dialog::new("Task Viewer")
+        let title = format_upid(&props.task_id);
+
+        Dialog::new(tr!("Task Viewer") + ": " + &title)
             .resizable(true)
             .style("width: 840px; height:600px;")
             .node_ref(props.node_ref.clone())
@@ -247,15 +247,14 @@ impl PwtTaskViewer {
             }),
             KVGridRow::new("duration", "Duration")
                 .renderer(move |_name, _value, record| {
-                    if let Some(starttime) = record["starttime"].as_f64() {
-                        if let Some(endtime) = record["endtime"].as_f64() {
-                            if endtime >= starttime {
-                                return html! {{format!("{:.0}s", endtime - starttime)}};
-                            }
+                    if let Some(starttime) = record["starttime"].as_i64() {
+                        let duration = if let Some(endtime) = record["endtime"].as_i64() {
+                            endtime - starttime
                         } else {
-                            let now = endtime.unwrap_or_else(|| proxmox_time::epoch_f64());
-                            return html! {{format!("{:.0}s", now - starttime)}};
-                        }
+                            let now = endtime.unwrap_or_else(|| proxmox_time::epoch_i64());
+                            now - starttime
+                        };
+                        return html!{format_duration_human(duration as f64)}
                     }
                     html! {"-"}
                 })
