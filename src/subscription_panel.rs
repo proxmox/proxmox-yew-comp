@@ -42,8 +42,9 @@ impl Component for ProxmoxSubscriptionPanel {
     type Properties = SubscriptionPanel;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let loader = Loader::new(ctx.link().callback(|_| Msg::DataChange))
-            .loader("/nodes/localhost/subscription");
+        let loader = Loader::new()
+            .loader("/nodes/localhost/subscription")
+            .on_change(ctx.link().callback(|_| Msg::DataChange));
 
         loader.load();
 

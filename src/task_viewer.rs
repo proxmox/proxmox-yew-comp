@@ -13,7 +13,7 @@ use pwt::state::Loader;
 use pwt::widget::{Button, Column, Dialog, TabBarItem, TabPanel, Toolbar};
 
 use crate::percent_encoding::percent_encode_component;
-use crate::utils::{format_duration_human, render_epoch, format_upid};
+use crate::utils::{format_duration_human, format_upid, render_epoch};
 use crate::{KVGrid, KVGridRow, LogView};
 
 use pwt_macros::builder;
@@ -87,16 +87,18 @@ impl Component for PwtTaskViewer {
         );
         let endtime = props.endtime;
 
-        let loader = Loader::new(ctx.link().callback(|_| Msg::DataChange)).loader(move || {
-            let url = url.clone();
-            async move {
-                let mut data: Value = crate::http_get(&url, None).await?;
-                if let Some(endtime) = endtime {
-                    data["endtime"] = endtime.into();
+        let loader = Loader::new()
+            .loader(move || {
+                let url = url.clone();
+                async move {
+                    let mut data: Value = crate::http_get(&url, None).await?;
+                    if let Some(endtime) = endtime {
+                        data["endtime"] = endtime.into();
+                    }
+                    Ok(data)
                 }
-                Ok(data)
-            }
-        });
+            })
+            .on_change(ctx.link().callback(|_| Msg::DataChange));
 
         loader.load();
         Self {
@@ -182,14 +184,12 @@ impl Into<VNode> for TaskViewer {
 
 impl PwtTaskViewer {
     fn task_is_active(&self) -> bool {
-        self.loader.with_state(|state| {
-            if let Some(Ok(data)) = state.data.as_ref() {
-                if let Some("stopped") = data["status"].as_str() {
-                    return false;
-                }
+        if let Some(Ok(data)) = self.loader.read().data.as_ref() {
+            if let Some("stopped") = data["status"].as_str() {
+                return false;
             }
-            true
-        })
+        }
+        true
     }
 
     fn view_status(&self, ctx: &Context<Self>, data: Rc<Value>) -> Html {
@@ -254,7 +254,7 @@ impl PwtTaskViewer {
                             let now = endtime.unwrap_or_else(|| proxmox_time::epoch_i64());
                             now - starttime
                         };
-                        return html!{format_duration_human(duration as f64)}
+                        return html! {format_duration_human(duration as f64)};
                     }
                     html! {"-"}
                 })

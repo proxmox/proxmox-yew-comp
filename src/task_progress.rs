@@ -11,10 +11,10 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::Loader;
-use pwt::widget::{Button, Container, Column, Dialog, Progress, Row};
+use pwt::widget::{Button, Column, Container, Dialog, Progress, Row};
 
-use crate::TaskViewer;
 use crate::percent_encoding::percent_encode_component;
+use crate::TaskViewer;
 
 #[builder]
 #[derive(Properties, PartialEq, Clone)]
@@ -85,10 +85,13 @@ impl Component for PwtTaskProgress {
             percent_encode_component(&props.task_id),
         );
 
-        let loader = Loader::new(ctx.link().callback(|_| Msg::DataChange)).loader(move || {
-            let url = url.clone();
-            async move { crate::http_get(&url, None).await }
-        });
+        let loader = Loader::new()
+            .loader(move || {
+                let url = url.clone();
+                async move { crate::http_get(&url, None).await }
+            })
+            .on_change(ctx.link().callback(|_| Msg::DataChange))
+            ;
 
         loader.load();
         Self {
@@ -157,21 +160,16 @@ impl Component for PwtTaskProgress {
                         Progress::new().value(1.0)
                     }
                 })
-               .with_child(
-                    Container::new()
-                        .padding(2)
-                        .with_child(
-                            if active {
-                                html!{"running"}
-                            } else {
-                                let exit_status = data["exitstatus"].as_str().unwrap_or("unknown");
-                                if exit_status == "OK" {
-                                    html!{"Done! Task finished successfully."}
-                                } else {
-                                    html!{format!("Task failed: {exit_status}")}
-                                }
-                            })
-                )
+                .with_child(Container::new().padding(2).with_child(if active {
+                    html! {"running"}
+                } else {
+                    let exit_status = data["exitstatus"].as_str().unwrap_or("unknown");
+                    if exit_status == "OK" {
+                        html! {"Done! Task finished successfully."}
+                    } else {
+                        html! {format!("Task failed: {exit_status}")}
+                    }
+                }))
         });
 
         Dialog::new("Task Progress")
@@ -180,15 +178,9 @@ impl Component for PwtTaskProgress {
             .node_ref(props.node_ref.clone())
             .on_close(props.on_close.clone())
             .with_child(panel)
-            .with_child(
-                Row::new()
-                    .padding(2)
-                    .with_flex_spacer()
-                    .with_child(
-                        Button::new("Details")
-                            .onclick(ctx.link().callback(|_| Msg::ShowDetails))
-                    )
-            )
+            .with_child(Row::new().padding(2).with_flex_spacer().with_child(
+                Button::new("Details").onclick(ctx.link().callback(|_| Msg::ShowDetails)),
+            ))
             .into()
     }
 }
@@ -203,13 +195,11 @@ impl Into<VNode> for TaskProgress {
 
 impl PwtTaskProgress {
     fn task_is_active(&self) -> bool {
-        self.loader.with_state(|state| {
-            if let Some(Ok(data)) = state.data.as_ref() {
-                if let Some("stopped") = data["status"].as_str() {
-                    return false;
-                }
+        if let Some(Ok(data)) = self.loader.read().data.as_ref() {
+            if let Some("stopped") = data["status"].as_str() {
+                return false;
             }
-            true
-        })
+        }
+        true
     }
 }

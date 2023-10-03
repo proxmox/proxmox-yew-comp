@@ -1,26 +1,26 @@
 use std::rc::Rc;
 
-use serde_json::Value;
-use indexmap::IndexMap;
 use derivative::Derivative;
+use indexmap::IndexMap;
+use serde_json::Value;
 
 use yew::prelude::*;
-use yew::virtual_dom::{VComp, VNode, Key};
+use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::{LoadCallback, IntoLoadCallback};
+use pwt::props::{IntoLoadCallback, LoadCallback};
 use pwt::state::Loader;
-use pwt::widget::{Button, Toolbar};
-use pwt::widget::form::{FormContext, SubmitCallback, IntoSubmitCallback};
 use pwt::widget::data_table::{DataTableKeyboardEvent, DataTableMouseEvent};
+use pwt::widget::form::{FormContext, IntoSubmitCallback, SubmitCallback};
+use pwt::widget::{Button, Toolbar};
 
 use crate::{EditWindow, KVGrid, KVGridRow};
 
 #[derive(Derivative)]
 #[derivative(Clone, PartialEq)]
 pub struct RenderObjectGridItemFn(
-    #[derivative(PartialEq(compare_with="Rc::ptr_eq"))]
-    Rc<dyn Fn(&FormContext, &str, &Value, &Value) -> Html>
+    #[derivative(PartialEq(compare_with = "Rc::ptr_eq"))]
+    Rc<dyn Fn(&FormContext, &str, &Value, &Value) -> Html>,
 );
 
 impl RenderObjectGridItemFn {
@@ -37,7 +37,6 @@ pub struct ObjectGridRow {
 }
 
 impl ObjectGridRow {
-
     pub fn new(name: impl Into<String>, header: impl Into<String>) -> Self {
         Self {
             row: KVGridRow::new(name, header),
@@ -78,7 +77,6 @@ impl ObjectGridRow {
     ) -> Self {
         self.editor = Some(RenderObjectGridItemFn::new(editor));
         self
-
     }
 }
 
@@ -107,11 +105,9 @@ impl Into<VNode> for ObjectGrid {
         let comp = VComp::new::<PwtObjectGrid>(Rc::new(self), None);
         VNode::from(comp)
     }
-
 }
 
 impl ObjectGrid {
-
     pub fn new() -> Self {
         Self {
             loader: None,
@@ -121,7 +117,7 @@ impl ObjectGrid {
 
             data: None,
             on_submit: None,
-       }
+        }
     }
 
     pub fn loader(mut self, callback: impl IntoLoadCallback<Value>) -> Self {
@@ -171,15 +167,12 @@ pub struct PwtObjectGrid {
     show_dialog: bool,
 }
 
-impl PwtObjectGrid  {
-
+impl PwtObjectGrid {
     fn data(&self) -> Value {
-        self.loader.with_state(|loader| {
-            match &loader.data {
-                Some(Ok(data)) => data.as_ref().clone(),
-                _ => Value::Null,
-            }
-        })
+        match &self.loader.read().data {
+            Some(Ok(data)) => data.as_ref().clone(),
+            _ => Value::Null,
+        }
     }
 
     fn edit_dialog(&self, ctx: &Context<Self>) -> Html {
@@ -210,8 +203,10 @@ impl Component for PwtObjectGrid {
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
 
-        let loader = Loader::new(ctx.link().callback(|_| Msg::DataChange))
-            .loader(props.loader.clone());
+        let loader =
+            Loader::new()
+                .loader(props.loader.clone())
+                .on_change(ctx.link().callback(|_| Msg::DataChange));
 
         loader.load();
 
@@ -253,8 +248,7 @@ impl Component for PwtObjectGrid {
             true
         };
 
-
-        html!{
+        html! {
             <>
                 if props.editable {
                     {self.toolbar(ctx, disable_edit)}
@@ -267,13 +261,12 @@ impl Component for PwtObjectGrid {
 }
 
 impl PwtObjectGrid {
-
     fn toolbar(&self, ctx: &Context<Self>, disable_edit: bool) -> Html {
         Toolbar::new()
             .with_child(
                 Button::new("Edit")
                     .disabled(disable_edit)
-                    .onclick(ctx.link().callback(|_| Msg::Edit))
+                    .onclick(ctx.link().callback(|_| Msg::Edit)),
             )
             .with_flex_spacer()
             .with_child(self.loader.reload_button())
@@ -281,7 +274,9 @@ impl PwtObjectGrid {
     }
 
     fn main_view(&self, ctx: &Context<Self>, data: Rc<Value>) -> Html {
-        ctx.props().grid.clone()
+        ctx.props()
+            .grid
+            .clone()
             .data(data)
             .on_select(ctx.link().callback(|key| Msg::Select(key)))
             .on_row_dblclick({

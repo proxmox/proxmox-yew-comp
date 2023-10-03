@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use serde_json::Value;
 
-use yew::virtual_dom::{VComp, VNode};
 use yew::html::IntoEventCallback;
+use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::Loader;
@@ -53,7 +53,7 @@ fn subscription_status_message(status: &str, url: Option<&str>) -> Html {
         return html! {<p>{status_text}</p>};
     }
 
-    let msg = html!{
+    let msg = html! {
         <>
             <h1>{status_text}</h1>
             {subscription_note(url)}
@@ -91,8 +91,9 @@ impl Component for ProxmoxSubscriptionInfo {
     type Properties = SubscriptionInfo;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let loader = Loader::new(ctx.link().callback(|_| Msg::DataChange))
-            .loader("/nodes/localhost/subscription");
+        let loader = Loader::new()
+            .loader("/nodes/localhost/subscription")
+            .on_change(ctx.link().callback(|_| Msg::DataChange));
 
         loader.load();
 
@@ -103,17 +104,13 @@ impl Component for ProxmoxSubscriptionInfo {
         let props = ctx.props();
         match msg {
             Msg::DataChange => {
-                self.loader.with_state(|state| {
-                    let status = match &state.data {
-                        Some(Ok(data)) => {
-                            data["status"].as_str().unwrap_or("").to_owned()
-                        }
-                        _ => String::from("unknown"),
-                    };
-                    if let Some(on_status_change) = &props.on_status_change {
-                        on_status_change.emit(status);
-                    }
-                });
+                let status = match &self.loader.read().data {
+                    Some(Ok(data)) => data["status"].as_str().unwrap_or("").to_owned(),
+                    _ => String::from("unknown"),
+                };
+                if let Some(on_status_change) = &props.on_status_change {
+                    on_status_change.emit(status);
+                }
                 true
             }
         }
@@ -126,7 +123,6 @@ impl Component for ProxmoxSubscriptionInfo {
             let msg = subscription_status_message(&status, url);
             html! {<div class="pwt-p-2">{msg}</div>}
         });
-
 
         Panel::new()
             .border(true)
