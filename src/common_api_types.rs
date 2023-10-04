@@ -60,3 +60,23 @@ impl ExtractPrimaryKey for TaskListItem {
         Key::from(self.upid.clone())
     }
 }
+
+/// Clasify task status.
+pub enum TaskStatusClass {
+    Ok,
+    Warning,
+    Error,
+}
+
+impl<T: AsRef<str>> From<T> for TaskStatusClass {
+    fn from(status: T) -> Self {
+        let status = status.as_ref();
+        if status == "OK" {
+            TaskStatusClass::Ok
+        } else if status.starts_with("WARNINGS:") {
+            TaskStatusClass::Warning
+        } else {
+            TaskStatusClass::Error
+        }
+    }
+}
