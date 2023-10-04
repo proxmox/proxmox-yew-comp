@@ -62,6 +62,7 @@ impl ExtractPrimaryKey for TaskListItem {
 }
 
 /// Clasify task status.
+#[derive(Copy, Clone, PartialEq)]
 pub enum TaskStatusClass {
     Ok,
     Warning,
