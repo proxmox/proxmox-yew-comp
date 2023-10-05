@@ -8,11 +8,12 @@ use pwt_macros::{builder, widget};
 
 /// Markdown Viewer
 #[widget(comp=ProxmoxMarkdown, @element)]
-#[derive(PartialEq, Properties)]
+#[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct Markdown {
     /// Markdown text
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     text: Option<AttrValue>,
 }
 

@@ -10,8 +10,10 @@ use pwt_macros::widget;
 pub struct StatusRow {
     pub title: AttrValue,
 
+    #[prop_or_default]
     pub icon_class: Option<Classes>,
 
+    #[prop_or_default]
     pub status: Option<Html>,
 }
 

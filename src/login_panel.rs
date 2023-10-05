@@ -15,6 +15,7 @@ use crate::{RealmSelector, TfaDialog};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct LoginPanel {
+    #[prop_or_default]
     pub on_login: Option<Callback<Authentication>>,
 }
 

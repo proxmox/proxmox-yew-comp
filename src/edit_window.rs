@@ -25,9 +25,11 @@ pub struct EditWindow {
     node_ref: NodeRef,
 
     /// Yew component key
+    #[prop_or_default]
     pub key: Option<Key>,
 
     /// Window title
+    #[prop_or_default]
     pub title: AttrValue,
 
     /// Show advanced checkbox
@@ -36,10 +38,12 @@ pub struct EditWindow {
     pub advanced_checkbox: bool,
 
     // Form renderer.
+    #[prop_or_default]
     pub renderer: Option<RenderFn<FormContext>>,
 
     /// Form data loader.
     #[builder_cb(IntoLoadCallback, into_load_callback, Value)]
+    #[prop_or_default]
     pub loader: Option<LoadCallback<Value>>,
 
     /// Determines if the dialog can be moved
@@ -59,17 +63,21 @@ pub struct EditWindow {
 
     /// CSS style for the dialog window.
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub style: Option<AttrValue>,
 
     /// Close/Abort callback.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    #[prop_or_default]
     pub on_done: Option<Callback<()>>,
 
     /// Submit callback.
+    #[prop_or_default]
     pub on_submit: Option<SubmitCallback>,
 
     /// Data change callback.
     #[builder_cb(IntoEventCallback, into_event_callback, FormContext)]
+    #[prop_or_default]
     pub on_change: Option<Callback<FormContext>>,
 }
 

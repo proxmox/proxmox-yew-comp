@@ -34,10 +34,12 @@ pub struct AuthView {
 
     /// Allow to add/edit OpenID entries
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     openid_base_url: Option<AttrValue>,
 
     /// Allow to add/edit LDAP entries
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     ldap_base_url: Option<AttrValue>,
 }
 

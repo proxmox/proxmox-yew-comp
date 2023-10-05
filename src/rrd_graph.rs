@@ -12,8 +12,10 @@ use pwt::widget::{Panel, SizeObserver};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct RRDGraph {
+    #[prop_or_default]
     pub title: Option<AttrValue>,
     // Legend Label
+    #[prop_or_default]
     pub label: Option<String>,
     #[prop_or_default]
     pub class: Classes,

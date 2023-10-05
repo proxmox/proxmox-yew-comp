@@ -9,12 +9,14 @@ use pwt_macros::{builder, widget};
 pub struct ProgressLabel {
     pub title: AttrValue,
 
+    #[prop_or_default]
     pub icon_class: Option<Classes>,
 
     #[prop_or(0f32)]
     #[builder]
     pub value: f32,
 
+    #[prop_or_default]
     pub status: Option<Html>,
 }
 

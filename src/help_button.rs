@@ -8,6 +8,7 @@ use pwt::widget::Button;
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct HelpButton {
+    #[prop_or_default]
     section: Option<String>,
     #[prop_or_default]
     class: Classes,
@@ -29,7 +30,7 @@ impl HelpButton {
     pub fn add_class(&mut self, class: impl Into<Classes>) {
         self.class.push(class);
     }
-    
+
     pub fn section(mut self, section: impl Into<String>) -> Self {
         self.section = Some(section.into());
         self

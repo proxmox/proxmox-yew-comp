@@ -69,6 +69,7 @@ pub struct SubscriptionInfo {
     pub product: ProxmoxProduct,
 
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    #[prop_or_default]
     pub on_status_change: Option<Callback<String>>,
 }
 

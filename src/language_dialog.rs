@@ -9,10 +9,11 @@ use pwt::widget::{Container, Button, Dialog, LanguageSelector, Row};
 
 use pwt_macros::builder;
 
-#[derive(PartialEq, Properties)]
+#[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct LanguageDialog {
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    #[prop_or_default]
     pub on_close: Option<Callback<()>>,
 }
 

@@ -24,6 +24,7 @@ pub struct RRDTimeframeSelector {
     class: Classes,
 
     #[builder_cb(IntoEventCallback, into_event_callback, RRDTimeframe)]
+    #[prop_or_default]
     on_change: Option<Callback<RRDTimeframe>>,
 }
 

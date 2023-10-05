@@ -48,11 +48,12 @@ use pwt_macros::{builder, widget};
 use pwt::props::{FieldBuilder, WidgetBuilder};
 
 #[widget(comp=ProxmoxCalendarEventSelector, @input)]
-#[derive(Properties, PartialEq)]
+#[derive(Clone, Properties, PartialEq)]
 #[builder]
 pub struct CalendarEventSelector {
     /// The default value.
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub default: Option<AttrValue>,
 }
 

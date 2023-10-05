@@ -15,6 +15,7 @@ use crate::subscription_info::{subscription_note, subscription_status_text};
 pub struct SubscriptionAlert {
     /// Close callback, clalled when user confirms or press dialog close.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    #[prop_or_default]
     pub on_close: Option<Callback<()>>,
 
     /// Subscription status.
@@ -22,6 +23,7 @@ pub struct SubscriptionAlert {
 
     /// Option URL to proxmox web site.
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub url: Option<AttrValue>,
 }
 

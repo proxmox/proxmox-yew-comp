@@ -25,18 +25,23 @@ pub struct TfaDialog {
     challenge: Rc<SecondFactorChallenge>,
 
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    #[prop_or_default]
     pub on_close: Option<Callback<()>>,
 
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    #[prop_or_default]
     pub on_totp: Option<Callback<String>>,
 
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    #[prop_or_default]
     pub on_yubico: Option<Callback<String>>,
 
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    #[prop_or_default]
     pub on_recovery: Option<Callback<String>>,
 
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    #[prop_or_default]
     pub on_webauthn: Option<Callback<String>>,
 }
 

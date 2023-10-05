@@ -19,7 +19,7 @@ use pwt_macros::builder;
 
 use crate::{http_get, LoadableComponent, LoadableComponentMaster};
 
-#[derive(PartialEq, Properties)]
+#[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct PermissionPanel {
     #[prop_or("/access/permissions".into())]
@@ -29,6 +29,7 @@ pub struct PermissionPanel {
 
     #[builder(IntoPropValue, into_prop_value)]
     /// The base url for
+    #[prop_or_default]
     pub auth_id: Option<AttrValue>,
 }
 

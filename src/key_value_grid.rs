@@ -91,12 +91,16 @@ pub struct KVGrid {
     rows: Rc<Vec<KVGridRow>>,
     data: Rc<Value>,
     /// Select callback.
+    #[prop_or_default]
     pub on_select: Option<Callback<Option<Key>>>,
     /// Row click callback.
+    #[prop_or_default]
     pub on_row_click: Option<CallbackMut<DataTableMouseEvent>>,
     /// Row double click callback.
+    #[prop_or_default]
     pub on_row_dblclick: Option<CallbackMut<DataTableMouseEvent>>,
     /// Row keydown callback.
+    #[prop_or_default]
     pub on_row_keydown: Option<CallbackMut<DataTableKeyboardEvent>>,
 }
 

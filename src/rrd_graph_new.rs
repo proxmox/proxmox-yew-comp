@@ -33,8 +33,10 @@ impl Series {
 #[derive(Properties)]
 #[builder]
 pub struct RRDGraph {
+    #[prop_or_default]
     pub title: Option<AttrValue>,
     // Legend Label
+    #[prop_or_default]
     pub label: Option<AttrValue>,
     #[prop_or_default]
     pub class: Classes,
@@ -44,10 +46,12 @@ pub struct RRDGraph {
 
     #[prop_or_default]
     #[derivative(PartialEq(compare_with = "optional_rc_ptr_eq"))]
+    #[prop_or_default]
     pub serie0: Option<Rc<Series>>,
 
     #[prop_or_default]
     #[derivative(PartialEq(compare_with = "optional_rc_ptr_eq"))]
+    #[prop_or_default]
     pub serie1: Option<Rc<Series>>,
 
     /// Always include zero in displayed data range.
@@ -60,6 +64,7 @@ pub struct RRDGraph {
     #[builder]
     pub binary: bool,
 
+    #[prop_or_default]
     pub render_value: Option<TextRenderFn<f64>>,
 }
 

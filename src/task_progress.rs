@@ -21,10 +21,12 @@ use crate::TaskViewer;
 pub struct TaskProgress {
     #[prop_or_default]
     node_ref: NodeRef,
+    #[prop_or_default]
     pub key: Option<Key>,
 
     pub task_id: String,
 
+    #[prop_or_default]
     pub on_close: Option<Callback<()>>,
 
     #[prop_or("/nodes/localhost/tasks".into())]

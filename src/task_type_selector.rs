@@ -6,7 +6,7 @@ use pwt::widget::form::Combobox;
 use pwt_macros::widget;
 
 #[widget(comp=ProxmoxTaskTypeSelector, @input)]
-#[derive(Properties, PartialEq)]
+#[derive(Clone, Properties, PartialEq)]
 pub struct TaskTypeSelector {}
 
 impl TaskTypeSelector {

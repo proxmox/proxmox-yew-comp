@@ -21,6 +21,7 @@ pub struct WebAuthn {
     pub visible: bool,
 
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    #[prop_or_default]
     pub on_webauthn: Option<Callback<String>>,
 }
 

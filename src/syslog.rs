@@ -10,7 +10,7 @@ use crate::LogView;
 
 use pwt_macros::builder;
 
-#[derive(PartialEq, Properties)]
+#[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct Syslog {
     /// Base URL for the syslog API
@@ -21,6 +21,7 @@ pub struct Syslog {
 
     /// Show logs for specified service.
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub service: Option<AttrValue>,
 }
 

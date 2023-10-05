@@ -5,6 +5,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct JournalView {
+    #[prop_or_default]
     pub key: Option<Key>,
     #[prop_or(AttrValue::Static("/nodes/localhost/journal"))]
     pub url: AttrValue,

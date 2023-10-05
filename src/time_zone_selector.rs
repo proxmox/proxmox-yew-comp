@@ -9,9 +9,10 @@ use pwt_macros::widget;
 use pwt::props::{FieldBuilder, WidgetBuilder};
 
 #[widget(comp=ProxmoxTimezoneSelector, @input)]
-#[derive(Properties, PartialEq)]
+#[derive(Clone, Properties, PartialEq)]
 pub struct TimezoneSelector {
     /// The default value.
+    #[prop_or_default]
     pub default: Option<AttrValue>,
 }
 

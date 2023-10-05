@@ -9,7 +9,7 @@ use pwt::widget::{Button, SegmentedButton};
 use pwt_macros::widget;
 
 #[widget(comp=ManagedFieldMaster<ProxmoxTaskStatusSelector>, @input)]
-#[derive(Properties, PartialEq)]
+#[derive(Clone, Properties, PartialEq)]
 pub struct TaskStatusSelector {}
 
 impl TaskStatusSelector {

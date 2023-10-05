@@ -40,7 +40,7 @@ use pwt::props::{FieldBuilder, WidgetBuilder};
 use pwt_macros::widget;
 
 #[widget(comp=ProxmoxRoleSelector, @input)]
-#[derive(Properties, PartialEq)]
+#[derive(Clone, Properties, PartialEq)]
 pub struct RoleSelector {}
 
 impl RoleSelector {

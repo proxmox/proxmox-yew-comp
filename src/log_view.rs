@@ -98,6 +98,7 @@ async fn load_log_page(props: &LogView, page: u64) -> Result<LogPage, Error> {
 pub struct LogView {
     #[prop_or_default]
     node_ref: NodeRef,
+    #[prop_or_default]
     pub key: Option<Key>,
     pub url: AttrValue,
 
@@ -110,14 +111,17 @@ pub struct LogView {
 
     /// View logs for the specified service,
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub service: Option<AttrValue>,
 
     /// Since when (unix epoch)
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub since: Option<i64>,
 
     /// Until when (unix epoch)
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub until: Option<i64>,
 }
 

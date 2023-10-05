@@ -23,15 +23,18 @@ use pwt_macros::builder;
 pub struct TaskViewer {
     #[prop_or_default]
     node_ref: NodeRef,
+    #[prop_or_default]
     pub key: Option<Key>,
 
     pub task_id: String,
 
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub endtime: Option<i64>,
 
     /// Close/Abort callback
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    #[prop_or_default]
     pub on_close: Option<Callback<()>>,
 
     #[prop_or("/nodes/localhost/tasks".into())]

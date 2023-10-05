@@ -30,11 +30,13 @@ use super::{TaskStatusSelector, TaskTypeSelector};
 #[builder]
 pub struct Tasks {
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub nodename: Option<AttrValue>,
 
     /// Additional Input label/widget displayed on the filter panel.
     ///
     /// The widget need to read/write data from/to the provided form context.
+    #[prop_or_default]
     pub extra_filter: Option<(AttrValue, Html)>,
 
     /// The base url, default is '/nodes/<nodename>/tasks'

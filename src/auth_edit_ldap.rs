@@ -23,6 +23,7 @@ use crate::EditWindow;
 pub struct AuthEditLDAP {
     /// Close/Abort callback
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    #[prop_or_default]
     pub on_close: Option<Callback<()>>,
 
     #[prop_or("/access/domains".into())]
@@ -32,6 +33,7 @@ pub struct AuthEditLDAP {
 
     /// Edit existing realm
     #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
     pub realm: Option<AttrValue>,
 }
 
