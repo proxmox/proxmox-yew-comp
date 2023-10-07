@@ -121,7 +121,7 @@ pub use proxmox_product::ProxmoxProduct;
 
 pub mod utils;
 
-use pwt::gettext_wrapper::gettext_noop;
+use pwt::gettext_noop;
 use pwt::state::LanguageInfo;
 
 // Bindgen javascript code from js-helper-module.js
