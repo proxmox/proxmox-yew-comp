@@ -2,7 +2,6 @@ use std::rc::Rc;
 
 use anyhow::Error;
 use pwt::css::{Flex, Overflow};
-use serde_json::Value;
 
 use pwt::widget::form::{Boolean, Combobox, FormContext, Number};
 use yew::html::{IntoEventCallback, IntoPropValue};
@@ -43,12 +42,12 @@ impl AuthEditLDAP {
     }
 }
 
-async fn create_item(form_ctx: FormContext, base_url: String) -> Result<Value, Error> {
+async fn create_item(form_ctx: FormContext, base_url: String) -> Result<(), Error> {
     let data = form_ctx.get_submit_data();
     crate::http_post(base_url, Some(data)).await
 }
 
-async fn update_item(form_ctx: FormContext, base_url: String) -> Result<Value, Error> {
+async fn update_item(form_ctx: FormContext, base_url: String) -> Result<(), Error> {
     let data = form_ctx.get_submit_data();
 
     let data = delete_empty_values(

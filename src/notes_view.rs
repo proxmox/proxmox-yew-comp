@@ -17,9 +17,10 @@ use crate::{
     EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster, Markdown,
 };
 
-async fn update_item(form_ctx: FormContext, url: AttrValue) -> Result<Value, Error> {
+async fn update_item(form_ctx: FormContext, url: AttrValue) -> Result<(), Error> {
     let data = form_ctx.get_submit_data();
-    crate::http_put(&*url, Some(data)).await
+    let _ = crate::http_put(&*url, Some(data)).await?;
+    Ok(())
 }
 
 use pwt_macros::builder;

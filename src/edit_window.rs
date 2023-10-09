@@ -118,7 +118,7 @@ impl EditWindow {
 pub enum Msg {
     FormDataChange,
     Submit,
-    SubmitResult(Result<Value, Error>),
+    SubmitResult(Result<(), Error>),
     Load,
     LoadResult(Result<Value, Error>),
     ClearError,
@@ -218,7 +218,6 @@ impl Component for PwtEditWindow {
                         }
                     }
                     Err(err) => {
-                        //log::info!("ERROR: {}", err);
                         self.submit_error = Some(err.to_string());
                     }
                 }
