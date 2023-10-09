@@ -211,7 +211,7 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
             tr!("Bind Domain Name"),
             Field::new()
                 .name("bind-dn")
-                .required(true)
+                .required(!anonymous_search)
                 .disabled(anonymous_search)
                 .placeholder("cn=user,dc=company,dc=net"),
         )
