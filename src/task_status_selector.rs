@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::{
-    ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState, ValidateFn,
+    ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState,
 };
 use pwt::widget::{Button, SegmentedButton};
 
@@ -42,12 +42,9 @@ impl ManagedField for ProxmoxTaskStatusSelector {
         let value = vec![true, false, false, false, false];
         let default = value.clone();
 
-        let validate = ValidateFn::new(move |_value: &Value| Ok(()));
-
         ManagedFieldState {
             value: value.into(),
             valid: Ok(()),
-            validate,
             default: default.into(),
             radio_group: false,
             unique: false,
