@@ -22,6 +22,7 @@ use crate::{
 };
 
 use crate::common_api_types::BasicRealmInfo;
+use crate::percent_encoding::percent_encode_component;
 
 #[derive(PartialEq, Properties)]
 #[builder]
@@ -69,6 +70,13 @@ pub struct ProxmoxAuthView {
     store: Store<BasicRealmInfo>,
 }
 
+async fn delete_item(base_url: AttrValue, realm: AttrValue) -> Result<(), Error> {
+
+    let url = format!("{base_url}/{}", percent_encode_component(&realm));
+    let _ = crate::http_delete(&url, None).await?;
+    Ok(())
+}
+
 impl ProxmoxAuthView {
     fn get_selected_record(&self) -> Option<BasicRealmInfo> {
         let selected_key = self.selection.selected_key();
@@ -110,14 +118,23 @@ impl LoadableComponent for ProxmoxAuthView {
         let props = ctx.props();
 
         match msg {
-            Msg::Redraw => { /* just redraw */ }
+            Msg::Redraw => { true }
             Msg::Remove => {
-                let _info = match self.get_selected_record() {
+                let info = match self.get_selected_record() {
                     Some(info) => info,
                     None => return true,
                 };
 
-                todo!();
+                let link = ctx.link().clone();
+                let base_url = props.base_url.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    if let Err(err) = delete_item(base_url, info.realm.into()).await {
+                        link.show_error(tr!("Unable to delete item"), err, true);
+                    }
+                    link.send_reload();
+                });
+
+                false
             }
             Msg::Edit => {
                 let info = match self.get_selected_record() {
@@ -132,12 +149,13 @@ impl LoadableComponent for ProxmoxAuthView {
                     ctx.link()
                         .change_view(Some(ViewState::EditLDAP(info.realm.into())));
                 }
+                true
             }
             Msg::Sync => {
                 // fixme: do something
+                true
             }
         }
-        true
     }
 
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
