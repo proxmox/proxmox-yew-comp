@@ -37,10 +37,9 @@ pub struct ProxmoxTaskStatusSelector {
 impl ManagedField for ProxmoxTaskStatusSelector {
     type Properties = TaskStatusSelector;
     type Message = Msg;
+    type ValidateClosure = ();
 
-    fn validation_fn_need_update(_props: &Self::Properties, _old_props: &Self::Properties) -> bool {
-        false
-    }
+    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure { () }
 
     fn setup(_props: &Self::Properties) -> ManagedFieldState {
         let value = vec![true, false, false, false, false];
