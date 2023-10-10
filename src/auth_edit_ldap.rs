@@ -104,6 +104,9 @@ fn render_sync_form(_form_ctx: FormContext, _props: AuthEditLDAP) -> Html {
         .with_field(tr!("Last Name attribute"), Field::new().name("lastname"))
         .with_right_field(tr!("User Filter"), Field::new().name("filter"))
         .with_field(tr!("E-Mail attribute"), Field::new().name("email"))
+        .with_large_custom_child(html!{
+            <div class="pwt-pt-2 pwt-font-title-medium">{tr!("Default Sync Options")}</div>
+        })
         .with_field(
             tr!("Enable new users"),
             TristateBoolean::new()
@@ -111,6 +114,9 @@ fn render_sync_form(_form_ctx: FormContext, _props: AuthEditLDAP) -> Html {
                 .submit_empty(true)
                 .null_text(tr!("Default") + " (" + &tr!("Yes") + ")"),
         )
+        .with_large_custom_child(html!{
+            <div class="pwt-pt-2 pwt-font-title-medium">{tr!("Remove Vanished Options")}</div>
+        })
         .with_field(
             tr!("Remove ACLs of vanished users"),
             Boolean::new().name("remove-vanished-acl"),
