@@ -10,6 +10,9 @@ pub use auth_edit_ldap::{AuthEditLDAP, ProxmoxAuthEditLDAP};
 mod bond_mode_selector;
 pub use bond_mode_selector::{BondModeSelector, ProxmoxBondModeSelector};
 
+mod bond_xmit_hash_policy_selector;
+pub use bond_xmit_hash_policy_selector::{BondXmitHashPolicySelector, ProxmoxBondXmitHashPolicySelector};
+
 pub mod common_api_types;
 
 mod http_client_wasm;
