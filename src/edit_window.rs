@@ -258,11 +258,15 @@ impl Component for PwtEditWindow {
             toolbar.add_child(advanced);
         }
 
-        toolbar.add_child(ResetButton::new());
+        if edit_mode {
+            toolbar.add_child(ResetButton::new());
+        }
+
         toolbar.add_child(
             SubmitButton::new()
                 .class("pwt-scheme-primary")
                 .text(if edit_mode { tr!("Update") } else { tr!("Add") })
+                .check_dirty(edit_mode)
                 .on_submit(submit),
         );
 
