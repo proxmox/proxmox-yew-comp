@@ -6,7 +6,7 @@ use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{Checkbox, Field, Form, FormContext, ResetButton, SubmitButton};
+use pwt::widget::form::{Checkbox, Field, Form, FormContext, ResetButton, SubmitButton, InputType};
 use pwt::widget::{Column, InputPanel, Mask, Row, LanguageSelector};
 
 use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
@@ -271,7 +271,7 @@ impl Component for ProxmoxLoginPanel {
                 Field::new()
                     .name("password")
                     .required(true)
-                    .input_type("password"),
+                    .input_type(InputType::Password),
             )
             .with_field("Realm", RealmSelector::new().name("realm").default(default_realm));
 

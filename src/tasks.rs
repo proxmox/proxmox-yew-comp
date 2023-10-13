@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use anyhow::Error;
 
-use pwt::widget::form::{Field, Form, FormContext};
+use pwt::widget::form::{Field, Form, FormContext, InputType};
 
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
@@ -218,7 +218,7 @@ impl LoadableComponent for ProxmoxTasks {
             .with_child(
                 Field::new()
                     .name("since")
-                    .input_type("date")
+                    .input_type(InputType::Date)
                 )
             .with_child(html!{<div class="pwt-text-align-end">{tr!("Task Type")}</div>})
             .with_child(TaskTypeSelector::new().name("typefilter"))
@@ -232,7 +232,7 @@ impl LoadableComponent for ProxmoxTasks {
             .with_child(
                 Field::new()
                     .name("until")
-                    .input_type("date")
+                    .input_type(InputType::Date)
             )
             .with_child(html!{<div class="pwt-text-align-end">{tr!("User name")}</div>})
             .with_child(Field::new().name("userfilter"));

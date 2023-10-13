@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use pwt::widget::form::InputType;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
@@ -71,7 +72,7 @@ impl ProxmoxSyslog {
             .with_child(
                 Field::new()
                     .label_id(self.since_label_id.clone())
-                    .input_type("datetime-local")
+                    .input_type(InputType::DatetimeLocal)
                     .required(true) // avoid clear button in firefox
                     .class("pwt-input-hide-clear-button")
                     .on_change(ctx.link().callback(Msg::Since))
@@ -81,7 +82,7 @@ impl ProxmoxSyslog {
             .with_child(
                 Field::new()
                     .label_id(self.until_label_id.clone())
-                    .input_type("datetime-local")
+                    .input_type(InputType::DatetimeLocal)
                     .required(true) // avoid clear button in firefox
                     .on_change(ctx.link().callback(Msg::Until))
                     .value(until)

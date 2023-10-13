@@ -2,8 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use proxmox_schema::Schema;
-use pwt::widget::form::ValidateFn;
-use yew::AttrValue;
+use pwt::widget::form::{ValidateFn, InputType};
 
 pub trait SchemaValidation {
     fn schema(mut self, schema: &'static Schema) -> Self
@@ -33,13 +32,13 @@ impl SchemaValidation for pwt::widget::form::Field {
                 self.min = s.minimum.map(|v| v as f64);
                 self.max = s.maximum.map(|v| v as f64);
                 self.step = Some(1.0);
-                self.input_type = AttrValue::Static("number");
+                self.input_type = InputType::Number;
             }
             Schema::Number(s) => {
                 self.min = s.minimum;
                 self.max = s.maximum;
                 self.step = Some(1.0);
-                self.input_type = AttrValue::Static("number");
+                self.input_type = InputType::Number;
             }
             _ => {}
         }

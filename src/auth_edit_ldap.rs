@@ -3,7 +3,7 @@ use std::rc::Rc;
 use anyhow::Error;
 use pwt::css::{Flex, Overflow};
 
-use pwt::widget::form::{Boolean, Combobox, FormContext, Number};
+use pwt::widget::form::{Boolean, Combobox, FormContext, Number, InputType};
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
@@ -230,7 +230,7 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
             Field::new()
                 .name("password")
                 .disabled(anonymous_search)
-                .input_type("password")
+                .input_type(InputType::Password)
                 .placeholder(is_edit.then(|| tr!("Unchanged")))
                 .show_peek_icon(true),
         )
