@@ -239,7 +239,9 @@ impl ManagedField for ProxmoxBandwidthField {
             .map(|hb| hb.unit)
             .unwrap_or(props.default_unit);
 
-        let unit_selector = MenuButton::new(current_unit.to_string()).menu(menu);
+        let unit_selector = MenuButton::new(current_unit.to_string())
+            .show_arrow(true)
+            .menu(menu);
 
         Container::new()
             .with_std_props(&props.std_props)
