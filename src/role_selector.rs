@@ -1,5 +1,5 @@
-use std::rc::Rc;
 use anyhow::format_err;
+use std::rc::Rc;
 
 use yew::virtual_dom::Key;
 
@@ -30,7 +30,7 @@ thread_local! {
             .show_menu(false)
             .render(|record: &RoleInfo| {
                 let text = record.privs.join(" ");
-                html!{<p class="pwt-white-space-normal">{text}</p>}
+                html!{<span class="pwt-white-space-normal">{text}</span>}
             })
             .into(),
     ]);
