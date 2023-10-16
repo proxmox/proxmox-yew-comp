@@ -25,7 +25,7 @@ pub type ProxmoxBandwidthSelector = ManagedFieldMaster<ProxmoxBandwidthField>;
 pub struct BandwidthSelector {
     /// The default value.
     #[prop_or_default]
-    pub default: Option<u64>,
+    pub default: Option<HumanByte>,
 
     /// Default unit.
     #[builder(IntoPropValue, into_prop_value)]
@@ -33,10 +33,49 @@ pub struct BandwidthSelector {
     pub default_unit: SizeUnit,
 }
 
+pub trait IntoOptionalHumanByte {
+    fn into_optional_human_byte(self) -> Option<HumanByte>;
+}
+
+impl IntoOptionalHumanByte for HumanByte {
+    fn into_optional_human_byte(self) -> Option<HumanByte> {
+        Some(self)
+    }
+}
+
+impl IntoOptionalHumanByte for Option<HumanByte> {
+    fn into_optional_human_byte(self) -> Option<HumanByte> {
+        self
+    }
+}
+
+impl IntoOptionalHumanByte for u64 {
+    fn into_optional_human_byte(self) -> Option<HumanByte> {
+        Some(HumanByte::new_binary(self as f64))
+    }
+}
+
+impl IntoOptionalHumanByte for usize {
+    fn into_optional_human_byte(self) -> Option<HumanByte> {
+        Some(HumanByte::new_binary(self as f64))
+    }
+}
+
 impl BandwidthSelector {
     /// Create a new instance.
     pub fn new() -> Self {
         yew::props!(Self {})
+    }
+
+    /// Builder style method to set the default value.
+    pub fn default(mut self, default: impl IntoOptionalHumanByte) -> Self {
+        self.set_default(default);
+        self
+    }
+
+    /// Method to set the default value.
+    pub fn set_default(&mut self, default: impl IntoOptionalHumanByte) {
+        self.default = default.into_optional_human_byte();
     }
 }
 
@@ -132,10 +171,12 @@ impl ManagedField for ProxmoxBandwidthField {
         }
     }
 
-    fn create(_ctx: &ManagedFieldContext<Self>) -> Self {
-        Self {
+    fn create(ctx: &ManagedFieldContext<Self>) -> Self {
+        let mut me = Self {
             current_value: None,
-        }
+        };
+        me.value_changed(ctx);
+        me
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {
@@ -178,8 +219,8 @@ impl ManagedField for ProxmoxBandwidthField {
         let input = Number::<u64>::new()
             .with_input_props(&input_props)
             .value(self.current_value.map(|hb| hb.size as u64))
-            .on_input(ctx.link().callback(Msg::ChangeSize))
-            .default(&props.default);
+            .valid(ctx.state().valid.clone())
+            .on_input(ctx.link().callback(Msg::ChangeSize));
 
         let mut menu = Menu::new();
 
