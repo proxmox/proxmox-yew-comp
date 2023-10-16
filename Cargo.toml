@@ -46,6 +46,7 @@ pwt = "0.2"
 pwt-macros = "0.1"
 
 proxmox-schema = "2"
+proxmox-human-byte = "0.1"
 
 proxmox-time = "1"
 

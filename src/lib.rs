@@ -7,6 +7,9 @@ pub use auth_edit_openid::{AuthEditOpenID, ProxmoxAuthEditOpenID};
 mod auth_edit_ldap;
 pub use auth_edit_ldap::{AuthEditLDAP, ProxmoxAuthEditLDAP};
 
+mod bandwidth_selector;
+pub use bandwidth_selector::{BandwidthSelector, ProxmoxBandwidthSelector};
+
 mod bond_mode_selector;
 pub use bond_mode_selector::{BondModeSelector, ProxmoxBondModeSelector};
 
