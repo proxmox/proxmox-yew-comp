@@ -103,8 +103,6 @@ impl ManagedField for ProxmoxBandwidthField {
         }
     }
     fn validator(props: &Self::ValidateClosure, value: &Value) -> Result<(), Error> {
-        log::info!("VALIDATE {:?}", value);
-
         let is_empty = match value {
             Value::Null => true,
             Value::Number(_) => false,
