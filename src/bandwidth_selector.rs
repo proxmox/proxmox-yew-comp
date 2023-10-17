@@ -197,12 +197,16 @@ impl ManagedField for ProxmoxBandwidthField {
                 false
             }
             Msg::ChangeSize(size_text) => {
-                let unit = self
-                    .current_value
-                    .map(|hb| hb.unit)
-                    .unwrap_or(props.default_unit);
-                let new_value: Value = format!("{}{}", size_text, unit).into();
-                ctx.link().update_value(new_value);
+                if size_text.is_empty() {
+                    ctx.link().update_value(Value::from(size_text));
+                } else {
+                    let unit = self
+                        .current_value
+                        .map(|hb| hb.unit)
+                        .unwrap_or(props.default_unit);
+                    let new_value: Value = format!("{}{}", size_text, unit).into();
+                    ctx.link().update_value(new_value);
+                }
                 false
             }
         }
