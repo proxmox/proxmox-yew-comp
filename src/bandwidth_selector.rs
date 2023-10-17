@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Error;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 use yew::html::IntoPropValue;
@@ -23,9 +23,10 @@ pub type ProxmoxBandwidthSelector = ManagedFieldMaster<ProxmoxBandwidthField>;
 #[derive(Clone, Properties, PartialEq)]
 #[builder]
 pub struct BandwidthSelector {
-    /// The default value.
+    /// The default value, i.e. "10KiB"
+    #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
-    pub default: Option<HumanByte>,
+    pub default: Option<AttrValue>,
 
     /// Default unit.
     #[builder(IntoPropValue, into_prop_value)]
@@ -33,49 +34,10 @@ pub struct BandwidthSelector {
     pub default_unit: SizeUnit,
 }
 
-pub trait IntoOptionalHumanByte {
-    fn into_optional_human_byte(self) -> Option<HumanByte>;
-}
-
-impl IntoOptionalHumanByte for HumanByte {
-    fn into_optional_human_byte(self) -> Option<HumanByte> {
-        Some(self)
-    }
-}
-
-impl IntoOptionalHumanByte for Option<HumanByte> {
-    fn into_optional_human_byte(self) -> Option<HumanByte> {
-        self
-    }
-}
-
-impl IntoOptionalHumanByte for u64 {
-    fn into_optional_human_byte(self) -> Option<HumanByte> {
-        Some(HumanByte::new_binary(self as f64))
-    }
-}
-
-impl IntoOptionalHumanByte for usize {
-    fn into_optional_human_byte(self) -> Option<HumanByte> {
-        Some(HumanByte::new_binary(self as f64))
-    }
-}
-
 impl BandwidthSelector {
     /// Create a new instance.
     pub fn new() -> Self {
         yew::props!(Self {})
-    }
-
-    /// Builder style method to set the default value.
-    pub fn default(mut self, default: impl IntoOptionalHumanByte) -> Self {
-        self.set_default(default);
-        self
-    }
-
-    /// Method to set the default value.
-    pub fn set_default(&mut self, default: impl IntoOptionalHumanByte) {
-        self.default = default.into_optional_human_byte();
     }
 }
 
@@ -85,7 +47,8 @@ pub enum Msg {
 }
 
 pub struct ProxmoxBandwidthField {
-    current_value: Option<HumanByte>,
+    current_size: String,
+    current_unit: String,
 }
 #[derive(PartialEq)]
 pub struct ValidateClosure {
@@ -107,6 +70,10 @@ impl ManagedField for ProxmoxBandwidthField {
             Value::Null => true,
             Value::Number(_) => false,
             Value::String(v) => v.is_empty(),
+            Value::Object(map) => match &map["size"] {
+                Value::String(v) => v.is_empty(),
+                _ => return Err(Error::msg(tr!("Got wrong data type!"))),
+            },
             _ => return Err(Error::msg(tr!("Got wrong data type!"))),
         };
 
@@ -129,6 +96,14 @@ impl ManagedField for ProxmoxBandwidthField {
                     return Err(Error::msg(tr!("unable to parse value: {}", err)));
                 }
             }
+            Value::Object(map) => match (&map["size"], &map["unit"]) {
+                (Value::String(size), Value::String(unit)) => {
+                    if let Err(err) = HumanByte::from_str(&format!("{} {}", size, unit)) {
+                        return Err(Error::msg(tr!("unable to parse value: {}", err)));
+                    }
+                }
+                _ => return Err(Error::msg(tr!("Got wrong data type!"))),
+            },
             _ => unreachable!(),
         }
 
@@ -136,7 +111,7 @@ impl ManagedField for ProxmoxBandwidthField {
     }
 
     fn setup(props: &Self::Properties) -> ManagedFieldState {
-        let default: Value = match props.default {
+        let default: Value = match &props.default {
             Some(default) => default.to_string().into(),
             None => String::new().into(),
         };
@@ -149,67 +124,87 @@ impl ManagedField for ProxmoxBandwidthField {
             default,
             radio_group: false,
             unique: false,
-            submit_converter: None,
+            submit_converter: Some(Callback::from(|value: Value| {
+                if let Value::Object(map) = &value {
+                    if let (Value::String(size), Value::String(unit)) = (&map["size"], &map["unit"])
+                    {
+                        return format!("{} {}", size, unit).into();
+                    }
+                }
+                value
+            })),
         }
     }
 
     fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
+        let props = ctx.props();
         let state = ctx.state();
 
         match &state.value {
             Value::Number(n) => {
-                self.current_value = n.as_f64().map(|n| HumanByte::new_binary(n));
+                if let Some(n) = n.as_f64() {
+                    let hb = HumanByte::new_binary(n);
+                    self.current_size = hb.size.to_string();
+                    self.current_unit = hb.unit.to_string();
+                } else {
+                    self.current_size = n.to_string();
+                    self.current_unit = "B".into();
+                }
             }
             Value::String(v) => {
-                self.current_value = HumanByte::from_str(&v).ok();
+                if let Ok(hb) = HumanByte::from_str(&v) {
+                    self.current_unit = hb.unit.to_string();
+                    self.current_size = v
+                        .to_string()
+                        .trim_end_matches(|c: char| c.is_ascii_alphabetic() || c.is_whitespace())
+                        .to_string();
+                } else {
+                    self.current_size = "".into();
+                    self.current_unit = props.default_unit.to_string();
+                }
+            }
+            Value::Object(map) => {
+                self.current_size = map["size"].as_str().unwrap_or("").to_string();
+                if let Some(unit) = map["unit"].as_str() {
+                    self.current_unit = unit.to_string();
+                } else {
+                    self.current_unit = props.default_unit.to_string();
+                }
             }
             _ => {
-                self.current_value = None;
+                self.current_size = "".into();
+                self.current_unit = props.default_unit.to_string();
             }
         }
     }
 
     fn create(ctx: &ManagedFieldContext<Self>) -> Self {
+        let props = ctx.props();
         let mut me = Self {
-            current_value: None,
+            current_size: "".into(),
+            current_unit: props.default_unit.to_string(),
         };
         me.value_changed(ctx);
         me
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {
-        let props = ctx.props();
-        match msg {
-            Msg::SelectUnit(unit) => {
-                match &mut self.current_value {
-                    Some(hb) => hb.unit = unit,
-                    None => {
-                        self.current_value = Some(HumanByte::with_unit(0.0, unit).unwrap());
-                    }
-                }
-                let new_value: Value = self
-                    .current_value
-                    .as_ref()
-                    .map(|hb| hb.to_string())
-                    .unwrap_or(String::new())
-                    .into();
-                ctx.link().update_value(new_value);
-                false
-            }
-            Msg::ChangeSize(size_text) => {
-                if size_text.is_empty() {
-                    ctx.link().update_value(Value::from(size_text));
-                } else {
-                    let unit = self
-                        .current_value
-                        .map(|hb| hb.unit)
-                        .unwrap_or(props.default_unit);
-                    let new_value: Value = format!("{}{}", size_text, unit).into();
-                    ctx.link().update_value(new_value);
-                }
-                false
-            }
-        }
+        let (size, unit) = match msg {
+            Msg::SelectUnit(unit) => (self.current_size.to_string(), unit.to_string()),
+            Msg::ChangeSize(size_text) => (size_text, self.current_unit.to_string()),
+        };
+
+        let new_value = format!("{} {}", size, unit);
+        let new_value = if let Ok(_) = HumanByte::from_str(&new_value) {
+            new_value.into()
+        } else {
+            // Note: we cannot store as valid HumanByte, so we storea as Object.
+            // This preserves error is number format...
+            json!({ "size": size, "unit": unit })
+        };
+        ctx.link().update_value(new_value);
+
+        false
     }
 
     fn view(&self, ctx: &ManagedFieldContext<Self>) -> Html {
@@ -218,9 +213,9 @@ impl ManagedField for ProxmoxBandwidthField {
         let mut input_props = props.input_props.clone();
         input_props.name = None;
 
-        let input = Number::<u64>::new()
+        let input = Number::<f64>::new()
             .with_input_props(&input_props)
-            .value(self.current_value.map(|hb| hb.size as u64))
+            .value(self.current_size.clone())
             .valid(ctx.state().valid.clone())
             .on_input(ctx.link().callback(Msg::ChangeSize));
 
@@ -241,12 +236,7 @@ impl ManagedField for ProxmoxBandwidthField {
             )
         }
 
-        let current_unit = self
-            .current_value
-            .map(|hb| hb.unit)
-            .unwrap_or(props.default_unit);
-
-        let unit_selector = MenuButton::new(current_unit.to_string())
+        let unit_selector = MenuButton::new(self.current_unit.to_string())
             .show_arrow(true)
             .menu(menu);
 
