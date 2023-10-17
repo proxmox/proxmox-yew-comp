@@ -228,8 +228,11 @@ impl ManagedField for ProxmoxBandwidthField {
 
         for unit in [
             SizeUnit::Byte,
+            SizeUnit::KByte,
             SizeUnit::Kibi,
+            SizeUnit::MByte,
             SizeUnit::Mebi,
+            SizeUnit::GByte,
             SizeUnit::Gibi,
         ] {
             menu.add_item(
