@@ -43,7 +43,7 @@ impl BandwidthSelector {
 
 pub enum Msg {
     SelectUnit(SizeUnit),
-    ChangeSize(String),
+    ChangeSize((String, Option<f64>)),
 }
 
 pub struct ProxmoxBandwidthField {
@@ -65,6 +65,7 @@ impl ManagedField for ProxmoxBandwidthField {
             required: props.input_props.required,
         }
     }
+
     fn validator(props: &Self::ValidateClosure, value: &Value) -> Result<(), Error> {
         let is_empty = match value {
             Value::Null => true,
@@ -93,13 +94,14 @@ impl ManagedField for ProxmoxBandwidthField {
             }
             Value::String(v) => {
                 if let Err(err) = HumanByte::from_str(v) {
-                    return Err(Error::msg(tr!("unable to parse value: {}", err)));
+                    return Err(Error::msg(tr!("X1 unable to parse value: {}", err)));
                 }
             }
             Value::Object(map) => match (&map["size"], &map["unit"]) {
                 (Value::String(size), Value::String(unit)) => {
+                    let size = pwt::dom::parse_float(size).map_err(Error::msg)?;
                     if let Err(err) = HumanByte::from_str(&format!("{} {}", size, unit)) {
-                        return Err(Error::msg(tr!("unable to parse value: {}", err)));
+                        return Err(Error::msg(tr!("X3 unable to parse value: {}", err)));
                     }
                 }
                 _ => return Err(Error::msg(tr!("Got wrong data type!"))),
@@ -128,10 +130,14 @@ impl ManagedField for ProxmoxBandwidthField {
                 if let Value::Object(map) = &value {
                     if let (Value::String(size), Value::String(unit)) = (&map["size"], &map["unit"])
                     {
-                        return format!("{} {}", size, unit).into();
+                        if let Ok(size) = pwt::dom::parse_float(&size) {
+                            return Some(format!("{} {}", size, unit).into());
+                        } else {
+                            return None;
+                        }
                     }
                 }
-                value
+                Some(value)
             })),
         }
     }
@@ -144,7 +150,7 @@ impl ManagedField for ProxmoxBandwidthField {
             Value::Number(n) => {
                 if let Some(n) = n.as_f64() {
                     let hb = HumanByte::new_binary(n);
-                    self.current_size = hb.size.to_string();
+                    self.current_size = pwt::dom::format_float(hb.size);
                     self.current_unit = hb.unit.to_string();
                 } else {
                     self.current_size = n.to_string();
@@ -153,14 +159,11 @@ impl ManagedField for ProxmoxBandwidthField {
             }
             Value::String(v) => {
                 if let Ok(hb) = HumanByte::from_str(&v) {
+                    self.current_size = pwt::dom::format_float(hb.size);
                     self.current_unit = hb.unit.to_string();
-                    self.current_size = v
-                        .to_string()
-                        .trim_end_matches(|c: char| c.is_ascii_alphabetic() || c.is_whitespace())
-                        .to_string();
                 } else {
-                    self.current_size = "".into();
-                    self.current_unit = props.default_unit.to_string();
+                    self.current_size = v.into();
+                    self.current_unit = "B".into();
                 }
             }
             Value::Object(map) => {
@@ -191,17 +194,14 @@ impl ManagedField for ProxmoxBandwidthField {
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {
         let (size, unit) = match msg {
             Msg::SelectUnit(unit) => (self.current_size.to_string(), unit.to_string()),
-            Msg::ChangeSize(size_text) => (size_text, self.current_unit.to_string()),
+            Msg::ChangeSize((size_text, _size)) => (size_text, self.current_unit.to_string()),
         };
 
-        let new_value = format!("{} {}", size, unit);
-        let new_value = if let Ok(_) = HumanByte::from_str(&new_value) {
-            new_value.into()
-        } else {
-            // Note: we cannot store as valid HumanByte, so we storea as Object.
-            // This preserves error is number format...
-            json!({ "size": size, "unit": unit })
-        };
+        // Note: we cannot store as valid HumanByte, so we store as Object.
+        // This preserves localized number text, and errors in number format...
+
+        let new_value = json!({ "size": size, "unit": unit });
+
         ctx.link().update_value(new_value);
 
         false
@@ -215,8 +215,8 @@ impl ManagedField for ProxmoxBandwidthField {
 
         let input = Number::<f64>::new()
             .with_input_props(&input_props)
+            .min(0.0)
             .value(self.current_size.clone())
-            .valid(ctx.state().valid.clone())
             .on_input(ctx.link().callback(Msg::ChangeSize));
 
         let mut menu = Menu::new();

@@ -51,7 +51,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
             default: default.into(),
             radio_group: false,
             unique: false,
-            submit_converter: Some(Callback::from(|value: Value| -> Value {
+            submit_converter: Some(Callback::from(|value: Value| -> Option<Value> {
                 let mut filter: Vec<Value> = Vec::new();
                 let data: Result<[bool; 5], _> = serde_json::from_value(value);
                 if let Ok(data) = data {
@@ -70,7 +70,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
                         }
                     }
                 }
-                Value::Array(filter)
+                Some(Value::Array(filter))
             })),
         }
     }
