@@ -94,14 +94,14 @@ impl ManagedField for ProxmoxBandwidthField {
             }
             Value::String(v) => {
                 if let Err(err) = HumanByte::from_str(v) {
-                    return Err(Error::msg(tr!("X1 unable to parse value: {}", err)));
+                    return Err(Error::msg(tr!("unable to parse value: {}", err)));
                 }
             }
             Value::Object(map) => match (&map["size"], &map["unit"]) {
                 (Value::String(size), Value::String(unit)) => {
                     let size = pwt::dom::parse_float(size).map_err(Error::msg)?;
                     if let Err(err) = HumanByte::from_str(&format!("{} {}", size, unit)) {
-                        return Err(Error::msg(tr!("X3 unable to parse value: {}", err)));
+                        return Err(Error::msg(tr!("unable to parse value: {}", err)));
                     }
                 }
                 _ => return Err(Error::msg(tr!("Got wrong data type!"))),
@@ -163,7 +163,7 @@ impl ManagedField for ProxmoxBandwidthField {
                     self.current_unit = hb.unit.to_string();
                 } else {
                     self.current_size = v.into();
-                    self.current_unit = "B".into();
+                    self.current_unit = props.default_unit.to_string();
                 }
             }
             Value::Object(map) => {
