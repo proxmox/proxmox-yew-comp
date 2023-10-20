@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::fmt::Display;
 
+use serde_json::Value;
+
 use proxmox_schema::upid::UPID;
 
 use pwt::tr;
@@ -272,4 +274,14 @@ pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
     }
 
     None
+}
+
+/// Convert JSON list of strings to flat, space separated string.
+pub fn json_array_to_flat_string(list: &[Value]) -> String {
+    let list: Vec<&str> = list
+        .iter()
+        .map(|p| p.as_str().unwrap_or(""))
+        .filter(|p| !p.is_empty())
+        .collect();
+    list.join(" ")
 }
