@@ -66,7 +66,7 @@ impl ManagedField for ProxmoxBandwidthField {
         }
     }
 
-    fn validator(props: &Self::ValidateClosure, value: &Value) -> Result<(), Error> {
+    fn validator(props: &Self::ValidateClosure, value: &Value) -> Result<Value, Error> {
         let is_empty = match value {
             Value::Null => true,
             Value::Number(_) => false,
@@ -82,7 +82,7 @@ impl ManagedField for ProxmoxBandwidthField {
             if props.required {
                 return Err(Error::msg(tr!("Field may not be empty.")));
             } else {
-                return Ok(());
+                return Ok(Value::String(String::new()));
             }
         }
 
@@ -91,25 +91,27 @@ impl ManagedField for ProxmoxBandwidthField {
                 if n.as_f64().is_none() {
                     return Err(Error::msg(tr!("unable to parse number")));
                 }
+                Ok(Value::Number(n.clone()))
             }
             Value::String(v) => {
                 if let Err(err) = HumanByte::from_str(v) {
                     return Err(Error::msg(tr!("unable to parse value: {}", err)));
                 }
+                Ok(Value::String(v.to_string()))
             }
             Value::Object(map) => match (&map["size"], &map["unit"]) {
                 (Value::String(size), Value::String(unit)) => {
                     let size = pwt::dom::parse_float(size).map_err(Error::msg)?;
-                    if let Err(err) = HumanByte::from_str(&format!("{} {}", size, unit)) {
+                    let hb_str = format!("{} {}", size, unit);
+                    if let Err(err) = HumanByte::from_str(&hb_str) {
                         return Err(Error::msg(tr!("unable to parse value: {}", err)));
                     }
+                    Ok(Value::String(hb_str))
                 }
                 _ => return Err(Error::msg(tr!("Got wrong data type!"))),
             },
-            _ => unreachable!(),
+            _ => return Err(Error::msg(tr!("Got wrong data type!"))),
         }
-
-        Ok(())
     }
 
     fn setup(props: &Self::Properties) -> ManagedFieldState {
@@ -126,19 +128,6 @@ impl ManagedField for ProxmoxBandwidthField {
             default,
             radio_group: false,
             unique: false,
-            submit_converter: Some(Callback::from(|value: Value| {
-                if let Value::Object(map) = &value {
-                    if let (Value::String(size), Value::String(unit)) = (&map["size"], &map["unit"])
-                    {
-                        if let Ok(size) = pwt::dom::parse_float(&size) {
-                            return Some(format!("{} {}", size, unit).into());
-                        } else {
-                            return None;
-                        }
-                    }
-                }
-                Some(value)
-            })),
         }
     }
 

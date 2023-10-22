@@ -1,4 +1,5 @@
 use serde_json::Value;
+use anyhow::Error;
 
 use pwt::prelude::*;
 use pwt::widget::form::{
@@ -41,6 +42,27 @@ impl ManagedField for ProxmoxTaskStatusSelector {
 
     fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure { () }
 
+    fn validator(_props: &Self::ValidateClosure, value: &Value) -> Result<Value, Error> {
+        let mut filter: Vec<Value> = Vec::new();
+        let data: [bool; 5] = serde_json::from_value(value.clone())?;
+            if !data[0] {
+                if data[1] {
+                    filter.push("ok".into());
+                }
+                if data[2] {
+                    filter.push("error".into());
+                }
+                if data[3] {
+                    filter.push("warning".into());
+                }
+                if data[4] {
+                    filter.push("unknown".into());
+                }
+            }
+
+        Ok(Value::Array(filter))
+    }
+
     fn setup(_props: &Self::Properties) -> ManagedFieldState {
         let value = vec![true, false, false, false, false];
         let default = value.clone();
@@ -51,27 +73,6 @@ impl ManagedField for ProxmoxTaskStatusSelector {
             default: default.into(),
             radio_group: false,
             unique: false,
-            submit_converter: Some(Callback::from(|value: Value| -> Option<Value> {
-                let mut filter: Vec<Value> = Vec::new();
-                let data: Result<[bool; 5], _> = serde_json::from_value(value);
-                if let Ok(data) = data {
-                    if !data[0] {
-                        if data[1] {
-                            filter.push("ok".into());
-                        }
-                        if data[2] {
-                            filter.push("error".into());
-                        }
-                        if data[3] {
-                            filter.push("warning".into());
-                        }
-                        if data[4] {
-                            filter.push("unknown".into());
-                        }
-                    }
-                }
-                Some(Value::Array(filter))
-            })),
         }
     }
 
