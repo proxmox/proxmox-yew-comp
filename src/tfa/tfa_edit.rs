@@ -1,15 +1,13 @@
 use std::rc::Rc;
 
 use anyhow::Error;
-use pwt::css::{Flex, Overflow};
 
-use pwt::widget::form::{Boolean, Combobox, FormContext, InputType, Number};
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Field, TristateBoolean};
-use pwt::widget::{InputPanel, TabBarItem, TabPanel};
+use pwt::widget::InputPanel;
+use pwt::widget::form::{Boolean, Field, FormContext};
 
 use crate::percent_encoding::percent_encode_component;
 
@@ -48,7 +46,7 @@ impl TfaEdit {
 #[doc(hidden)]
 pub struct ProxmoxTfaEdit {}
 
-fn render_input_form(form_ctx: FormContext, props: TfaEdit) -> Html {
+fn render_input_form(_form_ctx: FormContext, props: TfaEdit) -> Html {
     InputPanel::new()
         .class("pwt-p-4")
         .with_field(
@@ -86,7 +84,6 @@ impl Component for ProxmoxTfaEdit {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let base_url = props.base_url.to_string();
         let url = format!(
             "{}/{}/{}",
             props.base_url,

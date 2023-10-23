@@ -25,7 +25,6 @@ use crate::{
 
 use proxmox_tfa::{TfaType, TypedTfaInfo};
 
-use crate::percent_encoding::percent_encode_component;
 use crate::tfa::TfaEdit;
 
 // fixme: use proxmox_tfa::api::methods::TfaUser;
@@ -148,8 +147,6 @@ impl LoadableComponent for ProxmoxTfaView {
     }
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
-        let props = ctx.props();
-
         match msg {
             Msg::Redraw => { true }
             Msg::Edit => {
@@ -175,15 +172,13 @@ impl LoadableComponent for ProxmoxTfaView {
     }
 
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
-        let props = ctx.props();
-
         let selected_record = self.get_selected_record();
         let remove_disabled = selected_record.is_none();
         let edit_disabled = selected_record.as_ref()
             .map(|item| item.tfa_type == TfaType::Recovery)
             .unwrap_or(true);
 
-        let mut add_menu = Menu::new()
+        let add_menu = Menu::new()
             .with_item(
                 MenuItem::new(tr!("TOTP"))
                     .icon_class("fa fa-fw fa-clock-o")
@@ -265,12 +260,6 @@ impl LoadableComponent for ProxmoxTfaView {
                     .into()
             ),
         }
-    }
-}
-
-impl ProxmoxTfaView {
-    fn tfa_edit_dialog(&self, ctx: &LoadableComponentContext<Self>, key: &AttrValue) -> Html {
-        todo!();
     }
 }
 
