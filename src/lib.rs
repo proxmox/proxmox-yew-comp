@@ -102,8 +102,7 @@ pub use subscription_info::{SubscriptionInfo, ProxmoxSubscriptionInfo};
 mod syslog;
 pub use syslog::{Syslog, ProxmoxSyslog};
 
-mod tfa;
-pub use tfa::{TfaDialog, ProxmoxTfaDialog};
+pub mod tfa;
 
 mod time_zone_selector;
 pub use time_zone_selector::{TimezoneSelector, ProxmoxTimezoneSelector};

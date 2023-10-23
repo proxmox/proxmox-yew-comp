@@ -3,3 +3,6 @@ pub use webauthn::{WebAuthn, ProxmoxWebAuthn};
 
 mod tfa_dialog;
 pub use tfa_dialog::{TfaDialog, ProxmoxTfaDialog};
+
+mod tfa_view;
+pub use tfa_view::{TfaView, ProxmoxTfaView};

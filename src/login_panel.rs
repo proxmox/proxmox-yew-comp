@@ -11,7 +11,7 @@ use pwt::widget::{Column, InputPanel, Mask, Row, LanguageSelector};
 
 use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
 
-use crate::{RealmSelector, TfaDialog};
+use crate::{RealmSelector, tfa::TfaDialog};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct LoginPanel {
