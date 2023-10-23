@@ -6,3 +6,6 @@ pub use tfa_dialog::{TfaDialog, ProxmoxTfaDialog};
 
 mod tfa_view;
 pub use tfa_view::{TfaView, ProxmoxTfaView};
+
+mod tfa_edit;
+pub use tfa_edit::{TfaEdit, ProxmoxTfaEdit};

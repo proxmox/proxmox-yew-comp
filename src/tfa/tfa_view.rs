@@ -14,7 +14,7 @@ use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 
-use pwt::widget::{Button, Toolbar, form};
+use pwt::widget::{Button, Toolbar};
 
 use pwt_macros::builder;
 
@@ -26,6 +26,7 @@ use crate::{
 use proxmox_tfa::{TfaType, TypedTfaInfo};
 
 use crate::percent_encoding::percent_encode_component;
+use crate::tfa::TfaEdit;
 
 // fixme: use proxmox_tfa::api::methods::TfaUser;
 #[derive(Deserialize, Serialize)]
@@ -41,7 +42,8 @@ pub struct TfaUser {
 #[derive(Clone, PartialEq)]
 struct TfaEntry  {
     full_id: String,
-    userid: String,
+    user_id: String,
+    entry_id: String,
     tfa_type: TfaType,
     description: String,
     created: i64,
@@ -73,18 +75,32 @@ impl TfaView {
 pub enum Msg {
     Redraw,
     Edit,
+    Remove,
 }
 
 #[derive(PartialEq)]
 pub enum ViewState {
     AddTotp,
-    EditTotp(AttrValue),
+    AddWebAuthn,
+    AddRecoveryKeys,
+    Edit(AttrValue, AttrValue),
 }
 
 #[doc(hidden)]
 pub struct ProxmoxTfaView {
     selection: Selection,
     store: Store<TfaEntry>,
+}
+
+impl ProxmoxTfaView {
+    fn get_selected_record(&self) -> Option<TfaEntry> {
+        let selected_key = self.selection.selected_key();
+        let mut selected_record = None;
+        if let Some(key) = &selected_key {
+            selected_record = self.store.read().lookup_record(key).map(|r| r.clone());
+        }
+        selected_record
+    }
 }
 
 impl LoadableComponent for ProxmoxTfaView {
@@ -113,7 +129,8 @@ impl LoadableComponent for ProxmoxTfaView {
                 for typed_tfa_info in tfa_user.entries {
                     flat_list.push(TfaEntry {
                         full_id: format!("{}/{}", tfa_user.userid, typed_tfa_info.info.id),
-                        userid: tfa_user.userid.clone(),
+                        user_id: tfa_user.userid.clone(),
+                        entry_id: typed_tfa_info.info.id,
                         tfa_type: typed_tfa_info.ty,
                         description: typed_tfa_info.info.description,
                         created: typed_tfa_info.info.created,
@@ -123,7 +140,7 @@ impl LoadableComponent for ProxmoxTfaView {
             }
 
             flat_list.sort_by(|a: &TfaEntry, b: &TfaEntry| {
-                a.userid.cmp(&b.userid).then_with(|| format_tfa_type(a.tfa_type).cmp(&format_tfa_type(b.tfa_type)))
+                a.user_id.cmp(&b.user_id).then_with(|| format_tfa_type(a.tfa_type).cmp(&format_tfa_type(b.tfa_type)))
             });
             store.set_data(flat_list);
             Ok(())
@@ -135,8 +152,88 @@ impl LoadableComponent for ProxmoxTfaView {
 
         match msg {
             Msg::Redraw => { true }
-            Msg::Edit => { true }
+            Msg::Edit => {
+                let info = match self.get_selected_record() {
+                    Some(info) => info,
+                    None => return true,
+                };
+
+                if info.tfa_type == TfaType::Recovery {
+                    return false;
+                }
+
+                ctx.link()
+                   .change_view(Some(ViewState::Edit(
+                        info.user_id.clone().into(),
+                        info.entry_id.clone().into(),
+                    )));
+
+                false
+            }
+            Msg::Remove => { true }
         }
+    }
+
+    fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+        let props = ctx.props();
+
+        let selected_record = self.get_selected_record();
+        let remove_disabled = selected_record.is_none();
+        let edit_disabled = selected_record.as_ref()
+            .map(|item| item.tfa_type == TfaType::Recovery)
+            .unwrap_or(true);
+
+        let mut add_menu = Menu::new()
+            .with_item(
+                MenuItem::new(tr!("TOTP"))
+                    .icon_class("fa fa-fw fa-clock-o")
+                    .on_select(
+                        ctx.link()
+                            .change_view_callback(|_| Some(ViewState::AddTotp)),
+                    ),
+            )
+            .with_item(
+                MenuItem::new(tr!("WebAuthn"))
+                    .icon_class("fa fa-fw fa-shield")
+                    .on_select(
+                        ctx.link()
+                            .change_view_callback(|_| Some(ViewState::AddWebAuthn)),
+                    ),
+            )
+            .with_item(
+                MenuItem::new(tr!("Recovery Keys"))
+                    .icon_class("fa fa-fw fa-file-text-o")
+                    .on_select(
+                        ctx.link()
+                            .change_view_callback(|_| Some(ViewState::AddRecoveryKeys)),
+                    ),
+            );
+
+        let toolbar = Toolbar::new()
+            .class("pwt-w-100")
+            .class("pwt-overflow-hidden")
+            .class("pwt-border-bottom")
+            .with_child(MenuButton::new("Add").show_arrow(true).menu(add_menu))
+            .with_spacer()
+            .with_child(
+                Button::new(tr!("Edit"))
+                    .disabled(edit_disabled)
+                    .onclick(ctx.link().callback(|_| Msg::Edit)),
+            )
+            .with_child(
+                Button::new(tr!("Remove"))
+                    .disabled(remove_disabled)
+                    .onclick(ctx.link().callback(|_| Msg::Remove)),
+            )
+
+            .with_flex_spacer()
+            .with_child({
+                let loading = ctx.loading();
+                let link = ctx.link();
+                Button::refresh(loading).onclick(move |_| link.send_reload())
+            });
+
+        Some(toolbar.into())
     }
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
@@ -151,8 +248,31 @@ impl LoadableComponent for ProxmoxTfaView {
             .into()
     }
 
+    fn dialog_view(
+        &self,
+        ctx: &LoadableComponentContext<Self>,
+        view_state: &Self::ViewState,
+    ) -> Option<Html> {
+        let props = ctx.props();
+        match view_state {
+            ViewState::AddTotp => None,
+            ViewState::AddWebAuthn => None,
+            ViewState::AddRecoveryKeys => None,
+            ViewState::Edit(user_id, entry_id) => Some(
+                TfaEdit::new(user_id.clone(), entry_id.clone())
+                    .base_url(props.base_url.clone())
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .into()
+            ),
+        }
+    }
 }
 
+impl ProxmoxTfaView {
+    fn tfa_edit_dialog(&self, ctx: &LoadableComponentContext<Self>, key: &AttrValue) -> Html {
+        todo!();
+    }
+}
 
 fn format_tfa_type(tfa_type: TfaType) -> String {
     serde_plain::to_string(&tfa_type).unwrap()
@@ -163,10 +283,10 @@ thread_local! {
         DataTableColumn::new(tr!("User"))
             .width("200px")
             .render(|item: &TfaEntry| {
-                html!{item.userid.clone()}
+                html!{item.user_id.clone()}
             })
             .sorter(|a: &TfaEntry, b: &TfaEntry| {
-                a.userid.cmp(&b.userid)
+                a.user_id.cmp(&b.user_id)
             })
             .into(),
         DataTableColumn::new(tr!("Enabled"))
@@ -189,7 +309,7 @@ thread_local! {
                 a.enable.cmp(&b.enable)
             })
             .into(),
-        DataTableColumn::new(tr!("TfaType"))
+        DataTableColumn::new(tr!("TFA Type"))
             .width("100px")
             .render(|item: &TfaEntry| html!{
                 format_tfa_type(item.tfa_type)
