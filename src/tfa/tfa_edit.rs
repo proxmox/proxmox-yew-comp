@@ -63,6 +63,7 @@ fn render_input_form(form_ctx: FormContext, props: TfaEdit) -> Html {
             tr!("Description"),
             Field::new()
                 .name("description")
+                .autofocus(true)
                 .submit_empty(true)
         )
         .with_field(
