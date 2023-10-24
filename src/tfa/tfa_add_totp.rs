@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use anyhow::Error;
+use anyhow::{bail, Error};
 use serde_json::Value;
 
 use yew::html::{IntoEventCallback, IntoPropValue};
@@ -93,7 +93,7 @@ fn render_input_form(form_ctx: FormContext, _props: TfaAddTotp, secret: AttrValu
         )
         .with_field(
             tr!("Secret"),
-            Field::new().default(secret).name("secret").submit(false),
+            Field::new().default(secret).validate(validate_secret).name("secret").submit(false),
         )
         .with_field(
             tr!("Issuer Name"),
@@ -152,6 +152,19 @@ impl Into<VNode> for TfaAddTotp {
         let comp = VComp::new::<ProxmoxTfaAddTotp>(Rc::new(self), None);
         VNode::from(comp)
     }
+}
+
+fn validate_secret(secret: &String) -> Result<(), Error>  {
+
+    let invalid = secret.chars().find(|c| {
+        !matches!(c, '2'..='7' | 'A'..='Z' | '=')
+    }).is_some();
+
+    if invalid {
+        bail!(tr!("Must be base32 [A-Z2-7=]"));
+    }
+
+    Ok(())
 }
 
 fn render_qrcode(text: &str) -> Html {
