@@ -8,7 +8,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::widget::form::{Field, FormContext};
-use pwt::widget::InputPanel;
+use pwt::widget::{Button, InputPanel, Row};
 
 use crate::percent_encoding::percent_encode_component;
 
@@ -70,7 +70,7 @@ pub struct ProxmoxTfaAddTotp {
     default_secret: AttrValue,
 }
 
-fn render_input_form(form_ctx: FormContext, _props: TfaAddTotp, secret: AttrValue) -> Html {
+fn render_input_form(form_ctx: FormContext, secret: AttrValue) -> Html {
     let totp_link = extract_totp_link(&form_ctx);
 
     InputPanel::new()
@@ -86,20 +86,40 @@ fn render_input_form(form_ctx: FormContext, _props: TfaAddTotp, secret: AttrValu
             tr!("Description"),
             Field::new()
                 .name("description")
+                .required(true)
                 .autofocus(true)
                 .placeholder(tr!(
                     "For example: TFA device ID, required to identify multiple factors."
                 )),
         )
         .with_field(
-            tr!("Secret"),
-            Field::new().default(secret).validate(validate_secret).name("secret").submit(false),
-        )
-        .with_field(
             tr!("Issuer Name"),
             Field::new().name("issuer").submit(false).default("Proxmox"),
         )
+        .with_field(
+            tr!("Secret"),
+            Field::new()
+                .default(secret)
+                .validate(validate_secret)
+                .name("secret")
+                .submit(false),
+        )
         .with_custom_child(
+            Row::new()
+                .with_flex_spacer()
+                .with_child(
+                    Button::new(tr!("Randomize"))
+                        .class("pwt-scheme-primary")
+                        .onclick({
+                            let form_ctx = form_ctx.clone();
+                            move |_| {
+                                let secret: Value = randomize_secret().into();
+                                form_ctx.write().set_field_value("secret", secret);
+                            }
+                        })
+                    )
+        )
+          .with_custom_child(
             html! {<div key="qrcode" style="text-align:center;">{render_qrcode(&totp_link)}</div>},
         )
         .with_field(
@@ -135,10 +155,9 @@ impl Component for ProxmoxTfaAddTotp {
 
         EditWindow::new(tr!("Add a TOTP login factor"))
             .renderer({
-                let props = props.clone();
                 let secret = self.default_secret.clone();
                 move |form_ctx: &FormContext| {
-                    render_input_form(form_ctx.clone(), props.clone(), secret.clone())
+                    render_input_form(form_ctx.clone(), secret.clone())
                 }
             })
             .on_done(props.on_close.clone())
@@ -154,11 +173,11 @@ impl Into<VNode> for TfaAddTotp {
     }
 }
 
-fn validate_secret(secret: &String) -> Result<(), Error>  {
-
-    let invalid = secret.chars().find(|c| {
-        !matches!(c, '2'..='7' | 'A'..='Z' | '=')
-    }).is_some();
+fn validate_secret(secret: &String) -> Result<(), Error> {
+    let invalid = secret
+        .chars()
+        .find(|c| !matches!(c, '2'..='7' | 'A'..='Z' | '='))
+        .is_some();
 
     if invalid {
         bail!(tr!("Must be base32 [A-Z2-7=]"));
