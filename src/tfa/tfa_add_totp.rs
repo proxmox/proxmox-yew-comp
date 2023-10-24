@@ -106,6 +106,7 @@ fn render_input_form(form_ctx: FormContext, secret: AttrValue) -> Html {
         )
         .with_custom_child(
             Row::new()
+                .padding_bottom(2)
                 .with_flex_spacer()
                 .with_child(
                     Button::new(tr!("Randomize"))
