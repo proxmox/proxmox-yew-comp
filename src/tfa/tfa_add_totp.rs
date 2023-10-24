@@ -14,7 +14,7 @@ use crate::percent_encoding::percent_encode_component;
 
 use pwt_macros::builder;
 
-use crate::EditWindow;
+use crate::{EditWindow, AuthidSelector};
 
 fn extract_totp_link(form_ctx: &FormContext) -> String {
     let userid = form_ctx.read().get_field_text("userid");
@@ -79,8 +79,11 @@ fn render_input_form(form_ctx: FormContext, secret: AttrValue) -> Html {
         .class("pwt-p-4")
         .with_field(
             tr!("User"),
-            // fixme: use AuthidSelector
-            Field::new().name("userid").required(true).submit(false),
+            AuthidSelector::new()
+                .include_tokens(false)
+                .name("userid")
+                .required(true)
+                .submit(false)
         )
         .with_field(
             tr!("Description"),
