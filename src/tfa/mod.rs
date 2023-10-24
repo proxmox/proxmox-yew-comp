@@ -9,3 +9,6 @@ pub use tfa_view::{TfaView, ProxmoxTfaView};
 
 mod tfa_edit;
 pub use tfa_edit::{TfaEdit, ProxmoxTfaEdit};
+
+mod tfa_add_totp;
+pub use tfa_add_totp::{TfaAddTotp, ProxmoxTfaAddTotp};

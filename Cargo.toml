@@ -24,6 +24,7 @@ web-sys = { version = "0.3", features = [
   "SvgRect",
   "DomRect",
   "Element",
+  "Crypto",
 ] }
 js-sys = "0.3"
 log = "0.4.6"
@@ -40,6 +41,7 @@ url = "2.1"
 percent-encoding = "2.1"
 html-escape = "0.2"
 pulldown-cmark = { version = "0.9", features =[] }
+qrcode = { version = "0.12", default-features = false, features = ["svg"] }
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }

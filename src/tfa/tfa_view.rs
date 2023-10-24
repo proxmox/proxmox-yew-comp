@@ -26,6 +26,19 @@ use crate::{
 use proxmox_tfa::{TfaType, TypedTfaInfo};
 
 use crate::tfa::TfaEdit;
+use crate::percent_encoding::percent_encode_component;
+
+use super::TfaAddTotp;
+
+async fn delete_item(base_url: AttrValue, user_id: String, entry_id: String) -> Result<(), Error> {
+    let url = format!(
+        "{base_url}/{}/{}",
+        percent_encode_component(&user_id),
+        percent_encode_component(&entry_id),
+    );
+    let _ = crate::http_delete(&url, None).await?;
+    Ok(())
+}
 
 // fixme: use proxmox_tfa::api::methods::TfaUser;
 #[derive(Deserialize, Serialize)]
@@ -147,6 +160,7 @@ impl LoadableComponent for ProxmoxTfaView {
     }
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
+        let props = ctx.props();
         match msg {
             Msg::Redraw => { true }
             Msg::Edit => {
@@ -167,7 +181,23 @@ impl LoadableComponent for ProxmoxTfaView {
 
                 false
             }
-            Msg::Remove => { true }
+            Msg::Remove => {
+                let info = match self.get_selected_record() {
+                    Some(info) => info,
+                    None => return true,
+                };
+                // fixme: ask use if he really wants to remove
+                let link = ctx.link().clone();
+                let base_url = props.base_url.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    if let Err(err) = delete_item(base_url, info.user_id.clone(), info.entry_id.clone()).await {
+                        link.show_error(tr!("Unable to delete item"), err, true);
+                    }
+                    link.send_reload();
+                });
+
+                false
+            }
         }
     }
 
@@ -250,7 +280,12 @@ impl LoadableComponent for ProxmoxTfaView {
     ) -> Option<Html> {
         let props = ctx.props();
         match view_state {
-            ViewState::AddTotp => None,
+            ViewState::AddTotp => Some(
+                TfaAddTotp::new()
+                    .base_url(props.base_url.clone())
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .into()
+            ),
             ViewState::AddWebAuthn => None,
             ViewState::AddRecoveryKeys => None,
             ViewState::Edit(user_id, entry_id) => Some(
