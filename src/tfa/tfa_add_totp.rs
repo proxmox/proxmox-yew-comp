@@ -74,7 +74,7 @@ fn render_input_form(form_ctx: FormContext, secret: AttrValue) -> Html {
     let totp_link = extract_totp_link(&form_ctx);
 
     InputPanel::new()
-        .attribute("style", "min-width: 500px;")
+        .attribute("style", "min-width: 600px;")
         .label_width("120px")
         .class("pwt-p-4")
         .with_field(
