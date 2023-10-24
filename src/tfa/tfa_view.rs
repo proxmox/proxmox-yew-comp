@@ -4,31 +4,27 @@ use std::rc::Rc;
 
 use anyhow::Error;
 use pwt::props::ExtractPrimaryKey;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use yew::html::IntoPropValue;
-use yew::virtual_dom::{VComp, VNode, Key};
+use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-
 use pwt::widget::{Button, Toolbar};
 
 use pwt_macros::builder;
 
-use crate::{
-    LoadableComponent, LoadableComponentContext,
-    LoadableComponentMaster,
-};
+use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
 use proxmox_tfa::{TfaType, TypedTfaInfo};
 
-use crate::tfa::TfaEdit;
 use crate::percent_encoding::percent_encode_component;
+use crate::tfa::TfaEdit;
 
-use super::{TfaAddTotp, TfaAddRecovery};
+use super::{TfaAddRecovery, TfaAddTotp};
 
 async fn delete_item(base_url: AttrValue, user_id: String, entry_id: String) -> Result<(), Error> {
     let url = format!(
@@ -52,7 +48,7 @@ pub struct TfaUser {
 }
 
 #[derive(Clone, PartialEq)]
-struct TfaEntry  {
+struct TfaEntry {
     full_id: String,
     user_id: String,
     entry_id: String,
@@ -137,7 +133,7 @@ impl LoadableComponent for ProxmoxTfaView {
             let data: Vec<TfaUser> = crate::http_get(&*base_url, None).await?;
 
             let mut flat_list = Vec::new();
-            for tfa_user in data  {
+            for tfa_user in data {
                 for typed_tfa_info in tfa_user.entries {
                     flat_list.push(TfaEntry {
                         full_id: format!("{}/{}", tfa_user.userid, typed_tfa_info.info.id),
@@ -152,7 +148,9 @@ impl LoadableComponent for ProxmoxTfaView {
             }
 
             flat_list.sort_by(|a: &TfaEntry, b: &TfaEntry| {
-                a.user_id.cmp(&b.user_id).then_with(|| format_tfa_type(a.tfa_type).cmp(&format_tfa_type(b.tfa_type)))
+                a.user_id
+                    .cmp(&b.user_id)
+                    .then_with(|| format_tfa_type(a.tfa_type).cmp(&format_tfa_type(b.tfa_type)))
             });
             store.set_data(flat_list);
             Ok(())
@@ -162,7 +160,7 @@ impl LoadableComponent for ProxmoxTfaView {
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
-            Msg::Redraw => { true }
+            Msg::Redraw => true,
             Msg::Edit => {
                 let info = match self.get_selected_record() {
                     Some(info) => info,
@@ -173,11 +171,10 @@ impl LoadableComponent for ProxmoxTfaView {
                     return false;
                 }
 
-                ctx.link()
-                   .change_view(Some(ViewState::Edit(
-                        info.user_id.clone().into(),
-                        info.entry_id.clone().into(),
-                    )));
+                ctx.link().change_view(Some(ViewState::Edit(
+                    info.user_id.clone().into(),
+                    info.entry_id.clone().into(),
+                )));
 
                 false
             }
@@ -190,7 +187,9 @@ impl LoadableComponent for ProxmoxTfaView {
                 let link = ctx.link().clone();
                 let base_url = props.base_url.clone();
                 wasm_bindgen_futures::spawn_local(async move {
-                    if let Err(err) = delete_item(base_url, info.user_id.clone(), info.entry_id.clone()).await {
+                    if let Err(err) =
+                        delete_item(base_url, info.user_id.clone(), info.entry_id.clone()).await
+                    {
                         link.show_error(tr!("Unable to delete item"), err, true);
                     }
                     link.send_reload();
@@ -204,7 +203,8 @@ impl LoadableComponent for ProxmoxTfaView {
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
         let selected_record = self.get_selected_record();
         let remove_disabled = selected_record.is_none();
-        let edit_disabled = selected_record.as_ref()
+        let edit_disabled = selected_record
+            .as_ref()
             .map(|item| item.tfa_type == TfaType::Recovery)
             .unwrap_or(true);
 
@@ -250,7 +250,6 @@ impl LoadableComponent for ProxmoxTfaView {
                     .disabled(remove_disabled)
                     .onclick(ctx.link().callback(|_| Msg::Remove)),
             )
-
             .with_flex_spacer()
             .with_child({
                 let loading = ctx.loading();
@@ -284,20 +283,20 @@ impl LoadableComponent for ProxmoxTfaView {
                 TfaAddTotp::new()
                     .base_url(props.base_url.clone())
                     .on_close(ctx.link().change_view_callback(|_| None))
-                    .into()
+                    .into(),
             ),
             ViewState::AddWebAuthn => None,
             ViewState::AddRecoveryKeys => Some(
                 TfaAddRecovery::new()
                     .base_url(props.base_url.clone())
                     .on_close(ctx.link().change_view_callback(|_| None))
-                    .into()
+                    .into(),
             ),
             ViewState::Edit(user_id, entry_id) => Some(
                 TfaEdit::new(user_id.clone(), entry_id.clone())
                     .base_url(props.base_url.clone())
                     .on_close(ctx.link().change_view_callback(|_| None))
-                    .into()
+                    .into(),
             ),
         }
     }
