@@ -7,6 +7,9 @@ pub use auth_edit_openid::{AuthEditOpenID, ProxmoxAuthEditOpenID};
 mod auth_edit_ldap;
 pub use auth_edit_ldap::{AuthEditLDAP, ProxmoxAuthEditLDAP};
 
+mod authid_selector;
+pub use authid_selector::AuthidSelector;
+
 mod bandwidth_selector;
 pub use bandwidth_selector::{BandwidthSelector, ProxmoxBandwidthSelector};
 

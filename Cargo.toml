@@ -56,3 +56,4 @@ proxmox-time = "1"
 proxmox-login = "0.1"
 proxmox-client = "0.3"
 proxmox-tfa = { version = "4.0.5",  default-features = false, features = ["api-types"] }
+proxmox-auth-api = { version = "0.3", default-features =  false, features = ["api-types"] }
