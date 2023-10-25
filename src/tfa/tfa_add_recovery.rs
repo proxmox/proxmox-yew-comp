@@ -68,12 +68,15 @@ pub struct RecoveryKeyInfo {
 pub enum Msg {
     RecoveryKeys(RecoveryKeyInfo),
     ShowKeys,
+    PrintKeys,
 }
 
 #[doc(hidden)]
 pub struct ProxmoxTfaAddRecovery {
     recovery_keys: Option<RecoveryKeyInfo>,
     container_ref: NodeRef,
+    print_counter: usize,
+    print_portal: Option<Html>,
 }
 
 fn render_input_form(_form_ctx: FormContext) -> Html {
@@ -142,16 +145,10 @@ impl ProxmoxTfaAddRecovery {
                                 Button::new(tr!("Print Recovery Keys"))
                                     .icon_class("fa fa-print")
                                     .class("pwt-scheme-primary")
-                                    .onclick({
-                                        let keys = self.recovery_keys.clone();
-                                        move |_| {
-                                            if let Some(keys) = &keys {
-                                                paperkeys(&keys);
-                                            }
-                                        }
-                                    }),
+                                    .onclick(ctx.link().callback(|_| Msg::PrintKeys)),
                             ),
-                    ),
+                    )
+                    .with_optional_child(self.print_portal.clone()),
             )
             .into()
     }
@@ -165,6 +162,8 @@ impl Component for ProxmoxTfaAddRecovery {
         Self {
             recovery_keys: None,
             container_ref: NodeRef::default(),
+            print_portal: None,
+            print_counter: 0,
         }
     }
 
@@ -180,6 +179,17 @@ impl Component for ProxmoxTfaAddRecovery {
                     if let Some(on_close) = &props.on_close {
                         on_close.emit(());
                     }
+                }
+                true
+            }
+            Msg::PrintKeys => {
+                if let Some(data) = &self.recovery_keys {
+                    let window = web_sys::window().unwrap();
+                    let document = window.document().unwrap();
+                    let body = document.body().unwrap();
+                    let print_page = create_paperkey_page(data, self.print_counter);
+                    self.print_counter += 1;
+                    self.print_portal = Some(create_portal(print_page, body.into()));
                 }
                 true
             }
@@ -222,15 +232,9 @@ impl Into<VNode> for TfaAddRecovery {
     }
 }
 
-fn paperkeys(data: &RecoveryKeyInfo) {
+fn create_paperkey_page(data: &RecoveryKeyInfo, print_counter: usize) -> Html {
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
-
-    let print_frame = document.create_element("iframe").unwrap();
-    let _ = print_frame.set_attribute(
-        "style",
-        "position:fixed;right:0;bottom:0;width:0;height:0;border:0;",
-    );
 
     let userid = data.userid.clone();
     let title = document.title();
@@ -265,8 +269,6 @@ fn paperkeys(data: &RecoveryKeyInfo) {
     );
 
     let data_url = format!("data:text/html;base64,{}", base64::encode(html));
-    let _ = print_frame.set_attribute("src", &data_url);
 
-    let body = document.body().unwrap();
-    let _ = body.append_child(&print_frame);
+    html! {<iframe key={print_counter} src={data_url}/>}
 }
