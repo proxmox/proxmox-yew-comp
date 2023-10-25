@@ -17,6 +17,7 @@ web-sys = { version = "0.3", features = [
   "NamedNodeMap",
   "Node",
   "Document",
+  "HtmlDocument",
   "DomParser",
   "SupportedType",
   "SvgsvgElement",
@@ -24,7 +25,10 @@ web-sys = { version = "0.3", features = [
   "SvgRect",
   "DomRect",
   "Element",
+  "HtmlElement",
   "Crypto",
+  "Selection",
+  "Range",
 ] }
 js-sys = "0.3"
 log = "0.4.6"

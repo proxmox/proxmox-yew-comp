@@ -82,6 +82,7 @@ fn render_input_form(form_ctx: FormContext, secret: AttrValue) -> Html {
             AuthidSelector::new()
                 .include_tokens(false)
                 .name("userid")
+                .default(crate::http_get_auth().map(|auth| auth.userid))
                 .required(true)
                 .submit(false)
         )

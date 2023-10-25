@@ -63,6 +63,10 @@ pub fn http_set_auth(info: Authentication) {
     CLIENT.with(move |c| c.borrow_mut().set_auth(info));
 }
 
+pub fn http_get_auth() -> Option<Authentication> {
+    CLIENT.with(move |c| c.borrow().get_auth())
+}
+
 pub fn http_clear_auth() {
     CLIENT.with(move |c| {
         c.borrow_mut().clear_auth();
