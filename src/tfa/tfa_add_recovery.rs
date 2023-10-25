@@ -14,6 +14,7 @@ use crate::percent_encoding::percent_encode_component;
 
 use pwt_macros::builder;
 
+use crate::utils::copy_to_clipboard;
 use crate::{AuthidSelector, EditWindow};
 
 #[derive(Debug, Deserialize)]
@@ -21,7 +22,7 @@ struct RecoveryKeyList {
     recovery: Vec<String>,
 }
 
-async fn create_item(form_ctx: FormContext, base_url: String) -> Result<RecoveryKeyList, Error> {
+async fn create_item(form_ctx: FormContext, base_url: String) -> Result<RecoveryKeyInfo, Error> {
     let mut data = form_ctx.get_submit_data();
 
     let userid = form_ctx.read().get_field_text("userid");
@@ -30,7 +31,12 @@ async fn create_item(form_ctx: FormContext, base_url: String) -> Result<Recovery
 
     data["type"] = "recovery".into();
 
-    crate::http_post(url, Some(data)).await
+    let res: RecoveryKeyList = crate::http_post(url, Some(data)).await?;
+
+    Ok(RecoveryKeyInfo {
+        userid,
+        keys: res.recovery,
+    })
 }
 
 #[derive(Clone, PartialEq, Properties)]
@@ -53,14 +59,21 @@ impl TfaAddRecovery {
     }
 }
 
+#[derive(Clone)]
+pub struct RecoveryKeyInfo {
+    userid: String,
+    keys: Vec<String>,
+}
+
 pub enum Msg {
-    RecoveryKeys(Vec<String>),
+    RecoveryKeys(RecoveryKeyInfo),
     ShowKeys,
 }
 
 #[doc(hidden)]
 pub struct ProxmoxTfaAddRecovery {
-    recovery_keys: Option<Vec<String>>,
+    recovery_keys: Option<RecoveryKeyInfo>,
+    container_ref: NodeRef,
 }
 
 fn render_input_form(_form_ctx: FormContext) -> Html {
@@ -80,14 +93,15 @@ fn render_input_form(_form_ctx: FormContext) -> Html {
 }
 
 impl ProxmoxTfaAddRecovery {
-    fn recovery_keys_dialog(&self, ctx: &Context<Self>, keys: &[String]) -> Html {
-        let text: String = keys
+    fn recovery_keys_dialog(&self, ctx: &Context<Self>, data: &RecoveryKeyInfo) -> Html {
+        let text: String = data
+            .keys
             .iter()
             .enumerate()
             .map(|(i, key)| format!("{i}: {key}\n"))
             .collect();
 
-        Dialog::new(tr!("Recovery Keys"))
+        Dialog::new(tr!("Recovery Keys for user '{}'", data.userid))
             .on_close(ctx.props().on_close.clone())
             .with_child(
                 Column::new()
@@ -96,6 +110,7 @@ impl ProxmoxTfaAddRecovery {
                             .padding(2)
                             .with_child(
                                 Container::new()
+                                    .node_ref(self.container_ref.clone())
                                     .tag("pre")
                                     .class("pwt-font-monospace")
                                     .padding(2)
@@ -114,7 +129,28 @@ impl ProxmoxTfaAddRecovery {
                     .with_child(
                         Toolbar::new()
                             .with_flex_spacer()
-                            .with_child(Button::new("TEST").class("pwt-scheme-primary")),
+                            .with_child(
+                                Button::new(tr!("Copy Recovery Keys"))
+                                    .icon_class("fa fa-clipboard")
+                                    .class("pwt-scheme-primary")
+                                    .onclick({
+                                        let container_ref = self.container_ref.clone();
+                                        move |_| copy_to_clipboard(&container_ref)
+                                    }),
+                            )
+                            .with_child(
+                                Button::new(tr!("Print Recovery Keys"))
+                                    .icon_class("fa fa-print")
+                                    .class("pwt-scheme-primary")
+                                    .onclick({
+                                        let keys = self.recovery_keys.clone();
+                                        move |_| {
+                                            if let Some(keys) = &keys {
+                                                paperkeys(&keys);
+                                            }
+                                        }
+                                    }),
+                            ),
                     ),
             )
             .into()
@@ -128,14 +164,15 @@ impl Component for ProxmoxTfaAddRecovery {
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
             recovery_keys: None,
+            container_ref: NodeRef::default(),
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
-            Msg::RecoveryKeys(keys) => {
-                self.recovery_keys = Some(keys);
+            Msg::RecoveryKeys(data) => {
+                self.recovery_keys = Some(data);
                 true
             }
             Msg::ShowKeys => {
@@ -151,8 +188,8 @@ impl Component for ProxmoxTfaAddRecovery {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        if let Some(keys) = &self.recovery_keys {
-            return self.recovery_keys_dialog(ctx, keys);
+        if let Some(data) = &self.recovery_keys {
+            return self.recovery_keys_dialog(ctx, &data);
         }
 
         let base_url = props.base_url.to_string();
@@ -164,7 +201,7 @@ impl Component for ProxmoxTfaAddRecovery {
                 let link = link.clone();
                 async move {
                     let data = create_item(form_context, base_url.clone()).await?;
-                    link.send_message(Msg::RecoveryKeys(data.recovery));
+                    link.send_message(Msg::RecoveryKeys(data));
                     Ok(())
                 }
             }
@@ -183,4 +220,53 @@ impl Into<VNode> for TfaAddRecovery {
         let comp = VComp::new::<ProxmoxTfaAddRecovery>(Rc::new(self), None);
         VNode::from(comp)
     }
+}
+
+fn paperkeys(data: &RecoveryKeyInfo) {
+    let window = web_sys::window().unwrap();
+    let document = window.document().unwrap();
+
+    let print_frame = document.create_element("iframe").unwrap();
+    let _ = print_frame.set_attribute(
+        "style",
+        "position:fixed;right:0;bottom:0;width:0;height:0;border:0;",
+    );
+
+    let userid = data.userid.clone();
+    let title = document.title();
+    let host = document.location().unwrap().host().unwrap();
+
+    let key_text: String = data
+        .keys
+        .iter()
+        .enumerate()
+        .map(|(i, key)| format!("{i}: {key}\n"))
+        .collect();
+
+    let html = format!(
+        r###"
+    <html>
+        <head>
+            <script>
+                window.addEventListener('DOMContentLoaded', (ev) => window.print());
+            </script>
+            <style>@media print and (max-height: 150mm) {{
+                h4, p  {{ margin: 0; font-size: 1em; }}
+            }}</style>
+        </head>
+        <body style="padding: 5px;">
+            <h4>Recovery Keys for '{userid}' - {title} ({host})</h4>
+            <p style="font-size:1.5em;line-height:1.5em;font-family:monospace;white-space:pre-wrap;overflow-wrap:break-word;">
+{key_text}
+            </p>
+        </body>
+    </html>`;
+"###
+    );
+
+    let data_url = format!("data:text/html;base64,{}", base64::encode(html));
+    let _ = print_frame.set_attribute("src", &data_url);
+
+    let body = document.body().unwrap();
+    let _ = body.append_child(&print_frame);
 }

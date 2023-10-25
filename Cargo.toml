@@ -42,6 +42,7 @@ percent-encoding = "2.1"
 html-escape = "0.2"
 pulldown-cmark = { version = "0.9", features =[] }
 qrcode = { version = "0.12", default-features = false, features = ["svg"] }
+base64 = "0.13"
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
