@@ -1,10 +1,11 @@
-use serde_json::Value;
 use anyhow::Error;
+use std::collections::HashSet;
+
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use pwt::prelude::*;
-use pwt::widget::form::{
-    ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState,
-};
+use pwt::widget::form::{ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState};
 use pwt::widget::{Button, SegmentedButton};
 
 use pwt_macros::widget;
@@ -27,12 +28,15 @@ pub enum Msg {
     ToggleUnknown,
 }
 
-pub struct ProxmoxTaskStatusSelector {
-    all: bool,
-    ok: bool,
-    errors: bool,
-    warnings: bool,
-    unknown: bool,
+pub struct ProxmoxTaskStatusSelector {}
+
+#[derive(Copy, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+enum TaskFilterEntry {
+    Ok,
+    Error,
+    Warning,
+    Unknown,
 }
 
 impl ManagedField for ProxmoxTaskStatusSelector {
@@ -40,31 +44,24 @@ impl ManagedField for ProxmoxTaskStatusSelector {
     type Message = Msg;
     type ValidateClosure = ();
 
-    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure { () }
+    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure {
+        ()
+    }
 
     fn validator(_props: &Self::ValidateClosure, value: &Value) -> Result<Value, Error> {
-        let mut filter: Vec<Value> = Vec::new();
-        let data: [bool; 5] = serde_json::from_value(value.clone())?;
-            if !data[0] {
-                if data[1] {
-                    filter.push("ok".into());
-                }
-                if data[2] {
-                    filter.push("error".into());
-                }
-                if data[3] {
-                    filter.push("warning".into());
-                }
-                if data[4] {
-                    filter.push("unknown".into());
-                }
-            }
+        let filter: Vec<TaskFilterEntry> = serde_json::from_value(value.clone())?;
 
-        Ok(Value::Array(filter))
+        let filter_map: HashSet<TaskFilterEntry> = filter.into_iter().collect();
+
+        let list: Vec<String> = filter_map
+            .iter()
+            .map(|i| serde_plain::to_string(i).unwrap())
+            .collect();
+        Ok(list.into())
     }
 
     fn setup(_props: &Self::Properties) -> ManagedFieldState {
-        let value = vec![true, false, false, false, false];
+        let value: Vec<String> = vec![];
         let default = value.clone();
 
         ManagedFieldState {
@@ -76,104 +73,87 @@ impl ManagedField for ProxmoxTaskStatusSelector {
         }
     }
 
-    fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
-        let state = ctx.state();
-
-        let value: Result<[bool; 5], _> = serde_json::from_value(state.value.clone());
-        if let Ok(data) = value {
-            self.all = data[0];
-            self.ok = data[1];
-            self.errors = data[2];
-            self.warnings = data[3];
-            self.unknown = data[4];
-        }
-    }
-
     fn create(_ctx: &ManagedFieldContext<Self>) -> Self {
-        Self {
-            all: true,
-            ok: false,
-            errors: false,
-            warnings: false,
-            unknown: false,
-        }
+        Self {}
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {
+        let state = ctx.state();
+        let filter: Vec<TaskFilterEntry> = serde_json::from_value(state.value.clone()).unwrap_or(Vec::new());
+        let mut filter_map: HashSet<TaskFilterEntry> = filter.into_iter().collect();
+
         match msg {
             Msg::ToggleAll => {
-                self.all = !self.all;
-                if self.all {
-                    self.ok = false;
-                    self.errors = false;
-                    self.warnings = false;
-                    self.unknown = false;
-                }
+                filter_map = HashSet::new();
             }
             Msg::ToggleOk => {
-                self.ok = !self.ok;
-                self.all = false;
+                if !filter_map.remove(&TaskFilterEntry::Ok) {
+                    filter_map.insert(TaskFilterEntry::Ok);
+                }
             }
             Msg::ToggleErrors => {
-                self.errors = !self.errors;
-                self.all = false;
+                if !filter_map.remove(&TaskFilterEntry::Error) {
+                    filter_map.insert(TaskFilterEntry::Error);
+                }
             }
             Msg::ToggleWarnings => {
-                self.warnings = !self.warnings;
-                self.all = false;
+                if !filter_map.remove(&TaskFilterEntry::Warning) {
+                    filter_map.insert(TaskFilterEntry::Warning);
+                }
             }
             Msg::ToggleUnknown => {
-                self.unknown = !self.unknown;
-                self.all = false;
+                if !filter_map.remove(&TaskFilterEntry::Unknown) {
+                    filter_map.insert(TaskFilterEntry::Unknown);
+                }
             }
         }
-        if !(self.ok || self.errors || self.warnings || self.unknown) {
-            self.all = true;
-        }
 
-        ctx.link().update_value(vec![
-            self.all,
-            self.ok,
-            self.errors,
-            self.warnings,
-            self.unknown,
-        ]);
+        let list: Vec<String> = filter_map
+            .iter()
+            .map(|i| serde_plain::to_string(i).unwrap())
+            .collect();
+
+        ctx.link().update_value(list);
 
         true
     }
 
     fn view(&self, ctx: &ManagedFieldContext<Self>) -> Html {
+        let state = ctx.state();
+        let filter: Vec<TaskFilterEntry> = serde_json::from_value(state.value.clone()).unwrap_or(Vec::new());
+        let unique_map: HashSet<TaskFilterEntry> = filter.into_iter().collect();
+
         let pressed_scheme = "pwt-scheme-secondary-container";
         SegmentedButton::new()
             .class("pwt-button-elevated")
             .with_button(
                 Button::new(tr!("All"))
-                    .pressed(self.all)
-                    .class(self.all.then(|| pressed_scheme))
+                    .pressed(unique_map.is_empty())
+                    .class(unique_map.is_empty().then(|| pressed_scheme))
                     .onclick(ctx.link().callback(|_| Msg::ToggleAll)),
             )
             .with_button(
                 Button::new(tr!("Ok"))
-                    .pressed(self.ok)
-                    .class(self.ok.then(|| pressed_scheme))
+                    .pressed(unique_map.contains(&TaskFilterEntry::Ok))
+                    .class(unique_map.contains(&TaskFilterEntry::Ok).then(|| pressed_scheme))
                     .onclick(ctx.link().callback(|_| Msg::ToggleOk)),
             )
             .with_button(
                 Button::new(tr!("Errors"))
-                    .pressed(self.errors)
-                    .class(self.errors.then(|| pressed_scheme))
+                    .pressed(unique_map.contains(&TaskFilterEntry::Error))
+                    .class(unique_map.contains(&TaskFilterEntry::Error).then(|| pressed_scheme))
                     .onclick(ctx.link().callback(|_| Msg::ToggleErrors)),
             )
             .with_button(
                 Button::new(tr!("Warnings"))
-                    .pressed(self.warnings)
-                    .class(self.warnings.then(|| pressed_scheme))
+                    .pressed(unique_map.contains(&TaskFilterEntry::Warning))
+                    .class(unique_map.contains(&TaskFilterEntry::Warning).then(|| pressed_scheme))
                     .onclick(ctx.link().callback(|_| Msg::ToggleWarnings)),
             )
             .with_button(
                 Button::new(tr!("Unknown"))
-                    .pressed(self.unknown)
-                    .class(self.unknown.then(|| pressed_scheme))
+                    .pressed(unique_map.contains(&TaskFilterEntry::Unknown))
+                    .class(unique_map.contains(&TaskFilterEntry::Unknown).then(|| pressed_scheme))
                     .onclick(ctx.link().callback(|_| Msg::ToggleUnknown)),
             )
             .into()
