@@ -21,6 +21,9 @@ pub use bond_xmit_hash_policy_selector::{BondXmitHashPolicySelector, ProxmoxBond
 
 pub mod common_api_types;
 
+pub mod gauge;
+pub use gauge::{Gauge, ProxmoxGauge};
+
 mod http_client_wasm;
 pub use  http_client_wasm::*;
 
