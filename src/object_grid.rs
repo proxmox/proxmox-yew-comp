@@ -89,35 +89,61 @@ pub enum Msg {
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct ObjectGrid {
-    editable: bool,
+    /// Yew key property.
+    #[prop_or_default]
+    pub key: Option<Key>,
+
+    /// CSS class of the container.
+    #[prop_or_default]
+    pub class: Classes,
+
+    #[prop_or_default]
+    pub editable: bool,
+
     grid: KVGrid,
 
+    #[prop_or_default]
     loader: Option<LoadCallback<Value>>,
+    #[prop_or_default]
     editors: IndexMap<String, RenderObjectGridItemFn>,
 
+    #[prop_or_default]
     data: Option<Value>,
 
+    #[prop_or_default]
     on_submit: Option<SubmitCallback>,
 }
 
 impl Into<VNode> for ObjectGrid {
     fn into(self) -> VNode {
-        let comp = VComp::new::<PwtObjectGrid>(Rc::new(self), None);
+        let key = self.key.clone();
+        let comp = VComp::new::<PwtObjectGrid>(Rc::new(self), key);
         VNode::from(comp)
     }
 }
 
 impl ObjectGrid {
     pub fn new() -> Self {
-        Self {
-            loader: None,
+        yew::props!(Self {
             grid: KVGrid::new(),
-            editors: IndexMap::new(),
-            editable: false,
+        })
+    }
 
-            data: None,
-            on_submit: None,
-        }
+    /// Builder style method to set the yew `key` property
+    pub fn key(mut self, key: impl IntoOptionalKey) -> Self {
+        self.key = key.into_optional_key();
+        self
+    }
+
+    /// Builder style method to add a html class.
+    pub fn class(mut self, class: impl Into<Classes>) -> Self {
+        self.add_class(class);
+        self
+    }
+
+    /// Method to add a html class.
+    pub fn add_class(&mut self, class: impl Into<Classes>) {
+        self.class.push(class);
     }
 
     pub fn loader(mut self, callback: impl IntoLoadCallback<Value>) -> Self {
@@ -203,10 +229,9 @@ impl Component for PwtObjectGrid {
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
 
-        let loader =
-            Loader::new()
-                .loader(props.loader.clone())
-                .on_change(ctx.link().callback(|_| Msg::DataChange));
+        let loader = Loader::new()
+            .loader(props.loader.clone())
+            .on_change(ctx.link().callback(|_| Msg::DataChange));
 
         loader.load();
 
@@ -274,9 +299,12 @@ impl PwtObjectGrid {
     }
 
     fn main_view(&self, ctx: &Context<Self>, data: Rc<Value>) -> Html {
-        ctx.props()
+        let props = ctx.props();
+
+        props
             .grid
             .clone()
+            .class(props.class.clone())
             .data(data)
             .on_select(ctx.link().callback(|key| Msg::Select(key)))
             .on_row_dblclick({

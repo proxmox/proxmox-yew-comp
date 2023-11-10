@@ -1,26 +1,24 @@
 use std::rc::Rc;
 
-use serde_json::Value;
-use indexmap::IndexMap;
 use derivative::Derivative;
+use indexmap::IndexMap;
+use serde_json::Value;
 
-use yew::prelude::*;
-use yew::virtual_dom::{VComp, VNode, Key};
 use yew::html::IntoEventCallback;
+use yew::virtual_dom::{Key, VComp, VNode};
 
-use pwt::props::{IntoEventCallbackMut, CallbackMut};
+use pwt::prelude::*;
+use pwt::props::{CallbackMut, IntoEventCallbackMut};
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{
-    DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent,
-    DataTableKeyboardEvent,
+    DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
 };
 
 /// For use with KVGrid
 #[derive(Derivative)]
 #[derivative(Clone, PartialEq)]
 pub struct RenderKVGridRecordFn(
-    #[derivative(PartialEq(compare_with="Rc::ptr_eq"))]
-    Rc<dyn Fn(&str, &Value, &Value) -> Html>
+    #[derivative(PartialEq(compare_with = "Rc::ptr_eq"))] Rc<dyn Fn(&str, &Value, &Value) -> Html>,
 );
 
 impl RenderKVGridRecordFn {
@@ -29,7 +27,6 @@ impl RenderKVGridRecordFn {
         Self(Rc::new(renderer))
     }
 }
-
 
 #[derive(Clone, PartialEq)]
 pub struct KVGridRow {
@@ -41,7 +38,6 @@ pub struct KVGridRow {
 }
 
 impl KVGridRow {
-
     pub fn new(name: impl Into<String>, header: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -83,7 +79,6 @@ impl KVGridRow {
     pub fn set_renderer(&mut self, renderer: impl 'static + Fn(&str, &Value, &Value) -> Html) {
         self.renderer = Some(RenderKVGridRecordFn::new(renderer));
     }
-
 }
 
 #[derive(Properties, PartialEq, Clone)]
@@ -113,7 +108,6 @@ pub struct KVGrid {
 }
 
 impl KVGrid {
-
     pub fn new() -> Self {
         yew::props!(Self {
             rows: Rc::new(Vec::new()),
@@ -121,9 +115,9 @@ impl KVGrid {
         })
     }
 
-    /// Builder style method to set the yew `key` property.
-    pub fn key(mut self, key: impl Into<Key>) -> Self {
-        self.key = Some(key.into());
+    /// Builder style method to set the yew `key` property
+    pub fn key(mut self, key: impl IntoOptionalKey) -> Self {
+        self.key = key.into_optional_key();
         self
     }
 
@@ -189,8 +183,7 @@ impl KVGrid {
     }
 
     pub fn get_header(&self, name: &str) -> Option<&str> {
-        self.get_row(name)
-            .map(|row| row.header.as_str())
+        self.get_row(name).map(|row| row.header.as_str())
     }
 
     pub fn get_row(&self, name: &str) -> Option<&KVGridRow> {
@@ -213,7 +206,7 @@ pub struct PwtKVGrid {
     selection: Selection,
 }
 
-thread_local!{
+thread_local! {
     static COLUMNS: Rc<Vec<DataTableHeader<Record>>> = Rc::new(vec![
         DataTableColumn::new("Key")
             .show_menu(false)
@@ -233,7 +226,6 @@ thread_local!{
 }
 
 impl PwtKVGrid {
-
     fn data_update(&mut self, props: &KVGrid) {
         let mut visible_rows: Vec<Record> = Vec::new();
 
@@ -271,22 +263,22 @@ impl Component for PwtKVGrid {
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
 
-        let rows: IndexMap<String, Rc<KVGridRow>> = props.rows
+        let rows: IndexMap<String, Rc<KVGridRow>> = props
+            .rows
             .iter()
             .map(|row| (row.name.clone(), Rc::new(row.clone())))
             .collect();
 
         let store = Store::with_extract_key(|record: &Record| Key::from(record.row.name.as_str()));
 
-        let selection = Selection::new()
-            .on_select({
-                let on_select = props.on_select.clone();
-                move |selection: Selection| {
-                    if let Some(on_select) = &on_select {
-                        on_select.emit(selection.selected_key());
-                    }
+        let selection = Selection::new().on_select({
+            let on_select = props.on_select.clone();
+            move |selection: Selection| {
+                if let Some(on_select) = &on_select {
+                    on_select.emit(selection.selected_key());
                 }
-            });
+            }
+        });
 
         let mut me = Self {
             rows: Rc::new(rows),
@@ -327,15 +319,14 @@ impl Into<VNode> for KVGrid {
         let comp = VComp::new::<PwtKVGrid>(Rc::new(self), key);
         VNode::from(comp)
     }
-
 }
 
 fn render_value(value: &Value) -> Html {
     match value {
-        Value::Null => html!{ {"NULL"} },
-        Value::Bool(v) => html!{ {v.to_string()} },
-        Value::Number(v) =>  html!{ {v.to_string()} },
-        Value::String(v) => html!{ {v} },
-        v =>  html!{ {v.to_string()} },
+        Value::Null => html! { {"NULL"} },
+        Value::Bool(v) => html! { {v.to_string()} },
+        Value::Number(v) => html! { {v.to_string()} },
+        Value::String(v) => html! { {v} },
+        v => html! { {v.to_string()} },
     }
 }
