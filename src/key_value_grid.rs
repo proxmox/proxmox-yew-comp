@@ -4,7 +4,7 @@ use derivative::Derivative;
 use indexmap::IndexMap;
 use serde_json::Value;
 
-use yew::html::IntoEventCallback;
+use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
@@ -13,6 +13,8 @@ use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{
     DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
 };
+
+use pwt_macros::builder;
 
 /// For use with KVGrid
 #[derive(Derivative)]
@@ -29,10 +31,13 @@ impl RenderKVGridRecordFn {
 }
 
 #[derive(Clone, PartialEq)]
+#[builder]
 pub struct KVGridRow {
     pub name: String,
     pub header: String,
+    #[builder]
     pub required: bool,
+    #[builder(IntoPropValue, into_prop_value)]
     pub placeholder: Option<String>,
     pub renderer: Option<RenderKVGridRecordFn>,
 }
@@ -48,29 +53,6 @@ impl KVGridRow {
         }
     }
 
-    pub fn required(mut self, required: bool) -> Self {
-        self.set_required(required);
-        self
-    }
-
-    pub fn set_required(&mut self, required: bool) {
-        self.required = required;
-    }
-
-    pub fn placeholder(mut self, placeholder: impl Into<String>) -> Self {
-        self.set_placeholder(placeholder);
-        self
-    }
-
-    pub fn set_placeholder(&mut self, placeholder: impl Into<String>) {
-        let placeholder = placeholder.into();
-        if placeholder.is_empty() {
-            self.placeholder = None;
-        } else {
-            self.placeholder = Some(placeholder.into());
-        }
-    }
-
     pub fn renderer(mut self, renderer: impl 'static + Fn(&str, &Value, &Value) -> Html) -> Self {
         self.set_renderer(renderer);
         self
@@ -82,6 +64,7 @@ impl KVGridRow {
 }
 
 #[derive(Properties, PartialEq, Clone)]
+#[builder]
 pub struct KVGrid {
     /// Yew key property.
     #[prop_or_default]
@@ -95,15 +78,22 @@ pub struct KVGrid {
     data: Rc<Value>,
     /// Select callback.
     #[prop_or_default]
+    #[builder_cb(IntoEventCallback, into_event_callback, Option<Key>)]
     pub on_select: Option<Callback<Option<Key>>>,
+
     /// Row click callback.
     #[prop_or_default]
+    #[builder_cb(IntoEventCallbackMut, into_event_cb_mut, DataTableMouseEvent)]
     pub on_row_click: Option<CallbackMut<DataTableMouseEvent>>,
+
     /// Row double click callback.
     #[prop_or_default]
+    #[builder_cb(IntoEventCallbackMut, into_event_cb_mut, DataTableMouseEvent)]
     pub on_row_dblclick: Option<CallbackMut<DataTableMouseEvent>>,
+
     /// Row keydown callback.
     #[prop_or_default]
+    #[builder_cb(IntoEventCallbackMut, into_event_cb_mut, DataTableKeyboardEvent)]
     pub on_row_keydown: Option<CallbackMut<DataTableKeyboardEvent>>,
 }
 
@@ -139,29 +129,6 @@ impl KVGrid {
 
     pub fn set_data(&mut self, data: Rc<Value>) {
         self.data = data;
-    }
-
-    pub fn on_select(mut self, cb: impl IntoEventCallback<Option<Key>>) -> Self {
-        self.on_select = cb.into_event_callback();
-        self
-    }
-
-    /// Builder style method to set the row click callback.
-    pub fn on_row_click(mut self, cb: impl IntoEventCallbackMut<DataTableMouseEvent>) -> Self {
-        self.on_row_click = cb.into_event_cb_mut();
-        self
-    }
-
-    /// Builder style method to set the row double click callback.
-    pub fn on_row_dblclick(mut self, cb: impl IntoEventCallbackMut<DataTableMouseEvent>) -> Self {
-        self.on_row_dblclick = cb.into_event_cb_mut();
-        self
-    }
-
-    /// Builder style method to set the row keydown callback.
-    pub fn on_row_keydown(mut self, cb: impl IntoEventCallbackMut<DataTableKeyboardEvent>) -> Self {
-        self.on_row_keydown = cb.into_event_cb_mut();
-        self
     }
 
     pub fn with_row(mut self, row: KVGridRow) -> Self {

@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
+use yew::html::IntoPropValue;
 
 use pwt::prelude::*;
 use pwt::props::{IntoLoadCallback, LoadCallback};
@@ -53,12 +54,12 @@ impl ObjectGridRow {
         self.row.set_required(required);
     }
 
-    pub fn placeholder(mut self, placeholder: impl Into<String>) -> Self {
+    pub fn placeholder(mut self, placeholder: impl IntoPropValue<Option<String>>) -> Self {
         self.set_placeholder(placeholder);
         self
     }
 
-    pub fn set_placeholder(&mut self, placeholder: impl Into<String>) {
+    pub fn set_placeholder(&mut self, placeholder: impl IntoPropValue<Option<String>>) {
         self.row.set_placeholder(placeholder);
     }
 
