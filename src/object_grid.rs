@@ -101,12 +101,10 @@ pub struct ObjectGrid {
     #[prop_or_default]
     pub editable: bool,
 
-    grid: KVGrid,
+    rows: Rc<Vec<ObjectGridRow>>,
 
     #[prop_or_default]
     loader: Option<LoadCallback<Value>>,
-    #[prop_or_default]
-    editors: IndexMap<String, RenderObjectGridItemFn>,
 
     #[prop_or_default]
     data: Option<Value>,
@@ -126,7 +124,7 @@ impl Into<VNode> for ObjectGrid {
 impl ObjectGrid {
     pub fn new() -> Self {
         yew::props!(Self {
-            grid: KVGrid::new(),
+            rows: Rc::new(Vec::new()),
         })
     }
 
@@ -162,28 +160,13 @@ impl ObjectGrid {
         self
     }
 
-    pub fn with_row(mut self, row: ObjectGridRow) -> Self {
-        self.add_row(row);
-        self
-    }
-
-    pub fn add_row(&mut self, row: ObjectGridRow) {
-        if let Some(editor) = row.editor {
-            let name = row.row.name.clone();
-            self.editors.insert(name, editor);
-        }
-        self.grid.add_row(row.row); // fixme
-    }
-
-    pub fn rows(mut self, rows: Vec<ObjectGridRow>) -> Self {
+    pub fn rows(mut self, rows: Rc<Vec<ObjectGridRow>>) -> Self {
         self.set_rows(rows);
         self
     }
 
-    pub fn set_rows(&mut self, rows: Vec<ObjectGridRow>) {
-        for row in rows {
-            self.add_row(row);
-        }
+    pub fn set_rows(&mut self, rows: Rc<Vec<ObjectGridRow>>) {
+        self.rows = rows;
     }
 }
 
@@ -192,9 +175,26 @@ pub struct PwtObjectGrid {
     loader: Loader<Value>,
     selection: Option<Key>,
     show_dialog: bool,
+
+    rows: Rc<Vec<KVGridRow>>,
+    editors: IndexMap<String, RenderObjectGridItemFn>,
 }
 
 impl PwtObjectGrid {
+
+    fn update_rows(&mut self, props: &ObjectGrid) {
+        let mut rows = Vec::new();
+        self.editors = IndexMap::new();
+        for row in props.rows.iter() {
+            if let Some(editor) = &row.editor {
+                let name = row.row.name.clone();
+                self.editors.insert(name, editor.clone());
+            }
+            rows.push(row.row.clone());
+        }
+        self.rows = Rc::new(rows);
+    }
+
     fn data(&self) -> Value {
         match &self.loader.read().data {
             Some(Ok(data)) => data.as_ref().clone(),
@@ -206,13 +206,15 @@ impl PwtObjectGrid {
         let props = ctx.props();
 
         let name = self.selection.as_ref().unwrap().to_string();
-        let row = props.grid.get_row(&name).unwrap();
+
+        let row = self.rows.iter().find(|row| row.name == name).unwrap();
+
         let title = &row.header;
 
         let data = self.data();
         let value = data[&name].clone();
 
-        let editor = props.editors.get(&name).unwrap().clone();
+        let editor = self.editors.get(&name).unwrap().clone();
 
         EditWindow::new(format!("Edit: {}", title))
             .loader(props.loader.clone())
@@ -236,11 +238,15 @@ impl Component for PwtObjectGrid {
 
         loader.load();
 
-        Self {
+        let mut me = Self {
+            rows: Rc::new(Vec::new()),
+            editors: IndexMap::new(),
             loader,
             selection: None,
             show_dialog: false,
-        }
+        };
+        me.update_rows(props);
+        me
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -262,6 +268,14 @@ impl Component for PwtObjectGrid {
         }
     }
 
+    fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
+        let props = ctx.props();
+        if !Rc::ptr_eq(&props.rows, &old_props.rows) {
+            self.update_rows(props);
+        }
+        true
+    }
+
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
@@ -269,7 +283,7 @@ impl Component for PwtObjectGrid {
 
         let disable_edit = if let Some(key) = &self.selection {
             let name: &str = &*key;
-            !props.editors.contains_key(name)
+            !self.editors.contains_key(name)
         } else {
             true
         };
@@ -301,10 +315,9 @@ impl PwtObjectGrid {
     fn main_view(&self, ctx: &Context<Self>, data: Rc<Value>) -> Html {
         let props = ctx.props();
 
-        props
-            .grid
-            .clone()
+        KVGrid::new()
             .class(props.class.clone())
+            .rows(Rc::clone(&self.rows))
             .data(data)
             .on_select(ctx.link().callback(|key| Msg::Select(key)))
             .on_row_dblclick({

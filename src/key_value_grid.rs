@@ -131,15 +131,6 @@ impl KVGrid {
         self.data = data;
     }
 
-    pub fn with_row(mut self, row: KVGridRow) -> Self {
-        self.add_row(row);
-        self
-    }
-
-    pub fn add_row(&mut self, row: KVGridRow) {
-        Rc::make_mut(&mut self.rows).push(row);
-    }
-
     pub fn rows(mut self, rows: Rc<Vec<KVGridRow>>) -> Self {
         self.set_rows(rows);
         self
