@@ -1,9 +1,10 @@
 use std::rc::Rc;
 
-use yew::html::IntoPropValue;
+use pwt::widget::Column;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::IntoOptionalInlineHtml;
 use pwt::widget::canvas::{Canvas, Path, Text};
 
 use pwt_macros::builder;
@@ -16,8 +17,7 @@ pub struct Gauge {
     pub value: f32,
 
     #[prop_or_default]
-    #[builder(IntoPropValue, into_prop_value)]
-    pub status: Option<AttrValue>,
+    pub status: Option<Html>,
 
     #[prop_or(0.95)]
     #[builder]
@@ -32,6 +32,17 @@ impl Gauge {
     /// Create a new instance.
     pub fn new() -> Self {
         yew::props!(Self {})
+    }
+
+    /// Builder style method to set the status text.
+    pub fn status(mut self, status: impl IntoOptionalInlineHtml) -> Self {
+        self.set_status(status);
+        self
+    }
+
+    /// Method to set the status text.
+    pub fn set_status(&mut self, status: impl IntoOptionalInlineHtml) {
+        self.status = status.into_optional_inline_html();
     }
 }
 
@@ -53,7 +64,8 @@ impl Component for ProxmoxGauge {
         let fraction = fraction.max(0f32).min(1f32);
 
         let r = 100f32;
-        let space = 20f32;
+        let stroke_width = 10.0;
+        let space = stroke_width / 2.0;
 
         let x = (r + space) - (std::f32::consts::PI * fraction).cos() * r;
         let y = (r + space) - (std::f32::consts::PI * fraction).sin() * r;
@@ -69,54 +81,54 @@ impl Component for ProxmoxGauge {
         let percentage = (fraction * 1000.0).round() / 10.0;
         let percentage = format!("{}%", percentage);
 
-        let height = if props.status.is_some() {
-            r + 3.0 * space
-        } else {
-            r + 2.0 * space
-        };
-
-        let mut canvas = Canvas::new()
+        let canvas = Canvas::new()
             .width(2.0 * (r + space))
-            .height(height)
+            .height(r + space)
             .with_child(
                 Path::new()
                     .fill("none")
                     .class("pwt-stroke-surface")
-                    .stroke_width(10)
+                    .stroke_width(stroke_width)
                     .d(format!(
                         "M {},{} A {r},{r} 0,0,1 {},{}",
-                        space, space+r,
-                        2.0*r + space, r + space,
+                        space,
+                        space + r,
+                        2.0 * r + space,
+                        r + space,
                     )),
             )
             .with_child(
                 Path::new()
                     .fill("none")
                     .class(color_class)
-                    .stroke_width(10)
+                    .stroke_width(stroke_width)
                     .d(format!(
                         "M {},{} A {r},{r} 0,0,1 {},{}",
-                        space, space+r, x, y,
+                        space,
+                        space + r,
+                        x,
+                        y,
                     )),
             )
             .with_child(
                 Text::new(percentage)
                     .class("pwt-font-display-medium")
                     .attribute("text-anchor", "middle")
-                    .position(120, 100),
+                    .position(r + space, r - 15.0),
             );
 
+        let mut column = Column::new()
+            .class("pwt-align-items-center")
+            .gap(2)
+            .with_child(canvas);
 
-        if let Some(status) = props.status.as_deref() {
-            canvas.add_child(
-                Text::new(status.to_owned())
-                    //.class("pwt-font-display-medium")
-                    .attribute("text-anchor", "middle")
-                    .position(space + r, 2.0*space + r),
-            );
+        if let Some(status) = props.status.as_ref() {
+            column.add_child(html! {
+                status.clone()
+            });
         }
 
-        canvas.into()
+        column.into()
     }
 }
 
