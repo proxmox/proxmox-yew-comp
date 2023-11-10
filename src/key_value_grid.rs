@@ -88,6 +88,14 @@ impl KVGridRow {
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct KVGrid {
+    /// Yew key property.
+    #[prop_or_default]
+    pub key: Option<Key>,
+
+    /// CSS class of the container.
+    #[prop_or_default]
+    pub class: Classes,
+
     rows: Rc<Vec<KVGridRow>>,
     data: Rc<Value>,
     /// Select callback.
@@ -104,14 +112,6 @@ pub struct KVGrid {
     pub on_row_keydown: Option<CallbackMut<DataTableKeyboardEvent>>,
 }
 
-impl Into<VNode> for KVGrid {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<PwtKVGrid>(Rc::new(self), None);
-        VNode::from(comp)
-    }
-
-}
-
 impl KVGrid {
 
     pub fn new() -> Self {
@@ -119,6 +119,23 @@ impl KVGrid {
             rows: Rc::new(Vec::new()),
             data: Rc::new(Value::Null),
         })
+    }
+
+    /// Builder style method to set the yew `key` property.
+    pub fn key(mut self, key: impl Into<Key>) -> Self {
+        self.key = Some(key.into());
+        self
+    }
+
+    /// Builder style method to add a html class.
+    pub fn class(mut self, class: impl Into<Classes>) -> Self {
+        self.add_class(class);
+        self
+    }
+
+    /// Method to add a html class.
+    pub fn add_class(&mut self, class: impl Into<Classes>) {
+        self.class.push(class);
     }
 
     pub fn data(mut self, data: Rc<Value>) -> Self {
@@ -293,6 +310,7 @@ impl Component for PwtKVGrid {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
         DataTable::new(COLUMNS.with(Rc::clone), self.store.clone())
+            .class(props.class.clone())
             .virtual_scroll(false)
             .show_header(false)
             .selection(self.selection.clone())
@@ -303,6 +321,14 @@ impl Component for PwtKVGrid {
     }
 }
 
+impl Into<VNode> for KVGrid {
+    fn into(self) -> VNode {
+        let key = self.key.clone();
+        let comp = VComp::new::<PwtKVGrid>(Rc::new(self), key);
+        VNode::from(comp)
+    }
+
+}
 
 fn render_value(value: &Value) -> Html {
     match value {

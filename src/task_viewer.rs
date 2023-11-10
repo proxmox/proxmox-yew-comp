@@ -206,7 +206,10 @@ impl PwtTaskViewer {
                 .onclick(link.callback(|_| Msg::StopTask)),
         );
 
-        let grid = KVGrid::new().data(data).rows(Rc::new(vec![
+        let grid = KVGrid::new()
+            .class("pwt-flex-fit")
+            .data(data)
+            .rows(Rc::new(vec![
             KVGridRow::new("status", "Status")
                 .renderer(|_name, value, record| {
                     let value = match value.as_str() {
@@ -266,7 +269,7 @@ impl PwtTaskViewer {
         ]));
 
         Column::new()
-            .class("pwt-fit")
+            .class("pwt-flex-fit")
             .with_child(toolbar)
             .with_child(grid)
             .into()
