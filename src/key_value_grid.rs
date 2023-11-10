@@ -8,7 +8,7 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::{CallbackMut, IntoEventCallbackMut};
+use pwt::props::{CallbackMut, IntoEventCallbackMut, ExtractPrimaryKey};
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{
     DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
@@ -160,29 +160,35 @@ impl KVGrid {
 }
 
 #[derive(Clone, PartialEq)]
-struct Record {
+struct KVGridRecord {
     row: Rc<KVGridRow>,
     value: Value,
     store: Rc<Value>,
 }
 
+impl ExtractPrimaryKey for KVGridRecord {
+    fn extract_key(&self) -> Key {
+        Key::from(self.row.name.as_str())
+    }
+}
+
 #[doc(hidden)]
 pub struct PwtKVGrid {
     rows: Rc<IndexMap<String, Rc<KVGridRow>>>,
-    store: Store<Record>,
+    store: Store<KVGridRecord>,
     selection: Selection,
 }
 
 thread_local! {
-    static COLUMNS: Rc<Vec<DataTableHeader<Record>>> = Rc::new(vec![
+    static COLUMNS: Rc<Vec<DataTableHeader<KVGridRecord>>> = Rc::new(vec![
         DataTableColumn::new("Key")
             .show_menu(false)
-            .render(|record: &Record| html!{record.row.header.clone()})
+            .render(|record: &KVGridRecord| html!{record.row.header.clone()})
             .into(),
         DataTableColumn::new("Value")
             .width("100%")
             .show_menu(false)
-            .render(|record: &Record|  {
+            .render(|record: &KVGridRecord|  {
                 match &record.row.renderer {
                     Some(renderer) => (renderer.0)(&record.row.name, &record.value, &record.store),
                     None => render_value(&record.value),
@@ -194,7 +200,7 @@ thread_local! {
 
 impl PwtKVGrid {
     fn data_update(&mut self, props: &KVGrid) {
-        let mut visible_rows: Vec<Record> = Vec::new();
+        let mut visible_rows: Vec<KVGridRecord> = Vec::new();
 
         for row in self.rows.values() {
             let name = row.name.as_str();
@@ -212,7 +218,7 @@ impl PwtKVGrid {
                     Some(value) => value.clone(),
                 };
 
-                visible_rows.push(Record {
+                visible_rows.push(KVGridRecord {
                     row: Rc::clone(row),
                     value,
                     store: Rc::clone(&props.data),
@@ -236,8 +242,6 @@ impl Component for PwtKVGrid {
             .map(|row| (row.name.clone(), Rc::new(row.clone())))
             .collect();
 
-        let store = Store::with_extract_key(|record: &Record| Key::from(record.row.name.as_str()));
-
         let selection = Selection::new().on_select({
             let on_select = props.on_select.clone();
             move |selection: Selection| {
@@ -249,7 +253,7 @@ impl Component for PwtKVGrid {
 
         let mut me = Self {
             rows: Rc::new(rows),
-            store,
+            store: Store::new(),
             selection,
         };
         me.data_update(props);
