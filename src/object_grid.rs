@@ -13,7 +13,7 @@ use pwt::props::{IntoLoadCallback, LoadCallback};
 use pwt::state::Loader;
 use pwt::widget::data_table::{DataTableKeyboardEvent, DataTableMouseEvent};
 use pwt::widget::form::{FormContext, IntoSubmitCallback, SubmitCallback};
-use pwt::widget::{Button, Toolbar};
+use pwt::widget::{Button, Toolbar, Column};
 
 use crate::{EditWindow, KVGrid, KVGridRow};
 
@@ -274,15 +274,14 @@ impl Component for PwtObjectGrid {
             true
         };
 
-        html! {
-            <>
-                if props.editable {
-                    {self.toolbar(ctx, disable_edit)}
-                    if self.show_dialog && !disable_edit {{self.edit_dialog(ctx)}}
-                }
-                {main_view}
-            </>
-        }
+        let toolbar = props.editable.then(|| self.toolbar(ctx, disable_edit));
+        let dialog = self.show_dialog.then(|| self.edit_dialog(ctx));
+
+        Column::new()
+            .with_optional_child(toolbar)
+            .with_child(main_view)
+            .with_optional_child(dialog)
+            .into()
     }
 }
 
