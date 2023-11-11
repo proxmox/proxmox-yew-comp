@@ -292,6 +292,7 @@ impl Component for PwtObjectGrid {
         let dialog = self.show_dialog.then(|| self.edit_dialog(ctx));
 
         Column::new()
+            .class(props.class.clone())
             .with_optional_child(toolbar)
             .with_child(main_view)
             .with_optional_child(dialog)
@@ -316,7 +317,7 @@ impl PwtObjectGrid {
         let props = ctx.props();
 
         KVGrid::new()
-            .class(props.class.clone())
+            .class("pwt-flex-fit")
             .rows(Rc::clone(&self.rows))
             .data(data)
             .on_select(ctx.link().callback(|key| Msg::Select(key)))

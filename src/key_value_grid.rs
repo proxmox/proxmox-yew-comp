@@ -131,6 +131,7 @@ impl KVGrid {
         self.data = data;
     }
 
+
     pub fn rows(mut self, rows: Rc<Vec<KVGridRow>>) -> Self {
         self.set_rows(rows);
         self
