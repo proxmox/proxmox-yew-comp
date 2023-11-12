@@ -61,6 +61,7 @@ async fn update_item(form_ctx: FormContext, base_url: String) -> Result<(), Erro
             "user-classes",
             "filter",
         ],
+        true,
     );
 
     let name = form_ctx.read().get_field_text("realm");
