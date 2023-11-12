@@ -315,8 +315,6 @@ impl PwtObjectGrid {
     }
 
     fn main_view(&self, ctx: &Context<Self>, data: Rc<Value>) -> Html {
-        let props = ctx.props();
-
         KVGrid::new()
             .class("pwt-flex-fit")
             .rows(Rc::clone(&self.rows))
