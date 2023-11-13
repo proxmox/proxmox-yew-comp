@@ -8,7 +8,7 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::{CallbackMut, IntoEventCallbackMut, ExtractPrimaryKey};
+use pwt::props::{CallbackMut, ExtractPrimaryKey, IntoEventCallbackMut};
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{
     DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
@@ -131,7 +131,6 @@ impl KVGrid {
         self.data = data;
     }
 
-
     pub fn rows(mut self, rows: Rc<Vec<KVGridRow>>) -> Self {
         self.set_rows(rows);
         self
@@ -221,18 +220,20 @@ impl PwtKVGrid {
     }
 }
 
+fn convert_rows(rows: &[KVGridRow]) -> Rc<IndexMap<String, Rc<KVGridRow>>> {
+    let rows: IndexMap<String, Rc<KVGridRow>> = rows
+        .iter()
+        .map(|row| (row.name.clone(), Rc::new(row.clone())))
+        .collect();
+    Rc::new(rows)
+}
+
 impl Component for PwtKVGrid {
     type Message = ();
     type Properties = KVGrid;
 
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
-
-        let rows: IndexMap<String, Rc<KVGridRow>> = props
-            .rows
-            .iter()
-            .map(|row| (row.name.clone(), Rc::new(row.clone())))
-            .collect();
 
         let selection = Selection::new().on_select({
             let on_select = props.on_select.clone();
@@ -244,7 +245,7 @@ impl Component for PwtKVGrid {
         });
 
         let mut me = Self {
-            rows: Rc::new(rows),
+            rows: convert_rows(&props.rows),
             store: Store::new(),
             selection,
         };
@@ -255,7 +256,10 @@ impl Component for PwtKVGrid {
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
 
-        if props.data != old_props.data || props.rows != old_props.rows {
+        if props.data != old_props.data || !Rc::ptr_eq(&props.rows, &old_props.rows) {
+            if !Rc::ptr_eq(&props.rows, &old_props.rows) {
+                self.rows = convert_rows(&props.rows);
+            }
             self.data_update(props);
         }
 
