@@ -7,7 +7,7 @@ use gloo_timers::callback::Timeout;
 use yew::html::Scope;
 
 use pwt::prelude::*;
-use pwt::widget::{AlertDialog, Column};
+use pwt::widget::{AlertDialog, Column, VisibilityObserver};
 
 use crate::TaskProgress;
 
@@ -217,6 +217,7 @@ pub enum Msg<M, V: PartialEq> {
     ChangeView(/*reload*/ bool, ViewState<V>),
     ChildMessage(M),
     TaskBaseUrl(AttrValue),
+    Visible(bool),
 }
 
 pub struct LoadableComponentMaster<L: LoadableComponent> {
@@ -224,6 +225,9 @@ pub struct LoadableComponentMaster<L: LoadableComponent> {
     comp_state: LoadableComponentState,
     view_state: ViewState<L::ViewState>,
     reload_timeout: Option<Timeout>,
+    visible: bool,
+    visibitlity_observer: Option<VisibilityObserver>,
+    node_ref: NodeRef,
 }
 
 impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
@@ -254,6 +258,9 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
             comp_state,
             view_state: ViewState::Main,
             reload_timeout: None,
+            visible: true,
+            visibitlity_observer: None,
+            node_ref: NodeRef::default(),
         }
     }
 
@@ -302,10 +309,12 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                     /* no outstanding loads */
                     if self.comp_state.repeat_timespan > 0 {
                         let link = ctx.link().clone();
-                        self.reload_timeout =
-                            Some(Timeout::new(self.comp_state.repeat_timespan, move || {
-                                link.send_message(Msg::Load);
-                            }));
+                        if self.visible {
+                            self.reload_timeout =
+                                Some(Timeout::new(self.comp_state.repeat_timespan, move || {
+                                    link.send_message(Msg::Load);
+                                }));
+                        }
                     }
                 }
                 true
@@ -332,6 +341,16 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
             }
             Msg::TaskBaseUrl(base_url) => {
                 self.comp_state.task_base_url = Some(base_url);
+                false
+            }
+            Msg::Visible(visible) => {
+                self.visible = visible;
+                if self.comp_state.loading == 0 && self.visible {
+                    /* no outstanding loads */
+                    if self.comp_state.loading == 0 {
+                        <Self as yew::Component>::update(self, ctx, Msg::Load);
+                    }
+                }
                 false
             }
         }
@@ -385,11 +404,23 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
         }
 
         Column::new()
+            .node_ref(self.node_ref.clone())
             .class("pwt-flex-fill pwt-overflow-auto")
             .with_optional_child(toolbar)
             .with_child(main_view)
             .with_optional_child(alert_msg)
             .with_optional_child(dialog)
             .into()
+    }
+
+    fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
+        if self.visibitlity_observer.is_none() && self.reload_timeout.is_some() {
+            if let Some(el) = self.node_ref.cast::<web_sys::Element>() {
+                self.visibitlity_observer = Some(VisibilityObserver::new(
+                    &el,
+                    ctx.link().callback(Msg::Visible),
+                ))
+            }
+        }
     }
 }
