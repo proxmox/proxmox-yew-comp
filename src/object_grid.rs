@@ -111,6 +111,11 @@ pub struct ObjectGrid {
 
     #[prop_or_default]
     on_submit: Option<SubmitCallback>,
+
+    /// Tools (buttons) added to the toolbar.
+    #[prop_or_default]
+    pub tools: Vec<VNode>,
+
 }
 
 impl Into<VNode> for ObjectGrid {
@@ -143,6 +148,17 @@ impl ObjectGrid {
     /// Method to add a html class.
     pub fn add_class(&mut self, class: impl Into<Classes>) {
         self.class.push(class);
+    }
+
+    /// Builder style method to add a tool.
+    pub fn with_tool(mut self, tool: impl Into<VNode>) -> Self {
+        self.add_tool(tool);
+        self
+    }
+
+    /// Method to add a tool.
+    pub fn add_tool(&mut self, tool: impl Into<VNode>) {
+        self.tools.push(tool.into());
     }
 
     pub fn loader(mut self, callback: impl IntoLoadCallback<Value>) -> Self {
@@ -288,7 +304,7 @@ impl Component for PwtObjectGrid {
             true
         };
 
-        let toolbar = props.editable.then(|| self.toolbar(ctx, disable_edit));
+        let toolbar = (props.editable || !props.tools.is_empty()).then(|| self.toolbar(ctx, disable_edit));
         let dialog = self.show_dialog.then(|| self.edit_dialog(ctx));
 
         Column::new()
@@ -302,15 +318,22 @@ impl Component for PwtObjectGrid {
 
 impl PwtObjectGrid {
     fn toolbar(&self, ctx: &Context<Self>, disable_edit: bool) -> Html {
-        Toolbar::new()
+        let props = ctx.props();
+
+        let mut toolbar = Toolbar::new()
             .border_bottom(true)
             .with_child(
                 Button::new("Edit")
                     .disabled(disable_edit)
                     .onclick(ctx.link().callback(|_| Msg::Edit)),
             )
-            .with_flex_spacer()
-            .with_child(self.loader.reload_button())
+            .with_flex_spacer();
+
+        for tool in &props.tools {
+            toolbar.add_child(tool.clone());
+        }
+
+        toolbar.with_child(self.loader.reload_button())
             .into()
     }
 
