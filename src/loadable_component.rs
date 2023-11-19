@@ -1,4 +1,5 @@
 use anyhow::Error;
+use serde_json::Value;
 use std::future::Future;
 use std::pin::Pin;
 
@@ -9,7 +10,7 @@ use yew::html::Scope;
 use pwt::prelude::*;
 use pwt::widget::{AlertDialog, Column, VisibilityObserver};
 
-use crate::TaskProgress;
+use crate::{TaskProgress, TaskViewer};
 
 pub struct LoadableComponentState {
     loading: usize,
@@ -119,8 +120,13 @@ impl<L: LoadableComponent + Sized> LoadableComponentLink<L> {
         self.link.send_message(Msg::ChangeView(false, view_state));
     }
 
-    pub fn show_task(&self, task_id: impl Into<String>) {
-        let view_state = ViewState::Task(task_id.into());
+    pub fn show_task_progres(&self, task_id: impl Into<String>) {
+        let view_state = ViewState::TaskProgress(task_id.into());
+        self.link.send_message(Msg::ChangeView(false, view_state));
+    }
+
+    pub fn show_task_log(&self, task_id: impl Into<String>, endtime: Option<i64>) {
+        let view_state = ViewState::TaskLog(task_id.into(), endtime);
         self.link.send_message(Msg::ChangeView(false, view_state));
     }
 
@@ -148,15 +154,19 @@ impl<L: LoadableComponent + Sized> LoadableComponentLink<L> {
         })
     }
 
-    pub fn start_task(&self, command_path: impl Into<String>) {
+    pub fn start_task(&self, command_path: impl Into<String>, data: Option<Value>, short: bool) {
         let command_path: String = command_path.into();
         let link = self.clone();
-        let command_future = crate::http_post::<String>(command_path, None);
+        let command_future = crate::http_post::<String>(command_path, data);
         wasm_bindgen_futures::spawn_local(async move {
             match command_future.await {
                 Ok(task_id) => {
                     link.send_reload();
-                    link.show_task(task_id);
+                    if short {
+                        link.show_task_progres(task_id);
+                    } else {
+                        link.show_task_log(task_id, None);
+                    }
                 }
                 Err(err) => {
                     log::error!("error {err}");
@@ -204,7 +214,9 @@ pub enum ViewState<V: PartialEq> {
     /// Show the dialog returned by dialog_view
     Dialog(V),
     /// Show proxmox api task status
-    Task(String),
+    TaskProgress(String),
+    /// Show proxmox api task log
+    TaskLog(String, Option<i64>),
     /// Show an error message dialog
     Error(String, String, /* reload_on_close */ bool),
 }
@@ -379,10 +391,9 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                             .into(),
                     )
                 }
-                ViewState::Task(task_id) => {
+                ViewState::TaskProgress(task_id) => {
                     let mut task_progress = TaskProgress::new(task_id).on_close(
-                        ctx.link()
-                            .callback(move |_| Msg::ChangeView(true, ViewState::Main)),
+                        ctx.link().callback(move |_| Msg::ChangeView(true, ViewState::Main)),
                     );
 
                     if let Some(base_url) = &self.comp_state.task_base_url {
@@ -390,6 +401,16 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                     }
 
                     Some(task_progress.into())
+                }
+                ViewState::TaskLog(task_id, endtime) => {
+                    let mut task_viewer = TaskViewer::new(task_id)
+                        .endtime(endtime)
+                        .on_close(ctx.link().callback(move |_| Msg::ChangeView(true, ViewState::Main)));
+
+                    if let Some(base_url) = &self.comp_state.task_base_url {
+                        task_viewer.set_base_url(base_url);
+                    }
+                    Some(task_viewer.into())
                 }
             };
 
