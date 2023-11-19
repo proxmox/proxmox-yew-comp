@@ -21,6 +21,9 @@ pub use bond_xmit_hash_policy_selector::{BondXmitHashPolicySelector, ProxmoxBond
 
 pub mod common_api_types;
 
+mod confirm_button;
+pub use confirm_button::{ConfirmButton, ProxmoxConfirmButton};
+
 pub mod gauge;
 pub use gauge::{Gauge, ProxmoxGauge};
 
