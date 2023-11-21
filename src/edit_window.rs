@@ -46,6 +46,13 @@ pub struct EditWindow {
     #[prop_or_default]
     pub loader: Option<LoadCallback<Value>>,
 
+    /// Submit button text.
+    ///
+    /// Default is Add, or Update if there is a loader.
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    pub submit_text: Option<AttrValue>,
+
     /// Determines if the dialog can be moved
     #[prop_or(true)]
     #[builder]
@@ -262,10 +269,14 @@ impl Component for PwtEditWindow {
             toolbar.add_child(ResetButton::new());
         }
 
+        let submit_text = match &props.submit_text {
+            Some(submit_text) => submit_text.to_string(),
+            None => if edit_mode { tr!("Update") } else { tr!("Add") },
+        };
         toolbar.add_child(
             SubmitButton::new()
                 .class("pwt-scheme-primary")
-                .text(if edit_mode { tr!("Update") } else { tr!("Add") })
+                .text(submit_text)
                 .check_dirty(edit_mode)
                 .on_submit(submit),
         );
