@@ -23,6 +23,7 @@ pub mod common_api_types;
 
 mod confirm_button;
 pub use confirm_button::{ConfirmButton, ProxmoxConfirmButton};
+pub(crate) use confirm_button::default_confirm_remove_message;
 
 pub mod gauge;
 pub use gauge::{Gauge, ProxmoxGauge};
@@ -71,6 +72,9 @@ pub use rrd_grid::RRDGrid;
 
 mod rrd_timeframe_selector;
 pub use rrd_timeframe_selector::{RRDTimeframe, RRDTimeframeSelector};
+
+mod safe_confirm_dialog;
+pub use safe_confirm_dialog::{SafeConfirmDialog, ProxmoxSafeConfirmDialog};
 
 mod language_dialog;
 pub use language_dialog::{LanguageDialog, ProxmoxLanguageDialog};

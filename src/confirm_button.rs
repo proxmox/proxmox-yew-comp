@@ -1,9 +1,16 @@
 use yew::html::{IntoEventCallback, IntoPropValue};
 
+use pwt::widget::{Button, Column, MessageBoxButtons};
 use pwt::{prelude::*, widget::MessageBox};
-use pwt::widget::{Button, MessageBoxButtons, Column};
 
 use pwt_macros::{builder, widget};
+
+pub(crate) fn default_confirm_remove_message(name: Option<&str>) -> String {
+    match name {
+        Some(name) => tr!("Are you sure you want to remove entry {0}", name),
+        None => tr!("Are you sure you want to remove this entry?"),
+    }
+}
 
 #[widget(comp=ProxmoxConfirmButton)]
 #[derive(Properties, PartialEq, Clone)]
@@ -68,13 +75,10 @@ impl ConfirmButton {
     /// Create a standard remove button.
     pub fn remove_entry(name: impl IntoPropValue<Option<AttrValue>>) -> Self {
         let name = name.into_prop_value();
-        let message = match name {
-            Some(name) => tr!("Are you sure you want to remove entry {0}", name),
-            None => tr!("Are you sure you want to remove this entry?"),
-        };
+        let message = default_confirm_remove_message(name.as_deref());
         yew::props!(Self {
             text: tr!("Remove"),
-            confirm_message: html!{message},
+            confirm_message: html! {message},
         })
     }
 
@@ -113,7 +117,9 @@ impl Component for ProxmoxConfirmButton {
         match msg {
             Msg::Request => {
                 if let Some(message) = &props.confirm_message {
-                    if self.dialog.is_some() { return false; }
+                    if self.dialog.is_some() {
+                        return false;
+                    }
 
                     let dialog = MessageBox::new(tr!("Confirm"), message.clone())
                         .buttons(MessageBoxButtons::YesNo)
