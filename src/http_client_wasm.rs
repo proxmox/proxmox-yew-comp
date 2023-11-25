@@ -33,9 +33,20 @@ pub fn authentication_from_cookie(product: ProxmoxProduct) -> Option<Authenticat
     None
 }
 
+fn auth_cookie_info(product: ProxmoxProduct) -> (&'static str, &'static [&'static str]) {
+    match product {
+        ProxmoxProduct::PBS  => ("PBSAuthCookie", &["PBS"]),
+        ProxmoxProduct::POM  => ("PBSAuthCookie", &["POM"]),
+        ProxmoxProduct::PVE  => ("PBSAuthCookie", &["PVE"]),
+        ProxmoxProduct::PMG  => ("PBSAuthCookie", &["PMG", "PMGQUAR"]),
+    }
+}
+
 fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String)> {
     let cookie = crate::get_cookie();
     //log::info!("COOKIE: {}", cookie);
+
+    let (name, prefixes) = auth_cookie_info(product);
 
     for part in cookie.split(';') {
         let part = part.trim();
@@ -46,30 +57,9 @@ fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String)>
                 Err(_) => continue,
             };
 
-            if product == ProxmoxProduct::PBS && key == "PBSAuthCookie" {
+            if key == name {
                 let items: Vec<&str> = value.split(':').take(2).collect();
-                if items[0] == "PBS" {
-                    let csrf_token = crate::load_csrf_token().unwrap_or(String::new());
-                    return Some((value.to_string(), csrf_token));
-                }
-            }
-            if product == ProxmoxProduct::POM && key == "POMAuthCookie" {
-                let items: Vec<&str> = value.split(':').take(2).collect();
-                if items[0] == "POM" {
-                    let csrf_token = crate::load_csrf_token().unwrap_or(String::new());
-                    return Some((value.to_string(), csrf_token));
-                }
-            }
-            if product == ProxmoxProduct::PVE && key == "PVEAuthCookie" {
-                let items: Vec<&str> = value.split(':').take(2).collect();
-                if items[0] == "PVE" {
-                    let csrf_token = crate::load_csrf_token().unwrap_or(String::new());
-                    return Some((value.to_string(), csrf_token));
-                }
-            }
-            if product == ProxmoxProduct::PMG && key == "PMGAuthCookie" {
-                let items: Vec<&str> = value.split(':').take(2).collect();
-                if items[0] == "PMG" || items[0] == "PMGQUAR" {
+                if prefixes.contains(&items[0]) {
                     let csrf_token = crate::load_csrf_token().unwrap_or(String::new());
                     return Some((value.to_string(), csrf_token));
                 }
@@ -249,6 +239,13 @@ impl HttpClientWasm {
             .map_err(|err| convert_js_error(err))?;
 
         let resp: web_sys::Response = js_resp.into();
+
+        if resp.status() == 401 {
+            log::info!("Got UNAUTHORIZED status - clearing AUTH cookie");
+            self.clear_auth();
+            let (cookie_name, _) = auth_cookie_info(self.product);
+            crate::clear_auth_cookie(cookie_name);
+        }
 
         web_sys_response_to_http_api_response(resp).await
     }
