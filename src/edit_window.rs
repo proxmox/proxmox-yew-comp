@@ -271,7 +271,13 @@ impl Component for PwtEditWindow {
 
         let submit_text = match &props.submit_text {
             Some(submit_text) => submit_text.to_string(),
-            None => if edit_mode { tr!("Update") } else { tr!("Add") },
+            None => {
+                if edit_mode {
+                    tr!("Update")
+                } else {
+                    tr!("Add")
+                }
+            }
         };
         toolbar.add_child(
             SubmitButton::new()
@@ -289,9 +295,14 @@ impl Component for PwtEditWindow {
             None => html! {},
         };
 
-        let input_panel = Mask::new(Column::new().with_child(form).with_child(toolbar.clone()))
-            .class("pwt-flex-fit")
-            .visible(loading);
+        let input_panel = Mask::new(
+            Column::new()
+                .class("pwt-flex-fit")
+                .with_child(form)
+                .with_child(toolbar.clone()),
+        )
+        .class("pwt-flex-fit")
+        .visible(loading);
 
         let alert = match self.submit_error.as_ref() {
             None => None,
