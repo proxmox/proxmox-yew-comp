@@ -7,7 +7,7 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{Field, Form, FormContext, SubmitButton};
+use pwt::widget::form::{Field, Form, FormContext, SubmitButton, ValidateFn};
 use pwt::widget::{Dialog, Toolbar};
 
 use pwt_macros::builder;
@@ -53,15 +53,29 @@ impl SafeConfirmDialog {
 #[doc(hidden)]
 pub struct ProxmoxSafeConfirmDialog {
     form_ctx: FormContext,
+    validate: ValidateFn<String>,
 }
 
 impl Component for ProxmoxSafeConfirmDialog {
     type Message = ();
     type Properties = SafeConfirmDialog;
 
-    fn create(_ctx: &Context<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
+        let props = ctx.props();
+        let validate = ValidateFn::new({
+            let verify_id = props.verify_id.clone();
+            move |value: &String| -> Result<(), Error> {
+                if verify_id != value {
+                    Err(Error::msg(tr!("Value does not match!")))
+                } else {
+                    Ok(())
+                }
+            }
+        });
+
         Self {
             form_ctx: FormContext::new(),
+            validate,
         }
     }
 
@@ -87,16 +101,7 @@ impl Component for ProxmoxSafeConfirmDialog {
                     .autofocus(true)
                     .name("verify-id")
                     .required(true)
-                    .validate({
-                        let verify_id = verify_id.clone();
-                        move |value: &String| -> Result<(), Error> {
-                            if verify_id != value {
-                                Err(Error::msg(tr!("Value does not match!")))
-                            } else {
-                                Ok(())
-                            }
-                        }
-                    }),
+                    .validate(self.validate.clone()),
             );
 
         let bbar = Toolbar::new().with_flex_spacer().with_child(
