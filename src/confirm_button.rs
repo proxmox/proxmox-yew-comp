@@ -5,7 +5,7 @@ use pwt::{prelude::*, widget::MessageBox};
 
 use pwt_macros::{builder, widget};
 
-pub(crate) fn default_confirm_remove_message(name: Option<&str>) -> String {
+pub fn default_confirm_remove_message(name: Option<impl std::fmt::Display>) -> String {
     match name {
         Some(name) => tr!("Are you sure you want to remove entry {0}", name),
         None => tr!("Are you sure you want to remove this entry?"),

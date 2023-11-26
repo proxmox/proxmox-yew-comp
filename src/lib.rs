@@ -23,7 +23,7 @@ pub mod common_api_types;
 
 mod confirm_button;
 pub use confirm_button::{ConfirmButton, ProxmoxConfirmButton};
-pub(crate) use confirm_button::default_confirm_remove_message;
+pub use confirm_button::default_confirm_remove_message;
 
 pub mod gauge;
 pub use gauge::{Gauge, ProxmoxGauge};
