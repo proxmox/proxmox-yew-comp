@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use anyhow::Error;
 
+use pwt::props::RenderFn;
 use pwt::widget::InputPanel;
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
@@ -27,12 +28,21 @@ pub struct SafeConfirmDialog {
     #[builder(IntoPropValue, into_prop_value)]
     pub submit_text: Option<AttrValue>,
 
+    // Form renderer, to display additional data.
+    #[prop_or_default]
+    pub renderer: Option<RenderFn<FormContext>>,
+
     /// Close window callback.
     ///
     /// Parameter is set to true if the user confirmed the action.
     #[prop_or_default]
     #[builder_cb(IntoEventCallback, into_event_callback, bool)]
     pub on_close: Option<Callback<bool>>,
+
+    /// Confirm callback.
+    #[prop_or_default]
+    #[builder_cb(IntoEventCallback, into_event_callback, FormContext)]
+    pub on_confirm: Option<Callback<FormContext>>,
 
     /// The message.
     #[prop_or_default]
@@ -47,6 +57,11 @@ impl SafeConfirmDialog {
         yew::props!(Self {
             verify_id: verify_id.into(),
         })
+    }
+
+    pub fn renderer(mut self, renderer: impl 'static + Fn(&FormContext) -> Html) -> Self {
+        self.renderer = Some(RenderFn::new(renderer));
+        self
     }
 }
 
@@ -108,20 +123,28 @@ impl Component for ProxmoxSafeConfirmDialog {
             SubmitButton::new()
                 .text(props.submit_text.clone())
                 .on_submit({
-                    let on_close = props.on_close.clone();
+                    let on_confirm = props.on_confirm.clone();
                     move |form_ctx: FormContext| {
-                        if let Some(on_close) = &on_close {
+                        if let Some(on_confirm) = &on_confirm {
                             let confirm = form_ctx.read().get_field_text("verify-id") == verify_id;
-                            on_close.emit(confirm);
+                            if confirm {
+                                on_confirm.emit(form_ctx.clone());
+                            }
                         }
                     }
                 }),
         );
 
+        let additional_content = props.renderer.as_ref().map({
+            let form_ctx = self.form_ctx.clone();
+            move |render_fn| render_fn.apply(&form_ctx)
+        });
+
         let form = Form::new()
             .class("pwt-d-flex pwt-flex-direction-column ")
             .form_context(self.form_ctx.clone())
             .with_child(input_panel)
+            .with_optional_child(additional_content)
             .with_child(bbar);
 
         let title = match &props.title {
