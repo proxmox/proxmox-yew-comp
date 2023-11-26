@@ -33,20 +33,12 @@ pub fn authentication_from_cookie(product: ProxmoxProduct) -> Option<Authenticat
     None
 }
 
-fn auth_cookie_info(product: ProxmoxProduct) -> (&'static str, &'static [&'static str]) {
-    match product {
-        ProxmoxProduct::PBS  => ("PBSAuthCookie", &["PBS"]),
-        ProxmoxProduct::POM  => ("PBSAuthCookie", &["POM"]),
-        ProxmoxProduct::PVE  => ("PBSAuthCookie", &["PVE"]),
-        ProxmoxProduct::PMG  => ("PBSAuthCookie", &["PMG", "PMGQUAR"]),
-    }
-}
-
 fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String)> {
     let cookie = crate::get_cookie();
     //log::info!("COOKIE: {}", cookie);
 
-    let (name, prefixes) = auth_cookie_info(product);
+    let name = product.auth_cookie_name();
+    let prefixes = product.auth_cookie_prefixes();
 
     for part in cookie.split(';') {
         let part = part.trim();
@@ -243,8 +235,8 @@ impl HttpClientWasm {
         if resp.status() == 401 {
             log::info!("Got UNAUTHORIZED status - clearing AUTH cookie");
             self.clear_auth();
-            let (cookie_name, _) = auth_cookie_info(self.product);
-            crate::clear_auth_cookie(cookie_name);
+            let auth_cookie_name = self.product.auth_cookie_name();
+            crate::clear_auth_cookie(auth_cookie_name);
         }
 
         web_sys_response_to_http_api_response(resp).await

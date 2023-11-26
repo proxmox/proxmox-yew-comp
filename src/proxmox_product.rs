@@ -21,6 +21,15 @@ impl ProxmoxProduct {
         }
     }
 
+    pub fn auth_cookie_prefixes(&self) -> &'static[&'static str] {
+        match self {
+            ProxmoxProduct::PVE => &["PVE"],
+            ProxmoxProduct::PMG => &["PMG", "PMGQUAR"],
+            ProxmoxProduct::PBS => &["PBS"],
+            ProxmoxProduct::POM => &["POM"],
+        }
+    }
+
     pub fn product_text(&self) -> String {
         match self {
             ProxmoxProduct::PVE => tr!("Proxmox Virtual Environment"),
