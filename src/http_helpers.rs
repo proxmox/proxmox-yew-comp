@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use std::thread_local;
 
 use anyhow::{bail, Error};
+use slab::Slab;
 
 use proxmox_client::ApiResponseData;
 use serde::{Serialize, de::DeserializeOwned};
@@ -10,14 +11,56 @@ use serde_json::Value;
 
 use proxmox_login::{Authentication, TicketResult, ticket::Validity};
 use proxmox_client::HttpApiClient;
+use yew::Callback;
 
 use crate::{HttpClientWasm, ProxmoxProduct, json_object_to_query};
 
 thread_local! {
     static CLIENT: RefCell<Rc<HttpClientWasm>> = {
         start_ticket_refresh_loop();
-        RefCell::new(Rc::new(HttpClientWasm::new(ProxmoxProduct::PBS)))
+        RefCell::new(Rc::new(
+            HttpClientWasm::new(ProxmoxProduct::PBS, notify_auth_listeners)
+        ))
     };
+}
+
+thread_local! {
+    static AUTH_OBSERVER: RefCell<Slab<Callback<()>>> = {
+        start_ticket_refresh_loop();
+        RefCell::new(Slab::new())
+    };
+}
+
+fn notify_auth_listeners(_: ()) {
+    // Note: short borrow, just clone callbacks
+    let list: Vec<Callback<()>> = AUTH_OBSERVER.with(|slab| {
+        slab.borrow().iter().map(|(key, cb)| cb.clone()).collect()
+    });
+    for callback in list {
+        callback.emit(());
+    }
+}
+
+pub struct AuthObserver {
+    key: usize,
+}
+
+impl Drop for AuthObserver {
+    fn drop(&mut self) {
+        AUTH_OBSERVER.with(|slab| {
+            let mut slab = slab.borrow_mut();
+            slab.remove(self.key);
+        });
+    }
+}
+
+pub fn register_auth_observer(callback: impl Into<Callback<()>>) -> AuthObserver {
+    let callback = callback.into();
+    AUTH_OBSERVER.with(|slab| {
+        let mut slab = slab.borrow_mut();
+        let key = slab.insert(callback);
+        AuthObserver { key }
+    })
 }
 
 fn start_ticket_refresh_loop() {
@@ -55,7 +98,7 @@ fn start_ticket_refresh_loop() {
 
 
 pub fn http_setup(product: ProxmoxProduct) {
-    let client = HttpClientWasm::new(product);
+    let client = HttpClientWasm::new(product, notify_auth_listeners);
     CLIENT.with(move |c| *c.borrow_mut() = Rc::new(client));
 }
 
@@ -84,7 +127,7 @@ pub async fn http_login(
     let realm = realm.into();
 
     let product = CLIENT.with(|c| c.borrow().product());
-    let client = HttpClientWasm::new(product);
+    let client = HttpClientWasm::new(product, notify_auth_listeners);
     let ticket_result = client.login(format!("{username}@{realm}"), password).await?;
 
     match ticket_result {
@@ -102,7 +145,7 @@ pub async fn http_login_tfa(
     request: proxmox_login::Request,
 ) -> Result<Authentication, Error> {
     let product = CLIENT.with(|c| c.borrow().product());
-    let client = HttpClientWasm::new(product);
+    let client = HttpClientWasm::new(product, notify_auth_listeners);
     let auth = client.login_tfa(challenge, request).await?;
     client.set_auth(auth.clone());
     CLIENT.with(|c| *c.borrow_mut() = Rc::new(client));

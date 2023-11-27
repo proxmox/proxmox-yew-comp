@@ -12,6 +12,7 @@ use pwt::convert_js_error;
 
 use proxmox_client::{HttpApiClient, HttpApiResponse};
 use proxmox_login::{Authentication, Login, Ticket, TicketResult};
+use yew::{Callback, html::IntoEventCallback};
 
 //use crate::percent_encoding::DEFAULT_ENCODE_SET;
 use crate::ProxmoxProduct;
@@ -65,13 +66,15 @@ fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String)>
 pub struct HttpClientWasm {
     product: ProxmoxProduct,
     auth: Mutex<Option<Authentication>>,
+    on_auth_failure: Option<Callback<()>>,
 }
 
 impl HttpClientWasm {
-    pub fn new(product: ProxmoxProduct) -> Self {
+    pub fn new(product: ProxmoxProduct, on_auth_failure: impl IntoEventCallback<()>) -> Self {
         Self {
             product,
             auth: Mutex::new(None),
+            on_auth_failure: on_auth_failure.into_event_callback(),
         }
     }
 
@@ -237,6 +240,9 @@ impl HttpClientWasm {
             self.clear_auth();
             let auth_cookie_name = self.product.auth_cookie_name();
             crate::clear_auth_cookie(auth_cookie_name);
+            if let Some(on_auth_failure) = &self.on_auth_failure {
+                on_auth_failure.emit(());
+            }
         }
 
         web_sys_response_to_http_api_response(resp).await
