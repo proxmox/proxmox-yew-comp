@@ -34,7 +34,7 @@ thread_local! {
 fn notify_auth_listeners(_: ()) {
     // Note: short borrow, just clone callbacks
     let list: Vec<Callback<()>> = AUTH_OBSERVER.with(|slab| {
-        slab.borrow().iter().map(|(key, cb)| cb.clone()).collect()
+        slab.borrow().iter().map(|(_key, cb)| cb.clone()).collect()
     });
     for callback in list {
         callback.emit(());
