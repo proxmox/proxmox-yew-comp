@@ -1,3 +1,6 @@
+mod apt_package_manager;
+pub use apt_package_manager::{AptPackageManager, ProxmoxAptPackageManager};
+
 mod auth_view;
 pub use auth_view::{AuthView, ProxmoxAuthView};
 
