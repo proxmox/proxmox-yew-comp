@@ -247,7 +247,7 @@ fn render_tree_node(record: &TreeEntry) -> Html {
         TreeEntry::Origin(info) => {
             (
                 None,
-                tr!("Origin") + ": " + &*info.name + " " + &tr!("One item" | "{} items" % info.count)
+                tr!("Origin") + ": " + &*info.name + " (" + &tr!("One item" | "{} items" % info.count) + ")",
             )
         }
         TreeEntry::Package(_, info) => {
