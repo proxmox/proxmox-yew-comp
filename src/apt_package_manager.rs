@@ -229,9 +229,14 @@ impl ProxmoxAptPackageManager {
 fn render_desdcription(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Package(_, info) => {
-            Tooltip::new(html!{&info.title})
-                .rich_tip(html!{<pre class="pwt-monospace">{info.description.clone()}</pre>})
-                .into()
+            if let Some((title, body)) = info.description.split_once("\n") {
+                let title = html!{<h3>{title}</h3>};
+                Tooltip::new(html!{&info.title})
+                    .rich_tip(html!{<pre class="pwt-monospace">{title}{body}</pre>})
+                    .into()
+            } else {
+                html!{&info.title}
+            }
         }
         _ => html!{},
     }
