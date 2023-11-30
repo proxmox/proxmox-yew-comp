@@ -15,12 +15,7 @@ use pwt::state::{Selection, SlabTree, TreeStore};
 use pwt::widget::{Button, Toolbar};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableHeaderGroup};
 
-use crate::percent_encoding::percent_encode_component;
-use crate::{
-    EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentLink,
-    LoadableComponentMaster,
-};
-
+use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 use crate::common_api_types::APTUpdateInfo;
 
 use pwt_macros::builder;
@@ -125,9 +120,7 @@ impl LoadableComponent for ProxmoxAptPackageManager {
     type ViewState = ();
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
-        let props = ctx.props();
         let tree_store = TreeStore::new().view_root(false);
-
         let columns = Self::columns(ctx, tree_store.clone());
 
         Self {
@@ -154,7 +147,6 @@ impl LoadableComponent for ProxmoxAptPackageManager {
 
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
         let props = ctx.props();
-        let link = ctx.link();
 
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
@@ -197,7 +189,7 @@ impl From<AptPackageManager> for VNode {
 
 impl ProxmoxAptPackageManager {
     fn columns(
-        ctx: &LoadableComponentContext<Self>,
+        _ctx: &LoadableComponentContext<Self>,
         store: TreeStore<TreeEntry>,
     ) -> Rc<Vec<DataTableHeader<TreeEntry>>> {
         Rc::new(vec![
