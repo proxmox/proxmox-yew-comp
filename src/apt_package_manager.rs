@@ -234,20 +234,11 @@ fn render_desdcription(record: &TreeEntry) -> Html {
 }
 
 fn render_tree_node(record: &TreeEntry) -> Html {
-    let (class, content): (Option<String>, String) = match record {
-        TreeEntry::Root(_) => (None, String::from("Root")), // not visible
-        TreeEntry::Origin(info) => {
-            (
-                None,
-                tr!("Origin") + ": " + &*info.name + " (" + &tr!("One item" | "{} items" % info.count) + ")",
-            )
-        }
-        TreeEntry::Package(_, info) => {
-            (
-                None,
-                info.package.clone(),
-            )
-        }
-    };
-    html! {<><i {class}></i><span class="pwt-text-truncate">{content}</span></>}
+    match record {
+        TreeEntry::Root(_) => html!{"Packages"}, // not visible
+        TreeEntry::Origin(info) => html!{<span class="pwt-text-truncate pwt-color-primary">{
+            tr!("Origin") + ": " + &*info.name + " (" + &tr!("One item" | "{} items" % info.count) + ")"
+        }</span>},
+        TreeEntry::Package(_, info) => html!{<span class="pwt-text-truncate">{&info.package}</span>},
+    }
 }
