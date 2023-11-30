@@ -12,7 +12,7 @@ use yew::html::IntoPropValue;
 use pwt::prelude::*;
 use pwt::props::ExtractPrimaryKey;
 use pwt::state::{Selection, SlabTree, TreeStore};
-use pwt::widget::{Button, Toolbar};
+use pwt::widget::{Button, Toolbar, Tooltip};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableHeaderGroup};
 
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
@@ -228,7 +228,11 @@ impl ProxmoxAptPackageManager {
 
 fn render_desdcription(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Package(_, info) => html!{&info.title},
+        TreeEntry::Package(_, info) => {
+            Tooltip::new(html!{&info.title})
+                .rich_tip(html!{<pre class="pwt-monospace">{info.description.clone()}</pre>})
+                .into()
+        }
         _ => html!{},
     }
 }
