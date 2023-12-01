@@ -12,7 +12,7 @@ use yew::html::IntoPropValue;
 use pwt::prelude::*;
 use pwt::props::ExtractPrimaryKey;
 use pwt::state::{Selection, SlabTree, TreeStore};
-use pwt::widget::{Button, Toolbar, Tooltip};
+use pwt::widget::{Container, Button, Toolbar, Tooltip};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableHeaderGroup};
 
 use crate::percent_encoding::percent_encode_component;
@@ -237,12 +237,17 @@ impl ProxmoxAptPackageManager {
             .on_done(ctx.link().change_view_callback(|_| None))
             .loader(url)
             .renderer(|description: &String| {
+                let mut panel = Container::new()
+                    .tag("pre")
+                    .class("pwt-flex-fit pwt-p-2 pwt-monospace");
+
                 if let Some((title, body)) = description.split_once("\n") {
-                    let title = html!{<h3>{title}</h3>};
-                    html!{<pre class="pwt-flex-fit pwt-p-2 pwt-monospace">{title}{body}</pre>}
+                    panel.add_child(html!{<h3>{title}</h3>});
+                    panel.add_child(body);
                 } else {
-                    html!{<pre class="pwt-flex-fit pwt-p-2 pwt-monospace">{description}</pre>}
+                    panel.add_child(description);
                 }
+                panel.into()
             })
             .into()
     }
