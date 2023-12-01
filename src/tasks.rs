@@ -266,16 +266,23 @@ impl LoadableComponent for ProxmoxTasks {
         ctx: &LoadableComponentContext<Self>,
         view_state: &Self::ViewState,
     ) -> Option<Html> {
-        let selected_task = match self.selection.selected_key().map(|k| k.to_string()) {
-            Some(task) => task, // upid
+        let props = ctx.props();
+
+        let selected_key = match self.selection.selected_key() {
+            Some(key) => key, // upid
+            None => return None,
+        };
+        let selected_item = match self.store.read().lookup_record(&selected_key) {
+            Some(item) => item.clone(),
             None => return None,
         };
 
         match view_state {
             ViewDialog::TaskViewer => {
-                let mut dialog = TaskViewer::new(selected_task)
+                let mut dialog = TaskViewer::new(&*selected_key)
+                    .endtime(selected_item.endtime)
                     .on_close(ctx.link().change_view_callback(|_| None));
-                if let Some(base_url) = &ctx.props().base_url {
+                if let Some(base_url) = &props.base_url {
                     dialog.set_base_url(base_url);
                 }
                 Some(dialog.into())
