@@ -28,6 +28,9 @@ mod confirm_button;
 pub use confirm_button::{ConfirmButton, ProxmoxConfirmButton};
 pub use confirm_button::default_confirm_remove_message;
 
+mod data_view_window;
+pub use data_view_window::{DataViewWindow, ProxmoxDataViewWindow};
+
 pub mod gauge;
 pub use gauge::{Gauge, ProxmoxGauge};
 

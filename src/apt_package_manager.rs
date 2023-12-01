@@ -15,7 +15,8 @@ use pwt::state::{Selection, SlabTree, TreeStore};
 use pwt::widget::{Button, Toolbar, Tooltip};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableHeaderGroup};
 
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::percent_encoding::percent_encode_component;
+use crate::{DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 use crate::common_api_types::APTUpdateInfo;
 
 use pwt_macros::builder;
@@ -106,7 +107,10 @@ fn update_list_to_tree(updates: &[APTUpdateInfo]) -> SlabTree<TreeEntry> {
     tree
 }
 
-pub enum Msg {}
+#[derive(Clone, PartialEq)]
+pub enum ViewState {
+    ShowChangelog(String),
+}
 
 pub struct ProxmoxAptPackageManager {
     tree_store: TreeStore<TreeEntry>,
@@ -116,16 +120,17 @@ pub struct ProxmoxAptPackageManager {
 
 impl LoadableComponent for ProxmoxAptPackageManager {
     type Properties = AptPackageManager;
-    type Message = Msg;
-    type ViewState = ();
+    type Message = ();
+    type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let tree_store = TreeStore::new().view_root(false);
         let columns = Self::columns(ctx, tree_store.clone());
+        let selection = Selection::new().on_select(ctx.link().callback(|_| ()));
 
         Self {
             tree_store,
-            selection: Selection::new(),
+            selection,
             columns,
         }
     }
@@ -148,6 +153,16 @@ impl LoadableComponent for ProxmoxAptPackageManager {
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
         let props = ctx.props();
 
+        let selected_key = self.selection.selected_key();
+        let selected_record = match selected_key.as_ref() {
+            Some(key) => self.tree_store.read().lookup_node(key).map(|r| r.record().clone()),
+            None => None,
+        };
+        let selected_package = match selected_record {
+            Some(TreeEntry::Package(_, info)) => Some(info.package.clone()),
+            _ => None,
+        };
+
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
             .class("pwt-overflow-hidden")
@@ -158,6 +173,15 @@ impl LoadableComponent for ProxmoxAptPackageManager {
                         let link = ctx.link();
                         let command = format!("{}/update", props.base_url);
                         move |_| link.start_task(&command, None, false)
+                    })
+            )
+            .with_child(
+                Button::new(tr!("Changelog"))
+                    .disabled(selected_package.is_none())
+                    .onclick({
+                        let link = ctx.link();
+                        let view = selected_package.as_ref().map(|p| ViewState::ShowChangelog(p.clone()));
+                        move |_| link.change_view(view.clone())
                     })
             )
             .with_flex_spacer()
@@ -178,6 +202,16 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             .borderless(true)
             .into()
     }
+
+    fn dialog_view(
+        &self,
+        ctx: &LoadableComponentContext<Self>,
+        view_state: &Self::ViewState,
+    ) -> Option<Html> {
+        match view_state {
+            ViewState::ShowChangelog(package) => Some(self.create_show_changelog_dialog(ctx, &package)),
+        }
+    }
 }
 
 impl From<AptPackageManager> for VNode {
@@ -188,6 +222,31 @@ impl From<AptPackageManager> for VNode {
 }
 
 impl ProxmoxAptPackageManager {
+
+    fn create_show_changelog_dialog(&self, ctx: &LoadableComponentContext<Self>, package: &str) -> Html {
+        let props = ctx.props().clone();
+        let url = format!(
+            "{}/changelog?name={}",
+            props.base_url,
+            percent_encode_component(package),
+        );
+
+        DataViewWindow::<String>::new(tr!("Changelog") + ": " + package)
+            .style("height: 400px; width: 640px;")
+            .resizable(true)
+            .on_done(ctx.link().change_view_callback(|_| None))
+            .loader(url)
+            .renderer(|description: &String| {
+                if let Some((title, body)) = description.split_once("\n") {
+                    let title = html!{<h3>{title}</h3>};
+                    html!{<pre class="pwt-flex-fit pwt-p-2 pwt-monospace">{title}{body}</pre>}
+                } else {
+                    html!{<pre class="pwt-flex-fit pwt-p-2 pwt-monospace">{description}</pre>}
+                }
+            })
+            .into()
+    }
+
     fn columns(
         _ctx: &LoadableComponentContext<Self>,
         store: TreeStore<TreeEntry>,
@@ -235,7 +294,7 @@ fn render_desdcription(record: &TreeEntry) -> Html {
                     .rich_tip(html!{<pre class="pwt-monospace">{title}{body}</pre>})
                     .into()
             } else {
-                html!{&info.title}
+                html!{<pre class="pwt-monospace">{&info.description}</pre>}
             }
         }
         _ => html!{},
