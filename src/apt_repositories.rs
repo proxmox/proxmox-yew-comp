@@ -63,6 +63,7 @@ enum TreeEntry {
         index: usize,
         repo: APTRepository,
         origin: Origin,
+        warnings: Vec<String>,
     }
 }
 
@@ -107,16 +108,23 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
 
         for (index, repo) in file.repositories.iter().enumerate() {
             let mut origin = Origin::Other;
+            let mut warnings = Vec::new();
 
             if let Some(file_infos) = &file_infos {
                 if let Some(list) = file_infos.get(&index) {
                     for info in list {
-                        if &info.kind == "origin" {
-                            origin = match info.message.as_str() {
-                                "Debian" => Origin::Debian,
-                                "Proxmox" => Origin::Proxmox,
-                                _ => Origin::Other,
-                            };
+                        match info.kind.as_str() {
+                            "origin" => {
+                                origin = match info.message.as_str() {
+                                    "Debian" => Origin::Debian,
+                                    "Proxmox" => Origin::Proxmox,
+                                    _ => Origin::Other,
+                                };
+                            }
+                            "warning" => {
+                                warnings.push(info.message.clone());
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -127,6 +135,7 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
                 index,
                 repo: repo.clone(),
                 origin,
+                warnings,
             });
         }
 
@@ -276,7 +285,7 @@ fn render_enabled_or_group(args: &mut DataTableCellRenderArgs<TreeEntry>) -> Htm
 
 fn render_origin(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { repo, origin, ..} => {
+        TreeEntry::Repository { origin, ..} => {
             match origin {
                 Origin::Debian => html!{"Debian"},
                 Origin::Proxmox => html!{"Proxmox"},
