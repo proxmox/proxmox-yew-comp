@@ -1,6 +1,11 @@
 mod apt_package_manager;
 pub use apt_package_manager::{AptPackageManager, ProxmoxAptPackageManager};
 
+pub(crate) mod apt_api_types;
+
+mod apt_repositories;
+pub use apt_repositories::{AptRepositories, ProxmoxAptRepositories};
+
 mod auth_view;
 pub use auth_view::{AuthView, ProxmoxAuthView};
 
