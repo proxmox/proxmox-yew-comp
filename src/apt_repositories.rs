@@ -21,7 +21,7 @@ use crate::common_api_types::APTUpdateInfo;
 
 use pwt_macros::builder;
 
-use super::apt_api_types::{APTConfiguration, APTRepository};
+use super::apt_api_types::{APTConfiguration, APTRepository, APTRepositoryInfo};
 
 async fn apt_configuration(base_url: AttrValue) -> Result<APTConfiguration, Error> {
     let url = format!("{base_url}/repositories");
@@ -43,6 +43,13 @@ impl AptRepositories {
     }
 }
 
+#[derive(Copy, Clone, PartialEq)]
+enum Origin {
+    Debian,
+    Proxmox,
+    Other,
+}
+
 #[derive(Clone, PartialEq)]
 enum TreeEntry {
     Root(Key),
@@ -55,6 +62,7 @@ enum TreeEntry {
         key: Key,
         index: usize,
         repo: APTRepository,
+        origin: Origin,
     }
 }
 
@@ -74,6 +82,14 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
     let mut root = tree.set_root(TreeEntry::Root(Key::from(format!("root"))));
     root.set_expanded(true);
 
+    let mut info_map: HashMap<String, HashMap<usize, Vec<APTRepositoryInfo>>> = HashMap::new();
+
+    for info in &config.infos {
+        let inner = info_map.entry(info.path.clone()).or_insert(HashMap::new());
+        let entry = inner.entry(info.index).or_insert(Vec::new());
+        entry.push(info.clone());
+    }
+
     for file in &config.files {
         let path = match &file.path {
             None => continue, // fixme: WTF?
@@ -87,11 +103,30 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
 
         file_node.set_expanded(true);
 
+        let file_infos = info_map.get(path);
+
         for (index, repo) in file.repositories.iter().enumerate() {
+            let mut origin = Origin::Other;
+
+            if let Some(file_infos) = &file_infos {
+                if let Some(list) = file_infos.get(&index) {
+                    for info in list {
+                        if &info.kind == "origin" {
+                            origin = match info.message.as_str() {
+                                "Debian" => Origin::Debian,
+                                "Proxmox" => Origin::Proxmox,
+                                _ => Origin::Other,
+                            };
+                        }
+                    }
+                }
+            }
+
             file_node.append(TreeEntry::Repository {
                 key: Key::from(format!("repo:{path}:{index}")),
                 index,
                 repo: repo.clone(),
+                origin,
             });
         }
 
@@ -206,11 +241,10 @@ impl ProxmoxAptRepositories {
                 .width("200px")
                 .render(render_components)
                 .into(),
-            // fixme: Origin??
-            //DataTableColumn::new(tr!("Origin"))
-            //    .width("140px")
-            //    .render(render_origin)
-            //    .into(),
+            DataTableColumn::new(tr!("Origin"))
+                .width("140px")
+                .render(render_origin)
+                .into(),
             DataTableColumn::new(tr!("Comment"))
                 .flex(1)
                 .render(render_comment)
@@ -237,6 +271,19 @@ fn render_enabled_or_group(args: &mut DataTableCellRenderArgs<TreeEntry>) -> Htm
             html!{<i class={icon_class}/>}
         }
         _ => html!{},
+    }
+}
+
+fn render_origin(record: &TreeEntry) -> Html {
+    match record {
+        TreeEntry::Repository { repo, origin, ..} => {
+            match origin {
+                Origin::Debian => html!{"Debian"},
+                Origin::Proxmox => html!{"Proxmox"},
+                Origin::Other => html!{"Other"},
+            }
+        }
+        _ => html!{}
     }
 }
 
