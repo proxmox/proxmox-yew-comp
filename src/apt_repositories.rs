@@ -4,7 +4,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
-use pwt::widget::form::{Combobox, FormContext};
+use pwt::widget::form::{Combobox, FormContext, ValidateFn};
 use serde_json::json;
 
 use yew::html::IntoPropValue;
@@ -12,7 +12,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::ExtractPrimaryKey;
-use pwt::state::{Selection, SlabTree, TreeStore};
+use pwt::state::{Selection, SlabTree, TreeStore, Store};
 use pwt::widget::data_table::{
     DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader,
 };
@@ -164,6 +164,7 @@ pub struct ProxmoxAptRepositories {
     selection: Selection,
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
     standard_repos: HashMap<String, APTStandardRepository>,
+    validate_standard_repo: ValidateFn<(String, Store<AttrValue>)>,
 }
 
 impl LoadableComponent for ProxmoxAptRepositories {
@@ -181,6 +182,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
             selection,
             columns,
             standard_repos: HashMap::new(),
+            validate_standard_repo: ValidateFn::new(|(_, _): &_| Ok(())),
         }
     }
 
@@ -213,7 +215,16 @@ impl LoadableComponent for ProxmoxAptRepositories {
         match msg {
             Msg::Refresh => true,
             Msg::UpdateStandardRepos(standard_repos) => {
-                self.standard_repos = standard_repos;
+                self.standard_repos = standard_repos.clone();
+                self.validate_standard_repo = ValidateFn::new(move |(repo, _): &(String, _)| {
+                    let (_, _, enabled) = standard_repo_info(&standard_repos, &repo);
+                    if enabled {
+                        Err(Error::msg(tr!("Already configured")))
+                    } else {
+                        Ok(())
+                    }
+                });
+
                 true
             }
             Msg::ToggleEnable => {
@@ -347,6 +358,7 @@ impl ProxmoxAptRepositories {
     fn create_add_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let props = ctx.props();
         let standard_repos = self.standard_repos.clone();
+        let validate_standard_repo = self.validate_standard_repo.clone();
 
         let url = format!("{}/repositories", props.base_url);
 
@@ -354,7 +366,7 @@ impl ProxmoxAptRepositories {
             .on_done(ctx.link().change_view_callback(|_| None))
             .renderer(move |form_ctx: &FormContext| {
                 let repo = form_ctx.read().get_field_text("handle");
-                let (status, description, enabled) = standard_repo_info(&standard_repos, &repo);
+                let (status, description, _enabled) = standard_repo_info(&standard_repos, &repo);
 
                 let repository_selector = Combobox::new()
                     .name("handle")
@@ -362,12 +374,7 @@ impl ProxmoxAptRepositories {
                     .with_item("no-subscription")
                     .with_item("test")
                     .default("enterprise")
-                    .validate(move |(_, _): &_| {
-                        if enabled {
-                            return Err(Error::msg(tr!("Already configured")));
-                        }
-                        Ok(())
-                    })
+                    .validate(validate_standard_repo.clone())
                     .render_value(|value: &AttrValue| {
                         html! {
                             match value.as_str() {
