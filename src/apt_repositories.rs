@@ -65,7 +65,7 @@ enum TreeEntry {
         index: usize,
         repo: APTRepository,
         origin: Origin,
-        warnings: Vec<String>,
+        warnings: Vec<APTRepositoryInfo>,
     }
 }
 
@@ -124,7 +124,7 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
                                 };
                             }
                             "warning" => {
-                                warnings.push(info.message.clone());
+                                warnings.push(info.clone());
                             }
                             _ => {}
                         }
@@ -374,8 +374,24 @@ fn render_components(record: &TreeEntry) -> Html {
 
 fn render_suites(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { repo, ..} => {
-            html!{repo.suites.join(" ")}
+        TreeEntry::Repository { repo, warnings, ..} => {
+            let warn: Vec<String> = warnings
+                .iter()
+                .filter(|info| matches!(info.property.as_deref(), Some("Suites")))
+                .map(|info| info.message.clone())
+                .collect();
+            if warn.is_empty() {
+                html!{repo.suites.join(" ")}
+            } else {
+                let content = html!{
+                    <span class="pwt-color-warning">
+                        {repo.suites.join(" ")}
+                        <i class="fa fa-fw fa-exclamation-circle"/>
+                    </span>
+                };
+                let tip = tr!("Warning") + ": " + &warn.join(", ");
+                Tooltip::new(content).tip(tip).into()
+            }
         }
         _ => html!{}
     }
