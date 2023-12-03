@@ -1,19 +1,21 @@
-use std::rc::Rc;
-use std::pin::Pin;
-use std::future::Future;
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
+use std::rc::Rc;
 
 use anyhow::Error;
 use serde_json::json;
 
-use yew::virtual_dom::{Key, VComp, VNode};
 use yew::html::IntoPropValue;
+use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::ExtractPrimaryKey;
 use pwt::state::{Selection, SlabTree, TreeStore};
-use pwt::widget::{Container, Button, Row, Toolbar, Tooltip};
-use pwt::widget::data_table::{DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader};
+use pwt::widget::data_table::{
+    DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader,
+};
+use pwt::widget::{Button, Container, Row, Toolbar, Tooltip};
 
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
@@ -63,15 +65,15 @@ enum TreeEntry {
         repo: APTRepository,
         origin: Origin,
         warnings: Vec<APTRepositoryInfo>,
-    }
+    },
 }
 
 impl ExtractPrimaryKey for TreeEntry {
     fn extract_key(&self) -> Key {
         match self {
             TreeEntry::Root(key) => key.clone(),
-            TreeEntry::File {key, ..} => key.clone(),
-            TreeEntry::Repository {key, ..} => key.clone(),
+            TreeEntry::File { key, .. } => key.clone(),
+            TreeEntry::Repository { key, .. } => key.clone(),
         }
     }
 }
@@ -138,7 +140,6 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
                 warnings,
             });
         }
-
     }
 
     tree
@@ -200,7 +201,9 @@ impl LoadableComponent for ProxmoxAptRepositories {
                     None => return false,
                 };
                 match selected_record {
-                    TreeEntry::Repository { path, index, repo, ..} => {
+                    TreeEntry::Repository {
+                        path, index, repo, ..
+                    } => {
                         let param = json!({
                             "path": path,
                             "index": index,
@@ -211,7 +214,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
                         let link = ctx.link();
                         wasm_bindgen_futures::spawn_local(async move {
                             match crate::http_post(url, Some(param)).await {
-                                 Ok(()) => {
+                                Ok(()) => {
                                     link.send_reload();
                                 }
                                 Err(err) => {
@@ -225,7 +228,6 @@ impl LoadableComponent for ProxmoxAptRepositories {
                 false
             }
         }
-
     }
 
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
@@ -237,12 +239,16 @@ impl LoadableComponent for ProxmoxAptRepositories {
             .class("pwt-border-bottom")
             .with_child({
                 let enabled = match selected_record {
-                    Some(TreeEntry::Repository {repo, ..}) => Some(repo.enabled),
+                    Some(TreeEntry::Repository { repo, .. }) => Some(repo.enabled),
                     _ => None,
                 };
-                Button::new(if enabled.unwrap_or(false) { tr!("Disable") } else { tr!("Enable") })
-                    .disabled(enabled.is_none())
-                    .onclick(ctx.link().callback(|_| Msg::ToggleEnable))
+                Button::new(if enabled.unwrap_or(false) {
+                    tr!("Disable")
+                } else {
+                    tr!("Enable")
+                })
+                .disabled(enabled.is_none())
+                .onclick(ctx.link().callback(|_| Msg::ToggleEnable))
             })
             .with_flex_spacer()
             .with_child({
@@ -265,17 +271,21 @@ impl LoadableComponent for ProxmoxAptRepositories {
 
 impl From<AptRepositories> for VNode {
     fn from(prop: AptRepositories) -> VNode {
-        let comp = VComp::new::<LoadableComponentMaster<ProxmoxAptRepositories>>(Rc::new(prop), None);
+        let comp =
+            VComp::new::<LoadableComponentMaster<ProxmoxAptRepositories>>(Rc::new(prop), None);
         VNode::from(comp)
     }
 }
 
 impl ProxmoxAptRepositories {
-
     fn selected_record(&self) -> Option<TreeEntry> {
         let selected_key = self.selection.selected_key();
         match selected_key.as_ref() {
-            Some(key) => self.tree_store.read().lookup_node(key).map(|r| r.record().clone()),
+            Some(key) => self
+                .tree_store
+                .read()
+                .lookup_node(key)
+                .map(|r| r.record().clone()),
             None => None,
         }
     }
@@ -319,92 +329,89 @@ impl ProxmoxAptRepositories {
 
 fn render_enabled_or_group(args: &mut DataTableCellRenderArgs<TreeEntry>) -> Html {
     match args.record() {
-        TreeEntry::File { path, repo_count, ..} => {
-            let text = path.clone() + " (" +
-                &tr!("One repository" | "{n} repositories" % *repo_count as u64) + ")";
+        TreeEntry::File {
+            path, repo_count, ..
+        } => {
+            let text = path.clone()
+                + " ("
+                + &tr!("One repository" | "{n} repositories" % *repo_count as u64)
+                + ")";
 
             args.set_attribute("colspan", "20");
             args.add_class("pwt-bg-color-surface");
-            html!{text}
+            html! {text}
         }
-        TreeEntry::Repository { repo, ..} => {
+        TreeEntry::Repository { repo, .. } => {
             let icon_class = match repo.enabled {
                 true => "fa fa-check",
-                false => "fa fa-minus"
+                false => "fa fa-minus",
             };
-            html!{<i class={icon_class}/>}
+            html! {<i class={icon_class}/>}
         }
-        _ => html!{},
+        _ => html! {},
     }
 }
 
 fn render_origin(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { origin, ..} => {
-            match origin {
-                Origin::Debian => html!{"Debian"},
-                Origin::Proxmox => html!{"Proxmox"},
-                Origin::Other => html!{"Other"},
-            }
-        }
-        _ => html!{}
+        TreeEntry::Repository { origin, .. } => match origin {
+            Origin::Debian => html! {"Debian"},
+            Origin::Proxmox => html! {"Proxmox"},
+            Origin::Other => html! {"Other"},
+        },
+        _ => html! {},
     }
 }
 
 fn render_comment(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { repo, ..} => {
-            html!{&repo.comment}
+        TreeEntry::Repository { repo, .. } => {
+            html! {&repo.comment}
         }
-        _ => html!{}
+        _ => html! {},
     }
 }
 
-
 fn render_text_with_warnings(text: &str, warnings: &[String]) -> Html {
     if warnings.is_empty() {
-        html!{text}
+        html! {text}
     } else {
-        let content = html!{
+        let content = html! {
             <span class="pwt-color-warning">
                 {text}
                 <i class="fa fa-fw fa-exclamation-circle"/>
             </span>
         };
         let title = tr!("Warning" | "Warnings" % warnings.len());
-        let mut tip = Container::new().with_child(html!{<h4>{title}</h4>});
+        let mut tip = Container::new().with_child(html! {<h4>{title}</h4>});
         for message in warnings {
-            tip.add_child(html!{<p>{message}</p>});
+            tip.add_child(html! {<p>{message}</p>});
         }
         Tooltip::new(content).rich_tip(tip).into()
     }
 }
 fn render_components(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { repo, ..} => {
-            Row::new()
-                .gap(2)
-                .children(
-                    repo.components.iter().map(|comp| {
-                        if comp.ends_with("-no-subscription") {
-                            let warn = tr!("The no-subscription repository is NOT production-ready");
-                            render_text_with_warnings(comp, &[warn])
-                        } else if comp.ends_with("test") {
-                            let warn = tr!("The test repository may contain unstable updates");
-                            render_text_with_warnings(comp, &[warn])
-                        } else {
-                            html!{<span>{comp.to_string()}</span>}
-                        }
-                    })
-                )
-                .into()
-        }
-        _ => html!{}
+        TreeEntry::Repository { repo, .. } => Row::new()
+            .gap(2)
+            .children(repo.components.iter().map(|comp| {
+                if comp.ends_with("-no-subscription") {
+                    let warn = tr!("The no-subscription repository is NOT production-ready");
+                    render_text_with_warnings(comp, &[warn])
+                } else if comp.ends_with("test") {
+                    let warn = tr!("The test repository may contain unstable updates");
+                    render_text_with_warnings(comp, &[warn])
+                } else {
+                    html! {<span>{comp.to_string()}</span>}
+                }
+            }))
+            .into(),
+        _ => html! {},
     }
 }
 fn render_suites(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { repo, warnings, ..} => {
+        TreeEntry::Repository { repo, warnings, .. } => {
             let warnings: Vec<String> = warnings
                 .iter()
                 .filter(|info| matches!(info.property.as_deref(), Some("Suites")))
@@ -412,26 +419,29 @@ fn render_suites(record: &TreeEntry) -> Html {
                 .collect();
             render_text_with_warnings(&repo.suites.join(" "), &warnings)
         }
-        _ => html!{}
+        _ => html! {},
     }
 }
 
 fn render_uris(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { repo, ..} => {
-            html!{repo.uris.join(" ")}
+        TreeEntry::Repository { repo, .. } => {
+            html! {repo.uris.join(" ")}
         }
-        _ => html!{}
+        _ => html! {},
     }
 }
 
 fn render_types(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { repo, ..} => {
-            let text: String = repo.types.iter()
-                .map(|t| serde_plain::to_string(t).unwrap()).collect();
-            html!{text}
+        TreeEntry::Repository { repo, .. } => {
+            let text: String = repo
+                .types
+                .iter()
+                .map(|t| serde_plain::to_string(t).unwrap())
+                .collect();
+            html! {text}
         }
-        _ => html!{}
+        _ => html! {},
     }
 }
