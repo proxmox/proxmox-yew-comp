@@ -355,9 +355,9 @@ fn render_enabled_or_group(args: &mut DataTableCellRenderArgs<TreeEntry>) -> Htm
 fn render_origin(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Repository { origin, .. } => match origin {
-            Origin::Debian => html! {"Debian"},
-            Origin::Proxmox => html! {"Proxmox"},
-            Origin::Other => html! {"Other"},
+            Origin::Debian => html! {<span><i class="pmx-icon-debian-swirl pwt-pe-2"/>{"Debian"}</span>},
+            Origin::Proxmox => html! {<span><i class="pmx-icon-proxmox-x pwt-pe-2"/>{"Proxmox"}</span>},
+            Origin::Other => html! {<span><i class="fa fa-question-circle-o pwt-pe-2"/>{"Other"}</span>},
         },
         _ => html! {},
     }
