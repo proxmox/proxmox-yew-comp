@@ -392,23 +392,26 @@ fn render_text_with_warnings(text: &str, warnings: &[String]) -> Html {
 }
 fn render_components(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { repo, .. } => Row::new()
+        TreeEntry::Repository { origin, repo, .. } => Row::new()
             .gap(2)
             .children(repo.components.iter().map(|comp| {
-                if comp.ends_with("-no-subscription") {
-                    let warn = tr!("The no-subscription repository is NOT production-ready");
-                    render_text_with_warnings(comp, &[warn])
-                } else if comp.ends_with("test") {
-                    let warn = tr!("The test repository may contain unstable updates");
-                    render_text_with_warnings(comp, &[warn])
-                } else {
-                    html! {<span>{comp.to_string()}</span>}
+                if *origin == Origin::Proxmox {
+                    if comp.ends_with("-no-subscription") {
+                        let warn = tr!("The no-subscription repository is NOT production-ready");
+                        return render_text_with_warnings(comp, &[warn]);
+                    }
+                    if comp.ends_with("test") {
+                        let warn = tr!("The test repository may contain unstable updates");
+                        return render_text_with_warnings(comp, &[warn]);
+                    }
                 }
+                html! {<span>{comp.to_string()}</span>}
             }))
             .into(),
         _ => html! {},
     }
 }
+
 fn render_suites(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Repository { repo, warnings, .. } => {
