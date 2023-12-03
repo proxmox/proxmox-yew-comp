@@ -4,6 +4,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
+use pwt::widget::form::{Combobox, Form, FormContext};
 use serde_json::json;
 
 use yew::html::IntoPropValue;
@@ -17,11 +18,14 @@ use pwt::widget::data_table::{
 };
 use pwt::widget::{Button, Container, Row, Toolbar, Tooltip};
 
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::apt_api_types::APTRepositoryHandle;
+use crate::{EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
 use pwt_macros::builder;
 
-use super::apt_api_types::{APTConfiguration, APTRepository, APTRepositoryInfo};
+use super::apt_api_types::{
+    APTConfiguration, APTRepository, APTRepositoryInfo, APTStandardRepository,
+};
 
 async fn apt_configuration(base_url: AttrValue) -> Result<APTConfiguration, Error> {
     let url = format!("{base_url}/repositories");
@@ -148,15 +152,19 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
 pub enum Msg {
     Refresh,
     ToggleEnable,
+    UpdateStandardRepos(Vec<APTStandardRepository>),
 }
 
 #[derive(Clone, PartialEq)]
-pub enum ViewState {}
+pub enum ViewState {
+    AddRespository,
+}
 
 pub struct ProxmoxAptRepositories {
     tree_store: TreeStore<TreeEntry>,
     selection: Selection,
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
+    standard_repos: Vec<APTStandardRepository>,
 }
 
 impl LoadableComponent for ProxmoxAptRepositories {
@@ -173,6 +181,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
             tree_store,
             selection,
             columns,
+            standard_repos: Vec::new(),
         }
     }
 
@@ -183,10 +192,12 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let props = ctx.props();
         let base_url = props.base_url.clone();
         let tree_store = self.tree_store.clone();
+        let link = ctx.link();
         Box::pin(async move {
             let config = apt_configuration(base_url.clone()).await?;
             let tree = apt_configuration_to_tree(&config);
             tree_store.write().update_root_tree(tree);
+            link.send_message(Msg::UpdateStandardRepos(config.standard_repos.clone()));
             Ok(())
         })
     }
@@ -195,6 +206,10 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let props = ctx.props();
         match msg {
             Msg::Refresh => true,
+            Msg::UpdateStandardRepos(standard_repos) => {
+                self.standard_repos = standard_repos;
+                true
+            }
             Msg::ToggleEnable => {
                 let selected_record = match self.selected_record() {
                     Some(record) => record,
@@ -237,6 +252,12 @@ impl LoadableComponent for ProxmoxAptRepositories {
             .class("pwt-w-100")
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
+            .with_child(
+                Button::new(tr!("Add")).onclick(
+                    ctx.link()
+                        .change_view_callback(|_| Some(ViewState::AddRespository)),
+                ),
+            )
             .with_child({
                 let enabled = match selected_record {
                     Some(TreeEntry::Repository { repo, .. }) => Some(repo.enabled),
@@ -267,6 +288,16 @@ impl LoadableComponent for ProxmoxAptRepositories {
             .striped(false)
             .into()
     }
+
+    fn dialog_view(
+        &self,
+        ctx: &LoadableComponentContext<Self>,
+        view_state: &Self::ViewState,
+    ) -> Option<Html> {
+        match view_state {
+            ViewState::AddRespository => Some(self.create_add_dialog(ctx)),
+        }
+    }
 }
 
 impl From<AptRepositories> for VNode {
@@ -278,6 +309,89 @@ impl From<AptRepositories> for VNode {
 }
 
 impl ProxmoxAptRepositories {
+    fn create_add_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
+        let props = ctx.props();
+        let standard_repos = self.standard_repos.clone();
+
+        let url = format!("{}/repositories", props.base_url);
+
+        EditWindow::new(tr!("Add") + ": " + &tr!("Respository"))
+            .on_done(ctx.link().change_view_callback(|_| None))
+            .renderer(move |form_ctx: &FormContext| {
+                let repo = match form_ctx.read().get_field_text("handle").as_str() {
+                    "enterprise" => Some(APTRepositoryHandle::Enterprise),
+                    "no-subscription" => Some(APTRepositoryHandle::NoSubscription),
+                    "test" => Some(APTRepositoryHandle::Test),
+                    _ => None,
+                };
+
+                let info = match repo {
+                    Some(repo) => standard_repos.iter().find(|r| r.handle == repo),
+                    None => None,
+                };
+
+                let (status, enabled) = match info {
+                    Some(APTStandardRepository {
+                        status: Some(status),
+                        ..
+                    }) => {
+                        let text = if *status {
+                            tr!("enabled")
+                        } else {
+                            tr!("disabled")
+                        };
+                        (tr!("Configured") + ": " + &text, *status)
+                    }
+                    _ => (tr!("Not yet configured"), false),
+                };
+
+                let description = match info {
+                    Some(APTStandardRepository { description, .. }) => description.clone(),
+                    _ => tr!("No description available"),
+                };
+
+                let repository_selector = Combobox::new()
+                    .name("handle")
+                    .with_item("enterprise")
+                    .with_item("no-subscription")
+                    .with_item("test")
+                    .default("enterprise")
+                    .validate(move |(_, _): &_| {
+                        if enabled {
+                            return Err(Error::msg(tr!("Already configured")));
+                        }
+                        Ok(())
+                    })
+                    .render_value(|value: &AttrValue| {
+                        html! {
+                            match value.as_str() {
+                                "enterprise" => "Enterprise",
+                                "no-subscription" => "No-Subscription",
+                                "test" => "Test",
+                                v => v,
+                            }
+                        }
+                    });
+
+                Container::new()
+                    .attribute("style", "grid-template-columns: minmax(130px, auto) 400px;")
+                    .class("pwt-d-grid pwt-gap-4 pwt-p-4 pwt-align-items-baseline")
+                    .with_child(tr!("Repository"))
+                    .with_child(repository_selector)
+                    .with_child(tr!("Description"))
+                    .with_child(html! {<p>{description}</p>})
+                    .with_child(tr!("Status"))
+                    .with_child(html! {<span>{status}</span>})
+                    .into()
+            })
+            .on_submit(move |form_ctx: FormContext| {
+                let param = form_ctx.get_submit_data();
+                let url = url.clone();
+                async move { crate::http_put(&url, Some(param.clone())).await }
+            })
+            .into()
+    }
+
     fn selected_record(&self) -> Option<TreeEntry> {
         let selected_key = self.selection.selected_key();
         match selected_key.as_ref() {
@@ -355,9 +469,15 @@ fn render_enabled_or_group(args: &mut DataTableCellRenderArgs<TreeEntry>) -> Htm
 fn render_origin(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Repository { origin, .. } => match origin {
-            Origin::Debian => html! {<span><i class="pmx-icon-debian-swirl pwt-pe-2"/>{"Debian"}</span>},
-            Origin::Proxmox => html! {<span><i class="pmx-icon-proxmox-x pwt-pe-2"/>{"Proxmox"}</span>},
-            Origin::Other => html! {<span><i class="fa fa-question-circle-o pwt-pe-2"/>{"Other"}</span>},
+            Origin::Debian => {
+                html! {<span><i class="pmx-icon-debian-swirl pwt-pe-2"/>{"Debian"}</span>}
+            }
+            Origin::Proxmox => {
+                html! {<span><i class="pmx-icon-proxmox-x pwt-pe-2"/>{"Proxmox"}</span>}
+            }
+            Origin::Other => {
+                html! {<span><i class="fa fa-question-circle-o pwt-pe-2"/>{"Other"}</span>}
+            }
         },
         _ => html! {},
     }
