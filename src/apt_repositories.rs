@@ -1,6 +1,5 @@
 use std::rc::Rc;
 use std::pin::Pin;
-use std::cmp::Ordering;
 use std::future::Future;
 use std::collections::HashMap;
 
@@ -13,12 +12,10 @@ use yew::html::IntoPropValue;
 use pwt::prelude::*;
 use pwt::props::ExtractPrimaryKey;
 use pwt::state::{Selection, SlabTree, TreeStore};
-use pwt::widget::{Container, Button, Toolbar, Tooltip};
-use pwt::widget::data_table::{DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader, DataTableHeaderGroup};
+use pwt::widget::{Container, Button, Row, Toolbar, Tooltip};
+use pwt::widget::data_table::{DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader};
 
-use crate::percent_encoding::percent_encode_component;
-use crate::{DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
-use crate::common_api_types::APTUpdateInfo;
+use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
 use pwt_macros::builder;
 
@@ -363,39 +360,57 @@ fn render_comment(record: &TreeEntry) -> Html {
     }
 }
 
+
+fn render_text_with_warnings(text: &str, warnings: &[String]) -> Html {
+    if warnings.is_empty() {
+        html!{text}
+    } else {
+        let content = html!{
+            <span class="pwt-color-warning">
+                {text}
+                <i class="fa fa-fw fa-exclamation-circle"/>
+            </span>
+        };
+        let title = tr!("Warning" | "Warnings" % warnings.len());
+        let mut tip = Container::new().with_child(html!{<h4>{title}</h4>});
+        for message in warnings {
+            tip.add_child(html!{<p>{message}</p>});
+        }
+        Tooltip::new(content).rich_tip(tip).into()
+    }
+}
 fn render_components(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Repository { repo, ..} => {
-            html!{repo.components.join(" ")}
+            Row::new()
+                .gap(2)
+                .children(
+                    repo.components.iter().map(|comp| {
+                        if comp.ends_with("-no-subscription") {
+                            let warn = tr!("The no-subscription repository is NOT production-ready");
+                            render_text_with_warnings(comp, &[warn])
+                        } else if comp.ends_with("test") {
+                            let warn = tr!("The test repository may contain unstable updates");
+                            render_text_with_warnings(comp, &[warn])
+                        } else {
+                            html!{<span>{comp.to_string()}</span>}
+                        }
+                    })
+                )
+                .into()
         }
         _ => html!{}
     }
 }
-
 fn render_suites(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Repository { repo, warnings, ..} => {
-            let mut warn: Vec<String> = warnings
+            let warnings: Vec<String> = warnings
                 .iter()
                 .filter(|info| matches!(info.property.as_deref(), Some("Suites")))
                 .map(|info| info.message.clone())
                 .collect();
-            if warn.is_empty() {
-                html!{repo.suites.join(" ")}
-            } else {
-                let content = html!{
-                    <span class="pwt-color-warning">
-                        {repo.suites.join(" ")}
-                        <i class="fa fa-fw fa-exclamation-circle"/>
-                    </span>
-                };
-                let title = tr!("Warning" | "Warnings" % warn.len());
-                let mut tip = Container::new().with_child(html!{<h4>{title}</h4>});
-                for message in warn {
-                    tip.add_child(html!{<p>{message}</p>});
-                }
-                Tooltip::new(content).rich_tip(tip).into()
-            }
+            render_text_with_warnings(&repo.suites.join(" "), &warnings)
         }
         _ => html!{}
     }
