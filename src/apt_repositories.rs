@@ -5,19 +5,20 @@ use std::rc::Rc;
 
 use anyhow::Error;
 use pwt::widget::form::{Combobox, FormContext, ValidateFn};
-use serde_json::json;
+use serde_json::{json, Value};
 
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::ExtractPrimaryKey;
-use pwt::state::{Selection, SlabTree, TreeStore, Store};
+use pwt::state::{Selection, SlabTree, Store, TreeStore};
 use pwt::widget::data_table::{
     DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader,
 };
-use pwt::widget::{Button, Container, Row, Toolbar, Tooltip};
+use pwt::widget::{Button, Column, Container, Row, Toolbar, Tooltip};
 
+use crate::subscription_info::subscription_status_message;
 use crate::{EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
 use pwt_macros::builder;
@@ -152,6 +153,7 @@ pub enum Msg {
     Refresh,
     ToggleEnable,
     UpdateStandardRepos(HashMap<String, APTStandardRepository>),
+    SubscriptionInfo(Result<Value, Error>),
 }
 
 #[derive(Clone, PartialEq)]
@@ -165,6 +167,7 @@ pub struct ProxmoxAptRepositories {
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
     standard_repos: HashMap<String, APTStandardRepository>,
     validate_standard_repo: ValidateFn<(String, Store<AttrValue>)>,
+    subscription_status: Option<Result<Value, Error>>,
 }
 
 impl LoadableComponent for ProxmoxAptRepositories {
@@ -177,12 +180,19 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let columns = Self::columns(ctx, tree_store.clone());
         let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Refresh));
 
+        let link = ctx.link();
+        wasm_bindgen_futures::spawn_local(async move {
+            let data = crate::http_get("/nodes/localhost/subscription", None).await;
+            link.send_message(Msg::SubscriptionInfo(data));
+        });
+
         Self {
             tree_store,
             selection,
             columns,
             standard_repos: HashMap::new(),
             validate_standard_repo: ValidateFn::new(|(_, _): &_| Ok(())),
+            subscription_status: None,
         }
     }
 
@@ -214,6 +224,10 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let props = ctx.props();
         match msg {
             Msg::Refresh => true,
+            Msg::SubscriptionInfo(status) => {
+                self.subscription_status = Some(status);
+                true
+            }
             Msg::UpdateStandardRepos(standard_repos) => {
                 self.standard_repos = standard_repos.clone();
                 self.validate_standard_repo = ValidateFn::new(move |(repo, _): &(String, _)| {
@@ -299,11 +313,21 @@ impl LoadableComponent for ProxmoxAptRepositories {
     }
 
     fn main_view(&self, _ctx: &LoadableComponentContext<Self>) -> Html {
-        DataTable::new(self.columns.clone(), self.tree_store.clone())
+        let table = DataTable::new(self.columns.clone(), self.tree_store.clone())
             .selection(self.selection.clone())
             .class("pwt-flex-fit")
-            .striped(false)
-            .into()
+            .striped(false);
+
+        let mut panel = Column::new().class("pwt-flex-fit");
+
+        if let Some(Ok(data)) = &self.subscription_status {
+            let status = data["status"].as_str().unwrap_or("").to_owned();
+            let url = data["url"].as_str();
+            let msg = subscription_status_message(&status, url);
+            panel.add_child(html! {<div class="pwt-p-4 pwt-border-bottom">{msg}</div>});
+        }
+
+        panel.with_child(table).into()
     }
 
     fn dialog_view(

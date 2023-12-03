@@ -47,7 +47,7 @@ as well as quick enterprise support.
     msg
 }
 
-fn subscription_status_message(status: &str, url: Option<&str>) -> Html {
+pub fn subscription_status_message(status: &str, url: Option<&str>) -> Html {
     let status_text = subscription_status_text(status);
     if matches!(status, "new" | "active") {
         return html! {<p>{status_text}</p>};
