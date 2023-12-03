@@ -4,7 +4,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
-use pwt::widget::form::{Combobox, Form, FormContext};
+use pwt::widget::form::{Combobox, FormContext};
 use serde_json::json;
 
 use yew::html::IntoPropValue;
@@ -18,7 +18,6 @@ use pwt::widget::data_table::{
 };
 use pwt::widget::{Button, Container, Row, Toolbar, Tooltip};
 
-use crate::apt_api_types::APTRepositoryHandle;
 use crate::{EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
 use pwt_macros::builder;
@@ -152,7 +151,7 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
 pub enum Msg {
     Refresh,
     ToggleEnable,
-    UpdateStandardRepos(Vec<APTStandardRepository>),
+    UpdateStandardRepos(HashMap<String, APTStandardRepository>),
 }
 
 #[derive(Clone, PartialEq)]
@@ -164,7 +163,7 @@ pub struct ProxmoxAptRepositories {
     tree_store: TreeStore<TreeEntry>,
     selection: Selection,
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
-    standard_repos: Vec<APTStandardRepository>,
+    standard_repos: HashMap<String, APTStandardRepository>,
 }
 
 impl LoadableComponent for ProxmoxAptRepositories {
@@ -181,7 +180,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
             tree_store,
             selection,
             columns,
-            standard_repos: Vec::new(),
+            standard_repos: HashMap::new(),
         }
     }
 
@@ -197,7 +196,14 @@ impl LoadableComponent for ProxmoxAptRepositories {
             let config = apt_configuration(base_url.clone()).await?;
             let tree = apt_configuration_to_tree(&config);
             tree_store.write().update_root_tree(tree);
-            link.send_message(Msg::UpdateStandardRepos(config.standard_repos.clone()));
+
+            let standard_repos: HashMap<String, APTStandardRepository> = config
+                .standard_repos
+                .iter()
+                .map(|item| (serde_plain::to_string(&item.handle).unwrap(), item.clone()))
+                .collect();
+
+            link.send_message(Msg::UpdateStandardRepos(standard_repos));
             Ok(())
         })
     }
@@ -318,17 +324,8 @@ impl ProxmoxAptRepositories {
         EditWindow::new(tr!("Add") + ": " + &tr!("Respository"))
             .on_done(ctx.link().change_view_callback(|_| None))
             .renderer(move |form_ctx: &FormContext| {
-                let repo = match form_ctx.read().get_field_text("handle").as_str() {
-                    "enterprise" => Some(APTRepositoryHandle::Enterprise),
-                    "no-subscription" => Some(APTRepositoryHandle::NoSubscription),
-                    "test" => Some(APTRepositoryHandle::Test),
-                    _ => None,
-                };
-
-                let info = match repo {
-                    Some(repo) => standard_repos.iter().find(|r| r.handle == repo),
-                    None => None,
-                };
+                let repo = form_ctx.read().get_field_text("handle");
+                let info = standard_repos.get(&repo);
 
                 let (status, enabled) = match info {
                     Some(APTStandardRepository {
