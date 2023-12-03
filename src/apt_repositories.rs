@@ -375,7 +375,7 @@ fn render_components(record: &TreeEntry) -> Html {
 fn render_suites(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Repository { repo, warnings, ..} => {
-            let warn: Vec<String> = warnings
+            let mut warn: Vec<String> = warnings
                 .iter()
                 .filter(|info| matches!(info.property.as_deref(), Some("Suites")))
                 .map(|info| info.message.clone())
@@ -389,8 +389,12 @@ fn render_suites(record: &TreeEntry) -> Html {
                         <i class="fa fa-fw fa-exclamation-circle"/>
                     </span>
                 };
-                let tip = tr!("Warning") + ": " + &warn.join(", ");
-                Tooltip::new(content).tip(tip).into()
+                let title = tr!("Warning" | "Warnings" % warn.len());
+                let mut tip = Container::new().with_child(html!{<h4>{title}</h4>});
+                for message in warn {
+                    tip.add_child(html!{<p>{message}</p>});
+                }
+                Tooltip::new(content).rich_tip(tip).into()
             }
         }
         _ => html!{}
