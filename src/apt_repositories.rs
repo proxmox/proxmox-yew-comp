@@ -171,8 +171,6 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let columns = Self::columns(ctx, tree_store.clone());
         let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Refresh));
 
-        ctx.link().repeated_load(5000);
-
         Self {
             tree_store,
             selection,
