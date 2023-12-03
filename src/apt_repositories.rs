@@ -314,6 +314,35 @@ impl From<AptRepositories> for VNode {
     }
 }
 
+fn standard_repo_info(
+    repos: &HashMap<String, APTStandardRepository>,
+    name: &str,
+) -> (String, String, bool) {
+    let info = repos.get(name);
+
+    let (status, enabled) = match info {
+        Some(APTStandardRepository {
+            status: Some(status),
+            ..
+        }) => {
+            let text = if *status {
+                tr!("enabled")
+            } else {
+                tr!("disabled")
+            };
+            (tr!("Configured") + ": " + &text, *status)
+        }
+        _ => (tr!("Not yet configured"), false),
+    };
+
+    let description = match info {
+        Some(APTStandardRepository { description, .. }) => description.clone(),
+        _ => tr!("No description available"),
+    };
+
+    (status, description, enabled)
+}
+
 impl ProxmoxAptRepositories {
     fn create_add_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let props = ctx.props();
@@ -325,27 +354,7 @@ impl ProxmoxAptRepositories {
             .on_done(ctx.link().change_view_callback(|_| None))
             .renderer(move |form_ctx: &FormContext| {
                 let repo = form_ctx.read().get_field_text("handle");
-                let info = standard_repos.get(&repo);
-
-                let (status, enabled) = match info {
-                    Some(APTStandardRepository {
-                        status: Some(status),
-                        ..
-                    }) => {
-                        let text = if *status {
-                            tr!("enabled")
-                        } else {
-                            tr!("disabled")
-                        };
-                        (tr!("Configured") + ": " + &text, *status)
-                    }
-                    _ => (tr!("Not yet configured"), false),
-                };
-
-                let description = match info {
-                    Some(APTStandardRepository { description, .. }) => description.clone(),
-                    _ => tr!("No description available"),
-                };
+                let (status, description, enabled) = standard_repo_info(&standard_repos, &repo);
 
                 let repository_selector = Combobox::new()
                     .name("handle")
