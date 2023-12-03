@@ -5,6 +5,7 @@ use std::future::Future;
 use std::collections::HashMap;
 
 use anyhow::Error;
+use serde_json::json;
 
 use yew::virtual_dom::{Key, VComp, VNode};
 use yew::html::IntoPropValue;
@@ -60,6 +61,7 @@ enum TreeEntry {
     },
     Repository {
         key: Key,
+        path: String,
         index: usize,
         repo: APTRepository,
         origin: Origin,
@@ -132,6 +134,7 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
 
             file_node.append(TreeEntry::Repository {
                 key: Key::from(format!("repo:{path}:{index}")),
+                path: path.clone(),
                 index,
                 repo: repo.clone(),
                 origin,
@@ -142,6 +145,11 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
     }
 
     tree
+}
+
+pub enum Msg {
+    Refresh,
+    ToggleEnable,
 }
 
 #[derive(Clone, PartialEq)]
@@ -155,13 +163,15 @@ pub struct ProxmoxAptRepositories {
 
 impl LoadableComponent for ProxmoxAptRepositories {
     type Properties = AptRepositories;
-    type Message = ();
+    type Message = Msg;
     type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let tree_store = TreeStore::new().view_root(false);
         let columns = Self::columns(ctx, tree_store.clone());
-        let selection = Selection::new().on_select(ctx.link().callback(|_| ()));
+        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Refresh));
+
+        ctx.link().repeated_load(5000);
 
         Self {
             tree_store,
@@ -185,19 +195,60 @@ impl LoadableComponent for ProxmoxAptRepositories {
         })
     }
 
-    fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+    fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
+        match msg {
+            Msg::Refresh => true,
+            Msg::ToggleEnable => {
+                let selected_record = match self.selected_record() {
+                    Some(record) => record,
+                    None => return false,
+                };
+                match selected_record {
+                    TreeEntry::Repository { path, index, repo, ..} => {
+                        let param = json!({
+                            "path": path,
+                            "index": index,
+                            "enabled": !repo.enabled,
+                        });
+                        // fixme: add digest to protect against concurrent changes
+                        let url = format!("{}/repositories", props.base_url);
+                        let link = ctx.link();
+                        wasm_bindgen_futures::spawn_local(async move {
+                            match crate::http_post(url, Some(param)).await {
+                                 Ok(()) => {
+                                    link.send_reload();
+                                }
+                                Err(err) => {
+                                    link.show_error(tr!("API call failed"), err, true);
+                                }
+                            }
+                        });
+                    }
+                    _ => {}
+                }
+                false
+            }
+        }
 
-        let selected_key = self.selection.selected_key();
-        let selected_record = match selected_key.as_ref() {
-            Some(key) => self.tree_store.read().lookup_node(key).map(|r| r.record().clone()),
-            None => None,
-        };
+    }
+
+    fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+        let selected_record = self.selected_record();
 
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
+            .with_child({
+                let enabled = match selected_record {
+                    Some(TreeEntry::Repository {repo, ..}) => Some(repo.enabled),
+                    _ => None,
+                };
+                Button::new(if enabled.unwrap_or(false) { tr!("Disable") } else { tr!("Enable") })
+                    .disabled(enabled.is_none())
+                    .onclick(ctx.link().callback(|_| Msg::ToggleEnable))
+            })
             .with_flex_spacer()
             .with_child({
                 let loading = ctx.loading();
@@ -225,6 +276,15 @@ impl From<AptRepositories> for VNode {
 }
 
 impl ProxmoxAptRepositories {
+
+    fn selected_record(&self) -> Option<TreeEntry> {
+        let selected_key = self.selection.selected_key();
+        match selected_key.as_ref() {
+            Some(key) => self.tree_store.read().lookup_node(key).map(|r| r.record().clone()),
+            None => None,
+        }
+    }
+
     fn columns(
         _ctx: &LoadableComponentContext<Self>,
         store: TreeStore<TreeEntry>,
