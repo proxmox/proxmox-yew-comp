@@ -38,4 +38,13 @@ impl ProxmoxProduct {
             ProxmoxProduct::POM => tr!("Proxmox Offline Mirror"),
         }
     }
+
+    pub fn short_name(&self) -> &'static str {
+        match self {
+            ProxmoxProduct::PVE => "PVE",
+            ProxmoxProduct::PMG => "PMG",
+            ProxmoxProduct::PBS => "PBS",
+            ProxmoxProduct::POM => "POM",
+        }
+    }
 }

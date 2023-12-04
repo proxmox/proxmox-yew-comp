@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
@@ -19,7 +19,10 @@ use pwt::widget::data_table::{
 use pwt::widget::{Button, Column, Container, Row, Toolbar, Tooltip};
 
 use crate::subscription_info::subscription_status_message;
-use crate::{EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::{
+    EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
+    ProxmoxProduct,
+};
 
 use pwt_macros::builder;
 
@@ -45,6 +48,178 @@ impl AptRepositories {
     pub fn new() -> Self {
         yew::props!(Self {})
     }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+enum Status {
+    Ok,
+    Error,
+    Warning,
+}
+
+#[derive(Clone, PartialEq)]
+struct StatusLine {
+    status: Status,
+    message: Key,
+}
+
+impl StatusLine {
+    fn ok(msg: impl Into<String>) -> Self {
+        StatusLine {
+            status: Status::Ok,
+            message: Key::from(msg.into()),
+        }
+    }
+    fn warning(msg: impl Into<String>) -> Self {
+        StatusLine {
+            status: Status::Warning,
+            message: Key::from(msg.into()),
+        }
+    }
+    fn error(msg: impl Into<String>) -> Self {
+        StatusLine {
+            status: Status::Error,
+            message: Key::from(msg.into()),
+        }
+    }
+}
+
+impl ExtractPrimaryKey for StatusLine {
+    fn extract_key(&self) -> Key {
+        self.message.clone()
+    }
+}
+
+fn update_status_store(
+    status_store: &Store<StatusLine>,
+    config: &APTConfiguration,
+    standard_repos: &HashMap<String, APTStandardRepository>,
+    active_subscription: bool,
+) {
+    let mut list = Vec::new();
+
+    for error in &config.errors {
+        list.push(StatusLine::error(format!(
+            "{} - {}",
+            error.path, error.error
+        )));
+    }
+
+    let repo_is_active = |name| match standard_repos.get(name) {
+        Some(&APTStandardRepository {
+            status: Some(true), ..
+        }) => true,
+        _ => false,
+    };
+
+    let has_enterprise = repo_is_active("enterprise");
+    let has_no_subscription = repo_is_active("no-subscription");
+    let has_test = repo_is_active("test");
+
+    let product = ProxmoxProduct::PBS; // fixme
+
+    if !(has_enterprise | has_no_subscription | has_test) {
+        list.push(StatusLine::error(tr!(
+            "No {0} repository is enabled, you do not get any updates!",
+            product.product_text()
+        )));
+    } else {
+        if config.errors.is_empty() {
+            // just avoid that we show "get updates"
+            if has_test || has_no_subscription {
+                list.push(StatusLine::ok(tr!(
+                    "You get updates for {0}",
+                    product.product_text()
+                )));
+            } else if has_enterprise && active_subscription {
+                list.push(StatusLine::ok(tr!(
+                    "You get supported updates for {0}",
+                    product.product_text()
+                )));
+            }
+        }
+    }
+
+    let mut enabled_repos: HashSet<(&str, usize)> = HashSet::new();
+    for file in &config.files {
+        for (index, repo) in file.repositories.iter().enumerate() {
+            if repo.enabled {
+                if let Some(path) = &file.path {
+                    enabled_repos.insert((path, index));
+                }
+            }
+        }
+    }
+
+    // fixme: complete this check
+    let mut ignore_pre_upgrade_warning: HashSet<(&str, usize)> = HashSet::new();
+    for info in &config.infos {
+        if info.kind == "ignore-pre-upgrade-warning" {
+            ignore_pre_upgrade_warning.insert((&info.path, info.index));
+        }
+    }
+
+    let mut wrong_suites = false;
+    for info in &config.infos {
+        if info.kind == "warning" && info.property.as_deref() == Some("Suites") {
+            if enabled_repos.contains(&(&info.path, info.index)) {
+                wrong_suites = true;
+                break;
+            }
+        }
+    }
+
+    if wrong_suites {
+        list.push(StatusLine::warning(tr!("Some suites are misconfigured")));
+    }
+
+    let mixed_suites = true; // fixme
+
+    if mixed_suites {
+        list.push(StatusLine::warning(tr!(
+            "Detected mixed suites before upgrade"
+        )));
+    }
+
+    // production ready check
+    if has_enterprise && !active_subscription {
+        list.push(StatusLine::warning(tr!(
+            "The {0}enterprise repository is enabled, but there is no active subscription!",
+            product.short_name().to_lowercase() + "-",
+        )));
+    }
+
+    if has_no_subscription {
+        list.push(StatusLine::warning(tr!(
+            "The {0}no-subscription{1} repository is not recommended for production use!",
+            product.short_name().to_lowercase() + "-",
+            "",
+        )));
+    }
+
+    if has_test {
+        list.push(StatusLine::warning(tr!(
+            "The {0}test repository may pull in unstable updates and is not recommended for production use!",
+            product.short_name().to_lowercase(),
+        )));
+    }
+
+    if !config.errors.is_empty() {
+        list.push(StatusLine::error(tr!(
+            "Fatal parsing error for at least one repository"
+        )));
+    }
+
+    // fixme: overall status??
+    /*
+    if list.iter().find(|l| l.status != Status::Ok).is_none() {
+        list.push(StatusLine::ok(tr!(
+            "All OK, you have production-ready repositories configured!"
+        )));
+    }
+    */
+
+    status_store.write().set_data(list);
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -152,7 +327,7 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
 pub enum Msg {
     Refresh,
     ToggleEnable,
-    UpdateStandardRepos(HashMap<String, APTStandardRepository>),
+    UpdateStatus(APTConfiguration),
     SubscriptionInfo(Result<Value, Error>),
 }
 
@@ -165,9 +340,12 @@ pub struct ProxmoxAptRepositories {
     tree_store: TreeStore<TreeEntry>,
     selection: Selection,
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
+    config: Option<APTConfiguration>,
     standard_repos: HashMap<String, APTStandardRepository>,
     validate_standard_repo: ValidateFn<(String, Store<AttrValue>)>,
     subscription_status: Option<Result<Value, Error>>,
+    status_store: Store<StatusLine>,
+    status_columns: Rc<Vec<DataTableHeader<StatusLine>>>,
 }
 
 impl LoadableComponent for ProxmoxAptRepositories {
@@ -179,6 +357,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let tree_store = TreeStore::new().view_root(false);
         let columns = Self::columns(ctx, tree_store.clone());
         let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Refresh));
+        let status_columns = Self::status_columns(ctx);
 
         let link = ctx.link();
         wasm_bindgen_futures::spawn_local(async move {
@@ -190,9 +369,12 @@ impl LoadableComponent for ProxmoxAptRepositories {
             tree_store,
             selection,
             columns,
+            config: None,
             standard_repos: HashMap::new(),
             validate_standard_repo: ValidateFn::new(|(_, _): &_| Ok(())),
             subscription_status: None,
+            status_store: Store::new(),
+            status_columns,
         }
     }
 
@@ -204,18 +386,12 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let base_url = props.base_url.clone();
         let tree_store = self.tree_store.clone();
         let link = ctx.link();
+
         Box::pin(async move {
             let config = apt_configuration(base_url.clone()).await?;
             let tree = apt_configuration_to_tree(&config);
             tree_store.write().update_root_tree(tree);
-
-            let standard_repos: HashMap<String, APTStandardRepository> = config
-                .standard_repos
-                .iter()
-                .map(|item| (serde_plain::to_string(&item.handle).unwrap(), item.clone()))
-                .collect();
-
-            link.send_message(Msg::UpdateStandardRepos(standard_repos));
+            link.send_message(Msg::UpdateStatus(config));
             Ok(())
         })
     }
@@ -226,10 +402,37 @@ impl LoadableComponent for ProxmoxAptRepositories {
             Msg::Refresh => true,
             Msg::SubscriptionInfo(status) => {
                 self.subscription_status = Some(status);
+                if let Some(config) = &self.config {
+                    let active_subscription = self.active_subscription();
+                    update_status_store(
+                        &self.status_store,
+                        &config,
+                        &self.standard_repos,
+                        active_subscription,
+                    );
+                } else {
+                    self.status_store.clear();
+                }
                 true
             }
-            Msg::UpdateStandardRepos(standard_repos) => {
+            Msg::UpdateStatus(config) => {
+                let standard_repos: HashMap<String, APTStandardRepository> = config
+                    .standard_repos
+                    .iter()
+                    .map(|item| (serde_plain::to_string(&item.handle).unwrap(), item.clone()))
+                    .collect();
+
+                let active_subscription = self.active_subscription();
+                update_status_store(
+                    &self.status_store,
+                    &config,
+                    &standard_repos,
+                    active_subscription,
+                );
+
+                self.config = Some(config);
                 self.standard_repos = standard_repos.clone();
+
                 self.validate_standard_repo = ValidateFn::new(move |(repo, _): &(String, _)| {
                     let (_, _, enabled) = standard_repo_info(&standard_repos, &repo);
                     if enabled {
@@ -315,17 +518,23 @@ impl LoadableComponent for ProxmoxAptRepositories {
     fn main_view(&self, _ctx: &LoadableComponentContext<Self>) -> Html {
         let table = DataTable::new(self.columns.clone(), self.tree_store.clone())
             .selection(self.selection.clone())
-            .class("pwt-flex-fit")
+            .class("pwt-flex-fit pwt-border-top")
             .striped(false);
 
-        let mut panel = Column::new().class("pwt-flex-fit");
+        let mut panel = Column::new().class("pwt-flex-fit").gap(4);
 
         if let Some(Ok(data)) = &self.subscription_status {
             let status = data["status"].as_str().unwrap_or("").to_owned();
             let url = data["url"].as_str();
             let msg = subscription_status_message(&status, url);
-            panel.add_child(html! {<div class="pwt-p-4 pwt-border-bottom">{msg}</div>});
+            panel.add_child(html! {<div class="pwt-p-4">{msg}</div>});
         }
+
+        let status = DataTable::new(self.status_columns.clone(), self.status_store.clone())
+            .striped(false)
+            .borderless(true);
+
+        panel.add_child(status);
 
         panel.with_child(table).into()
     }
@@ -379,6 +588,15 @@ fn standard_repo_info(
 }
 
 impl ProxmoxAptRepositories {
+    fn active_subscription(&self) -> bool {
+        match &self.subscription_status {
+            Some(Ok(data)) => {
+                data["status"].as_str().map(|s| s.to_lowercase()).as_deref() == Some("active")
+            }
+            _ => false,
+        }
+    }
+
     fn create_add_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let props = ctx.props();
         let standard_repos = self.standard_repos.clone();
@@ -475,6 +693,22 @@ impl ProxmoxAptRepositories {
                 .render(render_comment)
                 .into(),
         ])
+    }
+
+    fn status_columns(
+        _ctx: &LoadableComponentContext<Self>,
+    ) -> Rc<Vec<DataTableHeader<StatusLine>>> {
+        Rc::new(vec![DataTableColumn::new("Status") // not visible
+            .flex(1)
+            .render(|record: &StatusLine| {
+                let (icon_class, color_class) = match record.status {
+                    Status::Ok => ("fa fa-fw fa-check pwt-pe-2", ""),
+                    Status::Warning => ("fa fa-fw fa-exclamation pwt-pe-2", "pwt-color-warning"),
+                    Status::Error => ("fa fa-fw fa-times pwt-pe-2", "pwt-color-error"),
+                };
+                html! {<span class={color_class}><i class={icon_class}/>{&record.message}</span>}
+            })
+            .into()])
     }
 }
 
