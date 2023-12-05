@@ -700,6 +700,7 @@ impl ProxmoxAptRepositories {
     ) -> Rc<Vec<DataTableHeader<StatusLine>>> {
         Rc::new(vec![DataTableColumn::new("Status") // not visible
             .flex(1)
+            .show_menu(false)
             .render(|record: &StatusLine| {
                 let (icon_class, color_class) = match record.status {
                     Status::Ok => ("fa fa-fw fa-check pwt-pe-2", ""),
