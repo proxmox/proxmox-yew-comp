@@ -13,7 +13,7 @@ use pwt::prelude::*;
 use pwt::props::ExtractPrimaryKey;
 use pwt::state::{Selection, SlabTree, TreeStore};
 use pwt::widget::{Container, Button, Toolbar, Tooltip};
-use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableHeaderGroup};
+use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableHeaderGroup, DataTableCellRenderArgs};
 
 use crate::percent_encoding::percent_encode_component;
 use crate::{DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
@@ -259,7 +259,7 @@ impl ProxmoxAptPackageManager {
         Rc::new(vec![
             DataTableColumn::new(tr!("Package"))
                 .width("350px")
-                .render(render_tree_node)
+                .render_cell(render_tree_node)
                 .tree_column(Some(store.clone()))
                 .sorter(tree_entry_ordering)
                 .sort_order(true)
@@ -284,13 +284,13 @@ impl ProxmoxAptPackageManager {
                 .into(),
             DataTableColumn::new(tr!("Description"))
                 .flex(1)
-                .render(render_desdcription)
+                .render(render_description)
                 .into(),
         ])
     }
 }
 
-fn render_desdcription(record: &TreeEntry) -> Html {
+fn render_description(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Package(_, info) => {
             if let Some((title, body)) = info.description.split_once("\n") {
@@ -306,12 +306,16 @@ fn render_desdcription(record: &TreeEntry) -> Html {
     }
 }
 
-fn render_tree_node(record: &TreeEntry) -> Html {
+fn render_tree_node(args: &mut DataTableCellRenderArgs<TreeEntry>) -> Html {
+    let record = args.record();
     match record {
         TreeEntry::Root(_) => html!{"Packages"}, // not visible
-        TreeEntry::Origin(info) => html!{<span class="pwt-text-truncate pwt-color-primary">{
-            tr!("Origin") + ": " + &*info.name + " (" + &tr!("One item" | "{} items" % info.count) + ")"
-        }</span>},
+        TreeEntry::Origin(info) => {
+            let text = tr!("Origin") + ": " + &*info.name + " (" + &tr!("One item" | "{} items" % info.count) + ")";
+            args.add_class("pwt-bg-color-surface");
+            args.set_attribute("colspan", "20");
+            html!{<span class="pwt-text-truncate">{text}</span>}
+        }
         TreeEntry::Package(_, info) => html!{<span class="pwt-text-truncate">{&info.package}</span>},
     }
 }
