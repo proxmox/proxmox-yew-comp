@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::thread_local;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use anyhow::{bail, Error};
 use slab::Slab;
@@ -15,13 +16,23 @@ use yew::Callback;
 
 use crate::{HttpClientWasm, ProxmoxProduct, json_object_to_query};
 
+static LAST_NOTIFY_EPOCH: AtomicU32 = AtomicU32::new(0);
+static CLIENT_NOTIFY_EPOCH: AtomicU32 = AtomicU32::new(0);
+
+
 thread_local! {
     static CLIENT: RefCell<Rc<HttpClientWasm>> = {
         start_ticket_refresh_loop();
+        CLIENT_NOTIFY_EPOCH.fetch_add(1, Ordering::SeqCst);
         RefCell::new(Rc::new(
             HttpClientWasm::new(ProxmoxProduct::PBS, notify_auth_listeners)
         ))
     };
+}
+
+fn update_global_client(client: HttpClientWasm) {
+    CLIENT_NOTIFY_EPOCH.fetch_add(1, Ordering::SeqCst);
+    CLIENT.with(move |c| *c.borrow_mut() = Rc::new(client));
 }
 
 thread_local! {
@@ -31,7 +42,20 @@ thread_local! {
     };
 }
 
+
+
 fn notify_auth_listeners(_: ()) {
+    let last_epoch = LAST_NOTIFY_EPOCH.load(Ordering::SeqCst);
+    let client_epoch = CLIENT_NOTIFY_EPOCH.load(Ordering::SeqCst);
+
+    if last_epoch == client_epoch {
+        log::info!("SUPPRESS AUTH NOTIFICATION");
+        return;
+    }
+
+    log::info!("NOTIFY AUTH LISTENERS");
+    LAST_NOTIFY_EPOCH.store(client_epoch, Ordering::SeqCst);
+
     // Note: short borrow, just clone callbacks
     let list: Vec<Callback<()>> = AUTH_OBSERVER.with(|slab| {
         slab.borrow().iter().map(|(_key, cb)| cb.clone()).collect()
@@ -99,7 +123,7 @@ fn start_ticket_refresh_loop() {
 
 pub fn http_setup(product: ProxmoxProduct) {
     let client = HttpClientWasm::new(product, notify_auth_listeners);
-    CLIENT.with(move |c| *c.borrow_mut() = Rc::new(client));
+    update_global_client(client);
 }
 
 pub fn http_set_auth(info: Authentication) {
@@ -133,7 +157,7 @@ pub async fn http_login(
     match ticket_result {
         TicketResult::Full(auth) => {
             client.set_auth(auth.clone());
-            CLIENT.with(|c| *c.borrow_mut() = Rc::new(client));
+            update_global_client(client);
             Ok(TicketResult::Full(auth))
         }
         challenge => Ok(challenge),
@@ -148,7 +172,7 @@ pub async fn http_login_tfa(
     let client = HttpClientWasm::new(product, notify_auth_listeners);
     let auth = client.login_tfa(challenge, request).await?;
     client.set_auth(auth.clone());
-    CLIENT.with(|c| *c.borrow_mut() = Rc::new(client));
+    update_global_client(client);
     Ok(auth)
 }
 
