@@ -522,13 +522,19 @@ impl LoadableComponent for ProxmoxAptRepositories {
             .class("pwt-flex-fit pwt-border-top")
             .striped(false);
 
-        let mut panel = Column::new().class("pwt-flex-fit").gap(4);
+        let mut panel = Column::new().class("pwt-flex-fit");
 
         let status = DataTable::new(self.status_columns.clone(), self.status_store.clone())
+            .class("pwt-flex-fit")
+            .show_header(false)
             .striped(false)
             .borderless(true);
 
-        panel.add_child(status);
+        panel.add_child(
+            Row::new()
+                .class("pwt-p-4")
+                .with_child(status)
+        );
 
         panel.with_child(table).into()
     }
@@ -611,8 +617,6 @@ impl ProxmoxAptRepositories {
         status: &str,
         url: Option<String>,
     ) -> Html {
-        let props = ctx.props();
-
         SubscriptionAlert::new(status.to_string())
             .on_close(ctx.link().change_view_callback(|_| Some(ViewState::AddRespository)))
             .url(url.clone().map(|s| s.to_string()))
