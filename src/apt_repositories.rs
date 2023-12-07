@@ -21,7 +21,7 @@ use pwt::widget::{Button, Column, Container, Row, Toolbar, Tooltip};
 use crate::subscription_info::subscription_status_message;
 use crate::{
     EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
-    ProxmoxProduct,
+    ProxmoxProduct, SubscriptionAlert,
 };
 
 use pwt_macros::builder;
@@ -334,6 +334,7 @@ pub enum Msg {
 #[derive(Clone, PartialEq)]
 pub enum ViewState {
     AddRespository,
+    ShowSubscription, // show subscription dialog
 }
 
 pub struct ProxmoxAptRepositories {
@@ -489,7 +490,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
             .with_child(
                 Button::new(tr!("Add")).onclick(
                     ctx.link()
-                        .change_view_callback(|_| Some(ViewState::AddRespository)),
+                        .change_view_callback(|_| Some(ViewState::ShowSubscription)),
                 ),
             )
             .with_child({
@@ -523,13 +524,6 @@ impl LoadableComponent for ProxmoxAptRepositories {
 
         let mut panel = Column::new().class("pwt-flex-fit").gap(4);
 
-        if let Some(Ok(data)) = &self.subscription_status {
-            let status = data["status"].as_str().unwrap_or("").to_owned();
-            let url = data["url"].as_str();
-            let msg = subscription_status_message(&status, url);
-            panel.add_child(html! {<div class="pwt-p-4">{msg}</div>});
-        }
-
         let status = DataTable::new(self.status_columns.clone(), self.status_store.clone())
             .striped(false)
             .borderless(true);
@@ -546,6 +540,20 @@ impl LoadableComponent for ProxmoxAptRepositories {
     ) -> Option<Html> {
         match view_state {
             ViewState::AddRespository => Some(self.create_add_dialog(ctx)),
+            ViewState::ShowSubscription => {
+                let (status, url) = match &self.subscription_status {
+                    Some(Ok(data)) => (
+                        data["status"].as_str().unwrap_or("unknown").to_string(),
+                        data["url"].as_str().map(|s| s.to_string()),
+                    ),
+                    _ => (String::from("unknown"), None),
+                };
+                if status == "new" || status == "active" {
+                    Some(self.create_add_dialog(ctx))
+                } else {
+                    Some(self.create_show_subscription_dialog(ctx, &status, url))
+                }
+            }
         }
     }
 }
@@ -595,6 +603,20 @@ impl ProxmoxAptRepositories {
             }
             _ => false,
         }
+    }
+
+    fn create_show_subscription_dialog(
+        &self,
+        ctx: &LoadableComponentContext<Self>,
+        status: &str,
+        url: Option<String>,
+    ) -> Html {
+        let props = ctx.props();
+
+        SubscriptionAlert::new(status.to_string())
+            .on_close(ctx.link().change_view_callback(|_| Some(ViewState::AddRespository)))
+            .url(url.clone().map(|s| s.to_string()))
+            .into()
     }
 
     fn create_add_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
