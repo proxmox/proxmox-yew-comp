@@ -16,7 +16,7 @@ use pwt::state::{Selection, SlabTree, Store, TreeStore};
 use pwt::widget::data_table::{
     DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader,
 };
-use pwt::widget::{Button, Column, Container, Row, Toolbar, Tooltip, ActionIcon};
+use pwt::widget::{Button, Column, Container, Row, Toolbar, Tooltip};
 
 use crate::{
     EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
@@ -26,7 +26,8 @@ use crate::{
 use pwt_macros::builder;
 
 use super::apt_api_types::{
-    APTConfiguration, APTRepository, APTRepositoryInfo, APTStandardRepository, APTRepositoryPackageType,
+    APTConfiguration, APTRepository, APTRepositoryHandle, APTRepositoryInfo,
+    APTRepositoryPackageType, APTStandardRepository,
 };
 
 async fn apt_configuration(base_url: AttrValue) -> Result<APTConfiguration, Error> {
@@ -105,16 +106,25 @@ fn update_status_store(
         )));
     }
 
-    let repo_is_active = |name| match standard_repos.get(name) {
-        Some(&APTStandardRepository {
-            status: Some(true), ..
-        }) => true,
-        _ => false,
-    };
+    let mut has_enterprise = false;
+    let mut has_no_subscription = false;
+    let mut has_test = false;
+    let mut has_ceph_enterprise = false;
+    let mut has_ceph_no_subscription = false;
+    let mut has_ceph_test = false;
 
-    let has_enterprise = repo_is_active("enterprise");
-    let has_no_subscription = repo_is_active("no-subscription");
-    let has_test = repo_is_active("test");
+    for repo in standard_repos.values() {
+        if repo.status != Some(true) { continue }
+        use APTRepositoryHandle::*;
+        match repo.handle {
+            CephQuincyEnterprise | CephReefEnterprise => has_ceph_enterprise = true,
+            CephQuincyNoSubscription | CephReefNoSubscription => has_ceph_no_subscription = true,
+            CephQuincyTest | CephReefTest => has_ceph_test = true,
+            Enterprise => has_enterprise = true,
+            NoSubscription => has_no_subscription = true,
+            Test => has_test = true,
+        }
+    }
 
     let product = ProxmoxProduct::PBS; // fixme
 
@@ -206,14 +216,14 @@ fn update_status_store(
     if has_enterprise && !active_subscription {
         list.push(StatusLine::warning(tr!(
             "The {0}enterprise repository is enabled, but there is no active subscription!",
-            product.short_name().to_lowercase() + "-",
+            product.product_text() + " ",
         )));
     }
 
     if has_no_subscription {
         list.push(StatusLine::warning(tr!(
             "The {0}no-subscription{1} repository is not recommended for production use!",
-            product.short_name().to_lowercase() + "-",
+            product.product_text() + " ",
             "",
         )));
     }
@@ -221,9 +231,34 @@ fn update_status_store(
     if has_test {
         list.push(StatusLine::warning(tr!(
             "The {0}test repository may pull in unstable updates and is not recommended for production use!",
-            product.short_name().to_lowercase(),
+            product.product_text() + " ",
         )));
     }
+
+    // check Ceph repositories
+    if has_ceph_enterprise && !active_subscription {
+        list.push(StatusLine::warning(tr!(
+            "The {0}enterprise repository is enabled, but there is no active subscription!",
+            "Ceph ",
+        )));
+    }
+
+    if has_ceph_no_subscription {
+        list.push(StatusLine::warning(tr!(
+            "The {0}no-subscription{1} repository is not recommended for production use!",
+            "Ceph ",
+            "/main", // TODO drop alternate 'main' name when no longer relevant
+        )));
+    }
+
+    if has_ceph_test {
+        list.push(StatusLine::warning(tr!(
+            "The {0}test repository may pull in unstable updates and is not recommended for production use!",
+            "Ceph ",
+        )));
+    }
+
+
 
     if !config.errors.is_empty() {
         list.push(StatusLine::error(tr!(
