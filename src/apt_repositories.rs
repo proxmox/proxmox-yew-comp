@@ -16,9 +16,8 @@ use pwt::state::{Selection, SlabTree, Store, TreeStore};
 use pwt::widget::data_table::{
     DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader,
 };
-use pwt::widget::{Button, Column, Container, Row, Toolbar, Tooltip};
+use pwt::widget::{Button, Column, Container, Row, Toolbar, Tooltip, ActionIcon};
 
-use crate::subscription_info::subscription_status_message;
 use crate::{
     EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
     ProxmoxProduct, SubscriptionAlert,
@@ -27,7 +26,7 @@ use crate::{
 use pwt_macros::builder;
 
 use super::apt_api_types::{
-    APTConfiguration, APTRepository, APTRepositoryInfo, APTStandardRepository,
+    APTConfiguration, APTRepository, APTRepositoryInfo, APTStandardRepository, APTRepositoryPackageType,
 };
 
 async fn apt_configuration(base_url: AttrValue) -> Result<APTConfiguration, Error> {
@@ -90,6 +89,7 @@ impl ExtractPrimaryKey for StatusLine {
     }
 }
 
+// Note: this should implement the same logic we have in APTRepositories.js
 fn update_status_store(
     status_store: &Store<StatusLine>,
     config: &APTConfiguration,
@@ -151,29 +151,50 @@ fn update_status_store(
         }
     }
 
-    // fixme: complete this check
+    let mut mixed_suites = false;
+    let mut check_mixed_suites = false;
+
     let mut ignore_pre_upgrade_warning: HashSet<(&str, usize)> = HashSet::new();
+    let mut controlled_origin: HashSet<(&str, usize)> = HashSet::new();
     for info in &config.infos {
         if info.kind == "ignore-pre-upgrade-warning" {
             ignore_pre_upgrade_warning.insert((&info.path, info.index));
+            check_mixed_suites = true;
+        }
+        if info.kind == "origin" {
+            if info.message == "Debian" || info.message == "Proxmox" {
+                controlled_origin.insert((&info.path, info.index));
+            }
         }
     }
 
-    let mut wrong_suites = false;
+    let mut suites_warning = false;
     for info in &config.infos {
         if info.kind == "warning" && info.property.as_deref() == Some("Suites") {
             if enabled_repos.contains(&(&info.path, info.index)) {
-                wrong_suites = true;
+                suites_warning = true;
                 break;
             }
         }
     }
 
-    if wrong_suites {
+    if suites_warning {
         list.push(StatusLine::warning(tr!("Some suites are misconfigured")));
     }
 
-    let mixed_suites = true; // fixme
+    for file in &config.files {
+        if let Some(path) = &file.path {
+            for (index, repo) in file.repositories.iter().enumerate() {
+                if check_mixed_suites
+                    && repo.enabled
+                    && repo.types.contains(&APTRepositoryPackageType::Deb)
+                    && controlled_origin.contains(&(&path, index))
+                {
+                    mixed_suites = true;
+                }
+            }
+        }
+    }
 
     if mixed_suites {
         list.push(StatusLine::warning(tr!(
@@ -210,14 +231,11 @@ fn update_status_store(
         )));
     }
 
-    // fixme: overall status??
-    /*
     if list.iter().find(|l| l.status != Status::Ok).is_none() {
         list.push(StatusLine::ok(tr!(
             "All OK, you have production-ready repositories configured!"
         )));
     }
-    */
 
     status_store.write().set_data(list);
 }
@@ -530,11 +548,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
             .striped(false)
             .borderless(true);
 
-        panel.add_child(
-            Row::new()
-                .class("pwt-p-4")
-                .with_child(status)
-        );
+        panel.add_child(Row::new().class("pwt-p-4").with_child(status));
 
         panel.with_child(table).into()
     }
@@ -618,7 +632,10 @@ impl ProxmoxAptRepositories {
         url: Option<String>,
     ) -> Html {
         SubscriptionAlert::new(status.to_string())
-            .on_close(ctx.link().change_view_callback(|_| Some(ViewState::AddRespository)))
+            .on_close(
+                ctx.link()
+                    .change_view_callback(|_| Some(ViewState::AddRespository)),
+            )
             .url(url.clone().map(|s| s.to_string()))
             .into()
     }
