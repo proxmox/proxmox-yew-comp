@@ -88,8 +88,10 @@ impl Component for ProxmoxSafeConfirmDialog {
             }
         });
 
+        let form_ctx = FormContext::new().on_change(ctx.link().callback(|_| ()));
+
         Self {
-            form_ctx: FormContext::new(),
+            form_ctx,
             validate,
         }
     }
