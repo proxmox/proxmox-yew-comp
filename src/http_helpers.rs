@@ -205,6 +205,18 @@ pub async fn http_get<T: DeserializeOwned>(path: impl Into<String>, data: Option
     Ok(resp.data)
 }
 
+/// Delete and return data
+pub async fn http_delete_get<T: DeserializeOwned>(path: impl Into<String>, data: Option<Value>) -> Result<T, Error> {
+    let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
+
+    let path_and_query = path_and_param_to_api_url(&path.into(), data)?;
+
+    let resp: proxmox_client::HttpApiResponse = client.delete(&path_and_query).await?;
+    let resp: ApiResponseData<T> = resp.expect_json()?;
+    Ok(resp.data)
+}
+
+/// Delete (no return data expected)
 pub async fn http_delete(path: impl Into<String>, data: Option<Value>) -> Result<(), Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
