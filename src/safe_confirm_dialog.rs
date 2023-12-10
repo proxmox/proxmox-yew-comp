@@ -118,6 +118,7 @@ impl Component for ProxmoxSafeConfirmDialog {
                     .autofocus(true)
                     .name("verify-id")
                     .required(true)
+                    .submit(false)
                     .validate(self.validate.clone()),
             );
 
