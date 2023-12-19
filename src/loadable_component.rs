@@ -206,6 +206,8 @@ pub trait LoadableComponent: Sized {
     ) -> Option<Html> {
         None
     }
+
+    fn rendered(&mut self, _ctx: &LoadableComponentContext<Self>, _first_render: bool) {}
 }
 
 #[derive(Clone, PartialEq)]
@@ -434,7 +436,7 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
             .into()
     }
 
-    fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if self.visibitlity_observer.is_none() && self.reload_timeout.is_some() {
             if let Some(el) = self.node_ref.cast::<web_sys::Element>() {
                 self.visibitlity_observer = Some(VisibilityObserver::new(
@@ -443,5 +445,11 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                 ))
             }
         }
+        let sub_context = LoadableComponentContext {
+            ctx,
+            comp_state: &self.comp_state,
+        };
+
+        self.state.rendered(&sub_context, first_render);
     }
 }
