@@ -102,8 +102,8 @@ pub use markdown::{Markdown, ProxmoxMarkdown};
 mod journal_view;
 pub use journal_view::JournalView;
 
-mod progress_label;
-pub use progress_label::{ProgressLabel, ProxmoxProgressLabel};
+mod meter_label;
+pub use meter_label::{MeterLabel, ProxmoxMeterLabel};
 
 mod sanitize_html;
 pub use sanitize_html::sanitize_html;
