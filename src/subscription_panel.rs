@@ -9,7 +9,7 @@ use pwt::state::Loader;
 use pwt::widget::form::{Field, FormContext};
 use pwt::widget::{AlertDialog, Button, InputPanel, Panel, Toolbar};
 
-use crate::{EditWindow, HelpButton, KVGrid, KVGridRow, ProxmoxProduct, ConfirmButton};
+use crate::{ConfirmButton, EditWindow, HelpButton, KVGrid, KVGridRow, ProxmoxProduct};
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct SubscriptionPanel {
@@ -35,6 +35,7 @@ pub enum Msg {
 }
 
 pub struct ProxmoxSubscriptionPanel {
+    rows: Rc<Vec<KVGridRow>>,
     loader: Loader<Value>,
     view_state: ViewState,
 }
@@ -51,6 +52,7 @@ impl Component for ProxmoxSubscriptionPanel {
         loader.load();
 
         Self {
+            rows: Rc::new(rows()),
             loader,
             view_state: ViewState::Main,
         }
@@ -91,9 +93,9 @@ impl Component for ProxmoxSubscriptionPanel {
         };
 
         Panel::new()
-            .class("pwt-fit")
+            .class("pwt-flex-fit")
             .border(false)
-            .title("Subscription")
+            .title(tr!("Subscription"))
             .with_tool(HelpButton::new().section("subscription"))
             .with_child(toolbar)
             .with_child(main_view)
@@ -109,32 +111,28 @@ impl Into<VNode> for SubscriptionPanel {
     }
 }
 
-thread_local! {
-    static ROWS: Rc<Vec<KVGridRow>> = Rc::new(vec![
-        KVGridRow::new("productname", "Type"),
-        KVGridRow::new("key", "Subscription Key"),
-        KVGridRow::new("status", "Status")
+fn rows() -> Vec<KVGridRow> {
+    let unknown_text = tr!("unknown");
+    vec![
+        KVGridRow::new("productname", tr!("Type")),
+        KVGridRow::new("key", tr!("Subscription Key")),
+        KVGridRow::new("status", tr!("Status"))
             .required(true)
-            .renderer(|_name, value, record| {
-                let status = value.as_str()
-                    .unwrap_or("unknown")
-                    .to_uppercase();
+            .renderer(move |_name, value, record| {
+                let status = value.as_str().unwrap_or(&unknown_text).to_uppercase();
 
-                let message = record["message"].as_str()
-                    .unwrap_or("internal error");
+                let message = record["message"].as_str().unwrap_or("internal error");
 
-                html!{format!("{}: {}", status, message)}
+                html! {format!("{}: {}", status, message)}
             }),
-        KVGridRow::new("serverid", "Server ID")
-            .required(true),
-        KVGridRow::new("checktime", "Last checked"),//fixme: renderer
-        KVGridRow::new("nextduedata", "Next due data"),
-        KVGridRow::new("url", "Info URL")
-            .renderer(|_name, value, _record| {
-                let url = value.as_str().unwrap().to_string();
-                html!{ <a target="_blank" href={url.clone()}>{url}</a> }
-            }),
-    ]);
+        KVGridRow::new("serverid", tr!("Server ID")).required(true),
+        KVGridRow::new("checktime", tr!("Last checked")), //fixme: renderer
+        KVGridRow::new("nextduedata", tr!("Next due data")),
+        KVGridRow::new("url", tr!("Info URL")).renderer(|_name, value, _record| {
+            let url = value.as_str().unwrap().to_string();
+            html! { <a target="_blank" href={url.clone()}>{url}</a> }
+        }),
+    ]
 }
 
 impl ProxmoxSubscriptionPanel {
@@ -143,17 +141,19 @@ impl ProxmoxSubscriptionPanel {
             .class("pwt-overflow-hidden")
             .with_child({
                 let link = ctx.link().clone();
-                Button::new("Upload Subscription Key")
+                Button::new(tr!("Upload Subscription Key"))
                     .icon_class("fa fa-ticket")
                     .onclick(move |_| {
                         link.send_message(Msg::ChangeView(ViewState::UploadSubscriptionKey));
                     })
             })
-            .with_child(Button::new("Check").icon_class("fa fa-check-square-o"))
+            .with_child(Button::new(tr!("Check")).icon_class("fa fa-check-square-o"))
             .with_child(
-                ConfirmButton::new("Remove Subscription")
+                ConfirmButton::new(tr!("Remove Subscription"))
                     .icon_class("fa fa-trash-o")
-                    .confirm_message(html!{tr!("Are you sure you want to remove the subscription key?")})
+                    .confirm_message(
+                        html! {tr!("Are you sure you want to remove the subscription key?")},
+                    )
                     .on_activate(ctx.link().callback_future(move |_| async move {
                         match crate::http_delete("/nodes/localhost/subscription", None).await {
                             Ok(()) => Msg::ChangeView(ViewState::Main),
@@ -162,7 +162,7 @@ impl ProxmoxSubscriptionPanel {
                     })),
             )
             .with_spacer()
-            .with_child(Button::new("System Report").icon_class("fa fa-stethoscope"))
+            .with_child(Button::new(tr!("System Report")).icon_class("fa fa-stethoscope"))
             .with_flex_spacer()
             .with_child(self.loader.reload_button())
             .into()
@@ -171,7 +171,7 @@ impl ProxmoxSubscriptionPanel {
     fn create_main_view(&self, _ctx: &Context<Self>, data: &Rc<Value>) -> Html {
         KVGrid::new()
             .data(data.clone())
-            .rows(ROWS.with(Rc::clone))
+            .rows(Rc::clone(&self.rows))
             .into()
     }
 
@@ -180,13 +180,13 @@ impl ProxmoxSubscriptionPanel {
             InputPanel::new()
                 .class("pwt-p-4")
                 .with_field(
-                    "Subscription Key",
+                    tr!("Subscription Key"),
                     Field::new().name("key").required(true).autofocus(true),
                 )
                 .into()
         };
 
-        EditWindow::new("Upload Subscription Key")
+        EditWindow::new(tr!("Upload Subscription Key"))
             .renderer(input_panel)
             .on_submit(|form_state: FormContext| async move {
                 let data = form_state.get_submit_data();
