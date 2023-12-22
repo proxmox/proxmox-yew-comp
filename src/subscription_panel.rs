@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::future::Future;
+use std::pin::Pin;
 use std::rc::Rc;
 
 use serde_json::Value;
@@ -5,11 +8,11 @@ use serde_json::Value;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::state::Loader;
 use pwt::widget::form::{Field, FormContext};
-use pwt::widget::{AlertDialog, Button, InputPanel, Panel, Toolbar};
+use pwt::widget::{Button, InputPanel, Toolbar};
 
-use crate::{ConfirmButton, EditWindow, HelpButton, KVGrid, KVGridRow, ProxmoxProduct};
+use crate::{ConfirmButton, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
+use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct SubscriptionPanel {
@@ -22,91 +25,112 @@ impl SubscriptionPanel {
     }
 }
 
+#[derive(PartialEq)]
 pub enum ViewState {
-    Main,
     UploadSubscriptionKey,
-    Error(String),
 }
 
-pub enum Msg {
-    Load,
-    DataChange,
-    ChangeView(ViewState),
-}
+pub enum Msg {}
 
 pub struct ProxmoxSubscriptionPanel {
     rows: Rc<Vec<KVGridRow>>,
-    loader: Loader<Value>,
-    view_state: ViewState,
+    data: Rc<RefCell<Rc<Value>>>,
 }
 
-impl Component for ProxmoxSubscriptionPanel {
+impl LoadableComponent for ProxmoxSubscriptionPanel {
     type Message = Msg;
     type Properties = SubscriptionPanel;
+    type ViewState = ViewState;
 
-    fn create(ctx: &Context<Self>) -> Self {
-        let loader = Loader::new()
-            .loader("/nodes/localhost/subscription")
-            .on_change(ctx.link().callback(|_| Msg::DataChange));
-
-        loader.load();
-
+    fn create(_ctx: &LoadableComponentContext<Self>) -> Self {
         Self {
             rows: Rc::new(rows()),
-            loader,
-            view_state: ViewState::Main,
+            data: Rc::new(RefCell::new(Rc::new(Value::Null))),
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::Load => {
-                self.loader.load();
-                false
-            }
-            Msg::DataChange => true,
-            Msg::ChangeView(view_state) => {
-                self.view_state = view_state;
-                self.loader.load();
-                true
-            }
-        }
+    fn load(
+        &self,
+        _ctx: &crate::LoadableComponentContext<Self>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
+        let data = self.data.clone();
+        Box::pin(async move {
+            let info = crate::http_get("/nodes/localhost/subscription", None).await?;
+            *data.borrow_mut() = Rc::new(info);
+            Ok(())
+        })
     }
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let toolbar = self.create_toolbar(ctx);
-
-        let main_view = self.loader.render(|data| self.create_main_view(ctx, &data));
-
-        let dialog = match &self.view_state {
-            ViewState::Main => None,
-            ViewState::UploadSubscriptionKey => Some(self.create_upload_subscription_dialog(ctx)),
-            ViewState::Error(msg) => Some(
-                AlertDialog::new(msg)
-                    .title(tr!("Error"))
-                    .on_close(
+    fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+        let toolbar = Toolbar::new()
+            .class("pwt-overflow-hidden")
+            .with_child(
+                Button::new(tr!("Upload Subscription Key"))
+                    .icon_class("fa fa-ticket")
+                    .onclick(
                         ctx.link()
-                            .callback(move |_| Msg::ChangeView(ViewState::Main)),
+                            .change_view_callback(|_| Some(ViewState::UploadSubscriptionKey)),
+                    ),
+            )
+            .with_child(Button::new(tr!("Check")).icon_class("fa fa-check-square-o"))
+            .with_child(
+                ConfirmButton::new(tr!("Remove Subscription"))
+                    .icon_class("fa fa-trash-o")
+                    .confirm_message(
+                        html! {tr!("Are you sure you want to remove the subscription key?")},
                     )
-                    .into(),
-            ),
-        };
+                    .on_activate({
+                        let link = ctx.link();
+                        move |_| {
+                            let link = link.clone();
+                            wasm_bindgen_futures::spawn_local(async move {
+                                match crate::http_delete("/nodes/localhost/subscription", None)
+                                    .await
+                                {
+                                    Ok(()) => link.change_view(None),
+                                    Err(err) => {
+                                        link.show_error(tr!("Error"), err.to_string(), true)
+                                    }
+                                }
+                            })
+                        }
+                    }),
+            )
+            .with_spacer()
+            .with_child(Button::new(tr!("System Report")).icon_class("fa fa-stethoscope"))
+            .with_flex_spacer()
+            .with_child({
+                let loading = ctx.loading();
+                let link = ctx.link();
+                Button::refresh(loading).onclick(move |_| link.send_reload())
+            });
 
-        Panel::new()
+        Some(toolbar.into())
+    }
+
+    fn main_view(&self, _ctx: &LoadableComponentContext<Self>) -> Html {
+        KVGrid::new()
             .class("pwt-flex-fit")
-            .border(false)
-            .title(tr!("Subscription"))
-            .with_tool(HelpButton::new().section("subscription"))
-            .with_child(toolbar)
-            .with_child(main_view)
-            .with_optional_child(dialog)
+            .data(self.data.borrow().clone())
+            .rows(Rc::clone(&self.rows))
             .into()
+    }
+
+    fn dialog_view(
+        &self,
+        ctx: &LoadableComponentContext<Self>,
+        view_state: &Self::ViewState,
+    ) -> Option<Html> {
+        match view_state {
+            ViewState::UploadSubscriptionKey => Some(self.create_upload_subscription_dialog(ctx)),
+        }
     }
 }
 
 impl Into<VNode> for SubscriptionPanel {
     fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxSubscriptionPanel>(Rc::new(self), None);
+        let comp =
+            VComp::new::<LoadableComponentMaster<ProxmoxSubscriptionPanel>>(Rc::new(self), None);
         VNode::from(comp)
     }
 }
@@ -136,46 +160,7 @@ fn rows() -> Vec<KVGridRow> {
 }
 
 impl ProxmoxSubscriptionPanel {
-    fn create_toolbar(&self, ctx: &Context<Self>) -> Html {
-        Toolbar::new()
-            .class("pwt-overflow-hidden")
-            .with_child({
-                let link = ctx.link().clone();
-                Button::new(tr!("Upload Subscription Key"))
-                    .icon_class("fa fa-ticket")
-                    .onclick(move |_| {
-                        link.send_message(Msg::ChangeView(ViewState::UploadSubscriptionKey));
-                    })
-            })
-            .with_child(Button::new(tr!("Check")).icon_class("fa fa-check-square-o"))
-            .with_child(
-                ConfirmButton::new(tr!("Remove Subscription"))
-                    .icon_class("fa fa-trash-o")
-                    .confirm_message(
-                        html! {tr!("Are you sure you want to remove the subscription key?")},
-                    )
-                    .on_activate(ctx.link().callback_future(move |_| async move {
-                        match crate::http_delete("/nodes/localhost/subscription", None).await {
-                            Ok(()) => Msg::ChangeView(ViewState::Main),
-                            Err(err) => Msg::ChangeView(ViewState::Error(err.to_string())),
-                        }
-                    })),
-            )
-            .with_spacer()
-            .with_child(Button::new(tr!("System Report")).icon_class("fa fa-stethoscope"))
-            .with_flex_spacer()
-            .with_child(self.loader.reload_button())
-            .into()
-    }
-
-    fn create_main_view(&self, _ctx: &Context<Self>, data: &Rc<Value>) -> Html {
-        KVGrid::new()
-            .data(data.clone())
-            .rows(Rc::clone(&self.rows))
-            .into()
-    }
-
-    fn create_upload_subscription_dialog(&self, ctx: &Context<Self>) -> Html {
+    fn create_upload_subscription_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let input_panel = |_form_state: &FormContext| -> Html {
             InputPanel::new()
                 .class("pwt-p-4")
@@ -192,7 +177,7 @@ impl ProxmoxSubscriptionPanel {
                 let data = form_state.get_submit_data();
                 crate::http_put("/nodes/localhost/subscription", Some(data)).await
             })
-            .on_done(ctx.link().callback(|_| Msg::ChangeView(ViewState::Main)))
+            .on_done(ctx.link().change_view_callback(|_| None))
             .into()
     }
 }
