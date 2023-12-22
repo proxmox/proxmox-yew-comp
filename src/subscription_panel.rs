@@ -216,7 +216,7 @@ impl ProxmoxSubscriptionPanel {
             .style("width:800px;height:600px;")
             .loader("/nodes/localhost/report")
             .renderer(|report: &String| {
-                html!{<pre class="pwt-flex-fit pwt-p-2">{report}</pre>}
+                html!{<pre class="pwt-flex-fit pwt-font-monospace pwt-p-2">{report}</pre>}
             })
             .on_done(ctx.link().change_view_callback(|_| None))
             .into()
