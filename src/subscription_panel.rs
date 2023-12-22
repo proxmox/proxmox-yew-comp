@@ -12,7 +12,7 @@ use pwt::widget::form::{Field, FormContext};
 use pwt::widget::{Button, InputPanel, Toolbar};
 
 use crate::utils::render_epoch;
-use crate::{ConfirmButton, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
+use crate::{ConfirmButton, EditWindow, KVGrid, KVGridRow, ProxmoxProduct, DataViewWindow};
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
 #[derive(Properties, PartialEq, Clone)]
@@ -29,6 +29,7 @@ impl SubscriptionPanel {
 #[derive(PartialEq)]
 pub enum ViewState {
     UploadSubscriptionKey,
+    SystemReport,
 }
 
 pub enum Msg {}
@@ -90,7 +91,9 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                             let link = link.clone();
                             let base_url = base_url.clone();
                             wasm_bindgen_futures::spawn_local(async move {
-                                match crate::http_post(&*base_url, Some(json!({"force": true}))).await {
+                                match crate::http_post(&*base_url, Some(json!({"force": true})))
+                                    .await
+                                {
                                     Ok(()) => link.send_reload(),
                                     Err(err) => {
                                         link.show_error(tr!("Error"), err.to_string(), true)
@@ -98,7 +101,7 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                                 }
                             })
                         }
-                    })
+                    }),
             )
             .with_child(
                 ConfirmButton::new(tr!("Remove Subscription"))
@@ -124,7 +127,14 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                     }),
             )
             .with_spacer()
-            .with_child(Button::new(tr!("System Report")).icon_class("fa fa-stethoscope"))
+            .with_child(
+                Button::new(tr!("System Report"))
+                    .icon_class("fa fa-stethoscope")
+                    .onclick(
+                        ctx.link()
+                            .change_view_callback(|_| Some(ViewState::SystemReport)),
+                    ),
+            )
             .with_flex_spacer()
             .with_child({
                 let loading = ctx.loading();
@@ -150,6 +160,7 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
     ) -> Option<Html> {
         match view_state {
             ViewState::UploadSubscriptionKey => Some(self.create_upload_subscription_dialog(ctx)),
+            ViewState::SystemReport => Some(self.create_system_report_dialog(ctx)),
         }
     }
 }
@@ -200,6 +211,17 @@ fn rows() -> Vec<KVGridRow> {
 }
 
 impl ProxmoxSubscriptionPanel {
+    fn create_system_report_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
+        DataViewWindow::new(tr!("System Report"))
+            .style("width:800px;height:600px;")
+            .loader("/nodes/localhost/report")
+            .renderer(|report: &String| {
+                html!{<pre class="pwt-flex-fit pwt-p-2">{report}</pre>}
+            })
+            .on_done(ctx.link().change_view_callback(|_| None))
+            .into()
+    }
+
     fn create_upload_subscription_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let input_panel = |_form_state: &FormContext| -> Html {
             InputPanel::new()
