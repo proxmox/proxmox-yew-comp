@@ -163,8 +163,8 @@ fn rows() -> Vec<KVGridRow> {
         KVGridRow::new("nextduedata", tr!("Next due data")),
         KVGridRow::new("signature", tr!("Signed/Offline"))
             .renderer(move |_name, value, _record| {
-                match value.as_bool() {
-                    Some(true) => html!{&yes_text},
+                match value.as_str() {
+                    Some(_) => html!{&yes_text},
                     _ => html!{&no_text},
                 }
             }),
