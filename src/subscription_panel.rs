@@ -5,24 +5,33 @@ use std::rc::Rc;
 
 use serde_json::Value;
 
+use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::widget::form::{Field, FormContext};
 use pwt::widget::{Button, InputPanel, Toolbar};
 
+use crate::utils::render_epoch;
 use crate::{ConfirmButton, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
-use crate::utils::render_epoch;
+
+use pwt_macros::builder;
 
 #[derive(Properties, PartialEq, Clone)]
+#[builder]
 pub struct SubscriptionPanel {
     product: ProxmoxProduct,
+
+    #[prop_or("/nodes/localhost/subscription".into())]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The base url for
+    pub base_url: AttrValue,
 }
 
 impl SubscriptionPanel {
     pub fn new(product: ProxmoxProduct) -> Self {
-        Self { product }
+        yew::props!(Self { product })
     }
 }
 
@@ -52,11 +61,12 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
 
     fn load(
         &self,
-        _ctx: &crate::LoadableComponentContext<Self>,
+        ctx: &crate::LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let data = self.data.clone();
+        let base_url = ctx.props().base_url.clone();
         Box::pin(async move {
-            let info = crate::http_get("/nodes/localhost/subscription", None).await?;
+            let info = crate::http_get(&*base_url, None).await?;
             *data.borrow_mut() = Rc::new(info);
             Ok(())
         })
@@ -82,12 +92,12 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                     )
                     .on_activate({
                         let link = ctx.link();
+                        let base_url = ctx.props().base_url.clone();
                         move |_| {
                             let link = link.clone();
+                            let base_url = base_url.clone();
                             wasm_bindgen_futures::spawn_local(async move {
-                                match crate::http_delete("/nodes/localhost/subscription", None)
-                                    .await
-                                {
+                                match crate::http_delete(&*base_url, None).await {
                                     Ok(()) => link.change_view(None),
                                     Err(err) => {
                                         link.show_error(tr!("Error"), err.to_string(), true)
@@ -153,21 +163,19 @@ fn rows() -> Vec<KVGridRow> {
                 html! {format!("{}: {}", status, message)}
             }),
         KVGridRow::new("serverid", tr!("Server ID")).required(true),
-        KVGridRow::new("checktime", tr!("Last checked"))
-            .renderer(move |_name, value, _record| {
-                match value.as_i64() {
-                    Some(checktime) => html!{render_epoch(checktime)},
-                    None => html!{"-"},
-                }
-            }),
+        KVGridRow::new("checktime", tr!("Last checked")).renderer(move |_name, value, _record| {
+            match value.as_i64() {
+                Some(checktime) => html! {render_epoch(checktime)},
+                None => html! {"-"},
+            }
+        }),
         KVGridRow::new("nextduedata", tr!("Next due data")),
-        KVGridRow::new("signature", tr!("Signed/Offline"))
-            .renderer(move |_name, value, _record| {
-                match value.as_str() {
-                    Some(_) => html!{&yes_text},
-                    _ => html!{&no_text},
-                }
-            }),
+        KVGridRow::new("signature", tr!("Signed/Offline")).renderer(
+            move |_name, value, _record| match value.as_str() {
+                Some(_) => html! {&yes_text},
+                _ => html! {&no_text},
+            },
+        ),
         KVGridRow::new("url", tr!("Info URL")).renderer(|_name, value, _record| {
             let url = value.as_str().unwrap().to_string();
             html! { <a target="_blank" href={url.clone()}>{url}</a> }
@@ -189,9 +197,15 @@ impl ProxmoxSubscriptionPanel {
 
         EditWindow::new(tr!("Upload Subscription Key"))
             .renderer(input_panel)
-            .on_submit(|form_state: FormContext| async move {
-                let data = form_state.get_submit_data();
-                crate::http_put("/nodes/localhost/subscription", Some(data)).await
+            .on_submit({
+                let base_url = ctx.props().base_url.clone();
+                move |form_state: FormContext| {
+                    let base_url = base_url.clone();
+                    async move {
+                        let data = form_state.get_submit_data();
+                        crate::http_put(&*base_url, Some(data)).await
+                    }
+                }
             })
             .on_done(ctx.link().change_view_callback(|_| None))
             .into()
