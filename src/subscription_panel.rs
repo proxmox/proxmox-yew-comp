@@ -13,6 +13,7 @@ use pwt::widget::{Button, InputPanel, Toolbar};
 
 use crate::{ConfirmButton, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::utils::render_epoch;
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct SubscriptionPanel {
@@ -137,6 +138,8 @@ impl Into<VNode> for SubscriptionPanel {
 
 fn rows() -> Vec<KVGridRow> {
     let unknown_text = tr!("unknown");
+    let yes_text = tr!("Yes");
+    let no_text = tr!("No");
     vec![
         KVGridRow::new("productname", tr!("Type")),
         KVGridRow::new("key", tr!("Subscription Key")),
@@ -150,8 +153,21 @@ fn rows() -> Vec<KVGridRow> {
                 html! {format!("{}: {}", status, message)}
             }),
         KVGridRow::new("serverid", tr!("Server ID")).required(true),
-        KVGridRow::new("checktime", tr!("Last checked")), //fixme: renderer
+        KVGridRow::new("checktime", tr!("Last checked"))
+            .renderer(move |_name, value, _record| {
+                match value.as_i64() {
+                    Some(checktime) => html!{render_epoch(checktime)},
+                    None => html!{"-"},
+                }
+            }),
         KVGridRow::new("nextduedata", tr!("Next due data")),
+        KVGridRow::new("signature", tr!("Signed/Offline"))
+            .renderer(move |_name, value, _record| {
+                match value.as_bool() {
+                    Some(true) => html!{&yes_text},
+                    _ => html!{&no_text},
+                }
+            }),
         KVGridRow::new("url", tr!("Info URL")).renderer(|_name, value, _record| {
             let url = value.as_str().unwrap().to_string();
             html! { <a target="_blank" href={url.clone()}>{url}</a> }
