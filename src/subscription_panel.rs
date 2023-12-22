@@ -3,7 +3,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use yew::virtual_dom::{VComp, VNode};
 
@@ -80,7 +80,26 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                             .change_view_callback(|_| Some(ViewState::UploadSubscriptionKey)),
                     ),
             )
-            .with_child(Button::new(tr!("Check")).icon_class("fa fa-check-square-o"))
+            .with_child(
+                Button::new(tr!("Check"))
+                    .icon_class("fa fa-check-square-o")
+                    .onclick({
+                        let link = ctx.link();
+                        let base_url = base_url(ctx.props().product);
+                        move |_| {
+                            let link = link.clone();
+                            let base_url = base_url.clone();
+                            wasm_bindgen_futures::spawn_local(async move {
+                                match crate::http_post(&*base_url, Some(json!({"force": true}))).await {
+                                    Ok(()) => link.send_reload(),
+                                    Err(err) => {
+                                        link.show_error(tr!("Error"), err.to_string(), true)
+                                    }
+                                }
+                            })
+                        }
+                    })
+            )
             .with_child(
                 ConfirmButton::new(tr!("Remove Subscription"))
                     .icon_class("fa fa-trash-o")
