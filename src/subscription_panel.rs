@@ -5,7 +5,6 @@ use std::rc::Rc;
 
 use serde_json::Value;
 
-use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
@@ -16,17 +15,9 @@ use crate::utils::render_epoch;
 use crate::{ConfirmButton, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
-use pwt_macros::builder;
-
 #[derive(Properties, PartialEq, Clone)]
-#[builder]
 pub struct SubscriptionPanel {
     product: ProxmoxProduct,
-
-    #[prop_or("/nodes/localhost/subscription".into())]
-    #[builder(IntoPropValue, into_prop_value)]
-    /// The base url for
-    pub base_url: AttrValue,
 }
 
 impl SubscriptionPanel {
@@ -47,6 +38,12 @@ pub struct ProxmoxSubscriptionPanel {
     data: Rc<RefCell<Rc<Value>>>,
 }
 
+fn base_url(product: ProxmoxProduct) -> AttrValue {
+    match product {
+        _ => AttrValue::Static("/nodes/localhost/subscription"),
+    }
+}
+
 impl LoadableComponent for ProxmoxSubscriptionPanel {
     type Message = Msg;
     type Properties = SubscriptionPanel;
@@ -64,7 +61,7 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
         ctx: &crate::LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let data = self.data.clone();
-        let base_url = ctx.props().base_url.clone();
+        let base_url = base_url(ctx.props().product);
         Box::pin(async move {
             let info = crate::http_get(&*base_url, None).await?;
             *data.borrow_mut() = Rc::new(info);
@@ -92,7 +89,7 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                     )
                     .on_activate({
                         let link = ctx.link();
-                        let base_url = ctx.props().base_url.clone();
+                        let base_url = base_url(ctx.props().product);
                         move |_| {
                             let link = link.clone();
                             let base_url = base_url.clone();
@@ -198,7 +195,7 @@ impl ProxmoxSubscriptionPanel {
         EditWindow::new(tr!("Upload Subscription Key"))
             .renderer(input_panel)
             .on_submit({
-                let base_url = ctx.props().base_url.clone();
+                let base_url = base_url(ctx.props().product);
                 move |form_state: FormContext| {
                     let base_url = base_url.clone();
                     async move {
