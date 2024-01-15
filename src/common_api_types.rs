@@ -109,3 +109,44 @@ pub struct APTUpdateInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extra_info: Option<String>,
 }
+
+/// Certificate information.
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct CertificateInfo {
+    /// Certificate file name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    filename: Option<String>,
+
+    /// Certificate subject name.
+    subject: String,
+
+    /// List of certificate's SubjectAlternativeName entries.
+    san: Vec<String>,
+
+    /// Certificate issuer name.
+    issuer: String,
+
+    /// Certificate's notBefore timestamp (UNIX epoch).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    notbefore: Option<i64>,
+
+    /// Certificate's notAfter timestamp (UNIX epoch).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    notafter: Option<i64>,
+
+    /// Certificate in PEM format.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pem: Option<String>,
+
+    /// Certificate's public key algorithm.
+    public_key_type: String,
+
+    /// Certificate's public key size if available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    public_key_bits: Option<u32>,
+
+    /// The SSL Fingerprint.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fingerprint: Option<String>,
+}
