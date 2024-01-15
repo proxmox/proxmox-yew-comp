@@ -32,7 +32,7 @@ web-sys = { version = "0.3", features = [
 ] }
 js-sys = "0.3"
 log = "0.4.6"
-indexmap = { version = "1", features = ["std"] }
+indexmap = { version = ">= 1.9", features = ["std"] }
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 wasm-logger = "0.2"
 gloo-events = "0.2"
