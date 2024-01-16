@@ -115,8 +115,7 @@ pub struct APTUpdateInfo {
 #[serde(rename_all = "kebab-case")]
 pub struct CertificateInfo {
     /// Certificate file name.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub filename: Option<String>,
+    pub filename: String,
 
     /// Certificate subject name.
     pub subject: String,
