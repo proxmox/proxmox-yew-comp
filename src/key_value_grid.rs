@@ -78,6 +78,16 @@ pub struct KVGrid {
     #[prop_or_default]
     pub cell_class: Classes,
 
+    /// Disable horizontal borders.
+    #[prop_or_default]
+    #[builder]
+    pub borderless: bool,
+
+    /// Use a striped color scheme for rows.
+    #[prop_or(true)]
+    #[builder]
+    pub striped: bool,
+
     rows: Rc<Vec<KVGridRow>>,
     data: Rc<Value>,
     /// Select callback.
@@ -286,6 +296,8 @@ impl Component for PwtKVGrid {
         DataTable::new(COLUMNS.with(Rc::clone), self.store.clone())
             .class(props.class.clone())
             .cell_class(props.cell_class.clone())
+            .borderless(props.borderless)
+            .striped(props.striped)
             .virtual_scroll(false)
             .show_header(false)
             .selection(self.selection.clone())
