@@ -74,6 +74,10 @@ pub struct KVGrid {
     #[prop_or_default]
     pub class: Classes,
 
+    /// Set class for table cells (default is "pwt-datatable-cell").
+    #[prop_or_default]
+    pub cell_class: Classes,
+
     rows: Rc<Vec<KVGridRow>>,
     data: Rc<Value>,
     /// Select callback.
@@ -120,6 +124,17 @@ impl KVGrid {
     /// Method to add a html class.
     pub fn add_class(&mut self, class: impl Into<Classes>) {
         self.class.push(class);
+    }
+
+    /// Builder style method to add a html class for table cells.
+    pub fn cell_class(mut self, class: impl Into<Classes>) -> Self {
+        self.add_cell_class(class);
+        self
+    }
+
+    /// Method to add a html class for table cells.
+    pub fn add_cell_class(&mut self, class: impl Into<Classes>) {
+        self.cell_class.push(class);
     }
 
     pub fn data(mut self, data: Rc<Value>) -> Self {
@@ -270,6 +285,7 @@ impl Component for PwtKVGrid {
         let props = ctx.props();
         DataTable::new(COLUMNS.with(Rc::clone), self.store.clone())
             .class(props.class.clone())
+            .cell_class(props.cell_class.clone())
             .virtual_scroll(false)
             .show_header(false)
             .selection(self.selection.clone())
