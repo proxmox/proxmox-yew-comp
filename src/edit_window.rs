@@ -76,6 +76,11 @@ pub struct EditWindow {
     /// Close/Abort callback.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     #[prop_or_default]
+    pub on_close: Option<Callback<()>>,
+
+    /// Done callobaqck, called after Close, Abort or Submit.
+    #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    #[prop_or_default]
     pub on_done: Option<Callback<()>>,
 
     /// Submit callback.
@@ -313,7 +318,18 @@ impl Component for PwtEditWindow {
 
         Dialog::new(props.title.clone())
             .node_ref(props.node_ref.clone())
-            .on_close(props.on_done.clone())
+            .on_close({
+                let on_close = props.on_close.clone();
+                let on_done = props.on_done.clone();
+                move |()| {
+                    if let Some(on_close) = &on_close {
+                        on_close.emit(());
+                    }
+                    if let Some(on_done) = &on_done {
+                        on_done.emit(());
+                    }
+                }
+            })
             .draggable(props.draggable)
             .resizable(props.resizable)
             .auto_center(props.auto_center)
