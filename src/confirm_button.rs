@@ -1,5 +1,6 @@
 use yew::html::{IntoEventCallback, IntoPropValue};
 
+use pwt::props::IntoOptionalInlineHtml;
 use pwt::widget::{Button, Column, MessageBoxButtons};
 use pwt::{prelude::*, widget::MessageBox};
 
@@ -55,7 +56,6 @@ pub struct ConfirmButton {
     pub on_activate: Option<Callback<()>>,
 
     #[prop_or_default]
-    #[builder(IntoPropValue, into_prop_value)]
     pub confirm_message: Option<Html>,
 }
 
@@ -91,6 +91,17 @@ impl ConfirmButton {
     /// Method to set the icon CSS class.
     pub fn set_icon_class(&mut self, icon_class: impl Into<Classes>) {
         self.icon_class = Some(icon_class.into());
+    }
+
+    /// Builder style method to set the confirm message.
+    pub fn confirm_message(mut self, message: impl IntoOptionalInlineHtml) -> Self {
+        self.set_confirnm_message(message);
+        self
+    }
+
+    /// Method to set the confirm message.
+    pub fn set_confirnm_message(&mut self, message: impl IntoOptionalInlineHtml) {
+        self.confirm_message = message.into_optional_inline_html();
     }
 }
 
