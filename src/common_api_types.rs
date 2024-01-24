@@ -1,11 +1,15 @@
 //! API types shared by different Proxmox products
 
-use serde::{Serialize, Deserialize};
+use anyhow::Error;
+
+use proxmox_schema::{api, ApiStringFormat, ApiType, Schema, StringSchema};
+
+use serde::{Deserialize, Serialize};
 use yew::virtual_dom::Key;
 
 use pwt::props::ExtractPrimaryKey;
 
-#[derive(Serialize, Deserialize, Ord, PartialOrd, Eq,  PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub struct BasicRealmInfo {
     pub realm: String,
     #[serde(rename = "type")]
@@ -148,4 +152,39 @@ pub struct CertificateInfo {
     /// The SSL Fingerprint.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fingerprint: Option<String>,
+}
+
+#[api(
+    properties: {
+        "alias": {
+            optional: true,
+        },
+        "plugin": {
+            optional: true,
+        },
+    },
+    default_key: "domain",
+)]
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
+/// A domain entry for an ACME certificate.
+pub struct AcmeDomain {
+    /// The domain to certify for.
+    pub domain: String,
+    /// The domain to use for challenges instead of the default acme challenge domain.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alias: Option<String>,
+    /// The plugin to use to validate this domain.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plugin: Option<String>,
+}
+
+pub const ACME_DOMAIN_PROPERTY_SCHEMA: Schema =
+    StringSchema::new("ACME domain configuration string")
+        .format(&ApiStringFormat::PropertyString(&AcmeDomain::API_SCHEMA))
+        .schema();
+
+pub fn parse_acme_domain_string(value_str: &str) -> Result<AcmeDomain, Error> {
+    let value = AcmeDomain::API_SCHEMA.parse_property_string(value_str)?;
+    let value: AcmeDomain = serde_json::from_value(value)?;
+    Ok(value)
 }
