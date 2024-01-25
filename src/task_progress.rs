@@ -110,7 +110,8 @@ impl Component for PwtTaskProgress {
         match msg {
             Msg::DataChange => {
                 let link = ctx.link().clone();
-                self.active = self.task_is_active();
+                let (active, task_ok) = self.task_is_active();
+                self.active = active;
                 if self.active {
                     self.reload_timeout = Some(Timeout::new(1_000, move || {
                         link.send_message(Msg::Reload);
@@ -119,7 +120,7 @@ impl Component for PwtTaskProgress {
                     if self.endtime.is_none() {
                         self.endtime = Some(proxmox_time::epoch_f64());
                     }
-                    if !self.show_details {
+                    if !self.show_details && task_ok {
                         if let Some(on_close) = &props.on_close {
                             on_close.emit(());
                         }
@@ -132,7 +133,7 @@ impl Component for PwtTaskProgress {
                 true
             }
             Msg::Reload => {
-                self.active = self.task_is_active();
+                (self.active, _) = self.task_is_active();
                 if self.active {
                     self.loader.load();
                 }
@@ -196,12 +197,14 @@ impl Into<VNode> for TaskProgress {
 }
 
 impl PwtTaskProgress {
-    fn task_is_active(&self) -> bool {
+    fn task_is_active(&self) -> (bool, bool) {
         if let Some(Ok(data)) = self.loader.read().data.as_ref() {
             if let Some("stopped") = data["status"].as_str() {
-                return false;
+                let exit_status = data["exitstatus"].as_str().unwrap_or("unknown");
+                let task_ok = exit_status == "OK";
+                return (false, task_ok);
             }
         }
-        true
+        (true, true)
     }
 }
