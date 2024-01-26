@@ -188,3 +188,29 @@ pub fn parse_acme_domain_string(value_str: &str) -> Result<AcmeDomain, Error> {
     let value: AcmeDomain = serde_json::from_value(value)?;
     Ok(value)
 }
+
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AcmeAccountData {
+    pub status: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub contact: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>
+}
+
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
+pub struct AcmeAccountInfo {
+    /// Raw account data.
+    pub account: AcmeAccountData,
+
+    /// The ACME directory URL the account was created at.
+    pub directory: String,
+
+    /// The account's own URL within the ACME directory.
+    pub location: String,
+
+    /// The ToS URL, if the user agreed to one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tos: Option<String>,
+}
