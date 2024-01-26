@@ -4,6 +4,7 @@ use std::sync::Mutex;
 
 use serde_json::Value;
 use wasm_bindgen::JsCast;
+use yew::prelude::*;
 use yew::NodeRef;
 
 use proxmox_schema::upid::UPID;
@@ -122,6 +123,14 @@ pub fn render_boolean(v: bool) -> String {
         tr!("Yes")
     } else {
         tr!("No")
+    }
+}
+
+pub fn render_url(url: &str) -> Html {
+    if url.starts_with("http://") || url.starts_with("https://") {
+        html! {<a target="_blank" href={url.to_owned()}>{url}</a>}
+    } else {
+        html! {<span>{url}</span>}
     }
 }
 
