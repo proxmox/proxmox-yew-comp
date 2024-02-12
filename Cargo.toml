@@ -54,7 +54,7 @@ slab = "0.4"
 pwt = "0.2"
 pwt-macros = "0.1"
 
-proxmox-schema = { version = "2", features = [ "api-macro" ] }
+proxmox-schema = { version = "3", features = [ "api-macro" ] }
 proxmox-human-byte = "0.1"
 
 proxmox-time = "1"
