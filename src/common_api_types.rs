@@ -189,6 +189,10 @@ pub fn parse_acme_domain_string(value_str: &str) -> Result<AcmeDomain, Error> {
     Ok(value)
 }
 
+pub fn create_acme_domain_string(config: &AcmeDomain) -> String {
+    proxmox_schema::property_string::print::<AcmeDomain>(config).unwrap()
+}
+
 #[derive(Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AcmeAccountData {
