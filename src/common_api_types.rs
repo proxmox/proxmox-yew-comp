@@ -218,3 +218,24 @@ pub struct AcmeAccountInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tos: Option<String>,
 }
+
+#[api()]
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
+/// The ACME configuration.
+///
+/// Currently only contains the name of the account use.
+pub struct AcmeConfig {
+    /// Account to use to acquire ACME certificates.
+    pub account: String,
+}
+
+pub fn parse_acme_config_string(value_str: &str) -> Result<AcmeConfig, Error> {
+    let value = AcmeConfig::API_SCHEMA.parse_property_string(value_str)?;
+    let value: AcmeConfig = serde_json::from_value(value)?;
+    Ok(value)
+}
+
+pub fn create_acme_config_string(config: &AcmeConfig) -> String {
+    proxmox_schema::property_string::print::<AcmeConfig>(config).unwrap()
+}
+
