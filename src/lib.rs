@@ -64,7 +64,7 @@ mod notes_view;
 pub use notes_view::{NotesView, ProxmoxNotesView};
 
 mod object_grid;
-pub use object_grid::{ObjectGrid, ObjectGridRow, PwtObjectGrid, RenderObjectGridItemFn};
+pub use object_grid::{ObjectGrid, ObjectGridController, ObjectGridRow, PwtObjectGrid, RenderObjectGridItemFn};
 
 mod permission_panel;
 pub use permission_panel::{PermissionPanel, ProxmoxPermissionPanel};
