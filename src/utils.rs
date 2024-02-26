@@ -347,3 +347,10 @@ pub fn copy_to_clipboard(node_ref: &NodeRef) {
         let _ = document.exec_command("copy");
     }
 }
+
+/// Set the browser window.location.href
+pub fn set_location_href(href: &str) {
+    let window = web_sys::window().unwrap();
+    let location = window.location();
+    let _ = location.set_href(href);
+}
