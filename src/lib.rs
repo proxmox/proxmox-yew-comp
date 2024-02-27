@@ -1,3 +1,5 @@
+pub mod acme;
+
 mod apt_package_manager;
 pub use apt_package_manager::{AptPackageManager, ProxmoxAptPackageManager};
 
