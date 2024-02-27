@@ -133,6 +133,9 @@ pub mod tfa;
 mod time_zone_selector;
 pub use time_zone_selector::{TimezoneSelector, ProxmoxTimezoneSelector};
 
+mod theme_dialog;
+pub use theme_dialog:: {ThemeDialog, ProxmoxThemeDialog};
+
 mod task_viewer;
 pub use task_viewer::*;
 
