@@ -35,11 +35,6 @@ pub struct ConfirmButton {
     #[builder(IntoPropValue, into_prop_value)]
     pub aria_label: Option<AttrValue>,
 
-    /// Html placeholder attribute.
-    #[prop_or_default]
-    #[builder(IntoPropValue, into_prop_value)]
-    pub placeholder: Option<AttrValue>,
-
     /// Html autofocus attribute.
     #[prop_or_default]
     #[builder]
@@ -170,7 +165,6 @@ impl Component for ProxmoxConfirmButton {
             .icon_class(props.icon_class.clone())
             .tabindex(props.tabindex)
             .aria_label(props.aria_label.clone())
-            .placeholder(props.placeholder.clone())
             .autofocus(props.autofocus)
             .disabled(props.disabled)
             .onclick(ctx.link().callback(|_| Msg::Request));
