@@ -2,8 +2,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-use serde_json::{json, Value};
 use anyhow::Error;
+use serde_json::{json, Value};
 
 use yew::virtual_dom::{Key, VComp, VNode};
 
@@ -11,7 +11,7 @@ use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
 use pwt::widget::form::{Form, FormContext, TextArea};
-use pwt::widget::{Button, Dialog, MessageBox, Toolbar};
+use pwt::widget::{Button, Dialog, FileButton, MessageBox, Toolbar};
 
 use crate::common_api_types::CertificateInfo;
 use crate::utils::render_epoch;
@@ -24,7 +24,8 @@ async fn upload_custom_certificate(form_ctx: FormContext) -> Result<(), Error> {
     let mut data = form_ctx.get_submit_data();
     data["force"] = true.into();
     data["restart"] = true.into();
-    let _certs: Vec<CertificateInfo> = crate::http_post("/nodes/localhost/certificates/custom", Some(data)).await?;
+    let _certs: Vec<CertificateInfo> =
+        crate::http_post("/nodes/localhost/certificates/custom", Some(data)).await?;
     Ok(())
 }
 
@@ -191,6 +192,32 @@ impl Into<VNode> for CertificateList {
     }
 }
 
+fn update_field_from_file(
+    form_ctx: FormContext,
+    field_name: &'static str,
+    file_list: Option<web_sys::FileList>,
+) {
+    if let Some(file_list) = file_list {
+        if let Some(file) = file_list.get(0) {
+            let text_future = wasm_bindgen_futures::JsFuture::from(file.text());
+            let form_ctx = form_ctx.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                match text_future.await {
+                    Ok(text) => {
+                        let text = text.as_string().unwrap();
+                        form_ctx
+                            .write()
+                            .set_field_value(field_name, Value::String(text));
+                    }
+                    Err(err) => {
+                        log::error!("File::text(): {err:?}");
+                    }
+                }
+            });
+        }
+    }
+}
+
 impl ProxmoxCertificateList {
     fn create_upload_custom_certificate(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         EditWindow::new(tr!("Upload Custom Certificate"))
@@ -206,17 +233,17 @@ impl ProxmoxCertificateList {
                         TextArea::new()
                             .attribute("rows", "4")
                             .name("key")
-                            .placeholder(tr!("No change"))
+                            .placeholder(tr!("No change")),
                     )
                     .with_child(
-                        Button::new(tr!("From File"))
+                        FileButton::new(tr!("From File"))
                             .class("pwt-align-self-flex-start pwt-scheme-primary")
-                            .onclick(|_| {
-                                // TODO: showOpenFilePicker is not in web-sys
-                                // see: https://github.com/rustwasm/wasm-bindgen/discussions/3796
-                                // let window = web_sys::window().unwrap();
-                                // let promise =  window.showOpenFilePicker();
-                            })
+                            .on_change({
+                                let form_ctx = form_ctx.clone();
+                                move |file_list: Option<web_sys::FileList>| {
+                                    update_field_from_file(form_ctx.clone(), "key", file_list);
+                                }
+                            }),
                     )
                     .with_child(html! {<span class="pwt-pt-4">{tr!("Certificate Chain")}</span>})
                     .with_child(
@@ -226,8 +253,18 @@ impl ProxmoxCertificateList {
                             .name("certificates"),
                     )
                     .with_child(
-                        Button::new(tr!("From File"))
+                        FileButton::new(tr!("From File"))
                             .class("pwt-align-self-flex-start pwt-scheme-primary")
+                            .on_change({
+                                let form_ctx = form_ctx.clone();
+                                move |file_list: Option<web_sys::FileList>| {
+                                    update_field_from_file(
+                                        form_ctx.clone(),
+                                        "certificates",
+                                        file_list,
+                                    );
+                                }
+                            }),
                     )
                     .into()
             })
