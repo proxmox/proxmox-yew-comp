@@ -86,6 +86,12 @@ pub use rrd_grid::RRDGrid;
 mod rrd_timeframe_selector;
 pub use rrd_timeframe_selector::{RRDTimeframe, RRDTimeframeSelector};
 
+mod running_tasks;
+pub use running_tasks::{RunningTasks, ProxmoxRunningTasks};
+
+mod running_tasks_button;
+pub use running_tasks_button::{RunningTasksButton, ProxmoxRunningTasksButton};
+
 mod safe_confirm_dialog;
 pub use safe_confirm_dialog::{SafeConfirmDialog, ProxmoxSafeConfirmDialog};
 
