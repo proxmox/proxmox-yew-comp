@@ -53,6 +53,8 @@ pub use help_button::{HelpButton, PbsHelpButton};
 mod calendar_event_selector;
 pub use calendar_event_selector::CalendarEventSelector;
 
+pub mod configuration;
+
 mod edit_window;
 pub use edit_window::{EditWindow, PwtEditWindow};
 
