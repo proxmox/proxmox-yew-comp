@@ -23,7 +23,7 @@ fn dns_editor(_form_ctx: &FormContext, _name: &str, _value: &Value, record: &Val
                 .name("search")
                 .required(true)
                 .default(record["search"].as_str().unwrap_or("").to_string())
-                .schema(&proxmox_dns_api::SEARCH_DOMAIN_SCHEMA)
+                .schema(&proxmox_system_config_api::dns::SEARCH_DOMAIN_SCHEMA)
                 .autofocus(true),
         )
         .with_field(
@@ -32,14 +32,14 @@ fn dns_editor(_form_ctx: &FormContext, _name: &str, _value: &Value, record: &Val
                 .name("dns1")
                 .required(true)
                 .default(record["dns1"].as_str().unwrap_or("").to_string())
-                .schema(&proxmox_dns_api::FIRST_DNS_SERVER_SCHEMA),
+                .schema(&proxmox_system_config_api::dns::FIRST_DNS_SERVER_SCHEMA),
         )
         .with_field(
             tr!("DNS server 2"),
             Field::new()
                 .name("dns2")
                 .default(record["dns2"].as_str().unwrap_or("").to_string())
-                .schema(&proxmox_dns_api::SECOND_DNS_SERVER_SCHEMA),
+                .schema(&proxmox_system_config_api::dns::SECOND_DNS_SERVER_SCHEMA),
             //.validate(validate_ip.clone()),
         )
         .with_field(
@@ -47,7 +47,7 @@ fn dns_editor(_form_ctx: &FormContext, _name: &str, _value: &Value, record: &Val
             Field::new()
                 .name("dns3")
                 .default(record["dns3"].as_str().unwrap_or("").to_string())
-                .schema(&proxmox_dns_api::THIRD_DNS_SERVER_SCHEMA),
+                .schema(&proxmox_system_config_api::dns::THIRD_DNS_SERVER_SCHEMA),
             //.validate(validate_ip),
         )
         .into()
