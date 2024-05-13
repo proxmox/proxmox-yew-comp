@@ -60,7 +60,7 @@ impl NetworkView {
 }
 
 #[doc(hidden)]
-pub struct PbsNetworkView {
+pub struct ProxmoxNetworkView {
     store: Store<Interface>,
     changes: String,
     selection: Selection,
@@ -82,7 +82,7 @@ pub enum Msg {
     ApplyChanges,
 }
 
-impl PbsNetworkView {
+impl ProxmoxNetworkView {
     fn get_selected_record(&self) -> Option<Interface> {
         let selected_key = self.selection.selected_key();
         let mut selected_record = None;
@@ -103,7 +103,7 @@ fn find_next_free_interface_id(prefix: &str, list: &[Interface]) -> Option<Strin
     None
 }
 
-impl LoadableComponent for PbsNetworkView {
+impl LoadableComponent for ProxmoxNetworkView {
     type Message = Msg;
     type Properties = NetworkView;
     type ViewState = ViewState;
@@ -319,7 +319,7 @@ impl LoadableComponent for PbsNetworkView {
 
 impl Into<VNode> for NetworkView {
     fn into(self) -> VNode {
-        let comp = VComp::new::<LoadableComponentMaster<PbsNetworkView>>(Rc::new(self), None);
+        let comp = VComp::new::<LoadableComponentMaster<ProxmoxNetworkView>>(Rc::new(self), None);
         VNode::from(comp)
     }
 }

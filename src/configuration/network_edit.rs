@@ -116,7 +116,7 @@ impl NetworkEdit {
     }
 }
 
-pub struct PbsNetworkEdit {
+pub struct ProxmoxNetworkEdit {
     loader: Option<LoadCallback<Value>>,
 }
 
@@ -324,7 +324,7 @@ fn render_input_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
     }
 }
 
-impl Component for PbsNetworkEdit {
+impl Component for ProxmoxNetworkEdit {
     type Message = ();
     type Properties = NetworkEdit;
 
@@ -372,7 +372,7 @@ impl Component for PbsNetworkEdit {
 
 impl Into<VNode> for NetworkEdit {
     fn into(self) -> VNode {
-        let comp = VComp::new::<PbsNetworkEdit>(Rc::new(self), None);
+        let comp = VComp::new::<ProxmoxNetworkEdit>(Rc::new(self), None);
         VNode::from(comp)
     }
 }
