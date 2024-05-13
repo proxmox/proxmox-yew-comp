@@ -8,8 +8,21 @@ use yew::prelude::*;
 use yew::NodeRef;
 
 use proxmox_schema::upid::UPID;
+use proxmox_system_config_api::network::NetworkInterfaceType;
 
 use pwt::tr;
+
+pub fn format_network_interface_type(interface_type: NetworkInterfaceType) -> String {
+    match interface_type {
+        NetworkInterfaceType::Loopback => tr!("Lookback"),
+        NetworkInterfaceType::Eth => tr!("Network Device"),
+        NetworkInterfaceType::Bridge => tr!("Linux Bridge"),
+        NetworkInterfaceType::Bond => tr!("Linux Bond"),
+        NetworkInterfaceType::Vlan => tr!("Linux VLAN"),
+        NetworkInterfaceType::Alias => tr!("Alias"),
+        NetworkInterfaceType::Unknown => tr!("Unknown"),
+    }
+}
 
 /// Somewhat like a human would tell durations, omit zero values and do not
 /// give seconds precision if we talk days already
