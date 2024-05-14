@@ -2,7 +2,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-use anyhow::Error;
+use anyhow::{bail, Error};
+use serde_json::Value;
 
 use yew::virtual_dom::{Key, VComp, VNode};
 
@@ -12,25 +13,58 @@ use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 use pwt::widget::{Button, Column, SplitPane, Toolbar};
 
-use proxmox_client::ApiResponseData;
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, TaskProgress};
+use proxmox_client::ApiResponseData;
 
 use crate::percent_encoding::percent_encode_component;
-use proxmox_system_config_api::network::{BondXmitHashPolicy, Interface, LinuxBondMode, NetworkInterfaceType};
+use proxmox_system_config_api::network::{
+    BondXmitHashPolicy, Interface, LinuxBondMode, NetworkInterfaceType,
+};
 
 use super::NetworkEdit;
 
-async fn load_interfaces() -> Result<(Vec<Interface>, String), Error> {
-    let resp: ApiResponseData<Vec<Interface>> =
+async fn load_interfaces() -> Result<(Vec<Interface>, String, Option<String>), Error> {
+    let resp: ApiResponseData<Value> =
         crate::http_get_full("/nodes/localhost/network", None).await?;
-    let data = resp.data;
+
+    let mut digest: Option<String> = resp.attribs.get("digest").map(|c| c.as_str()).flatten().map(String::from);
+
+    let mut set_or_check_digest = |test_digest: String| {
+        match digest.as_deref() {
+            Some(digest) => {
+                if digest != test_digest {
+                    bail!("got inconsistent configuration digest");
+                }
+            }
+            None => {
+                digest = Some(test_digest);
+            }
+        }
+        Ok(())
+    };
+
+    // code to extract digest from entries (for PBS 3.1 and earlier)
+    let mut list = resp.data;
+    if let Some(list) = list.as_array_mut() {
+        for entry in list {
+            if let Some(data) = entry.as_object_mut() {
+                if let Some(digest) = data.remove("digest") {
+                    if let Some(digest) = digest.as_str() {
+                        set_or_check_digest(digest.to_string())?;
+                    }
+                }
+            }
+        }
+    }
+
+    let data: Vec<Interface> = serde_json::from_value(list)?;
     let changes = resp
         .attribs
         .get("changes")
         .map(|c| c.as_str())
         .flatten()
         .unwrap_or("");
-    Ok((data, changes.to_string()))
+    Ok((data, changes.to_string(), digest))
 }
 
 async fn delete_interface(key: Key) -> Result<(), Error> {
@@ -62,6 +96,7 @@ impl NetworkView {
 #[doc(hidden)]
 pub struct ProxmoxNetworkView {
     store: Store<Interface>,
+    digest: Option<String>,
     changes: String,
     selection: Selection,
 }
@@ -77,7 +112,7 @@ pub enum ViewState {
 pub enum Msg {
     SelectionChange,
     RemoveItem,
-    Changes(String),
+    Load(Vec<Interface>, String, Option<String>),
     RevertChanges,
     ApplyChanges,
 }
@@ -112,12 +147,10 @@ impl LoadableComponent for ProxmoxNetworkView {
         &self,
         ctx: &LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), Error>>>> {
-        let store = self.store.clone();
         let link = ctx.link();
         Box::pin(async move {
-            let (data, changes) = load_interfaces().await?;
-            store.write().set_data(data);
-            link.send_message(Msg::Changes(changes));
+            let (data, changes, digest) = load_interfaces().await?;
+            link.send_message(Msg::Load(data, changes, digest));
             Ok(())
         })
     }
@@ -129,6 +162,7 @@ impl LoadableComponent for ProxmoxNetworkView {
             store,
             selection,
             changes: String::new(),
+            digest: None,
         }
     }
 
@@ -147,8 +181,10 @@ impl LoadableComponent for ProxmoxNetworkView {
                 }
                 false
             }
-            Msg::Changes(changes) => {
+            Msg::Load(data, changes, digest) => {
+                self.store.write().set_data(data);
                 self.changes = changes;
+                self.digest = digest;
                 true
             }
             Msg::RevertChanges => {
@@ -164,11 +200,10 @@ impl LoadableComponent for ProxmoxNetworkView {
             Msg::ApplyChanges => {
                 let link = ctx.link().clone();
                 wasm_bindgen_futures::spawn_local(async move {
-                    match apply_changes().await  {
+                    match apply_changes().await {
                         Err(err) => {
                             link.show_error(tr!("Unable to apply changes"), err, true);
                             link.send_reload();
-
                         }
                         Ok(upid) => {
                             link.change_view(Some(ViewState::ApplyChanges(upid)));
@@ -186,7 +221,6 @@ impl LoadableComponent for ProxmoxNetworkView {
         let disabled = self.selection.is_empty();
 
         let no_changes = self.changes.is_empty();
-
 
         let add_menu = Menu::new()
             .with_item(
@@ -311,8 +345,8 @@ impl LoadableComponent for ProxmoxNetworkView {
             ViewState::ApplyChanges(task_id) => Some(
                 TaskProgress::new(task_id)
                     .on_close(ctx.link().change_view_callback(|_| None))
-                    .into()
-            )
+                    .into(),
+            ),
         }
     }
 }
