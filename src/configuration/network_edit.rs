@@ -39,8 +39,8 @@ async fn load_item(name: AttrValue) -> Result<Value, Error> {
     }
 
     // fix backup-server 3.0-1 API bug (spurious NULL value)
-    if let Value::Object(map) = &mut data {
-        if let Value::Null = map["bond_xmit_hash_policy"] {
+    if let Some(map) = data.as_object_mut() {
+        if map.get("bond_xmit_hash_policy") == Some(&Value::Null) {
             map.remove("bond_xmit_hash_policy");
         }
     }
@@ -297,8 +297,8 @@ fn render_common_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             Field::new().name("comments").submit_empty(true),
         )
         .with_field(
-            tr!("Gateway") + " (IPv6)",
-            Field::new().name("gateway6").schema(&IP_V6_SCHEMA),
+            tr!("Gateway") + " (IPv4)",
+            Field::new().name("gateway").schema(&IP_V4_SCHEMA),
         )
         .with_field(
             tr!("IPv6/CIDR"),
