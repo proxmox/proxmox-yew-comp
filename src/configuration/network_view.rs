@@ -244,9 +244,8 @@ impl LoadableComponent for ProxmoxNetworkView {
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let link = ctx.link();
-        let columns = COLUMNS.with(Rc::clone);
 
-        let table = DataTable::new(columns, self.store.clone())
+        let table = DataTable::new(columns(), self.store.clone())
             .class("pwt-flex-fit")
             .selection(self.selection.clone())
             .striped(true)
@@ -383,8 +382,9 @@ fn render_two_lines(
     }
 }
 
-thread_local! {
-    static COLUMNS: Rc<Vec<DataTableHeader<Interface>>> = Rc::new(vec![
+fn columns() -> Rc<Vec<DataTableHeader<Interface>>>
+{
+    Rc::new(vec![
         DataTableColumn::new(tr!("Name"))
             .width("120px")
             .render(|item: &Interface| html!{
@@ -501,5 +501,5 @@ thread_local! {
             })
             .into()
 
-    ]);
+    ])
 }
