@@ -8,7 +8,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::LoadCallback;
-use pwt::widget::form::{delete_empty_values, Boolean, Field, FormContext, Number};
+use pwt::widget::form::{delete_empty_values, Boolean, Field, FormContext, Hidden, Number};
 use pwt::widget::InputPanel;
 
 use crate::utils::json_array_to_flat_string;
@@ -172,6 +172,7 @@ fn render_bridge_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             tr!("MTU"),
             Number::new().min(1).name("mtu").placeholder("1500"),
         )
+        .with_child(Hidden::new().name("digest"))
         .into()
 }
 
@@ -266,6 +267,7 @@ fn render_bond_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             tr!("MTU"),
             Number::new().min(1).name("mtu").placeholder("1500"),
         )
+        .with_child(Hidden::new().name("digest"))
         .into()
 }
 
@@ -313,6 +315,7 @@ fn render_common_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             tr!("MTU"),
             Number::new().min(1).name("mtu").placeholder("1500"),
         )
+        .with_child(Hidden::new().name("digest"))
         .into()
 }
 
@@ -349,6 +352,7 @@ impl Component for ProxmoxNetworkEdit {
         let interface_type = props.interface_type;
         let on_submit = move |form_context| async move {
             if is_edit {
+
                 update_item(form_context).await
             } else {
                 create_item(form_context, interface_type).await
