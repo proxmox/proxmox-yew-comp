@@ -16,7 +16,7 @@ use proxmox_client::ApiResponseData;
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, TaskProgress};
 
 use crate::percent_encoding::percent_encode_component;
-use proxmox_system_config_api::network::{BondXmitHashPolicy, Interface, LinuxBondMode, NetworkInterfaceType};
+use proxmox_system_management_api::network::{BondXmitHashPolicy, Interface, LinuxBondMode, NetworkInterfaceType};
 
 use super::NetworkEdit;
 

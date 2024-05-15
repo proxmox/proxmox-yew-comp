@@ -15,7 +15,7 @@ use crate::utils::json_array_to_flat_string;
 
 use crate::{BondModeSelector, BondXmitHashPolicySelector, EditWindow, SchemaValidation};
 
-use proxmox_system_config_api::network::{
+use proxmox_system_management_api::network::{
     NetworkInterfaceType,
     CIDR_V4_SCHEMA, CIDR_V6_SCHEMA, IP_V4_SCHEMA, IP_V6_SCHEMA,
 };

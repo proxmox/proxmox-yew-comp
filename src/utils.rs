@@ -8,7 +8,7 @@ use yew::prelude::*;
 use yew::NodeRef;
 
 use proxmox_schema::upid::UPID;
-use proxmox_system_config_api::network::NetworkInterfaceType;
+use proxmox_system_management_api::network::NetworkInterfaceType;
 
 use pwt::tr;
 
