@@ -63,4 +63,6 @@ proxmox-login = "0.1"
 proxmox-client = "0.3"
 proxmox-tfa = { version = "4.1",  default-features = false, features = ["api-types"] }
 proxmox-auth-api = { version = "0.4", default-features =  false, features = ["api-types"] }
-proxmox-system-management-api = { version = "0.1", features = ["dns-api-types", "time-api-types", "network-api-types"] }
+proxmox-dns-api ="0.1"
+proxmox-time-api ="0.1"
+proxmox-network-api ="0.1"

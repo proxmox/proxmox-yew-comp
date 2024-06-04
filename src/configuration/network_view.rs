@@ -16,9 +16,9 @@ use proxmox_client::ApiResponseData;
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, TaskProgress};
 
 use crate::percent_encoding::percent_encode_component;
-use proxmox_system_management_api::network::{BondXmitHashPolicy, Interface, LinuxBondMode, NetworkInterfaceType};
+use proxmox_network_api::{BondXmitHashPolicy, Interface, LinuxBondMode, NetworkInterfaceType};
 
-use super::NetworkEdit;
+use super::{format_network_interface_type, NetworkEdit};
 
 async fn load_interfaces() -> Result<(Vec<Interface>, String), Error> {
     let resp: ApiResponseData<Vec<Interface>> =
@@ -397,11 +397,11 @@ fn columns() -> Rc<Vec<DataTableHeader<Interface>>>
         DataTableColumn::new(tr!("Type"))
             .width("120px")
             .render(|item: &Interface| html!{
-                crate::utils::format_network_interface_type(item.interface_type)
+                format_network_interface_type(item.interface_type)
             })
             .sorter(|a: &Interface, b: &Interface| {
-                let a =  crate::utils::format_network_interface_type(a.interface_type);
-                let b =  crate::utils::format_network_interface_type(b.interface_type);
+                let a =  format_network_interface_type(a.interface_type);
+                let b =  format_network_interface_type(b.interface_type);
                 a.cmp(&b)
             })
             .into(),

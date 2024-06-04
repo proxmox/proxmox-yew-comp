@@ -16,11 +16,12 @@ use crate::utils::json_array_to_flat_string;
 use crate::{BondModeSelector, BondXmitHashPolicySelector, EditWindow, SchemaValidation};
 
 use proxmox_schema::api_types::{CIDR_V4_SCHEMA, CIDR_V6_SCHEMA, IP_V4_SCHEMA, IP_V6_SCHEMA};
-use proxmox_system_management_api::network::NetworkInterfaceType;
+use proxmox_network_api::NetworkInterfaceType;
 
 use crate::percent_encoding::percent_encode_component;
 use pwt_macros::builder;
 
+use super::format_network_interface_type;
 
 async fn load_item(name: AttrValue) -> Result<Value, Error> {
     let url = format!(
@@ -357,7 +358,7 @@ impl Component for ProxmoxNetworkEdit {
             }
         };
 
-        let interface_type = crate::utils::format_network_interface_type(props.interface_type);
+        let interface_type = format_network_interface_type(props.interface_type);
 
         EditWindow::new(action + ": " + &interface_type)
             .advanced_checkbox(true)
