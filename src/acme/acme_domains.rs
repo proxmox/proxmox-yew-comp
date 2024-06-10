@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use anyhow::{bail, Error};
 use serde_json::{json, Value};
+use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
@@ -12,12 +13,10 @@ use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataT
 use pwt::widget::form::{Field, FormContext};
 use pwt::widget::{ActionIcon, Button, InputPanel, Toolbar, Tooltip};
 
-use crate::common_api_types::{
-    create_acme_config_string, parse_acme_config_string, AcmeConfig,
-};
-use crate::common_api_types::{
-    create_acme_domain_string, parse_acme_domain_string, AcmeDomain,
-};
+use pwt_macros::builder;
+
+use crate::common_api_types::{create_acme_config_string, parse_acme_config_string, AcmeConfig};
+use crate::common_api_types::{create_acme_domain_string, parse_acme_domain_string, AcmeDomain};
 use crate::percent_encoding::percent_encode_component;
 use crate::{ConfirmButton, EditWindow};
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
@@ -32,11 +31,17 @@ struct AcmeDomainEntry {
 }
 
 #[derive(PartialEq, Properties)]
-pub struct AcmeDomainsPanel {}
+#[builder]
+pub struct AcmeDomainsPanel {
+    #[prop_or("/nodes/localhost/config".into())]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The base url for
+    pub url: AttrValue,
+}
 
 impl AcmeDomainsPanel {
     pub fn new() -> Self {
-        Self {}
+        yew::props! {Self {}}
     }
 }
 
@@ -109,9 +114,10 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
         ctx: &crate::LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let store = self.store.clone();
+        let url = ctx.props().url.clone();
         let link = ctx.link();
         Box::pin(async move {
-            let data: Value = crate::http_get("/nodes/localhost/config", None).await?;
+            let data: Value = crate::http_get(&*url, None).await?;
 
             let mut domain_list: Vec<AcmeDomainEntry> = Vec::new();
             for i in 0..5 {
@@ -180,13 +186,13 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
                     .disabled(selected_key.is_none())
                     .on_activate({
                         let link = ctx.link();
+                        let url = ctx.props().url.clone();
                         let selected_key = selected_key.clone();
                         move |_| {
                             let link = link.clone();
                             if let Some(selected_key) = &selected_key {
-                                let url = "/nodes/localhost/config";
                                 let data = json!({ "delete": &[ selected_key.to_string()] });
-                                let command_future = crate::http_put(url, Some(data));
+                                let command_future = crate::http_put(url.to_string(), Some(data));
                                 wasm_bindgen_futures::spawn_local(async move {
                                     match command_future.await {
                                         Ok(()) => {
@@ -303,6 +309,7 @@ impl ProxmoxAcmeDomainsPanel {
     async fn update_acme_domain(
         form_ctx: FormContext,
         config_key: Option<String>,
+        url: AttrValue,
     ) -> Result<(), Error> {
         let config_key = match config_key {
             Some(key) => key,
@@ -315,14 +322,11 @@ impl ProxmoxAcmeDomainsPanel {
         let acme_domain: AcmeDomain = serde_json::from_value(acme_domain)?;
         let mut data = json!({});
         data[config_key] = create_acme_domain_string(&acme_domain).into();
-        crate::http_put("/nodes/localhost/config", Some(data)).await?;
+        crate::http_put(&*url, Some(data)).await?;
         Ok(())
     }
 
-    fn create_add_acme_domain_dialog(
-        &self,
-        ctx: &crate::LoadableComponentContext<Self>,
-    ) -> Html {
+    fn create_add_acme_domain_dialog(&self, ctx: &crate::LoadableComponentContext<Self>) -> Html {
         let mut next_key = None;
         {
             let store = self.store.read();
@@ -335,12 +339,13 @@ impl ProxmoxAcmeDomainsPanel {
                 break;
             }
         }
+        let url = ctx.props().url.clone();
 
         EditWindow::new(tr!("Add") + ": " + &tr!("ACME Domain"))
             .on_done(ctx.link().change_view_callback(|_| None))
             .renderer(move |form_ctx: &FormContext| Self::acme_domain_input_panel(form_ctx).into())
             .on_submit(move |form_ctx: FormContext| {
-                Self::update_acme_domain(form_ctx, next_key.clone())
+                Self::update_acme_domain(form_ctx, next_key.clone(), url.clone())
             })
             .into()
     }
@@ -355,6 +360,7 @@ impl ProxmoxAcmeDomainsPanel {
             "/nodes/localhost/config/acme_domains/{}",
             percent_encode_component(config_key)
         );
+        let url = ctx.props().url.clone();
 
         EditWindow::new(tr!("Edit") + ": " + &tr!("ACME Domain"))
             .on_done(ctx.link().change_view_callback(|_| None))
@@ -364,11 +370,12 @@ impl ProxmoxAcmeDomainsPanel {
             .loader((
                 {
                     let config_key = config_key.to_owned();
+                    let url = url.clone();
                     move |_fake_url: AttrValue| {
                         let config_key = config_key.clone();
+                        let url = url.clone();
                         async move {
-                            let data: Value =
-                                crate::http_get("/nodes/localhost/config", None).await?;
+                            let data: Value = crate::http_get(&*url, None).await?;
                             if let Some(acme_config_string) = data[&config_key].as_str() {
                                 let config = parse_acme_domain_string(acme_config_string)?;
                                 let config = serde_json::to_value(config)?;
@@ -383,17 +390,16 @@ impl ProxmoxAcmeDomainsPanel {
             ))
             .on_submit({
                 let config_key = config_key.to_owned();
+                let url = url.clone();
                 move |form_ctx: FormContext| {
-                    Self::update_acme_domain(form_ctx, Some(config_key.clone()))
+                    Self::update_acme_domain(form_ctx, Some(config_key.clone()), url.clone())
                 }
             })
             .into()
     }
 
-    fn create_edit_acme_account_dialog(
-        &self,
-        ctx: &crate::LoadableComponentContext<Self>,
-    ) -> Html {
+    fn create_edit_acme_account_dialog(&self, ctx: &crate::LoadableComponentContext<Self>) -> Html {
+        let url = ctx.props().url.clone();
         EditWindow::new(tr!("Edit account settings"))
             .on_done(ctx.link().change_view_callback(|_| None))
             .loader((
@@ -407,7 +413,7 @@ impl ProxmoxAcmeDomainsPanel {
                         Ok(Value::Null)
                     }
                 },
-                "/nodes/localhost/config",
+                url.clone(),
             ))
             .renderer(|_form_ctx: &FormContext| {
                 let panel = InputPanel::new().class("pwt-flex-fit pwt-p-4").with_field(
@@ -419,18 +425,21 @@ impl ProxmoxAcmeDomainsPanel {
                 );
                 panel.into()
             })
-            .on_submit(|form_ctx: FormContext| async move {
-                let account = form_ctx.read().get_field_text("account");
-                let data = if account.is_empty() {
-                    json!({ "delete": ["acme"] })
-                } else {
-                    let acme = form_ctx.get_submit_data();
-                    let acme: AcmeConfig = serde_json::from_value(acme)?;
-                    let acme = create_acme_config_string(&acme);
-                    json!({ "acme": acme })
-                };
-                crate::http_put("/nodes/localhost/config", Some(data)).await?;
-                Ok(())
+            .on_submit(move |form_ctx: FormContext| {
+                let url = url.clone();
+                async move {
+                    let account = form_ctx.read().get_field_text("account");
+                    let data = if account.is_empty() {
+                        json!({ "delete": ["acme"] })
+                    } else {
+                        let acme = form_ctx.get_submit_data();
+                        let acme: AcmeConfig = serde_json::from_value(acme)?;
+                        let acme = create_acme_config_string(&acme);
+                        json!({ "acme": acme })
+                    };
+                    crate::http_put(&*url, Some(data)).await?;
+                    Ok(())
+                }
             })
             .into()
     }
