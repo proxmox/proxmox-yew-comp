@@ -16,9 +16,12 @@ async fn store_timezone(form: FormContext) -> Result<(), Error> {
 }
 
 fn render_localtime(_name: &str, value: &Value, _record: &Value) -> Html {
+    let date = js_sys::Date::new_0();
+    let tz_offset = (date.get_timezone_offset() * 60.0) as i64;
+
     match value.as_i64() {
         Some(epoch) => {
-            html! { {render_epoch(epoch)} }
+            html! { {render_epoch(epoch + tz_offset)} }
         }
         None => {
             html! { "NaN" }
