@@ -33,12 +33,12 @@ thread_local!{
         DataTableColumn::new("Value")
             .width("100px")
             .show_menu(false)
-            .render(|item: &Record| html!{item.0.clone()})
+            .render(|item: &Record| html!{item.0})
             .into(),
         DataTableColumn::new("Comment")
             .width("300px")
             .show_menu(false)
-            .render(|item: &Record| html!{item.1.clone()})
+            .render(|item: &Record| html!{item.1})
             .into(),
     ]);
 }
@@ -75,9 +75,7 @@ impl Component for ProxmoxCalendarEventSelector {
     type Properties =  CalendarEventSelector;
 
     fn create(_ctx: &Context<Self>) -> Self {
-        let store = Store::with_extract_key(|item: &Record| {
-            Key::from(item.0.clone())
-        });
+        let store = Store::with_extract_key(|item: &Record| Key::from(item.0));
         store.set_data(Vec::from(EXAMPLES));
 
         let validate = ValidateFn::new(|(value, _store): &(String, Store<Record>)| {

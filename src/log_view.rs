@@ -75,7 +75,7 @@ async fn load_log_page(props: &LogView, page: u64) -> Result<LogPage, Error> {
         param["until"] = epoch_to_syslog_api(until).into();
     }
 
-    let url = props.url.as_str().clone();
+    let url = props.url.as_str();
     let resp = crate::http_get_full::<Vec<LogEntry>>(url, Some(param)).await?;
 
     let data_len = resp.data.len() as u64;
