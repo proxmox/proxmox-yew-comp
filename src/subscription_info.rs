@@ -11,7 +11,7 @@ use pwt::widget::{Container, Panel};
 
 use pwt_macros::builder;
 
-use crate::{HelpButton, ProxmoxProduct};
+use crate::{HelpButton, ProjectInfo};
 
 pub fn subscription_status_text(status: &str) -> String {
     match status {
@@ -66,7 +66,8 @@ pub fn subscription_status_message(status: &str, url: Option<&str>) -> Html {
 #[derive(Properties, PartialEq, Clone)]
 #[builder]
 pub struct SubscriptionInfo {
-    pub product: ProxmoxProduct,
+    pub project: AttrValue,
+    pub short_name: AttrValue,
 
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
     #[prop_or_default]
@@ -74,8 +75,11 @@ pub struct SubscriptionInfo {
 }
 
 impl SubscriptionInfo {
-    pub fn new(product: ProxmoxProduct) -> Self {
-        yew::props!(Self { product })
+    pub fn new(product: &dyn ProjectInfo) -> Self {
+        yew::props!(Self {
+            project: product.project_text(),
+            short_name: product.short_name()
+        })
     }
 }
 

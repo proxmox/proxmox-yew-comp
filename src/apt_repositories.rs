@@ -20,8 +20,8 @@ use pwt::widget::data_table::{
 use pwt::widget::{Button, Column, Container, Fa, Row, Toolbar, Tooltip};
 
 use crate::{
-    EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
-    ProxmoxProduct, SubscriptionAlert,
+    EditWindow, ExistingProduct, LoadableComponent, LoadableComponentContext,
+    LoadableComponentMaster, ProjectInfo, SubscriptionAlert,
 };
 
 use pwt_macros::builder;
@@ -129,12 +129,12 @@ fn update_status_store(
         }
     }
 
-    let product = ProxmoxProduct::PBS; // fixme
+    let product = ExistingProduct::PBS; // fixme
 
     if !(has_enterprise | has_no_subscription | has_test) {
         list.push(StatusLine::error(tr!(
             "No {0} repository is enabled, you do not get any updates!",
-            product.product_text()
+            product.project_text()
         )));
     } else {
         if config.errors.is_empty() {
@@ -142,12 +142,12 @@ fn update_status_store(
             if has_test || has_no_subscription {
                 list.push(StatusLine::ok(tr!(
                     "You get updates for {0}",
-                    product.product_text()
+                    product.project_text()
                 )));
             } else if has_enterprise && active_subscription {
                 list.push(StatusLine::ok(tr!(
                     "You get supported updates for {0}",
-                    product.product_text()
+                    product.project_text()
                 )));
             }
         }
@@ -219,14 +219,14 @@ fn update_status_store(
     if has_enterprise && !active_subscription {
         list.push(StatusLine::warning(tr!(
             "The {0}enterprise repository is enabled, but there is no active subscription!",
-            product.product_text() + " ",
+            product.project_text() + " ",
         )));
     }
 
     if has_no_subscription {
         list.push(StatusLine::warning(tr!(
             "The {0}no-subscription{1} repository is not recommended for production use!",
-            product.product_text() + " ",
+            product.project_text() + " ",
             "",
         )));
     }
@@ -234,7 +234,7 @@ fn update_status_store(
     if has_test {
         list.push(StatusLine::warning(tr!(
             "The {0}test repository may pull in unstable updates and is not recommended for production use!",
-            product.product_text() + " ",
+            product.project_text() + " ",
         )));
     }
 

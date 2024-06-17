@@ -162,7 +162,7 @@ pub use tasks::{Tasks, ProxmoxTasks};
 pub mod percent_encoding;
 
 mod proxmox_product;
-pub use proxmox_product::ProxmoxProduct;
+pub use proxmox_product::{ExistingProduct, ProjectInfo};
 
 pub mod utils;
 

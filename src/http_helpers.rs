@@ -14,7 +14,7 @@ use proxmox_login::{Authentication, TicketResult, ticket::Validity};
 use proxmox_client::HttpApiClient;
 use yew::Callback;
 
-use crate::{HttpClientWasm, ProxmoxProduct, json_object_to_query};
+use crate::{json_object_to_query, ExistingProduct, HttpClientWasm, ProjectInfo};
 
 static LAST_NOTIFY_EPOCH: AtomicU32 = AtomicU32::new(0);
 static CLIENT_NOTIFY_EPOCH: AtomicU32 = AtomicU32::new(0);
@@ -25,7 +25,7 @@ thread_local! {
         start_ticket_refresh_loop();
         CLIENT_NOTIFY_EPOCH.fetch_add(1, Ordering::SeqCst);
         RefCell::new(Rc::new(
-            HttpClientWasm::new(ProxmoxProduct::PBS, notify_auth_listeners)
+            HttpClientWasm::new(&ExistingProduct::PBS, notify_auth_listeners)
         ))
     };
 }
@@ -121,8 +121,8 @@ fn start_ticket_refresh_loop() {
 }
 
 
-pub fn http_setup(product: ProxmoxProduct) {
-    let client = HttpClientWasm::new(product, notify_auth_listeners);
+pub fn http_setup(project: &'static dyn ProjectInfo) {
+    let client = HttpClientWasm::new(project, notify_auth_listeners);
     update_global_client(client);
 }
 

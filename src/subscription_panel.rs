@@ -12,17 +12,23 @@ use pwt::widget::form::{Field, FormContext};
 use pwt::widget::{Button, Container, InputPanel, Toolbar};
 
 use crate::utils::render_epoch;
-use crate::{ConfirmButton, DataViewWindow, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
+use crate::{ConfirmButton, DataViewWindow, EditWindow, KVGrid, KVGridRow, ProjectInfo};
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct SubscriptionPanel {
-    product: ProxmoxProduct,
+    product: AttrValue,
+    short_name: AttrValue,
+    base_url: AttrValue,
 }
 
 impl SubscriptionPanel {
-    pub fn new(product: ProxmoxProduct) -> Self {
-        yew::props!(Self { product })
+    pub fn new(product: &dyn ProjectInfo) -> Self {
+        yew::props!(Self {
+            product: product.project_text(),
+            short_name: product.short_name(),
+            base_url: product.subscription_url()
+        })
     }
 }
 
@@ -37,12 +43,6 @@ pub enum Msg {}
 pub struct ProxmoxSubscriptionPanel {
     rows: Rc<Vec<KVGridRow>>,
     data: Rc<RefCell<Rc<Value>>>,
-}
-
-fn base_url(product: ProxmoxProduct) -> AttrValue {
-    match product {
-        _ => AttrValue::Static("/nodes/localhost/subscription"),
-    }
 }
 
 impl LoadableComponent for ProxmoxSubscriptionPanel {
@@ -62,9 +62,9 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
         ctx: &crate::LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let data = self.data.clone();
-        let base_url = base_url(ctx.props().product);
+        let base_url = ctx.props().base_url.to_string();
         Box::pin(async move {
-            let info = crate::http_get(&*base_url, None).await?;
+            let info = crate::http_get(base_url, None).await?;
             *data.borrow_mut() = Rc::new(info);
             Ok(())
         })
@@ -86,13 +86,12 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                     .icon_class("fa fa-check-square-o")
                     .onclick({
                         let link = ctx.link();
-                        let base_url = base_url(ctx.props().product);
+                        let base_url = ctx.props().base_url.to_string();
                         move |_| {
                             let link = link.clone();
                             let base_url = base_url.clone();
                             wasm_bindgen_futures::spawn_local(async move {
-                                match crate::http_post(&*base_url, Some(json!({"force": true})))
-                                    .await
+                                match crate::http_post(base_url, Some(json!({"force": true}))).await
                                 {
                                     Ok(()) => link.send_reload(),
                                     Err(err) => {
@@ -111,12 +110,12 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                     )
                     .on_activate({
                         let link = ctx.link();
-                        let base_url = base_url(ctx.props().product);
+                        let base_url = ctx.props().base_url.to_string();
                         move |_| {
                             let link = link.clone();
                             let base_url = base_url.clone();
                             wasm_bindgen_futures::spawn_local(async move {
-                                match crate::http_delete(&*base_url, None).await {
+                                match crate::http_delete(base_url, None).await {
                                     Ok(()) => link.change_view(None),
                                     Err(err) => {
                                         link.show_error(tr!("Error"), err.to_string(), true)
@@ -243,12 +242,12 @@ impl ProxmoxSubscriptionPanel {
         EditWindow::new(tr!("Upload Subscription Key"))
             .renderer(input_panel)
             .on_submit({
-                let base_url = base_url(ctx.props().product);
+                let base_url = ctx.props().base_url.to_string();
                 move |form_state: FormContext| {
                     let base_url = base_url.clone();
                     async move {
                         let data = form_state.get_submit_data();
-                        crate::http_put(&*base_url, Some(data)).await
+                        crate::http_put(base_url, Some(data)).await
                     }
                 }
             })

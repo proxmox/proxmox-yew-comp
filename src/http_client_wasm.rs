@@ -15,10 +15,10 @@ use proxmox_login::{Authentication, Login, Ticket, TicketResult};
 use yew::{Callback, html::IntoEventCallback};
 
 //use crate::percent_encoding::DEFAULT_ENCODE_SET;
-use crate::ProxmoxProduct;
+use crate::ProjectInfo;
 
-pub fn authentication_from_cookie(product: ProxmoxProduct) -> Option<Authentication> {
-    if let Some((ticket, csrfprevention_token)) = extract_auth_from_cookie(product) {
+pub fn authentication_from_cookie(project: &dyn ProjectInfo) -> Option<Authentication> {
+    if let Some((ticket, csrfprevention_token)) = extract_auth_from_cookie(project) {
         let ticket: Result<Ticket, _> = ticket.parse();
         if let Ok(ticket) = ticket {
             return Some(Authentication {
@@ -34,12 +34,12 @@ pub fn authentication_from_cookie(product: ProxmoxProduct) -> Option<Authenticat
     None
 }
 
-fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String)> {
+fn extract_auth_from_cookie(project: &dyn ProjectInfo) -> Option<(String, String)> {
     let cookie = crate::get_cookie();
     //log::info!("COOKIE: {}", cookie);
 
-    let name = product.auth_cookie_name();
-    let prefixes = product.auth_cookie_prefixes();
+    let name = project.auth_cookie_name();
+    let prefixes = project.auth_cookie_prefixes();
 
     for part in cookie.split(';') {
         let part = part.trim();
@@ -64,26 +64,29 @@ fn extract_auth_from_cookie(product: ProxmoxProduct) -> Option<(String, String)>
 }
 
 pub struct HttpClientWasm {
-    product: ProxmoxProduct,
+    project: &'static dyn ProjectInfo,
     auth: Mutex<Option<Authentication>>,
     on_auth_failure: Option<Callback<()>>,
 }
 
 impl HttpClientWasm {
-    pub fn new(product: ProxmoxProduct, on_auth_failure: impl IntoEventCallback<()>) -> Self {
+    pub fn new(
+        project: &'static dyn ProjectInfo,
+        on_auth_failure: impl IntoEventCallback<()>,
+    ) -> Self {
         Self {
-            product,
+            project,
             auth: Mutex::new(None),
             on_auth_failure: on_auth_failure.into_event_callback(),
         }
     }
 
-    pub fn product(&self) -> ProxmoxProduct {
-        self.product
+    pub fn product(&self) -> &'static dyn ProjectInfo {
+        self.project
     }
 
-    pub fn set_product(&mut self, product: ProxmoxProduct) {
-        self.product = product;
+    pub fn set_product(&mut self, project: &'static dyn ProjectInfo) {
+        self.project = project;
     }
 
     pub fn set_auth(&self, auth: Authentication) {
@@ -238,7 +241,7 @@ impl HttpClientWasm {
         if resp.status() == 401 {
             log::info!("Got UNAUTHORIZED status - clearing AUTH cookie");
             self.clear_auth();
-            let auth_cookie_name = self.product.auth_cookie_name();
+            let auth_cookie_name = self.project.auth_cookie_name();
             crate::clear_auth_cookie(auth_cookie_name);
             if let Some(on_auth_failure) = &self.on_auth_failure {
                 on_auth_failure.emit(());

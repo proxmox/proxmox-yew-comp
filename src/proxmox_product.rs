@@ -2,49 +2,73 @@
 
 use pwt::tr;
 
+/// A trait that defines several aspects of a project for other components in this project.
+pub trait ProjectInfo {
+    /// Returns the name of the auth cookie.
+    fn auth_cookie_name(&self) -> &'static str;
+
+    /// Returns a list prefixes that are used by the project's auth cookie(s).
+    fn auth_cookie_prefixes(&self) -> &'static [&'static str];
+
+    /// The non-abbreviated name of the project.
+    fn project_text(&self) -> String;
+
+    /// The abbreviated name of the project.
+    fn short_name(&self) -> &'static str;
+
+    /// Returns the url where a project's subscription status can be queried.
+    fn subscription_url(&self) -> &'static str {
+        ""
+    }
+}
+
 /// Enumerate the different Proxmox products.
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub enum ProxmoxProduct {
+pub enum ExistingProduct {
     PVE,
     PMG,
     PBS,
     POM,
 }
 
-impl ProxmoxProduct {
-    pub fn auth_cookie_name(&self) -> &'static str {
+impl ProjectInfo for ExistingProduct {
+    fn auth_cookie_name(&self) -> &'static str {
         match self {
-            ProxmoxProduct::PVE => "PVEAuthCookie",
-            ProxmoxProduct::PMG => "PMGAuthCookie",
-            ProxmoxProduct::PBS => "PBSAuthCookie",
-            ProxmoxProduct::POM => "POMAuthCookie",
+            ExistingProduct::PVE => "PVEAuthCookie",
+            ExistingProduct::PMG => "PMGAuthCookie",
+            ExistingProduct::PBS => "PBSAuthCookie",
+            ExistingProduct::POM => "POMAuthCookie",
         }
     }
 
-    pub fn auth_cookie_prefixes(&self) -> &'static[&'static str] {
+    fn auth_cookie_prefixes(&self) -> &'static [&'static str] {
         match self {
-            ProxmoxProduct::PVE => &["PVE"],
-            ProxmoxProduct::PMG => &["PMG", "PMGQUAR"],
-            ProxmoxProduct::PBS => &["PBS"],
-            ProxmoxProduct::POM => &["POM"],
+            ExistingProduct::PVE => &["PVE"],
+            ExistingProduct::PMG => &["PMG", "PMGQUAR"],
+            ExistingProduct::PBS => &["PBS"],
+            ExistingProduct::POM => &["POM"],
         }
     }
 
-    pub fn product_text(&self) -> String {
+    fn project_text(&self) -> String {
         match self {
-            ProxmoxProduct::PVE => tr!("Proxmox Virtual Environment"),
-            ProxmoxProduct::PMG => tr!("Proxmox Mail Gateway"),
-            ProxmoxProduct::PBS => tr!("Proxmox Backup Server"),
-            ProxmoxProduct::POM => tr!("Proxmox Offline Mirror"),
+            ExistingProduct::PVE => tr!("Proxmox Virtual Environment"),
+            ExistingProduct::PMG => tr!("Proxmox Mail Gateway"),
+            ExistingProduct::PBS => tr!("Proxmox Backup Server"),
+            ExistingProduct::POM => tr!("Proxmox Offline Mirror"),
         }
     }
 
-    pub fn short_name(&self) -> &'static str {
+    fn short_name(&self) -> &'static str {
         match self {
-            ProxmoxProduct::PVE => "PVE",
-            ProxmoxProduct::PMG => "PMG",
-            ProxmoxProduct::PBS => "PBS",
-            ProxmoxProduct::POM => "POM",
+            ExistingProduct::PVE => "PVE",
+            ExistingProduct::PMG => "PMG",
+            ExistingProduct::PBS => "PBS",
+            ExistingProduct::POM => "POM",
         }
+    }
+
+    fn subscription_url(&self) -> &'static str {
+        "/nodes/localhost/subscription"
     }
 }
