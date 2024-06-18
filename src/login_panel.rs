@@ -325,7 +325,7 @@ impl Component for ProxmoxLoginPanel {
             .with_optional_child(
                 self.login_error
                     .as_ref()
-                    .map(|msg| pwt::widget::error_message(msg, "pwt-p-2")),
+                    .map(|msg| pwt::widget::error_message(msg).padding(2)),
             )
             .with_flex_spacer()
             .with_child(toolbar);

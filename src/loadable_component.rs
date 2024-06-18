@@ -422,7 +422,7 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
 
         if dialog.is_none() {
             if let Some(msg) = &self.comp_state.last_load_error {
-                alert_msg = Some(pwt::widget::error_message(&msg, "pwt-border-top"));
+                alert_msg = Some(pwt::widget::error_message(&msg).class("pwt-border-top"));
             }
         }
 

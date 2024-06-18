@@ -133,7 +133,7 @@ impl Component for ProxmoxAcmeRegisterAccount {
                             );
                         }
                         Some(Err(err)) => {
-                            let msg = pwt::widget::error_message(&tr!("Loading TOS failed: {0}", err), "");
+                            let msg = pwt::widget::error_message(&tr!("Loading TOS failed: {0}", err));
                             panel.add_custom_child(html! {<span key="tos_url">{msg}</span>});
                             panel.add_field(
                                 false,

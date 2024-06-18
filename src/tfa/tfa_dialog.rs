@@ -105,7 +105,7 @@ fn render_yubico(callback: Option<Callback<String>>) -> Html {
 fn render_recovery(callback: Option<Callback<String>>, available_keys: &[usize]) -> Html {
     if available_keys.is_empty() {
         let msg = "No more recovery keys available.";
-        return pwt::widget::error_message(msg, "pwt-p-2");
+        return pwt::widget::error_message(msg).padding(2).into();
     }
 
     Form::new()
