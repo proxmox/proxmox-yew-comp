@@ -200,7 +200,6 @@ impl LoadableComponent for ProxmoxTasks {
         let filter_classes = classes!(
             "pwt-overflow-auto",
             "pwt-border-bottom",
-            "pwt-p-4",
             "pwt-gap-2",
             "pwt-align-items-baseline",
             if *self.show_filter {
@@ -213,7 +212,8 @@ impl LoadableComponent for ProxmoxTasks {
         let mut filter = Form::new()
             .form_context(self.filter_form_context.clone())
             .class(filter_classes)
-            .attribute("style", "grid-template-columns: minmax(100px,auto) auto minmax(100px,auto) auto minmax(100px,auto) auto 1fr;")
+            .padding(4)
+            .style("grid-template-columns","minmax(100px,auto) auto minmax(100px,auto) auto minmax(100px,auto) auto 1fr" )
             .with_child(html!{<div>{tr!("Since")}</div>})
             .with_child(
                 Field::new()

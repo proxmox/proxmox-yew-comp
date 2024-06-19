@@ -10,7 +10,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use yew::html::IntoPropValue;
 
 use pwt::prelude::*;
-use pwt::props::{ExtractPrimaryKey, WidgetStyleBuilder};
+use pwt::props::ExtractPrimaryKey;
 use pwt::state::{Selection, SlabTree, TreeStore};
 use pwt::widget::{Container, Button, Toolbar, Tooltip};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableHeaderGroup, DataTableCellRenderArgs};
@@ -240,7 +240,8 @@ impl ProxmoxAptPackageManager {
             .renderer(|description: &String| {
                 let mut panel = Container::new()
                     .tag("pre")
-                    .class("pwt-flex-fit pwt-p-2 pwt-monospace");
+                    .padding(2)
+                    .class("pwt-flex-fit pwt-monospace");
 
                 if let Some((title, body)) = description.split_once("\n") {
                     panel.add_child(html!{<h3>{title}</h3>});

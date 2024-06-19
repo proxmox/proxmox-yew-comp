@@ -4,7 +4,6 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::WidgetStyleBuilder;
 use pwt::widget::{Container, Dialog, ThemeDensitySelector, ThemeModeSelector, ThemeNameSelector};
 
 use pwt_macros::builder;
@@ -42,8 +41,9 @@ impl Component for ProxmoxThemeDialog {
             .on_close(props.on_close.clone())
             .with_child(
                 Container::new()
-                    .class("pwt-p-4 pwt-gap-2 pwt-d-grid pwt-align-items-baseline")
-                    .attribute("style", "grid-template-columns: 1fr 1fr;")
+                    .padding(4)
+                    .class("pwt-gap-2 pwt-d-grid pwt-align-items-baseline")
+                    .style("grid-template-columns", "1fr 1fr")
                     .with_child(tr!("Theme name"))
                     .with_child(ThemeNameSelector::new())
                     .with_child(tr!("Density"))

@@ -81,9 +81,9 @@ pub struct ProxmoxTfaAddRecovery {
 
 fn render_input_form(_form_ctx: FormContext) -> Html {
     InputPanel::new()
-        .attribute("style", "min-width: 600px;")
+        .min_width(600)
         .label_width("120px")
-        .class("pwt-p-4")
+        .padding(4)
         .with_field(
             tr!("User"),
             AuthidSelector::new()

@@ -7,7 +7,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::Loader;
-use pwt::widget::Panel;
+use pwt::widget::{Container, Panel};
 
 use pwt_macros::builder;
 
@@ -38,13 +38,13 @@ a list of available options.
 
     let msg2 = Html::from_html_unchecked(msg2.into());
 
-    let msg = html! {<><p class="pwt-pb-2">{tr!("
+    let msg = Container::new().tag("p").padding_bottom(2).with_child(tr!("
 The Proxmox team works very hard to make sure you are running the best
 software and getting stable updates and security enhancements,
 as well as quick enterprise support.
-")}</p>{msg2}</>};
+"));
 
-    msg
+    html! {<>{msg}{msg2}</>}
 }
 
 pub fn subscription_status_message(status: &str, url: Option<&str>) -> Html {
@@ -122,7 +122,7 @@ impl Component for ProxmoxSubscriptionInfo {
             let status = data["status"].as_str().unwrap_or("").to_owned();
             let url = data["url"].as_str();
             let msg = subscription_status_message(&status, url);
-            html! {<div class="pwt-p-2">{msg}</div>}
+            Container::new().padding(2).with_child(msg)
         });
 
         Panel::new()

@@ -60,7 +60,8 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Redraw));
-        let store = Store::with_extract_key(|record: &AcmeAccountEntry| Key::from(record.name.clone()));
+        let store =
+            Store::with_extract_key(|record: &AcmeAccountEntry| Key::from(record.name.clone()));
 
         let columns = Rc::new(vec![DataTableColumn::new(tr!("Name"))
             .flex(1)
@@ -158,7 +159,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
                         link.change_view(Some(ViewState::View(selected_key.clone())));
                     }
                 }
-        })
+            })
             .into()
     }
 
@@ -203,8 +204,9 @@ impl ProxmoxAcmeAccountsPanel {
             .on_done(ctx.link().change_view_callback(|_| None))
             .renderer(|data: &AcmeAccountInfo| {
                 let mut grid = Container::new()
-                    .class("pwt-flex-fit pwt-d-grid pwt-p-4 pwt-gap-4")
-                    .attribute("style", "grid-template-columns: auto 500px;");
+                    .padding(4)
+                    .class("pwt-flex-fit pwt-d-grid pwt-gap-4")
+                    .style("grid-template-columns", "auto 500px");
 
                 for contact in &data.account.contact {
                     grid.add_child(html! {<span>{tr!("Contact")}</span>});

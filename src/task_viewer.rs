@@ -9,7 +9,6 @@ use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::WidgetStyleBuilder;
 use pwt::state::Loader;
 use pwt::widget::{Button, Column, Dialog, TabBarItem, TabPanel, Toolbar};
 
@@ -212,63 +211,63 @@ impl PwtTaskViewer {
             .class("pwt-flex-fit")
             .data(data)
             .rows(Rc::new(vec![
-            KVGridRow::new("status", "Status")
-                .renderer(|_name, value, record| {
-                    let value = match value.as_str() {
-                        Some(s) => s,
-                        None => return html! {"unknown"},
-                    };
-                    if value != "stopped" {
-                        return html! {{value}};
-                    }
-                    let status = record["exitstatus"].as_str().unwrap_or("unknown");
-                    html! {{format!("{}: {}", value, status)}}
-                })
-                .placeholder("unknown"),
-            KVGridRow::new("type", "Task type").required(true),
-            KVGridRow::new("user", "User name")
-                .renderer(|_name, value, record| {
-                    let mut user = match value.as_str() {
-                        Some(s) => s.to_owned(),
-                        None => return html! {"unknown"},
-                    };
-                    if let Some(tokenid) = record["tokenid"].as_str() {
-                        user.push_str(&format!("!{} (API Token)", tokenid));
-                    }
-                    html! {{user}}
-                })
-                .required(true),
-            KVGridRow::new("node", "Node").required(true),
-            KVGridRow::new("pid", "Process ID").required(true),
-            KVGridRow::new("task_id", "Task ID"),
-            KVGridRow::new("starttime", "Start Time")
-                .renderer(|_name, value, _record| match value.as_i64() {
-                    None => html! {"unknown (wrong format)"},
-                    Some(epoch) => html! { {render_epoch(epoch)} },
-                })
-                .required(true),
-            KVGridRow::new("endtime", "End Time").renderer(|_name, value, _record| {
-                match value.as_i64() {
-                    None => html! {"unknown (wrong format)"},
-                    Some(epoch) => html! { {render_epoch(epoch)} },
-                }
-            }),
-            KVGridRow::new("duration", "Duration")
-                .renderer(move |_name, _value, record| {
-                    if let Some(starttime) = record["starttime"].as_i64() {
-                        let duration = if let Some(endtime) = record["endtime"].as_i64() {
-                            endtime - starttime
-                        } else {
-                            let now = endtime.unwrap_or_else(|| proxmox_time::epoch_i64());
-                            now - starttime
+                KVGridRow::new("status", "Status")
+                    .renderer(|_name, value, record| {
+                        let value = match value.as_str() {
+                            Some(s) => s,
+                            None => return html! {"unknown"},
                         };
-                        return html! {format_duration_human(duration as f64)};
-                    }
-                    html! {"-"}
-                })
-                .required(true),
-            KVGridRow::new("upid", "Unique task ID"),
-        ]));
+                        if value != "stopped" {
+                            return html! {{value}};
+                        }
+                        let status = record["exitstatus"].as_str().unwrap_or("unknown");
+                        html! {{format!("{}: {}", value, status)}}
+                    })
+                    .placeholder("unknown"),
+                KVGridRow::new("type", "Task type").required(true),
+                KVGridRow::new("user", "User name")
+                    .renderer(|_name, value, record| {
+                        let mut user = match value.as_str() {
+                            Some(s) => s.to_owned(),
+                            None => return html! {"unknown"},
+                        };
+                        if let Some(tokenid) = record["tokenid"].as_str() {
+                            user.push_str(&format!("!{} (API Token)", tokenid));
+                        }
+                        html! {{user}}
+                    })
+                    .required(true),
+                KVGridRow::new("node", "Node").required(true),
+                KVGridRow::new("pid", "Process ID").required(true),
+                KVGridRow::new("task_id", "Task ID"),
+                KVGridRow::new("starttime", "Start Time")
+                    .renderer(|_name, value, _record| match value.as_i64() {
+                        None => html! {"unknown (wrong format)"},
+                        Some(epoch) => html! { {render_epoch(epoch)} },
+                    })
+                    .required(true),
+                KVGridRow::new("endtime", "End Time").renderer(|_name, value, _record| match value
+                    .as_i64()
+                {
+                    None => html! {"unknown (wrong format)"},
+                    Some(epoch) => html! { {render_epoch(epoch)} },
+                }),
+                KVGridRow::new("duration", "Duration")
+                    .renderer(move |_name, _value, record| {
+                        if let Some(starttime) = record["starttime"].as_i64() {
+                            let duration = if let Some(endtime) = record["endtime"].as_i64() {
+                                endtime - starttime
+                            } else {
+                                let now = endtime.unwrap_or_else(|| proxmox_time::epoch_i64());
+                                now - starttime
+                            };
+                            return html! {format_duration_human(duration as f64)};
+                        }
+                        html! {"-"}
+                    })
+                    .required(true),
+                KVGridRow::new("upid", "Unique task ID"),
+            ]));
 
         Column::new()
             .class("pwt-flex-fit")
@@ -300,7 +299,8 @@ impl PwtTaskViewer {
             .with_child(toolbar)
             .with_child(
                 LogView::new(url)
-                    .class("pwt-p-2 pwt-flex-fill")
+                    .padding(2)
+                    .class("pwt-flex-fill")
                     .active(active),
             )
             .into()

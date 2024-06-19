@@ -8,7 +8,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::widget::form::{Boolean, Field, FormContext, ValidateFn};
-use pwt::widget::InputPanel;
+use pwt::widget::{Container, InputPanel};
 
 use crate::EditWindow;
 
@@ -93,8 +93,9 @@ impl Component for ProxmoxAcmeRegisterAccount {
             .on_done(props.on_done.clone())
             .renderer(move |form_ctx: &FormContext| {
                 let mut panel = InputPanel::new()
-                    .attribute("style", "width: 500px;")
-                    .class("pwt-flex-fit pwt-p-4")
+                    .width(500)
+                    .class("pwt-flex-fit")
+                    .padding(4)
                     .with_field(
                         tr!("Account Name"),
                         Field::new().name("name").placeholder("default"),
@@ -112,11 +113,12 @@ impl Component for ProxmoxAcmeRegisterAccount {
 
                 if has_acme_dir {
 
-                    panel.add_custom_child(html!{
-                        <div key="tos_header" class="pwt-pt-4">
-                        {tr!("Terms Of Service")}
-                        </div>
-                    });
+                    panel.add_custom_child(
+                        Container::new()
+                            .key("tos_header")
+                            .padding(4)
+                            .with_child(tr!("Terms Of Service"))
+                    );
 
                     match &tos_url {
                         Some(Ok(tos_url)) => {

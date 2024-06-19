@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use pwt::widget::form::InputType;
+use pwt::widget::Container;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
@@ -68,7 +69,14 @@ impl ProxmoxSyslog {
 
         Toolbar::new()
             .with_flex_spacer()
-            .with_child(html!{<label id={self.since_label_id.clone()} class="pwt-ps-2 pwt-align-self-center">{"Since:"}</label>})
+            .with_child(
+                Container::new()
+                    .tag("label")
+                    .id(self.since_label_id.clone())
+                    .padding_start(2)
+                    .class("pwt-align-self-center")
+                    .with_child("Since:"),
+            )
             .with_child(
                 Field::new()
                     .label_id(self.since_label_id.clone())
@@ -76,16 +84,23 @@ impl ProxmoxSyslog {
                     .required(true) // avoid clear button in firefox
                     .class("pwt-input-hide-clear-button")
                     .on_change(ctx.link().callback(Msg::Since))
-                    .value(since)
+                    .value(since),
             )
-            .with_child(html!{<label id={self.until_label_id.clone()} class="pwt-ps-2 pwt-align-self-center">{"Until:"}</label>})
+            .with_child(
+                Container::new()
+                    .tag("label")
+                    .id(self.since_label_id.clone())
+                    .padding_start(2)
+                    .class("pwt-align-self-center")
+                    .with_child("Until:"),
+            )
             .with_child(
                 Field::new()
                     .label_id(self.until_label_id.clone())
                     .input_type(InputType::DatetimeLocal)
                     .required(true) // avoid clear button in firefox
                     .on_change(ctx.link().callback(Msg::Until))
-                    .value(until)
+                    .value(until),
             )
             .border_bottom(true)
             .into()
@@ -109,7 +124,8 @@ impl ProxmoxSyslog {
         };
 
         LogView::new(props.base_url.clone())
-            .class("pwt-p-2 pwt-flex-fill")
+            .padding(2)
+            .class("pwt-flex-fill")
             .service(props.service.clone())
             .since((since.get_time() / 1000.0) as i64)
             .until(until)

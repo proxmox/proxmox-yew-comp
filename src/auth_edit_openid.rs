@@ -86,7 +86,7 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditOpenID) -> Html {
 
     InputPanel::new()
         .show_advanced(form_ctx.get_show_advanced())
-        .class("pwt-p-4")
+        .padding(4)
         .with_large_field(
             tr!("Issuer URL"),
             Field::new().name("issuer-url").required(true),

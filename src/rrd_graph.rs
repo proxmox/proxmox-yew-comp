@@ -100,14 +100,13 @@ impl Component for PwtRRDGraph {
         Panel::new()
             .title(props.title.clone())
             .class(props.class.clone())
-            .with_child(html!{
-                <div class="pwt-p-2">
-                    <div ref={self.node_ref.clone()}/>
-                </div>
-            })
+            .with_child(
+                Container::new()
+                    .padding(2)
+                    .with_child(html! {<div ref={self.node_ref.clone()}>}),
+            )
             .into()
     }
-
 
     fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         if let Some(uplot) = &self.uplot {

@@ -185,7 +185,7 @@ impl Component for ProxmoxRunningTasksButton {
             }));
 
         Container::new()
-            .attribute("style", "display:contents;")
+            .style("display", "contents")
             .attribute("role", "none")
             .onfocusin(ctx.link().callback(|_| Msg::FocusChange(true)))
             .onfocusout(ctx.link().callback(|_| Msg::FocusChange(false)))

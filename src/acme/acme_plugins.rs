@@ -264,8 +264,9 @@ impl ProxmoxAcmePluginsPanel {
         api_data: &str,
     ) -> InputPanel {
         let mut panel = InputPanel::new()
-            .attribute("style", "width: 600px")
-            .class("pwt-flex-fit pwt-p-4")
+            .width(600)
+            .class("pwt-flex-fit")
+            .padding(4)
             .with_field(
                 tr!("Plugin ID"),
                 Field::new()

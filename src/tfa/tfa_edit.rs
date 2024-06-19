@@ -48,7 +48,7 @@ pub struct ProxmoxTfaEdit {}
 
 fn render_input_form(_form_ctx: FormContext, props: TfaEdit) -> Html {
     InputPanel::new()
-        .class("pwt-p-4")
+        .padding(4)
         .with_field(
             tr!("User"),
             Field::new()

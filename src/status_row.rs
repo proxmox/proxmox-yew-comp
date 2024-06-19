@@ -1,7 +1,7 @@
 use pwt::css::Display;
 
 use pwt::prelude::*;
-use pwt::widget::Row;
+use pwt::widget::{Container, Row};
 
 use pwt_macros::widget;
 
@@ -58,8 +58,10 @@ impl Component for ProxmoxStatusRow {
         let props = ctx.props();
 
         let icon = props.icon_class.as_ref().map(|icon_class| {
-            let class = classes!(icon_class.clone(), "pwt-pe-2");
-            html! {<i {class}/>}
+            Container::new()
+                .tag("i")
+                .class(icon_class.clone())
+                .padding_end(2)
         });
 
         let status = match &props.status {

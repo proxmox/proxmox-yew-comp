@@ -5,8 +5,7 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::WidgetStyleBuilder;
-use pwt::widget::{Container, Button, Dialog, LanguageSelector, Row};
+use pwt::widget::{Button, Container, Dialog, LanguageSelector, Row};
 
 use pwt_macros::builder;
 
@@ -84,16 +83,13 @@ impl Component for ProxmoxLanguageDialog {
                     ),
             )
             .with_child(
-                Row::new()
-                    .padding(2)
-                    .with_flex_spacer()
-                    .with_child(
-                        Button::new(tr!("Apply"))
-                            .class("pwt-scheme-primary")
-                            .disabled(!changed)
-                            .onclick(ctx.link().callback(|_| Msg::Apply))
-                    )
-                )
+                Row::new().padding(2).with_flex_spacer().with_child(
+                    Button::new(tr!("Apply"))
+                        .class("pwt-scheme-primary")
+                        .disabled(!changed)
+                        .onclick(ctx.link().callback(|_| Msg::Apply)),
+                ),
+            )
             .into()
     }
 }

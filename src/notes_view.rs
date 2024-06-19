@@ -3,14 +3,13 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
-use pwt::props::LoadCallback;
 use serde_json::Value;
 
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::WidgetStyleBuilder;
+use pwt::props::LoadCallback;
 use pwt::widget::form::{FormContext, TextArea};
 use pwt::widget::{Button, Container, Toolbar};
 
@@ -107,8 +106,8 @@ impl LoadableComponent for ProxmoxNotesView {
 
     fn main_view(&self, _ctx: &LoadableComponentContext<Self>) -> Html {
         Container::new()
+            .padding(2)
             .class("pwt-flex-fit")
-            .class("pwt-p-2")
             .class("pwt-embedded-html")
             .with_child(Markdown::new().text(self.text.clone()))
             .into()

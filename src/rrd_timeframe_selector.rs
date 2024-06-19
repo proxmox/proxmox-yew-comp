@@ -262,7 +262,7 @@ impl Component for PwtRRDTimeframeSelector {
         let props = ctx.props();
 
         Combobox::new()
-            .attribute("style", "min-width:150px;")
+            .min_width(150)
             .class(props.class.clone())
             .default(self.timeframe.serialize())
             .items(self.items.clone())

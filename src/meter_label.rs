@@ -109,8 +109,10 @@ impl Component for ProxmoxMeterLabel {
         let props = ctx.props();
 
         let icon = props.icon_class.as_ref().map(|icon_class| {
-            let class = classes!(icon_class.clone(), "pwt-pe-2");
-            html! {<i {class}/>}
+            Container::new()
+                .tag("i")
+                .class(icon_class.clone())
+                .padding_end(2)
         });
 
         let status = match &props.status {
@@ -132,7 +134,7 @@ impl Component for ProxmoxMeterLabel {
             .with_child(text_row)
             .with_child(
                 Meter::new()
-                    .class("pwt-mt-1")
+                    .margin_top(1)
                     .value(props.value)
                     .min(props.min)
                     .max(props.max)

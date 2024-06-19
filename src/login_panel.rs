@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use pwt::css::Overflow;
 use pwt::state::PersistentState;
 use yew::html::IntoEventCallback;
 use yew::prelude::*;
@@ -256,8 +257,8 @@ impl Component for ProxmoxLoginPanel {
         }
 
         let input_panel = InputPanel::new()
-            .class("pwt-overflow-auto")
-            .class("pwt-p-4")
+            .class(Overflow::Auto)
+            .padding(4)
             .with_field(
                 "User name",
                 Field::new()
@@ -289,7 +290,7 @@ impl Component for ProxmoxLoginPanel {
 
         let save_username_label_id = pwt::widget::get_unique_element_id();
         let save_username_field = Checkbox::new()
-            .class("pwt-ms-1")
+            .margin_start(1)
             .label_id(save_username_label_id.clone())
             .checked(*self.save_username)
             .on_change(

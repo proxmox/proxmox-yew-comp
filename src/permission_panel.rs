@@ -4,6 +4,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use pwt::props::ExtractPrimaryKey;
+use pwt::widget::Fa;
 use serde_json::{json, Value};
 
 use yew::html::IntoPropValue;
@@ -156,16 +157,11 @@ fn columns(store: &TreeStore<PermissionInfo>) -> Vec<DataTableHeader<PermissionI
             .tree_column(store.clone())
             .render_cell(move |args: &mut DataTableCellRenderArgs<PermissionInfo>| {
                 let (icon_class, text) = match args.record() {
-                    PermissionInfo::Path(path, _name) => (
-                        Some(String::from("fa fa-fw fa-folder-o pwt-pe-2")),
-                        path.clone(),
-                    ),
-                    PermissionInfo::Permission(_path, perm, _propagate) => (
-                        Some(String::from("fa fa-fw fa-unlock pwt-pe-2")),
-                        perm.clone(),
-                    ),
+                    PermissionInfo::Path(path, _name) => ("folder-o", path.clone()),
+                    PermissionInfo::Permission(_path, perm, _propagate) => ("unlock", perm.clone()),
                 };
-                html! {<><i class={icon_class}/> {text}</>}
+                let icon = Fa::new(icon_class).fixed_width().padding_end(2);
+                html! {<>{icon} {text}</>}
             })
             .into(),
         DataTableColumn::new(tr!("Propagate"))

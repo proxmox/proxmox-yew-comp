@@ -8,9 +8,8 @@ use serde_json::{json, Value};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::WidgetStyleBuilder;
 use pwt::widget::form::{Field, FormContext};
-use pwt::widget::{Button, InputPanel, Toolbar};
+use pwt::widget::{Button, Container, InputPanel, Toolbar};
 
 use crate::utils::render_epoch;
 use crate::{ConfirmButton, DataViewWindow, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
@@ -218,7 +217,13 @@ impl ProxmoxSubscriptionPanel {
             .height(600)
             .loader("/nodes/localhost/report")
             .renderer(|report: &String| {
-                html!{<pre style="line-height: normal" class="pwt-flex-fit pwt-font-monospace pwt-p-2">{report}</pre>}
+                Container::new()
+                    .tag("pre")
+                    .class("pwt-flex-fit pwt-font-monospace")
+                    .padding(2)
+                    .style("line-height", "normal")
+                    .with_child(report)
+                    .into()
             })
             .on_done(ctx.link().change_view_callback(|_| None))
             .into()
@@ -227,7 +232,7 @@ impl ProxmoxSubscriptionPanel {
     fn create_upload_subscription_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let input_panel = |_form_state: &FormContext| -> Html {
             InputPanel::new()
-                .class("pwt-p-4")
+                .padding(4)
                 .with_field(
                     tr!("Subscription Key"),
                     Field::new().name("key").required(true).autofocus(true),

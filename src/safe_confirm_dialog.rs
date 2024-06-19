@@ -105,7 +105,8 @@ impl Component for ProxmoxSafeConfirmDialog {
             .unwrap_or(default_confirm_remove_message(Some(&*verify_id)));
 
         let input_panel = InputPanel::new()
-            .class("pwt-p-4 pwt-flex-fit")
+            .padding(4)
+            .class("pwt-flex-fit")
             .label_width("300px")
             .field_width("120px")
             .with_custom_child(

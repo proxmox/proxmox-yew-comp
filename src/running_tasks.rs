@@ -6,7 +6,7 @@ use yew::virtual_dom::{VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::{Loader, LoaderState, SharedStateObserver, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
-use pwt::widget::{ActionIcon, Button, Panel, Toolbar, Tooltip};
+use pwt::widget::{ActionIcon, Button, Container, Panel, Toolbar, Tooltip};
 
 use crate::common_api_types::TaskListItem;
 use crate::utils::{format_duration_human, format_upid, render_epoch_short};
@@ -137,9 +137,12 @@ impl Component for ProxmoxRunningTasks {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let content = props.loader.render(|_data| {
+        let content = props.loader.render(|_data| -> Html {
             if self.store.data_len() == 0 {
-                html! {<div class="pwt-p-2">{tr!("No running tasks")}</div>}
+                Container::new()
+                    .padding(2)
+                    .with_child(tr!("No running tasks"))
+                    .into()
             } else {
                 let columns = self.running_tasks_columns(ctx);
                 DataTable::new(columns, self.store.clone())
@@ -163,7 +166,7 @@ impl Component for ProxmoxRunningTasks {
         });
 
         Panel::new()
-            .attribute("style", "min-width: 600px;")
+            .min_width(600)
             .class("pwt-flex-fit")
             .border(true)
             .title(tr!("Running Tasks"))

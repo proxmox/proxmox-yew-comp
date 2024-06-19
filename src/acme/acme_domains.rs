@@ -221,12 +221,13 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
                 );
 
                 let icon = Tooltip::new(icon)
+                    .padding_start(2)
                     .class("pwt-d-inline")
                     .tip(tr!("Edit account settings"));
 
                 html! {<div>
                     <span>{tr!("Using Account") + ": " + acme_account}</span>
-                    <span class="pwt-ps-2">{icon}</span>
+                    <span>{icon}</span>
                 </div>}
             })
             .with_child(Button::new(tr!("Order Certificate Now")).onclick({
@@ -281,13 +282,16 @@ impl ProxmoxAcmeDomainsPanel {
     fn acme_domain_input_panel(form_ctx: &FormContext) -> InputPanel {
         let challenge_type = form_ctx.read().get_field_text("type");
 
-        let mut panel = InputPanel::new().class("pwt-flex-fit pwt-p-4").with_field(
-            tr!("Challenge Type"),
-            AcmeChallengeTypeSelector::new()
-                .name("type")
-                .required(true)
-                .default(AttrValue::Static("HTTP")),
-        );
+        let mut panel = InputPanel::new()
+            .padding(4)
+            .class("pwt-flex-fit")
+            .with_field(
+                tr!("Challenge Type"),
+                AcmeChallengeTypeSelector::new()
+                    .name("type")
+                    .required(true)
+                    .default(AttrValue::Static("HTTP")),
+            );
 
         if challenge_type == "DNS" {
             panel.add_field(
@@ -416,13 +420,16 @@ impl ProxmoxAcmeDomainsPanel {
                 url.clone(),
             ))
             .renderer(|_form_ctx: &FormContext| {
-                let panel = InputPanel::new().class("pwt-flex-fit pwt-p-4").with_field(
-                    tr!("Account Name"),
-                    AcmeAccountSelector::new()
-                        .name("account")
-                        .placeholder("default")
-                        .autofocus(true),
-                );
+                let panel = InputPanel::new()
+                    .padding(4)
+                    .class("pwt-flex-fit")
+                    .with_field(
+                        tr!("Account Name"),
+                        AcmeAccountSelector::new()
+                            .name("account")
+                            .placeholder("default")
+                            .autofocus(true),
+                    );
                 panel.into()
             })
             .on_submit(move |form_ctx: FormContext| {

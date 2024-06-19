@@ -4,6 +4,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
+use pwt::css::AlignItems;
 use pwt::widget::form::{Combobox, FormContext, ValidateFn};
 use serde_json::{json, Value};
 
@@ -16,7 +17,7 @@ use pwt::state::{Selection, SlabTree, Store, TreeStore};
 use pwt::widget::data_table::{
     DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader,
 };
-use pwt::widget::{Button, Column, Container, Row, Toolbar, Tooltip};
+use pwt::widget::{Button, Column, Container, Fa, Row, Toolbar, Tooltip};
 
 use crate::{
     EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
@@ -583,7 +584,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
             .striped(false)
             .borderless(true);
 
-        panel.add_child(Row::new().class("pwt-p-4").with_child(status));
+        panel.add_child(Row::new().padding(4).with_child(status));
 
         panel.with_child(table).into()
     }
@@ -707,8 +708,10 @@ impl ProxmoxAptRepositories {
                     });
 
                 Container::new()
-                    .attribute("style", "grid-template-columns: minmax(130px, auto) 400px;")
-                    .class("pwt-d-grid pwt-gap-4 pwt-p-4 pwt-align-items-baseline")
+                    .class("pwt-d-grid pwt-gap-4")
+                    .class(AlignItems::Baseline)
+                    .padding(4)
+                    .style("grid-template-columns", "minmax(130px, auto) 400px")
                     .with_child(tr!("Repository"))
                     .with_child(repository_selector)
                     .with_child(tr!("Description"))
@@ -780,12 +783,13 @@ impl ProxmoxAptRepositories {
             .flex(1)
             .show_menu(false)
             .render(|record: &StatusLine| {
-                let (icon_class, color_class) = match record.status {
-                    Status::Ok => ("fa fa-fw fa-check pwt-pe-2", ""),
-                    Status::Warning => ("fa fa-fw fa-exclamation pwt-pe-2", "pwt-color-warning"),
-                    Status::Error => ("fa fa-fw fa-times pwt-pe-2", "pwt-color-error"),
+                let (icon, color_class) = match record.status {
+                    Status::Ok => ("check", ""),
+                    Status::Warning => ("exclamation", "pwt-color-warning"),
+                    Status::Error => ("times", "pwt-color-error"),
                 };
-                html! {<span class={color_class}><i class={icon_class}/>{&record.message}</span>}
+                let icon = Fa::new(icon).fixed_width().padding_end(2);
+                html! {<span class={color_class}>{icon}{&record.message}</span>}
             })
             .into()])
     }
@@ -818,17 +822,19 @@ fn render_enabled_or_group(args: &mut DataTableCellRenderArgs<TreeEntry>) -> Htm
 
 fn render_origin(record: &TreeEntry) -> Html {
     match record {
-        TreeEntry::Repository { origin, .. } => match origin {
-            Origin::Debian => {
-                html! {<span><i class="pmx-icon-debian-swirl pwt-pe-2"/>{"Debian"}</span>}
-            }
-            Origin::Proxmox => {
-                html! {<span><i class="pmx-icon-proxmox-x pwt-pe-2"/>{"Proxmox"}</span>}
-            }
-            Origin::Other => {
-                html! {<span><i class="fa fa-question-circle-o pwt-pe-2"/>{"Other"}</span>}
-            }
-        },
+        TreeEntry::Repository { origin, .. } => {
+            let (classes, text) = match origin {
+                Origin::Debian => ("pmx-icon-debian-swirl", "Debian"),
+                Origin::Proxmox => ("pmx-icon-proxmox-x", "Proxmox"),
+                Origin::Other => ("fa fa-question-circle-o", "Other"),
+            };
+
+            Container::new()
+                .tag("span")
+                .with_child(Container::new().tag("i").class(classes).padding_end(2))
+                .with_child(text)
+                .into()
+        }
         _ => html! {},
     }
 }

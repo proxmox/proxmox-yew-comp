@@ -10,7 +10,7 @@ use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::{Button, Column, SplitPane, Toolbar};
+use pwt::widget::{Button, Column, Container, SplitPane, Toolbar};
 
 use proxmox_client::ApiResponseData;
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, TaskProgress};
@@ -256,14 +256,19 @@ impl LoadableComponent for ProxmoxNetworkView {
         let changes = (!self.changes.is_empty()).then(|| {
             Column::new()
                 .class("pwt-flex-fit")
-                .with_child(html!{
-                    <div class="pwt-p-2 pwt-border-bottom pwt-font-size-body-medium">{
-                    tr!("Pending changes (Either reboot or use 'Apply Configuration' (needs ifupdown2) to activate)")
-                    }</div>
-                })
-                .with_child(html!{
-                    <pre class="pwt-flex-fit pwt-p-2 pwt-font-monospace pwt-font-size-body-medium pwt-line-height-body-medium">{&self.changes}</pre>
-                })
+                .with_child(
+                    Container::new()
+                    .padding(2)
+                    .class("pwt-border-bottom pwt-font-size-body-medium")
+                    .with_child(tr!("Pending changes (Either reboot or use 'Apply Configuration' (needs ifupdown2) to activate)"))
+                )
+                .with_child(
+                    Container::new()
+                    .tag("pre")
+                    .padding(2)
+                    .class("pwt-flex-fit pwt-font-monospace pwt-font-size-body-medium pwt-line-height-body-medium")
+                    .with_child(&self.changes)
+                )
         });
 
         let mut split = SplitPane::new()

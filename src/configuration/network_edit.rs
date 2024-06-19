@@ -15,8 +15,8 @@ use crate::utils::json_array_to_flat_string;
 
 use crate::{BondModeSelector, BondXmitHashPolicySelector, EditWindow, SchemaValidation};
 
-use proxmox_schema::api_types::{CIDR_V4_SCHEMA, CIDR_V6_SCHEMA, IP_V4_SCHEMA, IP_V6_SCHEMA};
 use proxmox_network_api::NetworkInterfaceType;
+use proxmox_schema::api_types::{CIDR_V4_SCHEMA, CIDR_V6_SCHEMA, IP_V4_SCHEMA, IP_V6_SCHEMA};
 
 use crate::percent_encoding::percent_encode_component;
 use pwt_macros::builder;
@@ -124,7 +124,7 @@ fn render_bridge_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
 
     InputPanel::new()
         .show_advanced(form_ctx.get_show_advanced())
-        .class("pwt-p-4")
+        .padding(4)
         .with_field(
             tr!("Name"),
             Field::new()
@@ -150,9 +150,9 @@ fn render_bridge_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
         )
         .with_right_field(
             tr!("Bridge ports"),
-            Field::new()
-                .name("bridge_ports")
-                .tip(tr!("Space-separated list of interfaces, for example: enp0s0 enp1s0"))
+            Field::new().name("bridge_ports").tip(tr!(
+                "Space-separated list of interfaces, for example: enp0s0 enp1s0"
+            )),
         )
         .with_field(
             tr!("IPv6/CIDR"),
@@ -202,7 +202,7 @@ fn render_bond_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
 
     InputPanel::new()
         .show_advanced(form_ctx.get_show_advanced())
-        .class("pwt-p-4")
+        .padding(4)
         .with_field(
             tr!("Name"),
             Field::new()
@@ -275,7 +275,7 @@ fn render_common_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
 
     InputPanel::new()
         .show_advanced(form_ctx.get_show_advanced())
-        .class("pwt-p-4")
+        .padding(4)
         .with_field(
             tr!("Name"),
             Field::new()

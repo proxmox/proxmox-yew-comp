@@ -6,7 +6,6 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::WidgetStyleBuilder;
 use pwt::widget::form::{Field, Form, FormContext, SubmitButton};
 use pwt::widget::{Dialog, SelectionViewRenderInfo, TabBarItem, TabPanel};
 

@@ -10,7 +10,6 @@ use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::WidgetStyleBuilder;
 use pwt::state::Loader;
 use pwt::widget::{Button, Column, Container, Dialog, Progress, Row};
 
@@ -93,8 +92,7 @@ impl Component for PwtTaskProgress {
                 let url = url.clone();
                 async move { crate::http_get(&url, None).await }
             })
-            .on_change(ctx.link().callback(|_| Msg::DataChange))
-            ;
+            .on_change(ctx.link().callback(|_| Msg::DataChange));
 
         loader.load();
         Self {

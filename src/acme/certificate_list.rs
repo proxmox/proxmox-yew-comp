@@ -8,11 +8,10 @@ use serde_json::{json, Value};
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::WidgetStyleBuilder;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
 use pwt::widget::form::{Form, FormContext, TextArea};
-use pwt::widget::{Button, Dialog, FileButton, MessageBox, Toolbar};
+use pwt::widget::{Button, Container, Dialog, FileButton, MessageBox, Toolbar};
 
 use crate::common_api_types::CertificateInfo;
 use crate::utils::render_epoch;
@@ -227,7 +226,8 @@ impl ProxmoxCertificateList {
             .submit_text(tr!("Upload"))
             .renderer(|form_ctx: &FormContext| {
                 Form::new()
-                    .class("pwt-p-2 pwt-gap-2 pwt-flex-direction-column")
+                    .padding(2)
+                    .class("pwt-gap-2 pwt-flex-direction-column")
                     .form_context(form_ctx.clone())
                     .with_child(html! {<span>{tr!("Private Key (Optional)")}</span>})
                     .with_child(
@@ -246,7 +246,12 @@ impl ProxmoxCertificateList {
                                 }
                             }),
                     )
-                    .with_child(html! {<span class="pwt-pt-4">{tr!("Certificate Chain")}</span>})
+                    .with_child(
+                        Container::new()
+                            .tag("span")
+                            .padding_top(4)
+                            .with_child(tr!("Certificate Chain")),
+                    )
                     .with_child(
                         TextArea::new()
                             .required(true)
