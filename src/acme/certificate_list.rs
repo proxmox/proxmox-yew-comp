@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::WidgetStyleBuilder;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
 use pwt::widget::form::{Form, FormContext, TextArea};
@@ -221,7 +222,7 @@ fn update_field_from_file(
 impl ProxmoxCertificateList {
     fn create_upload_custom_certificate(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         EditWindow::new(tr!("Upload Custom Certificate"))
-            .style("width:600px;")
+            .width(600)
             .on_close(ctx.link().change_view_callback(|_| None))
             .submit_text(tr!("Upload"))
             .renderer(|form_ctx: &FormContext| {

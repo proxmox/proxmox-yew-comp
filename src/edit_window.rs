@@ -9,7 +9,9 @@ use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::{IntoLoadCallback, LoadCallback, RenderFn, WidgetStyleBuilder};
+use pwt::props::{
+    AsCssStylesMut, CssStyles, IntoLoadCallback, LoadCallback, RenderFn, WidgetStyleBuilder,
+};
 use pwt::widget::form::{
     Checkbox, Form, FormContext, IntoSubmitCallback, ResetButton, SubmitButton, SubmitCallback,
 };
@@ -69,9 +71,8 @@ pub struct EditWindow {
     pub auto_center: bool,
 
     /// CSS style for the dialog window.
-    #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
-    pub style: Option<AttrValue>,
+    pub styles: pwt::props::CssStyles,
 
     /// Close/Abort callback.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
@@ -92,6 +93,14 @@ pub struct EditWindow {
     #[prop_or_default]
     pub on_change: Option<Callback<FormContext>>,
 }
+
+impl AsCssStylesMut for EditWindow {
+    fn as_css_styles_mut(&mut self) -> &mut pwt::props::CssStyles {
+        &mut self.styles
+    }
+}
+
+impl WidgetStyleBuilder for EditWindow {}
 
 impl EditWindow {
     pub fn new(title: impl Into<AttrValue>) -> Self {
@@ -316,8 +325,6 @@ impl Component for PwtEditWindow {
             }
         };
 
-        let styles = props.style.clone().unwrap_or(AttrValue::from(""));
-
         Dialog::new(props.title.clone())
             .node_ref(props.node_ref.clone())
             .on_close({
@@ -335,7 +342,7 @@ impl Component for PwtEditWindow {
             .draggable(props.draggable)
             .resizable(props.resizable)
             .auto_center(props.auto_center)
-            .styles(styles.into())
+            .styles(props.styles.clone())
             .with_child(
                 Form::new()
                     .class("pwt-flex-fit")

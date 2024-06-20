@@ -10,6 +10,7 @@ use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::WidgetStyleBuilder;
 use pwt::widget::form::{FormContext, TextArea};
 use pwt::widget::{Button, Container, Toolbar};
 
@@ -122,7 +123,8 @@ impl LoadableComponent for ProxmoxNotesView {
         match view_state {
             ViewState::EditNotes => {
                 let dialog = EditWindow::new(tr!("Edit") + ": " + &tr!("Notes"))
-                    .style("width: 800px; height: 400px;")
+                    .width(800)
+                    .height(400)
                     .on_done(ctx.link().change_view_callback(|_| None))
                     .resizable(true)
                     .loader(self.loader.clone())
