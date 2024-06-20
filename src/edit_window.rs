@@ -9,7 +9,7 @@ use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::{IntoLoadCallback, LoadCallback, RenderFn};
+use pwt::props::{IntoLoadCallback, LoadCallback, RenderFn, WidgetStyleBuilder};
 use pwt::widget::form::{
     Checkbox, Form, FormContext, IntoSubmitCallback, ResetButton, SubmitButton, SubmitCallback,
 };
@@ -316,6 +316,8 @@ impl Component for PwtEditWindow {
             }
         };
 
+        let styles = props.style.clone().unwrap_or(AttrValue::from(""));
+
         Dialog::new(props.title.clone())
             .node_ref(props.node_ref.clone())
             .on_close({
@@ -333,7 +335,7 @@ impl Component for PwtEditWindow {
             .draggable(props.draggable)
             .resizable(props.resizable)
             .auto_center(props.auto_center)
-            .style(props.style.clone())
+            .styles(styles.into())
             .with_child(
                 Form::new()
                     .class("pwt-flex-fit")

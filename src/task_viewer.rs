@@ -9,6 +9,7 @@ use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::WidgetStyleBuilder;
 use pwt::state::Loader;
 use pwt::widget::{Button, Column, Dialog, TabBarItem, TabPanel, Toolbar};
 
@@ -169,7 +170,8 @@ impl Component for PwtTaskViewer {
 
         Dialog::new(tr!("Task Viewer") + ": " + &title)
             .resizable(true)
-            .style("width: 840px; height:600px;")
+            .width(840)
+            .height(600)
             .node_ref(props.node_ref.clone())
             .on_close(props.on_close.clone())
             .with_child(panel)

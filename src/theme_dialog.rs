@@ -4,6 +4,7 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::WidgetStyleBuilder;
 use pwt::widget::{Container, Dialog, ThemeDensitySelector, ThemeModeSelector, ThemeNameSelector};
 
 use pwt_macros::builder;
@@ -37,7 +38,7 @@ impl Component for ProxmoxThemeDialog {
         let props = ctx.props();
 
         Dialog::new(tr!("Theme"))
-            .style("min-width: 400px;")
+            .min_width(400)
             .on_close(props.on_close.clone())
             .with_child(
                 Container::new()

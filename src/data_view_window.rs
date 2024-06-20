@@ -8,7 +8,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::Loader;
-use pwt::props::{IntoLoadCallback, LoadCallback, RenderFn};
+use pwt::props::{IntoLoadCallback, LoadCallback, RenderFn, WidgetStyleBuilder};
 use pwt::widget::{Dialog};
 
 use pwt_macros::builder;
@@ -112,12 +112,14 @@ impl<T: 'static + Serialize + DeserializeOwned + PartialEq> Component for Proxmo
             }
         });
 
+        let styles = props.style.clone().unwrap_or(AttrValue::from(""));
+
         Dialog::new(props.title.clone())
             .on_close(props.on_done.clone())
             .draggable(props.draggable)
             .resizable(props.resizable)
             .auto_center(props.auto_center)
-            .style(props.style.clone())
+            .styles(styles.into())
             .with_child(panel)
             .into()
     }

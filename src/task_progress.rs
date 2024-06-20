@@ -10,6 +10,7 @@ use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::WidgetStyleBuilder;
 use pwt::state::Loader;
 use pwt::widget::{Button, Column, Container, Dialog, Progress, Row};
 
@@ -177,7 +178,7 @@ impl Component for PwtTaskProgress {
 
         Dialog::new("Task Progress")
             .resizable(true)
-            .style("min-width: 300px;")
+            .min_width(300)
             .node_ref(props.node_ref.clone())
             .on_close(props.on_close.clone())
             .with_child(panel)

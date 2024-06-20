@@ -6,6 +6,7 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::WidgetStyleBuilder;
 use pwt::widget::form::{Field, Form, FormContext, SubmitButton};
 use pwt::widget::{Dialog, SelectionViewRenderInfo, TabBarItem, TabPanel};
 
@@ -191,7 +192,8 @@ impl Component for ProxmoxTfaDialog {
         }
 
         Dialog::new("Second login factor required")
-            .style("min-width:600px;min-height:300px;")
+            .min_width(600)
+            .min_height(300)
             .resizable(true)
             .with_child(panel)
             .on_close(props.on_close.clone())

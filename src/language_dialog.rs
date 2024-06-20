@@ -5,6 +5,7 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::WidgetStyleBuilder;
 use pwt::widget::{Container, Button, Dialog, LanguageSelector, Row};
 
 use pwt_macros::builder;
@@ -68,7 +69,7 @@ impl Component for ProxmoxLanguageDialog {
         };
 
         Dialog::new(tr!("Language"))
-            .style("min-width: 300px;")
+            .min_width(300)
             .on_close(props.on_close.clone())
             .with_child(
                 Row::new()
