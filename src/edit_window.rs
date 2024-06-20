@@ -72,7 +72,7 @@ pub struct EditWindow {
 
     /// CSS style for the dialog window.
     #[prop_or_default]
-    pub styles: pwt::props::CssStyles,
+    pub styles: CssStyles,
 
     /// Close/Abort callback.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
@@ -95,7 +95,7 @@ pub struct EditWindow {
 }
 
 impl AsCssStylesMut for EditWindow {
-    fn as_css_styles_mut(&mut self) -> &mut pwt::props::CssStyles {
+    fn as_css_styles_mut(&mut self) -> &mut CssStyles {
         &mut self.styles
     }
 }
