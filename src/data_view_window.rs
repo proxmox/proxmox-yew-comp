@@ -2,14 +2,16 @@ use std::rc::Rc;
 
 use serde::{de::DeserializeOwned, Serialize};
 
-use yew::html::{IntoEventCallback, IntoPropValue};
+use yew::html::IntoEventCallback;
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::{
+    AsCssStylesMut, CssStyles, IntoLoadCallback, LoadCallback, RenderFn, WidgetStyleBuilder,
+};
 use pwt::state::Loader;
-use pwt::props::{IntoLoadCallback, LoadCallback, RenderFn, WidgetStyleBuilder};
-use pwt::widget::{Dialog};
+use pwt::widget::Dialog;
 
 use pwt_macros::builder;
 
@@ -49,15 +51,22 @@ pub struct DataViewWindow<T: PartialEq> {
     pub auto_center: bool,
 
     /// CSS style for the dialog window.
-    #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
-    pub style: Option<AttrValue>,
+    pub styles: CssStyles,
 
     /// Close/Abort callback.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     #[prop_or_default]
     pub on_done: Option<Callback<()>>,
 }
+
+impl<T: PartialEq> AsCssStylesMut for DataViewWindow<T> {
+    fn as_css_styles_mut(&mut self) -> &mut CssStyles {
+        &mut self.styles
+    }
+}
+
+impl<T: PartialEq> WidgetStyleBuilder for DataViewWindow<T> {}
 
 impl<T: 'static + PartialEq> DataViewWindow<T> {
     pub fn new(title: impl Into<AttrValue>) -> Self {
@@ -112,14 +121,12 @@ impl<T: 'static + Serialize + DeserializeOwned + PartialEq> Component for Proxmo
             }
         });
 
-        let styles = props.style.clone().unwrap_or(AttrValue::from(""));
-
         Dialog::new(props.title.clone())
             .on_close(props.on_done.clone())
             .draggable(props.draggable)
             .resizable(props.resizable)
             .auto_center(props.auto_center)
-            .styles(styles.into())
+            .styles(props.styles.clone())
             .with_child(panel)
             .into()
     }

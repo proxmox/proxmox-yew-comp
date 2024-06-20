@@ -10,7 +10,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use yew::html::IntoPropValue;
 
 use pwt::prelude::*;
-use pwt::props::ExtractPrimaryKey;
+use pwt::props::{ExtractPrimaryKey, WidgetStyleBuilder};
 use pwt::state::{Selection, SlabTree, TreeStore};
 use pwt::widget::{Container, Button, Toolbar, Tooltip};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableHeaderGroup, DataTableCellRenderArgs};
@@ -232,7 +232,8 @@ impl ProxmoxAptPackageManager {
         );
 
         DataViewWindow::<String>::new(tr!("Changelog") + ": " + package)
-            .style("height: 400px; width: 640px;")
+            .width(640)
+            .height(400)
             .resizable(true)
             .on_done(ctx.link().change_view_callback(|_| None))
             .loader(url)

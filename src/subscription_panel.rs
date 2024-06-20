@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::WidgetStyleBuilder;
 use pwt::widget::form::{Field, FormContext};
 use pwt::widget::{Button, InputPanel, Toolbar};
 
@@ -213,7 +214,8 @@ fn rows() -> Vec<KVGridRow> {
 impl ProxmoxSubscriptionPanel {
     fn create_system_report_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         DataViewWindow::new(tr!("System Report"))
-            .style("width:800px;height:600px;")
+            .width(800)
+            .height(600)
             .loader("/nodes/localhost/report")
             .renderer(|report: &String| {
                 html!{<pre style="line-height: normal" class="pwt-flex-fit pwt-font-monospace pwt-p-2">{report}</pre>}
