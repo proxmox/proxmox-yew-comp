@@ -57,15 +57,14 @@ impl Component for ProxmoxStatusRow {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-
         let icon = props.icon_class.as_ref().map(|icon_class| {
             let class = classes!(icon_class.clone(), "pwt-pe-2");
-            html!{<i {class}/>}
+            html! {<i {class}/>}
         });
 
         let status = match &props.status {
             Some(text) => text.clone(),
-            None => html!{"-"},
+            None => html! {"-"},
         };
 
         Row::new()
@@ -73,9 +72,11 @@ impl Component for ProxmoxStatusRow {
             .class(Display::Flex) // we need to set this again
             .listeners(&props.listeners)
             .gap(2)
-            .with_child(html!{<div class="pwt-white-space-nowrap">{icon}{props.title.clone()}</div>})
+            .with_child(
+                html! {<div class="pwt-white-space-nowrap">{icon}{props.title.clone()}</div>},
+            )
             .with_flex_spacer()
-            .with_child(html!{<div class="pwt-white-space-nowrap">{status}</div>})
+            .with_child(html! {<div class="pwt-white-space-nowrap">{status}</div>})
             .into()
     }
 }

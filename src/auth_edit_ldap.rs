@@ -3,7 +3,7 @@ use std::rc::Rc;
 use anyhow::Error;
 use pwt::css::{Flex, Overflow};
 
-use pwt::widget::form::{Boolean, Combobox, FormContext, Number, InputType};
+use pwt::widget::form::{Boolean, Combobox, FormContext, InputType, Number};
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 

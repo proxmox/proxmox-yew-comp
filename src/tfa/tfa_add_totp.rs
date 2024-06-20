@@ -14,7 +14,7 @@ use crate::percent_encoding::percent_encode_component;
 
 use pwt_macros::builder;
 
-use crate::{EditWindow, AuthidSelector};
+use crate::{AuthidSelector, EditWindow};
 
 fn extract_totp_link(form_ctx: &FormContext) -> String {
     let userid = form_ctx.read().get_field_text("userid");
@@ -84,7 +84,7 @@ fn render_input_form(form_ctx: FormContext, secret: AttrValue) -> Html {
                 .name("userid")
                 .default(crate::http_get_auth().map(|auth| auth.userid))
                 .required(true)
-                .submit(false)
+                .submit(false),
         )
         .with_field(
             tr!("Description"),
@@ -109,22 +109,19 @@ fn render_input_form(form_ctx: FormContext, secret: AttrValue) -> Html {
                 .submit(false),
         )
         .with_custom_child(
-            Row::new()
-                .padding_bottom(2)
-                .with_flex_spacer()
-                .with_child(
-                    Button::new(tr!("Randomize"))
-                        .class("pwt-scheme-primary")
-                        .onclick({
-                            let form_ctx = form_ctx.clone();
-                            move |_| {
-                                let secret: Value = randomize_secret().into();
-                                form_ctx.write().set_field_value("secret", secret);
-                            }
-                        })
-                    )
+            Row::new().padding_bottom(2).with_flex_spacer().with_child(
+                Button::new(tr!("Randomize"))
+                    .class("pwt-scheme-primary")
+                    .onclick({
+                        let form_ctx = form_ctx.clone();
+                        move |_| {
+                            let secret: Value = randomize_secret().into();
+                            form_ctx.write().set_field_value("secret", secret);
+                        }
+                    }),
+            ),
         )
-          .with_custom_child(
+        .with_custom_child(
             html! {<div key="qrcode" style="text-align:center;">{render_qrcode(&totp_link)}</div>},
         )
         .with_field(
@@ -161,9 +158,7 @@ impl Component for ProxmoxTfaAddTotp {
         EditWindow::new(tr!("Add a TOTP login factor"))
             .renderer({
                 let secret = self.default_secret.clone();
-                move |form_ctx: &FormContext| {
-                    render_input_form(form_ctx.clone(), secret.clone())
-                }
+                move |form_ctx: &FormContext| render_input_form(form_ctx.clone(), secret.clone())
             })
             .on_done(props.on_close.clone())
             .on_submit(on_submit)

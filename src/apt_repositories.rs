@@ -114,7 +114,9 @@ fn update_status_store(
     let mut has_ceph_test = false;
 
     for repo in standard_repos.values() {
-        if repo.status != Some(true) { continue }
+        if repo.status != Some(true) {
+            continue;
+        }
         use APTRepositoryHandle::*;
         match repo.handle {
             CephQuincyEnterprise | CephReefEnterprise => has_ceph_enterprise = true,
@@ -257,8 +259,6 @@ fn update_status_store(
             "Ceph ",
         )));
     }
-
-
 
     if !config.errors.is_empty() {
         list.push(StatusLine::error(tr!(

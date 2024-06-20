@@ -152,7 +152,7 @@ impl Component for ProxmoxRunningTasksButton {
                     RunningTasks::new(props.running_tasks.clone())
                         .as_dropdown(true)
                         .on_show_task(props.on_show_task.clone())
-                        .on_close(ctx.link().callback(|_| Msg::CloseMenu))
+                        .on_close(ctx.link().callback(|_| Msg::CloseMenu)),
                 )
         });
 

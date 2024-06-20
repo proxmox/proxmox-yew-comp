@@ -24,7 +24,8 @@ use super::{AcmeChallengeSchemaItem, AcmeChallengeSelector};
 
 pub(crate) async fn load_acme_plugin_list(url: AttrValue) -> Result<Vec<PluginConfig>, Error> {
     let data: Vec<PluginConfig> = crate::http_get(&*url, None).await?;
-    let data = data.into_iter()
+    let data = data
+        .into_iter()
         .filter(|item| item.ty == "dns" && item.api.is_some())
         .collect();
     Ok(data)
@@ -198,8 +199,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                                     "/config/acme/plugins/{}",
                                     percent_encode_component(&*selected_key)
                                 );
-                                let command_future =
-                                    crate::http_delete(command_path, None);
+                                let command_future = crate::http_delete(command_path, None);
                                 wasm_bindgen_futures::spawn_local(async move {
                                     match command_future.await {
                                         Ok(()) => {
@@ -411,11 +411,8 @@ impl ProxmoxAcmePluginsPanel {
                     let plugin = form_ctx.read().get_field_text("plugin");
 
                     async move {
-                        crate::http_put(
-                            format!("/config/acme/plugins/{plugin}"),
-                            Some(data),
-                        )
-                        .await?;
+                        crate::http_put(format!("/config/acme/plugins/{plugin}"), Some(data))
+                            .await?;
                         Ok(())
                     }
                 }
@@ -423,10 +420,7 @@ impl ProxmoxAcmePluginsPanel {
             .into()
     }
 
-    fn create_add_dns_plugin_dialog(
-        &self,
-        ctx: &crate::LoadableComponentContext<Self>,
-    ) -> Html {
+    fn create_add_dns_plugin_dialog(&self, ctx: &crate::LoadableComponentContext<Self>) -> Html {
         EditWindow::new(tr!("Add") + ": " + &tr!("ACME DNS Plugin"))
             .on_done(ctx.link().callback(|_| Msg::CloseDialog))
             .renderer({

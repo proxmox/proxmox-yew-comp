@@ -73,7 +73,7 @@ impl Component for ProxmoxRRDGrid {
                     )
                     .children(props.children.clone()),
             )
-            .with_child(html!{<div class="pwt-flex-fill"/>})
+            .with_child(html! {<div class="pwt-flex-fill"/>})
             .into()
     }
 

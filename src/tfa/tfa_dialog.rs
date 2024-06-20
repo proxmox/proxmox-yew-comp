@@ -7,7 +7,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::widget::form::{Field, Form, FormContext, SubmitButton};
-use pwt::widget::{Dialog, TabBarItem, TabPanel, SelectionViewRenderInfo};
+use pwt::widget::{Dialog, SelectionViewRenderInfo, TabBarItem, TabPanel};
 
 use pwt_macros::builder;
 
@@ -60,7 +60,7 @@ fn render_totp(callback: Option<Callback<String>>) -> Html {
         .class("pwt-flex-fill pwt-d-flex pwt-flex-direction-column pwt-gap-2")
         .with_child(html! {<div>{"Please enter your TOTP verification code"}</div>})
         .with_child(Field::new().name("data").required(true).autofocus(true))
-        .with_child(html!{<div style="flex: 1 1 auto;"/>})
+        .with_child(html! {<div style="flex: 1 1 auto;"/>})
         .with_child(
             SubmitButton::new()
                 .class("pwt-align-self-flex-end")
@@ -84,7 +84,7 @@ fn render_yubico(callback: Option<Callback<String>>) -> Html {
         .class("pwt-flex-fill pwt-d-flex pwt-flex-direction-column pwt-gap-2")
         .with_child(html! {<div>{"Please enter your Yubico OTP code"}</div>})
         .with_child(Field::new().name("data").required(true).autofocus(true))
-        .with_child(html!{<div style="flex: 1 1 auto;"/>})
+        .with_child(html! {<div style="flex: 1 1 auto;"/>})
         .with_child(
             SubmitButton::new()
                 .class("pwt-align-self-flex-end")
@@ -122,7 +122,7 @@ fn render_recovery(callback: Option<Callback<String>>, available_keys: &[usize])
                 )
             }</div>}
         }))
-        .with_child(html!{<div style="flex: 1 1 auto;"/>})
+        .with_child(html! {<div style="flex: 1 1 auto;"/>})
         .with_child(
             SubmitButton::new()
                 .class("pwt-align-self-flex-end")
@@ -176,7 +176,9 @@ impl Component for ProxmoxTfaDialog {
         }
 
         // webauthn not implemented - delayed to debian bookworm for newer rust packages ..
-        if true /* props.challenge.challenge.webauthn.is_some() */ {
+        if true
+        /* props.challenge.challenge.webauthn.is_some() */
+        {
             panel.add_item_builder(TabBarItem::new().key("webauthn").label("WebAuthN"), {
                 let on_webauthn = props.on_webauthn.clone();
                 move |info: &SelectionViewRenderInfo| {

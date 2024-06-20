@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::prelude::*;
@@ -59,7 +59,7 @@ pub struct DataViewWindow<T: PartialEq> {
     pub on_done: Option<Callback<()>>,
 }
 
-impl <T: 'static + PartialEq> DataViewWindow<T> {
+impl<T: 'static + PartialEq> DataViewWindow<T> {
     pub fn new(title: impl Into<AttrValue>) -> Self {
         yew::props!(Self {
             title: title.into(),
@@ -83,7 +83,7 @@ pub struct ProxmoxDataViewWindow<T> {
     loader: Loader<T>,
 }
 
-impl <T: 'static + Serialize + DeserializeOwned + PartialEq> Component for ProxmoxDataViewWindow<T> {
+impl<T: 'static + Serialize + DeserializeOwned + PartialEq> Component for ProxmoxDataViewWindow<T> {
     type Message = ();
     type Properties = DataViewWindow<T>;
 
@@ -108,7 +108,7 @@ impl <T: 'static + Serialize + DeserializeOwned + PartialEq> Component for Proxm
             if let Some(renderer) = &renderer {
                 renderer.apply(&data)
             } else {
-                html!{}
+                html! {}
             }
         });
 
@@ -123,7 +123,7 @@ impl <T: 'static + Serialize + DeserializeOwned + PartialEq> Component for Proxm
     }
 }
 
-impl <T: 'static + Serialize + DeserializeOwned + PartialEq> From<DataViewWindow<T>> for VNode {
+impl<T: 'static + Serialize + DeserializeOwned + PartialEq> From<DataViewWindow<T>> for VNode {
     fn from(props: DataViewWindow<T>) -> VNode {
         let key = props.key.clone();
         let comp = VComp::new::<ProxmoxDataViewWindow<T>>(Rc::new(props), key);

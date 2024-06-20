@@ -16,7 +16,7 @@ use pwt::widget::data_table::{
 };
 use pwt::widget::{Button, Column, Toolbar};
 
-use crate::utils::{render_epoch_short, format_upid};
+use crate::utils::{format_upid, render_epoch_short};
 
 use crate::common_api_types::TaskListItem;
 

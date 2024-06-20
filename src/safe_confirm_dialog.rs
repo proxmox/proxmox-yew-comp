@@ -90,10 +90,7 @@ impl Component for ProxmoxSafeConfirmDialog {
 
         let form_ctx = FormContext::new().on_change(ctx.link().callback(|_| ()));
 
-        Self {
-            form_ctx,
-            validate,
-        }
+        Self { form_ctx, validate }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -111,7 +108,9 @@ impl Component for ProxmoxSafeConfirmDialog {
             .class("pwt-p-4 pwt-flex-fit")
             .label_width("300px")
             .field_width("120px")
-            .with_custom_child(html! {<span key="message" class="pwt-color-primary">{message}</span>})
+            .with_custom_child(
+                html! {<span key="message" class="pwt-color-primary">{message}</span>},
+            )
             .with_field(
                 tr!("Please enter the ID to confirm ({0})", verify_id),
                 Field::new()

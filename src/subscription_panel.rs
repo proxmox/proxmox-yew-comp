@@ -12,7 +12,7 @@ use pwt::widget::form::{Field, FormContext};
 use pwt::widget::{Button, InputPanel, Toolbar};
 
 use crate::utils::render_epoch;
-use crate::{ConfirmButton, EditWindow, KVGrid, KVGridRow, ProxmoxProduct, DataViewWindow};
+use crate::{ConfirmButton, DataViewWindow, EditWindow, KVGrid, KVGridRow, ProxmoxProduct};
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
 #[derive(Properties, PartialEq, Clone)]

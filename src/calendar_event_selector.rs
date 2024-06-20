@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
+use yew::html::IntoPropValue;
 use yew::prelude::*;
 use yew::virtual_dom::Key;
-use yew::html::IntoPropValue;
 
 use pwt::props::RenderFn;
 use pwt::state::Store;
@@ -24,11 +24,14 @@ static EXAMPLES: &[Record] = &[
     ("mon..fri *:00", "Monday to Friday, hourly"),
     ("sat 18:15", "Every Saturday 18:15"),
     ("monthly", "Every first day of the Month 00:00"),
-    ("sat *-1..7 02:00", "Every first Saturday of the month 02:00"),
+    (
+        "sat *-1..7 02:00",
+        "Every first Saturday of the month 02:00",
+    ),
     ("yearly", "First day of the year 00:00"),
 ];
 
-thread_local!{
+thread_local! {
     static COLUMNS: Rc<Vec<DataTableHeader<Record>>> = Rc::new(vec![
         DataTableColumn::new("Value")
             .width("100px")
@@ -43,9 +46,8 @@ thread_local!{
     ]);
 }
 
-
-use pwt_macros::{builder, widget};
 use pwt::props::{FieldBuilder, WidgetBuilder};
+use pwt_macros::{builder, widget};
 
 #[widget(comp=ProxmoxCalendarEventSelector, @input)]
 #[derive(Clone, Properties, PartialEq)]
@@ -72,7 +74,7 @@ pub struct ProxmoxCalendarEventSelector {
 
 impl Component for ProxmoxCalendarEventSelector {
     type Message = ();
-    type Properties =  CalendarEventSelector;
+    type Properties = CalendarEventSelector;
 
     fn create(_ctx: &Context<Self>) -> Self {
         let store = Store::with_extract_key(|item: &Record| Key::from(item.0));
@@ -83,9 +85,8 @@ impl Component for ProxmoxCalendarEventSelector {
         });
 
         let picker = RenderFn::new(|args: &SelectorRenderArgs<Store<Record>>| {
-
-            let table = DataTable::new(COLUMNS.with(Rc::clone), args.store.clone())
-                .class("pwt-fit");
+            let table =
+                DataTable::new(COLUMNS.with(Rc::clone), args.store.clone()).class("pwt-fit");
 
             GridPicker::new(table)
                 .show_filter(false)
@@ -94,7 +95,11 @@ impl Component for ProxmoxCalendarEventSelector {
                 .into()
         });
 
-        Self { store, validate, picker }
+        Self {
+            store,
+            validate,
+            picker,
+        }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {

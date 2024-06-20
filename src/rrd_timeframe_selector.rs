@@ -124,7 +124,8 @@ impl RRDTimeframe {
             RRDTimeframe::YearMax => "year-max",
             RRDTimeframe::DecadeAvg => "decade-avg",
             RRDTimeframe::DecadeMax => "decade-max",
-        }.to_string()
+        }
+        .to_string()
     }
 
     pub fn store(&self) {
@@ -230,7 +231,10 @@ impl Component for PwtRRDTimeframeSelector {
             RRDTimeframe::YearMax,
             RRDTimeframe::DecadeAvg,
             RRDTimeframe::DecadeMax,
-        ].iter().map(|v| AttrValue::from(v.serialize())).collect();
+        ]
+        .iter()
+        .map(|v| AttrValue::from(v.serialize()))
+        .collect();
 
         Self {
             timeframe,
@@ -263,11 +267,15 @@ impl Component for PwtRRDTimeframeSelector {
             .default(self.timeframe.serialize())
             .items(self.items.clone())
             .on_change(ctx.link().callback(Msg::SetRRDTimeframe))
-            .render_value(|v: &AttrValue| { html!{display_value(v)} })
+            .render_value(|v: &AttrValue| {
+                html! {display_value(v)}
+            })
             .show_filter(false)
             // Note: This is just for completeness. Not used because we do not show the filter...
             .filter(|item: &AttrValue, query: &str| {
-                display_value(item).to_lowercase().contains(&query.to_lowercase())
+                display_value(item)
+                    .to_lowercase()
+                    .contains(&query.to_lowercase())
             })
             .into()
     }
