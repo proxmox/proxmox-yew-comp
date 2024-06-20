@@ -2,6 +2,10 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use anyhow::Error;
+use pwt::props::{
+    AsClassesMut, AsCssStylesMut, CssMarginBuilder, CssPaddingBuilder, CssStyles,
+    WidgetStyleBuilder,
+};
 use serde::Deserialize;
 use serde_json::json;
 
@@ -109,6 +113,9 @@ pub struct LogView {
     #[prop_or_default]
     pub class: Classes,
 
+    #[prop_or_default]
+    pub style: CssStyles,
+
     /// View logs for the specified service,
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
@@ -124,6 +131,22 @@ pub struct LogView {
     #[prop_or_default]
     pub until: Option<i64>,
 }
+
+impl AsClassesMut for LogView {
+    fn as_classes_mut(&mut self) -> &mut yew::Classes {
+        &mut self.class
+    }
+}
+
+impl AsCssStylesMut for LogView {
+    fn as_css_styles_mut(&mut self) -> &mut CssStyles {
+        &mut self.style
+    }
+}
+
+impl CssMarginBuilder for LogView {}
+impl CssPaddingBuilder for LogView {}
+impl WidgetStyleBuilder for LogView {}
 
 impl LogView {
     pub fn new(url: impl Into<AttrValue>) -> Self {
@@ -445,10 +468,12 @@ impl Component for PwtLogView {
             props.class.clone(),
         };
 
+        let style = props.style.compile_style_attribute(None);
+
         let physical_height = self.logical_to_physical(lines * self.line_height);
         html! {
             // Note: we set class "pwt-log-content" her, so that we can query the font size
-            <div ref={self.viewport_ref.clone()} {class} {onscroll}>
+            <div ref={self.viewport_ref.clone()} {style} {class} {onscroll}>
                <div style={format!("height:{}px;position:relative;", physical_height)}>
                  {pages}
                </div>
