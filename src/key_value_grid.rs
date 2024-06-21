@@ -11,7 +11,8 @@ use pwt::prelude::*;
 use pwt::props::{CallbackMut, ExtractPrimaryKey, IntoEventCallbackMut};
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{
-    DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
+    CellConfiguration, DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent,
+    DataTableMouseEvent,
 };
 
 use pwt_macros::builder;
@@ -74,9 +75,10 @@ pub struct KVGrid {
     #[prop_or_default]
     pub class: Classes,
 
-    /// Set class for table cells (default is "pwt-datatable-cell").
+    /// Set configuration for table cells (default is class "pwt-datatable-cell").
     #[prop_or_default]
-    pub cell_class: Classes,
+    #[builder]
+    pub cell_configuration: CellConfiguration,
 
     /// Disable horizontal borders.
     #[prop_or_default]
@@ -134,17 +136,6 @@ impl KVGrid {
     /// Method to add a html class.
     pub fn add_class(&mut self, class: impl Into<Classes>) {
         self.class.push(class);
-    }
-
-    /// Builder style method to add a html class for table cells.
-    pub fn cell_class(mut self, class: impl Into<Classes>) -> Self {
-        self.add_cell_class(class);
-        self
-    }
-
-    /// Method to add a html class for table cells.
-    pub fn add_cell_class(&mut self, class: impl Into<Classes>) {
-        self.cell_class.push(class);
     }
 
     pub fn data(mut self, data: Rc<Value>) -> Self {
@@ -295,7 +286,7 @@ impl Component for PwtKVGrid {
         let props = ctx.props();
         DataTable::new(COLUMNS.with(Rc::clone), self.store.clone())
             .class(props.class.clone())
-            .cell_class(props.cell_class.clone())
+            .cell_configuration(props.cell_configuration.clone())
             .borderless(props.borderless)
             .striped(props.striped)
             .virtual_scroll(false)

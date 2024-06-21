@@ -9,7 +9,9 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::{Selection, Store};
-use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
+use pwt::widget::data_table::{
+    CellConfiguration, DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent,
+};
 use pwt::widget::form::{Form, FormContext, TextArea};
 use pwt::widget::{Button, Container, Dialog, FileButton, MessageBox, Toolbar};
 
@@ -309,7 +311,11 @@ impl ProxmoxCertificateList {
             .striped(false)
             .rows(self.rows.clone())
             .data(Rc::clone(info))
-            .cell_class("pwt-datatable-cell pwt-p-2 pwt-user-select-text");
+            .cell_configuration(
+                CellConfiguration::new()
+                    .class("pwt-datatable-cell pwt-user-select-text")
+                    .padding(2),
+            );
 
         Dialog::new(tr!("Certificate"))
             .with_child(grid)
