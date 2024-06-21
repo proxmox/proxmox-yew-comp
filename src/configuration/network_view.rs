@@ -12,8 +12,8 @@ use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 use pwt::widget::{Button, Column, Container, SplitPane, Toolbar};
 
-use proxmox_client::ApiResponseData;
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, TaskProgress};
+use proxmox_client::ApiResponseData;
 
 use crate::percent_encoding::percent_encode_component;
 use proxmox_network_api::{BondXmitHashPolicy, Interface, LinuxBondMode, NetworkInterfaceType};
@@ -164,11 +164,10 @@ impl LoadableComponent for ProxmoxNetworkView {
             Msg::ApplyChanges => {
                 let link = ctx.link().clone();
                 wasm_bindgen_futures::spawn_local(async move {
-                    match apply_changes().await  {
+                    match apply_changes().await {
                         Err(err) => {
                             link.show_error(tr!("Unable to apply changes"), err, true);
                             link.send_reload();
-
                         }
                         Ok(upid) => {
                             link.change_view(Some(ViewState::ApplyChanges(upid)));
@@ -186,7 +185,6 @@ impl LoadableComponent for ProxmoxNetworkView {
         let disabled = self.selection.is_empty();
 
         let no_changes = self.changes.is_empty();
-
 
         let add_menu = Menu::new()
             .with_item(
@@ -315,8 +313,8 @@ impl LoadableComponent for ProxmoxNetworkView {
             ViewState::ApplyChanges(task_id) => Some(
                 TaskProgress::new(task_id)
                     .on_close(ctx.link().change_view_callback(|_| None))
-                    .into()
-            )
+                    .into(),
+            ),
         }
     }
 }
@@ -387,8 +385,7 @@ fn render_two_lines(
     }
 }
 
-fn columns() -> Rc<Vec<DataTableHeader<Interface>>>
-{
+fn columns() -> Rc<Vec<DataTableHeader<Interface>>> {
     Rc::new(vec![
         DataTableColumn::new(tr!("Name"))
             .width("120px")

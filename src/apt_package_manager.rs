@@ -1,28 +1,29 @@
-use std::rc::Rc;
-use std::pin::Pin;
 use std::cmp::Ordering;
-use std::future::Future;
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
+use std::rc::Rc;
 
 use anyhow::Error;
 
-use yew::virtual_dom::{Key, VComp, VNode};
 use yew::html::IntoPropValue;
+use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::ExtractPrimaryKey;
 use pwt::state::{Selection, SlabTree, TreeStore};
-use pwt::widget::{Container, Button, Toolbar, Tooltip};
-use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableHeaderGroup, DataTableCellRenderArgs};
+use pwt::widget::data_table::{
+    DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader, DataTableHeaderGroup,
+};
+use pwt::widget::{Button, Container, Toolbar, Tooltip};
 
+use crate::common_api_types::APTUpdateInfo;
 use crate::percent_encoding::percent_encode_component;
 use crate::{DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
-use crate::common_api_types::APTUpdateInfo;
 
 use pwt_macros::builder;
 
 // fixme: add Upgrade button (opens xtermjs)
-
 
 async fn list_updates(base_url: AttrValue) -> Result<Vec<APTUpdateInfo>, Error> {
     let url = format!("{base_url}/update");
@@ -85,7 +86,10 @@ fn update_list_to_tree(updates: &[APTUpdateInfo]) -> SlabTree<TreeEntry> {
     for info in updates {
         match origin_map.get_mut(&info.origin) {
             None => {
-                let origin_info = OriginInfo { name: Key::from(info.origin.clone()), count: 1};
+                let origin_info = OriginInfo {
+                    name: Key::from(info.origin.clone()),
+                    count: 1,
+                };
                 let package_list = vec![info.clone()];
                 origin_map.insert(info.origin.clone(), (origin_info, package_list));
             }
@@ -100,7 +104,10 @@ fn update_list_to_tree(updates: &[APTUpdateInfo]) -> SlabTree<TreeEntry> {
         let mut origin_node = root.append(TreeEntry::Origin(origin_info));
         origin_node.set_expanded(true);
         for package in package_list.into_iter() {
-            origin_node.append(TreeEntry::Package(Key::from(package.package.clone()), package));
+            origin_node.append(TreeEntry::Package(
+                Key::from(package.package.clone()),
+                package,
+            ));
         }
     }
 
@@ -155,7 +162,11 @@ impl LoadableComponent for ProxmoxAptPackageManager {
 
         let selected_key = self.selection.selected_key();
         let selected_record = match selected_key.as_ref() {
-            Some(key) => self.tree_store.read().lookup_node(key).map(|r| r.record().clone()),
+            Some(key) => self
+                .tree_store
+                .read()
+                .lookup_node(key)
+                .map(|r| r.record().clone()),
             None => None,
         };
         let selected_package = match selected_record {
@@ -167,22 +178,21 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             .class("pwt-w-100")
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
-            .with_child(
-                Button::new(tr!("Refresh"))
-                    .onclick({
-                        let link = ctx.link();
-                        let command = format!("{}/update", props.base_url);
-                        move |_| link.start_task(&command, None, false)
-                    })
-            )
+            .with_child(Button::new(tr!("Refresh")).onclick({
+                let link = ctx.link();
+                let command = format!("{}/update", props.base_url);
+                move |_| link.start_task(&command, None, false)
+            }))
             .with_child(
                 Button::new(tr!("Changelog"))
                     .disabled(selected_package.is_none())
                     .onclick({
                         let link = ctx.link();
-                        let view = selected_package.as_ref().map(|p| ViewState::ShowChangelog(p.clone()));
+                        let view = selected_package
+                            .as_ref()
+                            .map(|p| ViewState::ShowChangelog(p.clone()));
                         move |_| link.change_view(view.clone())
-                    })
+                    }),
             )
             .with_flex_spacer()
             .with_child({
@@ -209,21 +219,27 @@ impl LoadableComponent for ProxmoxAptPackageManager {
         view_state: &Self::ViewState,
     ) -> Option<Html> {
         match view_state {
-            ViewState::ShowChangelog(package) => Some(self.create_show_changelog_dialog(ctx, &package)),
+            ViewState::ShowChangelog(package) => {
+                Some(self.create_show_changelog_dialog(ctx, &package))
+            }
         }
     }
 }
 
 impl From<AptPackageManager> for VNode {
     fn from(prop: AptPackageManager) -> VNode {
-        let comp = VComp::new::<LoadableComponentMaster<ProxmoxAptPackageManager>>(Rc::new(prop), None);
+        let comp =
+            VComp::new::<LoadableComponentMaster<ProxmoxAptPackageManager>>(Rc::new(prop), None);
         VNode::from(comp)
     }
 }
 
 impl ProxmoxAptPackageManager {
-
-    fn create_show_changelog_dialog(&self, ctx: &LoadableComponentContext<Self>, package: &str) -> Html {
+    fn create_show_changelog_dialog(
+        &self,
+        ctx: &LoadableComponentContext<Self>,
+        package: &str,
+    ) -> Html {
         let props = ctx.props().clone();
         let url = format!(
             "{}/changelog?name={}",
@@ -244,7 +260,7 @@ impl ProxmoxAptPackageManager {
                     .class("pwt-flex-fit pwt-monospace");
 
                 if let Some((title, body)) = description.split_once("\n") {
-                    panel.add_child(html!{<h3>{title}</h3>});
+                    panel.add_child(html! {<h3>{title}</h3>});
                     panel.add_child(body);
                 } else {
                     panel.add_child(description);
@@ -267,21 +283,19 @@ impl ProxmoxAptPackageManager {
                 .sort_order(true)
                 .into(),
             DataTableHeaderGroup::new(tr!("Version"))
+                .with_child(DataTableColumn::new(tr!("current")).width("120px").render(
+                    |entry: &_| match entry {
+                        TreeEntry::Package(_, info) => html! {&info.old_version},
+                        _ => html! {},
+                    },
+                ))
                 .with_child(
-                    DataTableColumn::new(tr!("current"))
-                        .width("120px")
-                        .render(|entry: &_| match entry {
-                            TreeEntry::Package(_, info) => html!{&info.old_version},
-                            _ => html!{},
-                        })
-                )
-                .with_child(
-                    DataTableColumn::new(tr!("new"))
-                        .width("120px")
-                        .render(|entry: &_| match entry {
-                            TreeEntry::Package(_, info) => html!{&info.version},
-                            _ => html!{},
-                        })
+                    DataTableColumn::new(tr!("new")).width("120px").render(
+                        |entry: &_| match entry {
+                            TreeEntry::Package(_, info) => html! {&info.version},
+                            _ => html! {},
+                        },
+                    ),
                 )
                 .into(),
             DataTableColumn::new(tr!("Description"))
@@ -296,28 +310,35 @@ fn render_description(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Package(_, info) => {
             if let Some((title, body)) = info.description.split_once("\n") {
-                let title = html!{<h3>{title}</h3>};
-                Tooltip::new(html!{&info.title})
-                    .rich_tip(html!{<pre class="pwt-monospace">{title}{body}</pre>})
+                let title = html! {<h3>{title}</h3>};
+                Tooltip::new(html! {&info.title})
+                    .rich_tip(html! {<pre class="pwt-monospace">{title}{body}</pre>})
                     .into()
             } else {
-                html!{<pre class="pwt-monospace">{&info.description}</pre>}
+                html! {<pre class="pwt-monospace">{&info.description}</pre>}
             }
         }
-        _ => html!{},
+        _ => html! {},
     }
 }
 
 fn render_tree_node(args: &mut DataTableCellRenderArgs<TreeEntry>) -> Html {
     let record = args.record();
     match record {
-        TreeEntry::Root(_) => html!{"Packages"}, // not visible
+        TreeEntry::Root(_) => html! {"Packages"}, // not visible
         TreeEntry::Origin(info) => {
-            let text = tr!("Origin") + ": " + &*info.name + " (" + &tr!("One item" | "{} items" % info.count) + ")";
+            let text = tr!("Origin")
+                + ": "
+                + &*info.name
+                + " ("
+                + &tr!("One item" | "{} items" % info.count)
+                + ")";
             args.add_class("pwt-bg-color-surface");
             args.set_attribute("colspan", "20");
-            html!{<span class="pwt-text-truncate">{text}</span>}
+            html! {<span class="pwt-text-truncate">{text}</span>}
         }
-        TreeEntry::Package(_, info) => html!{<span class="pwt-text-truncate">{&info.package}</span>},
+        TreeEntry::Package(_, info) => {
+            html! {<span class="pwt-text-truncate">{&info.package}</span>}
+        }
     }
 }
