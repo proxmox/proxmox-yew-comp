@@ -254,8 +254,7 @@ impl ProxmoxAptPackageManager {
             .on_done(ctx.link().change_view_callback(|_| None))
             .loader(url)
             .renderer(|description: &String| {
-                let mut panel = Container::new()
-                    .tag("pre")
+                let mut panel = Container::from_tag("pre")
                     .padding(2)
                     .class("pwt-flex-fit pwt-monospace");
 

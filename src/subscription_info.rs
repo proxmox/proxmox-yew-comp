@@ -38,7 +38,7 @@ a list of available options.
 
     let msg2 = Html::from_html_unchecked(msg2.into());
 
-    let msg = Container::new().tag("p").padding_bottom(2).with_child(tr!("
+    let msg = Container::from_tag("p").padding_bottom(2).with_child(tr!("
 The Proxmox team works very hard to make sure you are running the best
 software and getting stable updates and security enhancements,
 as well as quick enterprise support.

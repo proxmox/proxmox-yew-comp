@@ -249,8 +249,7 @@ impl ProxmoxCertificateList {
                             }),
                     )
                     .with_child(
-                        Container::new()
-                            .tag("span")
+                        Container::from_tag("span")
                             .padding_top(4)
                             .with_child(tr!("Certificate Chain")),
                     )

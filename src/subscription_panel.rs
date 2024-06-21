@@ -216,8 +216,7 @@ impl ProxmoxSubscriptionPanel {
             .height(600)
             .loader("/nodes/localhost/report")
             .renderer(|report: &String| {
-                Container::new()
-                    .tag("pre")
+                Container::from_tag("pre")
                     .class("pwt-flex-fit pwt-font-monospace")
                     .padding(2)
                     .style("line-height", "normal")

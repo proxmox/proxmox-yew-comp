@@ -58,8 +58,7 @@ impl Component for ProxmoxStatusRow {
         let props = ctx.props();
 
         let icon = props.icon_class.as_ref().map(|icon_class| {
-            Container::new()
-                .tag("i")
+            Container::from_tag("i")
                 .class(icon_class.clone())
                 .padding_end(2)
         });

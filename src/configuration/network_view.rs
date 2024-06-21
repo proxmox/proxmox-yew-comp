@@ -261,8 +261,7 @@ impl LoadableComponent for ProxmoxNetworkView {
                     .with_child(tr!("Pending changes (Either reboot or use 'Apply Configuration' (needs ifupdown2) to activate)"))
                 )
                 .with_child(
-                    Container::new()
-                    .tag("pre")
+                    Container::from_tag("pre")
                     .padding(2)
                     .class("pwt-flex-fit pwt-font-monospace pwt-font-size-body-medium pwt-line-height-body-medium")
                     .with_child(&self.changes)

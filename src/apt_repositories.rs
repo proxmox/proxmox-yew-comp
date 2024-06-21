@@ -829,9 +829,8 @@ fn render_origin(record: &TreeEntry) -> Html {
                 Origin::Other => ("fa fa-question-circle-o", "Other"),
             };
 
-            Container::new()
-                .tag("span")
-                .with_child(Container::new().tag("i").class(classes).padding_end(2))
+            Container::from_tag("span")
+                .with_child(Container::from_tag("i").class(classes).padding_end(2))
                 .with_child(text)
                 .into()
         }

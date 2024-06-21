@@ -70,8 +70,7 @@ impl ProxmoxSyslog {
         Toolbar::new()
             .with_flex_spacer()
             .with_child(
-                Container::new()
-                    .tag("label")
+                Container::from_tag("label")
                     .id(self.since_label_id.clone())
                     .padding_start(2)
                     .class("pwt-align-self-center")
@@ -87,8 +86,7 @@ impl ProxmoxSyslog {
                     .value(since),
             )
             .with_child(
-                Container::new()
-                    .tag("label")
+                Container::from_tag("label")
                     .id(self.since_label_id.clone())
                     .padding_start(2)
                     .class("pwt-align-self-center")
