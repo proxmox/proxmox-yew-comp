@@ -59,7 +59,7 @@ impl Component for ProxmoxRRDGrid {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        Container::form_widget_props(props.std_props.clone(), None)
+        Container::from_widget_props(props.std_props.clone(), None)
             .class(Display::Flex)
             .class(FlexDirection::Column)
             .class("pwt-overflow-auto")
