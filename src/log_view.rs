@@ -3,8 +3,8 @@ use std::rc::Rc;
 
 use anyhow::Error;
 use pwt::props::{
-    AsClassesMut, AsCssStylesMut, CssMarginBuilder, CssPaddingBuilder, CssStyles,
-    WidgetStyleBuilder,
+    AsClassesMut, AsCssStylesMut, ContainerBuilder, CssMarginBuilder, CssPaddingBuilder, CssStyles,
+    WidgetBuilder, WidgetStyleBuilder,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -13,9 +13,9 @@ use gloo_timers::callback::{Interval, Timeout};
 
 use yew::html::IntoPropValue;
 use yew::prelude::*;
-use yew::virtual_dom::{Key, VComp, VNode, VTag};
+use yew::virtual_dom::{Key, VComp, VNode};
 
-use pwt::widget::SizeObserver;
+use pwt::widget::{Container, SizeObserver};
 
 use pwt_macros::builder;
 
@@ -176,6 +176,7 @@ pub enum Msg {
 pub struct PwtLogView {
     pages: [Option<LogPage>; 4],
     pending_pages: HashMap<u64, Timeout>,
+    required_pages: HashSet<u64>,
     total: Option<u64>,
     viewport_ref: NodeRef,
     viewport_lines: u64,
@@ -238,6 +239,15 @@ impl PwtLogView {
 
         if self.enable_tail_view {
             self.pending_pages.retain(|page, _| *page == last_page);
+            self.required_pages.clear();
+            self.required_pages.insert(last_page);
+            // in case we're just on a page boundary, we need the previous page too
+            if last_page > 0 {
+                self.required_pages.insert(last_page - 1);
+                if self.page_index(last_page - 1).is_none() {
+                    self.request_page(ctx, last_page - 1, PAGE_LOAD_DELAY);
+                }
+            }
             let delay = if self.page_index(last_page).is_some() {
                 1000
             } else {
@@ -273,8 +283,35 @@ impl PwtLogView {
             }
         }
 
-        self.pending_pages
-            .retain(|page, _| required_pages.contains(&page));
+        self.required_pages = required_pages;
+    }
+
+    fn insert_page(&mut self, info: LogPage) {
+        if let Some(index) = self.page_index(info.page) {
+            //log::info!("REPLACE PAGE {} at {}", info.page, index);
+            self.pages[index] = Some(info);
+        } else {
+            let mut found = false;
+            for i in 0..self.pages.len() {
+                if self.pages[i].is_none() {
+                    //log::info!("INSERT PAGE {} at {}", info.page, i);
+                    self.pages[i] = Some(info);
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                log::error!("no empty page slot");
+            }
+        }
+
+        // sort, so the order of the elements of pages is stable
+        self.pages.sort_by(|page_a, page_b| match (page_a, page_b) {
+            (None, None) => std::cmp::Ordering::Equal,
+            (None, Some(_)) => std::cmp::Ordering::Less,
+            (Some(_), None) => std::cmp::Ordering::Greater,
+            (Some(page_a), Some(page_b)) => page_a.page.cmp(&page_b.page),
+        });
     }
 }
 
@@ -304,6 +341,7 @@ impl Component for PwtLogView {
             // Note: we use window.get_computed_style() to get the real value in rendered()
             line_height: 18,
             scale: 1.0,
+            required_pages: HashSet::new(),
         }
     }
 
@@ -312,6 +350,7 @@ impl Component for PwtLogView {
             Msg::Reload => {
                 self.pages = [None, None, None, None];
                 self.pending_pages.clear();
+                self.required_pages.clear();
                 self.total = None;
                 self.request_pages(ctx);
                 false
@@ -345,7 +384,9 @@ impl Component for PwtLogView {
                 self.scale = scale.max(1.0);
                 //log::info!("SCALE1 {}", self.scale);
 
-                if !self.pending_pages.contains_key(&info.page) {
+                self.pending_pages.remove(&info.page);
+
+                if !self.required_pages.contains(&info.page) {
                     //log::info!("SKIP PageLoad {}", info.page);
                     return false;
                 }
@@ -353,32 +394,14 @@ impl Component for PwtLogView {
                 // remove stale pages
                 for i in 0..self.pages.len() {
                     if let Some(page) = &self.pages[i] {
-                        if !self.pending_pages.contains_key(&page.page) {
+                        if !self.required_pages.contains(&page.page) {
                             //log::info!("remove stale page {}", page.page);
                             self.pages[i] = None;
                         }
                     }
                 }
 
-                self.pending_pages.remove(&info.page);
-
-                if let Some(index) = self.page_index(info.page) {
-                    //log::info!("REPLACE PAGE {} at {}", info.page, index);
-                    self.pages[index] = Some(info);
-                } else {
-                    let mut found = false;
-                    for i in 0..self.pages.len() {
-                        if self.pages[i].is_none() {
-                            //log::info!("INSERT PAGE {} at {}", info.page, i);
-                            self.pages[i] = Some(info);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if !found {
-                        log::error!("no empty page slot");
-                    }
-                }
+                self.insert_page(info);
 
                 true
             }
@@ -423,19 +446,15 @@ impl Component for PwtLogView {
                         let offset = self.logical_to_physical(offset);
                         //log::info!("render PAGE {} AT OFFSET {}", page.page, offset);
 
-                        let mut tag = VTag::new("div");
-                        // Note: we set class "pwt-log-content", but overwrite "line-height" (use integer value)
-                        tag.add_attribute("class", "pwt-log-content");
-                        tag.add_attribute(
-                            "style",
-                            format!(
-                                "position:absolute;line-height:{}px;top:{}px;",
-                                self.line_height, offset,
-                            ),
-                        );
+                        let mut tag = Container::new()
+                            .key(format!("page{}", page.page))
+                            .class("pwt-log-content")
+                            .style("position", "absolute")
+                            .style("line-height", format!("{}px", self.line_height))
+                            .style("top", format!("{}px", offset));
 
                         for item in page.lines.iter() {
-                            tag.add_child(format!("{}\n", item.t).into());
+                            tag.add_child(format!("{}\n", item.t));
                         }
 
                         let html: Html = tag.into();
