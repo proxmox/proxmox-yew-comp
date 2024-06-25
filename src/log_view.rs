@@ -106,6 +106,8 @@ pub struct LogView {
     pub key: Option<Key>,
     pub url: AttrValue,
 
+    /// Determines if the log should auto refresh on the tail end of the log,
+    /// useful for running task logs, etc.
     #[prop_or_default]
     #[builder]
     pub active: bool,
