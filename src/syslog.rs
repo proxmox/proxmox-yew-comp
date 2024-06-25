@@ -34,6 +34,7 @@ impl Syslog {
 }
 
 pub enum Msg {
+    LoadingChange((usize, bool)),
     Since(String),
     Until(String),
 }
@@ -44,6 +45,7 @@ pub struct ProxmoxSyslog {
     since_label_id: AttrValue,
     until: js_sys::Date,
     until_label_id: AttrValue,
+    pending: bool,
 }
 
 fn date_to_input_value(date: &js_sys::Date) -> String {
@@ -68,6 +70,18 @@ impl ProxmoxSyslog {
         let until = date_to_input_value(&self.until);
 
         Toolbar::new()
+            .with_optional_child(
+                self.pending.then_some(
+                    Row::new()
+                        .gap(2)
+                        .with_child(
+                            Container::from_tag("i")
+                                .class("pwt-loading-icon")
+                                .padding(2),
+                        )
+                        .with_child(tr!("Loading...")),
+                ),
+            )
             .with_flex_spacer()
             .with_child(
                 Container::from_tag("label")
@@ -128,6 +142,7 @@ impl ProxmoxSyslog {
             .since((since.get_time() / 1000.0) as i64)
             .until(until)
             .active(self.active)
+            .on_pending_change(ctx.link().callback(Msg::LoadingChange))
             .into()
     }
 }
@@ -164,6 +179,7 @@ impl Component for ProxmoxSyslog {
             since_label_id: AttrValue::from(pwt::widget::get_unique_element_id()),
             until: get_default_until(),
             until_label_id: AttrValue::from(pwt::widget::get_unique_element_id()),
+            pending: false,
         }
     }
 
@@ -180,6 +196,12 @@ impl Component for ProxmoxSyslog {
                 let until = js_sys::Date::new(&until.into());
                 self.until = until;
                 true
+            }
+            Msg::LoadingChange((num, tail_view)) => {
+                let new_pending = num > 0 && !tail_view;
+                let changed = new_pending != self.pending;
+                self.pending = new_pending;
+                changed
             }
         }
     }
