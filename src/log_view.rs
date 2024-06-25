@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use anyhow::Error;
+
 use pwt::props::{
     AsClassesMut, AsCssStylesMut, ContainerBuilder, CssMarginBuilder, CssPaddingBuilder, CssStyles,
     WidgetBuilder, WidgetStyleBuilder,
@@ -11,7 +12,7 @@ use serde_json::json;
 
 use gloo_timers::callback::{Interval, Timeout};
 
-use yew::html::IntoPropValue;
+use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
@@ -132,6 +133,11 @@ pub struct LogView {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     pub until: Option<i64>,
+
+    /// Callback when the number of pending pages changes and if it's in "tail view" mode
+    #[builder_cb(IntoEventCallback, into_event_callback, (usize, bool))]
+    #[prop_or_default]
+    pub on_pending_change: Option<Callback<(usize, bool)>>,
 }
 
 impl AsClassesMut for LogView {
@@ -213,6 +219,13 @@ impl PwtLogView {
         })
     }
 
+    fn emit_pending_change(&self, ctx: &Context<Self>) {
+        let props = ctx.props();
+        if let Some(handler) = props.on_pending_change.clone() {
+            handler.emit((self.pending_pages.keys().count(), self.enable_tail_view));
+        }
+    }
+
     fn request_page(&mut self, ctx: &Context<Self>, page_num: u64, delay: u32) {
         if !self.pending_pages.contains_key(&page_num) {
             let props = ctx.props().clone();
@@ -230,6 +243,7 @@ impl PwtLogView {
                 });
             });
             self.pending_pages.insert(page_num, timeout);
+            self.emit_pending_change(ctx);
         }
     }
 
@@ -241,6 +255,7 @@ impl PwtLogView {
 
         if self.enable_tail_view {
             self.pending_pages.retain(|page, _| *page == last_page);
+            self.emit_pending_change(ctx);
             self.required_pages.clear();
             self.required_pages.insert(last_page);
             // in case we're just on a page boundary, we need the previous page too
@@ -353,6 +368,7 @@ impl Component for PwtLogView {
             Msg::Reload => {
                 self.pages = [None, None, None, None];
                 self.pending_pages.clear();
+                self.emit_pending_change(ctx);
                 self.required_pages.clear();
                 self.total = None;
                 self.request_pages(ctx);
@@ -388,6 +404,7 @@ impl Component for PwtLogView {
                 //log::info!("SCALE1 {}", self.scale);
 
                 self.pending_pages.remove(&info.page);
+                self.emit_pending_change(ctx);
 
                 if !self.required_pages.contains(&info.page) {
                     //log::info!("SKIP PageLoad {}", info.page);
