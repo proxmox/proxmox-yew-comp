@@ -283,6 +283,7 @@ impl PwtLogView {
             }
         }
 
+        self.pending_pages.retain(|p, _| required_pages.contains(p));
         self.required_pages = required_pages;
     }
 
