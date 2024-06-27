@@ -176,7 +176,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             .class("pwt-border-bottom")
             .with_child(Button::new(tr!("Add")).onclick(ctx.link().callback(|_| Msg::Add)))
             .with_child(
-                Button::new(tr!("View"))
+                Button::new(tr!("Edit"))
                     .disabled(selected_key.is_none())
                     .onclick({
                         let link = ctx.link();
