@@ -300,6 +300,7 @@ impl ProxmoxAcmePluginsPanel {
                 let default = parsed_data.get(field_name).map(|s| s.to_owned());
                 let description: Option<String> =
                     field_schema["description"].as_str().map(|s| s.to_owned());
+                let placeholder = field_schema["default"].as_str().map(|s| s.to_owned());
 
                 panel.add_field(
                     false,
@@ -308,6 +309,7 @@ impl ProxmoxAcmePluginsPanel {
                         .name(format!("data_{}", field_name))
                         .tip(description)
                         .submit(false)
+                        .placeholder(placeholder)
                         .default(default),
                 )
             }
