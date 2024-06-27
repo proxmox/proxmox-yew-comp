@@ -161,6 +161,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                 self.challenge_schema = None;
                 self.api_data = String::new();
                 ctx.link().change_view(None);
+                ctx.link().send_reload();
                 true
             }
         }
