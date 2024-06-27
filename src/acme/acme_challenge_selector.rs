@@ -56,10 +56,10 @@ impl Component for ProxmoxAcmeChallengeSelector {
 
     fn create(ctx: &Context<Self>) -> Self {
         let columns = Rc::new(vec![DataTableColumn::new("")
-            .width("200px")
+            .flex(1)
             .show_menu(false)
             .render(|item: &AcmeChallengeSchemaItem| {
-                html! {&item.id}
+                item.schema["name"].as_str().unwrap_or(&item.id).into()
             })
             .into()]);
 
@@ -79,8 +79,9 @@ impl Component for ProxmoxAcmeChallengeSelector {
 
         let picker = RenderFn::new(
             move |args: &SelectorRenderArgs<Store<AcmeChallengeSchemaItem>>| {
-                let table =
-                    DataTable::new(columns.clone(), args.store.clone()).class("pwt-flex-fit");
+                let table = DataTable::new(columns.clone(), args.store.clone())
+                    .show_header(false)
+                    .class("pwt-flex-fit");
 
                 GridPicker::new(table)
                     .selection(args.selection.clone())
@@ -101,6 +102,19 @@ impl Component for ProxmoxAcmeChallengeSelector {
         Selector::new(self.store.clone(), self.picker.clone())
             .with_std_props(&props.std_props)
             .with_input_props(&props.input_props)
+            .render_value({
+                let store = self.store.clone();
+                move |value: &AttrValue| {
+                    store
+                        .read()
+                        .data()
+                        .iter()
+                        .find(|item| &item.id == value)
+                        .and_then(|item| item.schema["name"].as_str())
+                        .unwrap_or(value)
+                        .into()
+                }
+            })
             .loader(&*props.url)
             .validate(self.validate.clone())
             .on_change({
