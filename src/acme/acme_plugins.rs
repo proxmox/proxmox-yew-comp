@@ -408,7 +408,6 @@ impl ProxmoxAcmePluginsPanel {
 
                     data["data"] =
                         Self::assemble_api_data(&form_ctx, challenge_schema.as_ref()).into();
-                    data["type"] = "dns".into();
 
                     let data = delete_empty_values(&data, &["validation-delay"], true);
 
