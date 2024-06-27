@@ -11,7 +11,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
-use pwt::widget::form::{delete_empty_values, Field, FormContext, Number, TextArea};
+use pwt::widget::form::{delete_empty_values, DisplayField, Field, FormContext, Number, TextArea};
 use pwt::widget::{Button, InputPanel, Toolbar};
 
 use crate::percent_encoding::percent_encode_component;
@@ -267,15 +267,23 @@ impl ProxmoxAcmePluginsPanel {
         let mut panel = InputPanel::new()
             .width(600)
             .class("pwt-flex-fit")
-            .padding(4)
-            .with_field(
+            .padding(4);
+
+        if let Some(id) = id {
+            panel.add_field(false, tr!("Plugin ID"), DisplayField::new(id.to_string()));
+        } else {
+            panel.add_field(
+                false,
                 tr!("Plugin ID"),
                 Field::new()
                     .name("plugin")
                     .disabled(id.is_some())
                     .submit(id.is_none())
                     .required(true),
-            )
+            );
+        }
+
+        let mut panel = panel
             .with_field(
                 tr!("Validation Delay"),
                 Number::<u8>::new()
@@ -290,6 +298,16 @@ impl ProxmoxAcmePluginsPanel {
                     .required(true)
                     .on_change(link.callback(move |schema| Msg::ChallengeSchema(schema))),
             );
+
+        if let Some(description) =
+            challenge_schema.and_then(|schema| schema.schema["description"].as_str())
+        {
+            panel.add_field(
+                false,
+                tr!("Hint"),
+                DisplayField::new(description.to_string()),
+            );
+        }
 
         let field_list = challenge_schema
             .and_then(|challenge_schema| challenge_schema.schema["fields"].as_object());
