@@ -2,6 +2,7 @@ use anyhow::Error;
 use serde_json::Value;
 use std::future::Future;
 use std::pin::Pin;
+use yew_router::scope_ext::RouterScopeExt;
 
 use gloo_timers::callback::Timeout;
 
@@ -174,6 +175,37 @@ impl<L: LoadableComponent + Sized> LoadableComponentLink<L> {
                 }
             }
         });
+    }
+}
+
+impl<L: LoadableComponent + Sized> RouterScopeExt for LoadableComponentLink<L> {
+    fn navigator(&self) -> Option<yew_router::prelude::Navigator> {
+        self.link.navigator()
+    }
+
+    fn location(&self) -> Option<yew_router::prelude::Location> {
+        self.link.location()
+    }
+
+    fn route<R>(&self) -> Option<R>
+    where
+        R: yew_router::Routable + 'static,
+    {
+        self.link.route()
+    }
+
+    fn add_location_listener(
+        &self,
+        cb: Callback<yew_router::prelude::Location>,
+    ) -> Option<yew_router::prelude::LocationHandle> {
+        self.link.add_location_listener(cb)
+    }
+
+    fn add_navigator_listener(
+        &self,
+        cb: Callback<yew_router::prelude::Navigator>,
+    ) -> Option<yew_router::prelude::NavigatorHandle> {
+        self.link.add_navigator_listener(cb)
     }
 }
 
