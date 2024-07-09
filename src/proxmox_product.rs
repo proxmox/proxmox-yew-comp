@@ -29,6 +29,7 @@ pub enum ExistingProduct {
     PMG,
     PBS,
     POM,
+    PDM,
 }
 
 impl ProjectInfo for ExistingProduct {
@@ -38,6 +39,7 @@ impl ProjectInfo for ExistingProduct {
             ExistingProduct::PMG => "PMGAuthCookie",
             ExistingProduct::PBS => "PBSAuthCookie",
             ExistingProduct::POM => "POMAuthCookie",
+            ExistingProduct::PDM => "PDMAuthCookie",
         }
     }
 
@@ -47,6 +49,7 @@ impl ProjectInfo for ExistingProduct {
             ExistingProduct::PMG => &["PMG", "PMGQUAR"],
             ExistingProduct::PBS => &["PBS"],
             ExistingProduct::POM => &["POM"],
+            ExistingProduct::PDM => &["PDM"],
         }
     }
 
@@ -56,6 +59,7 @@ impl ProjectInfo for ExistingProduct {
             ExistingProduct::PMG => tr!("Proxmox Mail Gateway"),
             ExistingProduct::PBS => tr!("Proxmox Backup Server"),
             ExistingProduct::POM => tr!("Proxmox Offline Mirror"),
+            ExistingProduct::PDM => tr!("Proxmox Datacenter Manager"),
         }
     }
 
@@ -65,6 +69,7 @@ impl ProjectInfo for ExistingProduct {
             ExistingProduct::PMG => "PMG",
             ExistingProduct::PBS => "PBS",
             ExistingProduct::POM => "POM",
+            ExistingProduct::PDM => "PDM",
         }
     }
 
