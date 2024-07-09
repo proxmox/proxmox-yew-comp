@@ -26,12 +26,12 @@ use crate::{
 
 use pwt_macros::builder;
 
-use super::apt_api_types::{
-    APTConfiguration, APTRepository, APTRepositoryHandle, APTRepositoryInfo,
+use proxmox_apt_api_types::{
+    APTRepositoriesResult, APTRepository, APTRepositoryHandle, APTRepositoryInfo,
     APTRepositoryPackageType, APTStandardRepository,
 };
 
-async fn apt_configuration(base_url: AttrValue) -> Result<APTConfiguration, Error> {
+async fn apt_configuration(base_url: AttrValue) -> Result<APTRepositoriesResult, Error> {
     let url = format!("{base_url}/repositories");
     crate::http_get(url, None).await
 }
@@ -94,7 +94,7 @@ impl ExtractPrimaryKey for StatusLine {
 // Note: this should implement the same logic we have in APTRepositories.js
 fn update_status_store(
     status_store: &Store<StatusLine>,
-    config: &APTConfiguration,
+    config: &APTRepositoriesResult,
     standard_repos: &HashMap<String, APTStandardRepository>,
     active_subscription: bool,
 ) {
@@ -311,7 +311,7 @@ impl ExtractPrimaryKey for TreeEntry {
     }
 }
 
-fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
+fn apt_configuration_to_tree(config: &APTRepositoriesResult) -> SlabTree<TreeEntry> {
     let mut tree = SlabTree::new();
 
     let mut root = tree.set_root(TreeEntry::Root(Key::from(format!("root"))));
@@ -381,7 +381,7 @@ fn apt_configuration_to_tree(config: &APTConfiguration) -> SlabTree<TreeEntry> {
 pub enum Msg {
     Refresh,
     ToggleEnable,
-    UpdateStatus(APTConfiguration),
+    UpdateStatus(APTRepositoriesResult),
     SubscriptionInfo(Result<Value, Error>),
 }
 
@@ -395,7 +395,7 @@ pub struct ProxmoxAptRepositories {
     tree_store: TreeStore<TreeEntry>,
     selection: Selection,
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
-    config: Option<APTConfiguration>,
+    config: Option<APTRepositoriesResult>,
     standard_repos: HashMap<String, APTStandardRepository>,
     validate_standard_repo: ValidateFn<(String, Store<AttrValue>)>,
     subscription_status: Option<Result<Value, Error>>,
