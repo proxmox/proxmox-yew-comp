@@ -43,6 +43,10 @@ pub struct AptRepositories {
     #[builder(IntoPropValue, into_prop_value)]
     /// The base url for
     pub base_url: AttrValue,
+    /// The Product
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub product: Option<ExistingProduct>,
 }
 
 impl AptRepositories {
@@ -93,6 +97,7 @@ impl ExtractPrimaryKey for StatusLine {
 
 // Note: this should implement the same logic we have in APTRepositories.js
 fn update_status_store(
+    product: Option<ExistingProduct>,
     status_store: &Store<StatusLine>,
     config: &APTRepositoriesResult,
     standard_repos: &HashMap<String, APTStandardRepository>,
@@ -106,6 +111,11 @@ fn update_status_store(
             error.path, error.error
         )));
     }
+
+    let product = match product {
+        Some(product) => product,
+        None => return,
+    };
 
     let mut has_enterprise = false;
     let mut has_no_subscription = false;
@@ -128,8 +138,6 @@ fn update_status_store(
             Test => has_test = true,
         }
     }
-
-    let product = ExistingProduct::PBS; // fixme
 
     if !(has_enterprise | has_no_subscription | has_test) {
         list.push(StatusLine::error(tr!(
@@ -460,6 +468,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
                 if let Some(config) = &self.config {
                     let active_subscription = self.active_subscription();
                     update_status_store(
+                        props.product,
                         &self.status_store,
                         &config,
                         &self.standard_repos,
@@ -479,6 +488,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
 
                 let active_subscription = self.active_subscription();
                 update_status_store(
+                    props.product,
                     &self.status_store,
                     &config,
                     &standard_repos,
