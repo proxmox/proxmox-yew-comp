@@ -10,7 +10,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use pwt::dom::IntoHtmlElement;
 use pwt::prelude::*;
 use pwt::props::{AsClassesMut, AsCssStylesMut, CssStyles};
-use pwt::widget::{Column, Container};
+use pwt::widget::{Column, Container, VisibilityContext};
 use pwt_macros::builder;
 
 const ENTRIES_LOAD_NUM: usize = 500;
@@ -65,6 +65,7 @@ impl JournalView {
 pub enum Msg {
     PageLoad(Vec<String>, Position),
     Scrolled(i32, i32, i32),
+    VisibilityChanged(VisibilityContext),
     Error(Error),
 }
 
@@ -90,6 +91,8 @@ pub struct ProxmoxJournalView {
     position: Position,
     last_error: Option<Error>,
     old_scroll_height: i32,
+    visibility: VisibilityContext,
+    _visibility_context_observer: Option<ContextHandle<VisibilityContext>>,
 }
 
 async fn load_content(
@@ -166,6 +169,11 @@ impl Component for ProxmoxJournalView {
     type Properties = JournalView;
 
     fn create(ctx: &Context<Self>) -> Self {
+        let (visibility, _visibility_context_observer) = ctx
+            .link()
+            .context(ctx.link().callback(Msg::VisibilityChanged))
+            .unzip();
+
         let mut this = Self {
             cursors: None,
             lines: Vec::new(),
@@ -174,6 +182,8 @@ impl Component for ProxmoxJournalView {
             last_error: None,
             position: Position::Initial,
             old_scroll_height: 0,
+            visibility: visibility.unwrap_or_default(),
+            _visibility_context_observer,
         };
 
         this.load(ctx);
@@ -248,6 +258,18 @@ impl Component for ProxmoxJournalView {
             Msg::Error(err) => {
                 self.last_error = Some(err);
                 true
+            }
+            Msg::VisibilityChanged(visibility) => {
+                let changed = self.visibility != visibility;
+                self.visibility = visibility;
+                if changed {
+                    if self.visibility.visible {
+                        self.load(ctx);
+                    } else {
+                        self.timeout = None;
+                    }
+                }
+                changed
             }
         }
     }
