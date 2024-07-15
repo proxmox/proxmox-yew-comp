@@ -31,6 +31,7 @@ use pwt_macros::builder;
 // possible solution: https://github.com/bvaughn/react-virtualized/issues/396
 
 const MAX_PHYSICAL: f64 = 17_000_000.0;
+const DEFAULT_LINE_HEIGHT: u64 = 18;
 
 #[derive(Deserialize)]
 struct LogEntry {
@@ -187,6 +188,7 @@ pub struct PwtLogView {
     required_pages: HashSet<u64>,
     total: Option<u64>,
     viewport_ref: NodeRef,
+    page_ref: NodeRef,
     viewport_lines: u64,
     scroll_top: i32,
 
@@ -200,10 +202,14 @@ pub struct PwtLogView {
 
     enable_tail_view: bool,
 
-    line_height: u64,
+    line_height: Option<u64>,
 }
 
 impl PwtLogView {
+    fn line_height(&self) -> u64 {
+        self.line_height.unwrap_or(DEFAULT_LINE_HEIGHT)
+    }
+
     fn physical_to_logical(&self, physical: i32) -> u64 {
         (physical as f64 * self.scale) as u64
     }
@@ -275,7 +281,7 @@ impl PwtLogView {
             return;
         }
 
-        let line = self.physical_to_logical(self.scroll_top) / self.line_height;
+        let line = self.physical_to_logical(self.scroll_top) / self.line_height();
 
         let prev = if line > 100 {
             (line as u64 - 100) / PAGE_HEIGHT
@@ -350,6 +356,7 @@ impl Component for PwtLogView {
             pages: [None, None, None, None],
             pending_pages: HashMap::new(),
             viewport_ref: NodeRef::default(),
+            page_ref: NodeRef::default(),
             total: None,
             viewport_lines: 0,
             scroll_top: 0,
@@ -357,7 +364,7 @@ impl Component for PwtLogView {
             tailview_trigger: Some(tailview_trigger),
             enable_tail_view: ctx.props().active,
             // Note: we use window.get_computed_style() to get the real value in rendered()
-            line_height: 18,
+            line_height: None,
             scale: 1.0,
             required_pages: HashSet::new(),
         }
@@ -391,7 +398,7 @@ impl Component for PwtLogView {
                 true
             }
             Msg::ViewportResize(_width, height) => {
-                let lines = (height as u64 + self.line_height - 1) / self.line_height;
+                let lines = (height as u64 + self.line_height() - 1) / self.line_height();
                 self.viewport_lines = lines;
                 self.request_pages(ctx);
                 true
@@ -399,7 +406,7 @@ impl Component for PwtLogView {
             Msg::PageLoad(info) => {
                 let total = info.total;
                 self.total = Some(total);
-                let scale = (total as f64 * self.line_height as f64) / MAX_PHYSICAL;
+                let scale = (total as f64 * self.line_height() as f64) / MAX_PHYSICAL;
                 self.scale = scale.max(1.0);
                 //log::info!("SCALE1 {}", self.scale);
 
@@ -456,13 +463,14 @@ impl Component for PwtLogView {
         let props = ctx.props();
         let lines = self.total.unwrap_or(0);
 
+        let mut page_ref = Some(self.page_ref.clone());
         let pages: Html = self
             .pages
             .iter()
             .filter_map(|page| {
                 match page {
                     Some(page) => {
-                        let offset = page.page * PAGE_HEIGHT * self.line_height;
+                        let offset = page.page * PAGE_HEIGHT * self.line_height();
                         let offset = self.logical_to_physical(offset);
                         //log::info!("render PAGE {} AT OFFSET {}", page.page, offset);
 
@@ -470,8 +478,15 @@ impl Component for PwtLogView {
                             .key(format!("page{}", page.page))
                             .class("pwt-log-content")
                             .style("position", "absolute")
-                            .style("line-height", format!("{}px", self.line_height))
                             .style("top", format!("{}px", offset));
+
+                        if let Some(line_height) = &self.line_height {
+                            tag.set_style("line-height", format!("{line_height}px"));
+                        }
+
+                        if let Some(page_ref) = page_ref.take() {
+                            tag.set_node_ref(page_ref);
+                        }
 
                         for item in page.lines.iter() {
                             tag.add_child(format!("{}\n", item.t));
@@ -509,7 +524,7 @@ impl Component for PwtLogView {
 
         let style = props.style.compile_style_attribute(None);
 
-        let physical_height = self.logical_to_physical(lines * self.line_height);
+        let physical_height = self.logical_to_physical(lines * self.line_height());
         html! {
             // Note: we set class "pwt-log-content" her, so that we can query the font size
             <div ref={self.viewport_ref.clone()} {style} {class} {onscroll}>
@@ -529,14 +544,17 @@ impl Component for PwtLogView {
                 });
 
                 self.size_observer = Some(size_observer);
-
+            }
+        }
+        if self.line_height.is_none() {
+            if let Some(el) = self.page_ref.cast::<web_sys::Element>() {
                 // get font size in pixels
                 let window = web_sys::window().unwrap();
                 if let Ok(Some(style)) = window.get_computed_style(&el) {
                     if let Ok(line_height) = style.get_property_value("line-height") {
                         let line_height = line_height.trim_end_matches("px");
                         if let Ok(line_height) = line_height.parse::<f64>() {
-                            self.line_height = line_height as u64;
+                            self.line_height = Some(line_height as u64);
                         }
                     }
                 }
@@ -546,7 +564,7 @@ impl Component for PwtLogView {
             let top = match self.total {
                 Some(total) => {
                     if total > self.viewport_lines {
-                        (total - self.viewport_lines + self.line_height - 1) * self.line_height
+                        (total - self.viewport_lines + self.line_height() - 1) * self.line_height()
                     } else {
                         0
                     }
