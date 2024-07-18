@@ -25,13 +25,15 @@ mod bond_mode_selector;
 pub use bond_mode_selector::{BondModeSelector, ProxmoxBondModeSelector};
 
 mod bond_xmit_hash_policy_selector;
-pub use bond_xmit_hash_policy_selector::{BondXmitHashPolicySelector, ProxmoxBondXmitHashPolicySelector};
+pub use bond_xmit_hash_policy_selector::{
+    BondXmitHashPolicySelector, ProxmoxBondXmitHashPolicySelector,
+};
 
 pub mod common_api_types;
 
 mod confirm_button;
-pub use confirm_button::{ConfirmButton, ProxmoxConfirmButton};
 pub use confirm_button::default_confirm_remove_message;
+pub use confirm_button::{ConfirmButton, ProxmoxConfirmButton};
 
 mod data_view_window;
 pub use data_view_window::{DataViewWindow, ProxmoxDataViewWindow};
@@ -40,7 +42,7 @@ pub mod gauge;
 pub use gauge::{Gauge, ProxmoxGauge};
 
 mod http_client_wasm;
-pub use  http_client_wasm::*;
+pub use http_client_wasm::*;
 
 mod http_helpers;
 pub use http_helpers::*;
@@ -60,13 +62,17 @@ mod key_value_grid;
 pub use key_value_grid::{KVGrid, KVGridRow, PwtKVGrid, RenderKVGridRecordFn};
 
 mod loadable_component;
-pub use loadable_component::{LoadableComponent, LoadableComponentMaster, LoadableComponentContext, LoadableComponentLink};
+pub use loadable_component::{
+    LoadableComponent, LoadableComponentContext, LoadableComponentLink, LoadableComponentMaster,
+};
 
 mod notes_view;
 pub use notes_view::{NotesView, ProxmoxNotesView};
 
 mod object_grid;
-pub use object_grid::{ObjectGrid, ObjectGridController, ObjectGridRow, PwtObjectGrid, RenderObjectGridItemFn};
+pub use object_grid::{
+    ObjectGrid, ObjectGridController, ObjectGridRow, PwtObjectGrid, RenderObjectGridItemFn,
+};
 
 mod permission_panel;
 pub use permission_panel::{PermissionPanel, ProxmoxPermissionPanel};
@@ -87,13 +93,13 @@ mod rrd_timeframe_selector;
 pub use rrd_timeframe_selector::{RRDTimeframe, RRDTimeframeSelector};
 
 mod running_tasks;
-pub use running_tasks::{RunningTasks, ProxmoxRunningTasks};
+pub use running_tasks::{ProxmoxRunningTasks, RunningTasks};
 
 mod running_tasks_button;
-pub use running_tasks_button::{RunningTasksButton, ProxmoxRunningTasksButton};
+pub use running_tasks_button::{ProxmoxRunningTasksButton, RunningTasksButton};
 
 mod safe_confirm_dialog;
-pub use safe_confirm_dialog::{SafeConfirmDialog, ProxmoxSafeConfirmDialog};
+pub use safe_confirm_dialog::{ProxmoxSafeConfirmDialog, SafeConfirmDialog};
 
 mod language_dialog;
 pub use language_dialog::{LanguageDialog, ProxmoxLanguageDialog};
@@ -120,27 +126,27 @@ mod schema_validation;
 pub use schema_validation::*;
 
 mod status_row;
-pub use status_row::{StatusRow, ProxmoxStatusRow};
+pub use status_row::{ProxmoxStatusRow, StatusRow};
 
 mod subscription_alert;
-pub use subscription_alert::{SubscriptionAlert, ProxmoxSubscriptionAlert};
+pub use subscription_alert::{ProxmoxSubscriptionAlert, SubscriptionAlert};
 
 mod subscription_panel;
-pub use subscription_panel::{SubscriptionPanel, ProxmoxSubscriptionPanel};
+pub use subscription_panel::{ProxmoxSubscriptionPanel, SubscriptionPanel};
 
 mod subscription_info;
-pub use subscription_info::{SubscriptionInfo, ProxmoxSubscriptionInfo};
+pub use subscription_info::{ProxmoxSubscriptionInfo, SubscriptionInfo};
 
 mod syslog;
-pub use syslog::{Syslog, ProxmoxSyslog};
+pub use syslog::{ProxmoxSyslog, Syslog};
 
 pub mod tfa;
 
 mod time_zone_selector;
-pub use time_zone_selector::{TimezoneSelector, ProxmoxTimezoneSelector};
+pub use time_zone_selector::{ProxmoxTimezoneSelector, TimezoneSelector};
 
 mod theme_dialog;
-pub use theme_dialog:: {ThemeDialog, ProxmoxThemeDialog};
+pub use theme_dialog::{ProxmoxThemeDialog, ThemeDialog};
 
 mod task_viewer;
 pub use task_viewer::*;
@@ -149,13 +155,13 @@ mod task_progress;
 pub use task_progress::TaskProgress;
 
 mod task_status_selector;
-pub use task_status_selector::{TaskStatusSelector, ProxmoxTaskStatusSelector};
+pub use task_status_selector::{ProxmoxTaskStatusSelector, TaskStatusSelector};
 
 mod task_type_selector;
-pub use task_type_selector::{TaskTypeSelector, ProxmoxTaskTypeSelector};
+pub use task_type_selector::{ProxmoxTaskTypeSelector, TaskTypeSelector};
 
 mod tasks;
-pub use tasks::{Tasks, ProxmoxTasks};
+pub use tasks::{ProxmoxTasks, Tasks};
 
 pub mod percent_encoding;
 
@@ -164,15 +170,18 @@ pub use proxmox_product::{ExistingProduct, ProjectInfo};
 
 pub mod utils;
 
+mod xtermjs;
+pub use xtermjs::{ConsoleType, ProxmoxXTermJs, XTermJs};
+
 use pwt::gettext_noop;
 use pwt::state::LanguageInfo;
 
 // Bindgen javascript code from js-helper-module.js
 
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{self, prelude::*};
 #[wasm_bindgen(module = "/js-helper-module.js")]
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 extern "C" {
     pub fn async_sleep(ms: i32) -> js_sys::Promise;
 
@@ -188,18 +197,32 @@ extern "C" {
 
 // Create wrapper which panics if called from target_arch!=wasm32
 // This allows us to build with "cargo build" and run tests with "cargo test".
-#[cfg(not(target_arch="wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
 pub use panic_wrapper::*;
-#[cfg(not(target_arch="wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
 mod panic_wrapper {
     use wasm_bindgen::JsValue;
-    pub fn async_sleep(_ms: i32) -> js_sys::Promise { unreachable!() }
-    pub fn get_cookie() -> String { unreachable!() }
-    pub fn set_cookie(_value: &str) { unreachable!() }
-    pub fn clear_auth_cookie(_name: &str) { unreachable!() }
-    pub fn uplot(_opts: &JsValue, _data: &JsValue, _node: web_sys::Node) -> JsValue { unreachable!() }
-    pub fn uplot_set_data(_uplot: &JsValue, _data: &JsValue) { unreachable!() }
-    pub fn uplot_set_size(_uplot: &JsValue, _width: usize, _height: usize) { unreachable!() }
+    pub fn async_sleep(_ms: i32) -> js_sys::Promise {
+        unreachable!()
+    }
+    pub fn get_cookie() -> String {
+        unreachable!()
+    }
+    pub fn set_cookie(_value: &str) {
+        unreachable!()
+    }
+    pub fn clear_auth_cookie(_name: &str) {
+        unreachable!()
+    }
+    pub fn uplot(_opts: &JsValue, _data: &JsValue, _node: web_sys::Node) -> JsValue {
+        unreachable!()
+    }
+    pub fn uplot_set_data(_uplot: &JsValue, _data: &JsValue) {
+        unreachable!()
+    }
+    pub fn uplot_set_size(_uplot: &JsValue, _width: usize, _height: usize) {
+        unreachable!()
+    }
 }
 
 pub fn store_csrf_token(crsf_token: &str) {
@@ -210,9 +233,8 @@ pub fn store_csrf_token(crsf_token: &str) {
     }
 }
 
-pub fn load_csrf_token() -> Option<String>{
-    pwt::state::session_storage()
-        .and_then(|store| store.get_item("CSRFToken").unwrap_or(None))
+pub fn load_csrf_token() -> Option<String> {
+    pwt::state::session_storage().and_then(|store| store.get_item("CSRFToken").unwrap_or(None))
 }
 
 /// Returns the list of available languages for Proxmox Products.
@@ -239,12 +261,24 @@ pub fn available_language_list() -> Vec<LanguageInfo> {
         LanguageInfo::new("nl", "Nederlands", gettext_noop("Dutch")),
         LanguageInfo::new("nn", "Nynorsk", gettext_noop("Norwegian (Nynorsk)")),
         LanguageInfo::new("pl", "Polski", gettext_noop("Polish")),
-        LanguageInfo::new("pt_BR", "Português Brasileiro", gettext_noop("Portuguese (Brazil)")),
+        LanguageInfo::new(
+            "pt_BR",
+            "Português Brasileiro",
+            gettext_noop("Portuguese (Brazil)"),
+        ),
         LanguageInfo::new("ru", "Русский", gettext_noop("Russian")),
         LanguageInfo::new("sl", "Slovenščina", gettext_noop("Slovenian")),
         LanguageInfo::new("sv", "Svenska", gettext_noop("Swedish")),
         LanguageInfo::new("tr", "Türkçe", gettext_noop("Turkish")),
-        LanguageInfo::new("zh_CN", "中文（简体）", gettext_noop("Chinese (Simplified)")),
-        LanguageInfo::new("zh_TW", "中文（繁體）", gettext_noop("Chinese (Traditional)")),
+        LanguageInfo::new(
+            "zh_CN",
+            "中文（简体）",
+            gettext_noop("Chinese (Simplified)"),
+        ),
+        LanguageInfo::new(
+            "zh_TW",
+            "中文（繁體）",
+            gettext_noop("Chinese (Traditional)"),
+        ),
     ]
 }
