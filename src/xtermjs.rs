@@ -109,7 +109,7 @@ impl Component for ProxmoxXTermJs {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
         let url = xtermjs_url(props.console_type, &*props.node_name);
-        html! {<iframe class="pwt-flex-fit" src={format!("/?{url}")}/>}
+        html! {<iframe class="pwt-flex-fit" src={format!("/{url}")}/>}
     }
 }
 
