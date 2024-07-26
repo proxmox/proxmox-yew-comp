@@ -128,6 +128,9 @@ pub use schema_validation::*;
 mod status_row;
 pub use status_row::{ProxmoxStatusRow, StatusRow};
 
+mod submit_value_callback;
+pub use submit_value_callback::{IntoSubmitValueCallback, SubmitValueCallback};
+
 mod subscription_alert;
 pub use subscription_alert::{ProxmoxSubscriptionAlert, SubscriptionAlert};
 
@@ -167,6 +170,9 @@ pub mod percent_encoding;
 
 mod proxmox_product;
 pub use proxmox_product::{ExistingProduct, ProjectInfo};
+
+mod wizard;
+pub use wizard::{PwtWizard, Wizard, WizardPageRenderInfo};
 
 pub mod utils;
 
