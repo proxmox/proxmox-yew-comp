@@ -10,7 +10,7 @@ use pwt::prelude::*;
 use pwt::props::RenderFn;
 
 use pwt::css::ColorScheme;
-use pwt::props::{ContainerBuilder, CssStyles, AsCssStylesMut};
+use pwt::props::{AsCssStylesMut, ContainerBuilder, CssStyles};
 use pwt::state::Selection;
 use pwt::widget::form::{Form, FormContext};
 use pwt::widget::{Button, Dialog, MiniScrollMode, Row, TabBarItem, TabBarStyle, TabPanel};
@@ -24,6 +24,7 @@ use super::{IntoSubmitValueCallback, SubmitValueCallback};
 use pwt_macros::builder;
 
 /// Infos passed to the [SelectionView] render function.
+#[derive(Clone, PartialEq)]
 pub struct WizardPageRenderInfo {
     /// The key of the item to render
     pub key: Key,
@@ -116,7 +117,6 @@ pub struct Wizard {
     #[prop_or(true)]
     #[builder]
     pub auto_center: bool,
-
 }
 
 impl AsCssStylesMut for Wizard {
@@ -408,7 +408,11 @@ impl PwtWizard {
             .map(|(key, _)| key.clone());
 
         let next_button_text = if is_last {
-            props.submit_text.as_ref().map(|text| text.to_string()).unwrap_or_else(|| tr!("Finish"))
+            props
+                .submit_text
+                .as_ref()
+                .map(|text| text.to_string())
+                .unwrap_or_else(|| tr!("Finish"))
         } else {
             tr!("Next")
         };
