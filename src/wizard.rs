@@ -85,6 +85,14 @@ pub struct Wizard {
     /// Wizard page render functions.
     #[prop_or_default]
     pages: IndexMap<Key, PageConfig>,
+
+    /// Submit button text.
+    ///
+    /// Default is 'Finish'.
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    pub submit_text: Option<AttrValue>,
+
 }
 
 impl Wizard {
@@ -362,6 +370,12 @@ impl PwtWizard {
             .get_index(page_num.saturating_sub(1))
             .map(|(key, _)| key.clone());
 
+        let next_button_text = if is_last {
+            props.submit_text.as_ref().map(|text| text.to_string()).unwrap_or_else(|| tr!("Finish"))
+        } else {
+            tr!("Next")
+        };
+
         Row::new()
             .padding(2)
             .gap(2)
@@ -380,7 +394,7 @@ impl PwtWizard {
                 })
             }))
             .with_child(
-                Button::new(if is_last { tr!("OK") } else { tr!("Next") })
+                Button::new(next_button_text)
                     .class(ColorScheme::Primary)
                     .disabled(next_is_disabled)
                     .onclick({
