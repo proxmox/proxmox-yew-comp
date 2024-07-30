@@ -79,7 +79,7 @@ pub struct EditWindow {
     #[prop_or_default]
     pub on_close: Option<Callback<()>>,
 
-    /// Done callobaqck, called after Close, Abort or Submit.
+    /// Done callback, called after Close, Abort or Submit.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     #[prop_or_default]
     pub on_done: Option<Callback<()>>,
