@@ -10,7 +10,7 @@ use pwt::prelude::*;
 use pwt::props::RenderFn;
 
 use pwt::css::ColorScheme;
-use pwt::props::{ContainerBuilder, WidgetBuilder};
+use pwt::props::{ContainerBuilder, CssStyles, AsCssStylesMut};
 use pwt::state::Selection;
 use pwt::widget::form::{Form, FormContext};
 use pwt::widget::{Button, Dialog, MiniScrollMode, Row, TabBarItem, TabBarStyle, TabPanel};
@@ -58,6 +58,11 @@ pub struct Wizard {
     /// Dialog Title (also used as 'arial-label')
     pub title: AttrValue,
 
+    /// Title as Html
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub html_title: Option<Html>,
+
     /// Use [MiniScroll] for [TabBar] to allow scrolling.
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
@@ -67,6 +72,10 @@ pub struct Wizard {
     #[prop_or_default]
     #[builder]
     pub tab_bar_style: TabBarStyle,
+
+    /// CSS style for the dialog window
+    #[prop_or_default]
+    pub styles: CssStyles,
 
     /// Dialog close/abort callback.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
@@ -93,7 +102,30 @@ pub struct Wizard {
     #[builder(IntoPropValue, into_prop_value)]
     pub submit_text: Option<AttrValue>,
 
+    /// Determines if the dialog can be moved
+    #[prop_or(true)]
+    #[builder]
+    pub draggable: bool,
+
+    /// Determines if the dialog can be resized
+    #[prop_or_default]
+    #[builder]
+    pub resizable: bool,
+
+    /// Determines if the dialog should be auto centered
+    #[prop_or(true)]
+    #[builder]
+    pub auto_center: bool,
+
 }
+
+impl AsCssStylesMut for Wizard {
+    fn as_css_styles_mut(&mut self) -> &mut CssStyles {
+        &mut self.styles
+    }
+}
+
+impl WidgetStyleBuilder for Wizard {}
 
 impl Wizard {
     /// Create a new instance.
@@ -289,6 +321,11 @@ impl Component for PwtWizard {
         }
 
         Dialog::new(props.title.clone())
+            .html_title(props.html_title.clone())
+            .styles(props.styles.clone())
+            .draggable(props.draggable)
+            .resizable(props.resizable)
+            .auto_center(props.auto_center)
             .on_close(ctx.link().callback(|_| Msg::CloseDialog))
             .with_child(tab_panel)
             .with_child(self.create_bottom_bar(ctx))
