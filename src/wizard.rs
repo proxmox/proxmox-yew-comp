@@ -61,6 +61,13 @@ impl WizardPageRenderInfo {
             .link
             .send_message(Msg::PageLock(self.key.clone(), lock));
     }
+
+    pub fn invalidate(&self) {
+        self.controller
+            .read()
+            .link
+            .send_message(Msg::Invalidate(self.key.clone()));
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -248,6 +255,7 @@ pub struct PwtWizard {
 
 pub enum Msg {
     PageLock(Key, bool), // disable/enable next button
+    Invalidate(Key),     // remove the valid status
     SelectPage(Key),
     ChangeValid(Key, bool),
     SelectionChange(Selection),
@@ -302,6 +310,10 @@ impl Component for PwtWizard {
             }
             Msg::ChangeValid(page, valid) => {
                 self.change_page_valid(&page, valid);
+                self.update_valid_data(ctx);
+            }
+            Msg::Invalidate(page) => {
+                self.change_page_valid(&page, false);
                 self.update_valid_data(ctx);
             }
             Msg::SelectionChange(selection) => {
