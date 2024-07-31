@@ -1,7 +1,10 @@
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use anyhow::Error;
+use derivative::Derivative;
+use html::Scope;
 use indexmap::IndexMap;
 use serde_json::{json, Value};
 
@@ -41,6 +44,23 @@ pub struct WizardPageRenderInfo {
     ///
     /// Note: Merged into a single json object.
     pub valid_data: Rc<Value>,
+
+    controller: WizardController,
+}
+
+impl WizardPageRenderInfo {
+    /// Allow access to the [FormContext] of other pages.
+    pub fn lookup_form_context(&self, key: &Key) -> Option<FormContext> {
+        self.controller.read().page_data.get(key).cloned()
+    }
+
+    /// Disable/Enable the next button.
+    pub fn page_lock(&self, lock: bool) {
+        self.controller
+            .read()
+            .link
+            .send_message(Msg::PageLock(self.key.clone(), lock));
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -170,19 +190,64 @@ impl Wizard {
     }
 }
 
+#[derive(Derivative)]
+#[derivative(Clone(bound = ""), PartialEq(bound = ""))]
+pub struct WizardController {
+    #[derivative(PartialEq(compare_with = "Rc::ptr_eq"))]
+    state: Rc<RefCell<WizardState>>,
+}
+
+struct WizardState {
+    link: Scope<PwtWizard>,
+    page: Option<Key>,
+    page_data: HashMap<Key, FormContext>,
+}
+
+impl WizardController {
+    fn new(link: Scope<PwtWizard>) -> Self {
+        let state = WizardState {
+            link,
+            page: None,
+            page_data: HashMap::new(),
+        };
+        Self {
+            state: Rc::new(RefCell::new(state)),
+        }
+    }
+
+    fn read(&self) -> Ref<'_, WizardState> {
+        self.state.borrow()
+    }
+
+    fn write(&self) -> RefMut<'_, WizardState> {
+        self.state.borrow_mut()
+    }
+
+    fn insert_page(&self, key: &Key) {
+        let mut state = self.write();
+        let form_ctx = FormContext::new().on_change(state.link.callback({
+            let key = key.clone();
+            move |form_ctx: FormContext| Msg::ChangeValid(key.clone(), form_ctx.read().is_valid())
+        }));
+        state.page_data.insert(key.clone(), form_ctx);
+        if state.page.is_none() {
+            state.page = Some(key.clone());
+        }
+    }
+}
 pub struct PwtWizard {
     selection: Selection,
     loading: bool, // set during submit
     submit_error: Option<String>,
-
-    page: Option<Key>,
     pages_valid: HashSet<Key>,
-    page_data: HashMap<Key, FormContext>,
-
+    pages_lock: HashSet<Key>,
     valid_data: Rc<Value>,
+
+    controller: WizardController,
 }
 
 pub enum Msg {
+    PageLock(Key, bool), // disable/enable next button
     SelectPage(Key),
     ChangeValid(Key, bool),
     SelectionChange(Selection),
@@ -201,26 +266,20 @@ impl Component for PwtWizard {
 
         let selection = Selection::new().on_select(ctx.link().callback(Msg::SelectionChange));
 
-        let mut page_data = HashMap::new();
+        let controller = WizardController::new(ctx.link().clone());
 
         for (key, _) in props.pages.iter() {
-            let form_ctx = FormContext::new().on_change(ctx.link().callback({
-                let key = key.clone();
-                move |form_ctx: FormContext| {
-                    Msg::ChangeValid(key.clone(), form_ctx.read().is_valid())
-                }
-            }));
-            page_data.insert(key.clone(), form_ctx);
+            controller.insert_page(key);
         }
 
         Self {
             loading: false,
             submit_error: None,
-            page: props.pages.get_index(0).map(|(key, _value)| key.clone()),
             pages_valid: HashSet::new(),
+            pages_lock: HashSet::new(),
             selection,
-            page_data,
             valid_data: Rc::new(json!({})),
+            controller,
         }
     }
 
@@ -228,12 +287,17 @@ impl Component for PwtWizard {
         let props = ctx.props();
         match msg {
             Msg::SelectPage(page) => {
+                let mut state = self.controller.write();
                 self.selection.select(page.clone());
-                if let Some(form_ctx) = self.page_data.get(&page) {
+                state.page = Some(page.clone());
+
+                if let Some(form_ctx) = state.page_data.get(&page) {
                     let valid = form_ctx.read().is_valid();
+                    drop(state);
                     self.change_page_valid(&page, valid);
+                } else {
+                    drop(state);
                 }
-                self.page = Some(page);
                 self.update_valid_data(ctx);
             }
             Msg::ChangeValid(page, valid) => {
@@ -242,7 +306,8 @@ impl Component for PwtWizard {
             }
             Msg::SelectionChange(selection) => {
                 if let Some(selected_key) = selection.selected_key() {
-                    self.page = Some(selected_key);
+                    let mut state = self.controller.write();
+                    state.page = Some(selected_key);
                 }
             }
             Msg::CloseDialog => {
@@ -278,6 +343,9 @@ impl Component for PwtWizard {
                     }
                 }
             }
+            Msg::PageLock(page, lock) => {
+                self.change_page_lock(&page, lock);
+            }
         }
         true
     }
@@ -291,16 +359,19 @@ impl Component for PwtWizard {
             .tab_bar_style(props.tab_bar_style.clone())
             .selection(self.selection.clone());
 
+        let state = self.controller.read();
+
         let mut disabled = false;
         for (key, page) in props.pages.iter() {
-            let active = Some(key) == self.page.as_ref();
-            let form_ctx = self.page_data.get(key).unwrap();
+            let active = Some(key) == state.page.as_ref();
+            let form_ctx = state.page_data.get(key).unwrap();
 
             let page_content = page.renderer.apply(&WizardPageRenderInfo {
                 key: key.clone(),
                 visible: active,
                 form_ctx: form_ctx.clone(),
                 valid_data: Rc::clone(&self.valid_data),
+                controller: self.controller.clone(),
             });
 
             let page_content = Form::new()
@@ -313,6 +384,9 @@ impl Component for PwtWizard {
 
             if !disabled {
                 if !self.pages_valid.contains(&key) {
+                    disabled = true;
+                }
+                if self.pages_lock.contains(&key) {
                     disabled = true;
                 }
             }
@@ -342,16 +416,26 @@ impl PwtWizard {
         }
     }
 
+    fn change_page_lock(&mut self, page: &Key, lock: bool) {
+        if lock {
+            self.pages_lock.insert(page.clone());
+        } else {
+            self.pages_lock.remove(page);
+        }
+    }
+
     fn update_valid_data(&mut self, ctx: &yew::Context<Self>) {
         let props = ctx.props();
 
+        let state = self.controller.read();
+
         let mut valid_data = serde_json::Map::new();
         for (key, _) in props.pages.iter() {
-            if let Some(form_ctx) = self.page_data.get(key) {
+            if let Some(form_ctx) = state.page_data.get(key) {
                 let mut data = form_ctx.read().get_submit_data();
                 valid_data.append(data.as_object_mut().unwrap());
             }
-            if Some(key) == self.page.as_ref() {
+            if Some(key) == state.page.as_ref() {
                 break;
             }
         }
@@ -362,21 +446,23 @@ impl PwtWizard {
     fn create_bottom_bar(&self, ctx: &yew::Context<Self>) -> Row {
         let props = ctx.props();
 
+        let state = self.controller.read();
+
         let first_page = props.pages.first().map(|(key, _value)| key.clone());
 
-        let is_first = match &self.page {
+        let is_first = match &state.page {
             None => true,
             Some(key) => Some(key) == first_page.as_ref(),
         };
 
         let last_page = props.pages.last().map(|(key, _value)| key.clone());
 
-        let is_last = match &self.page {
+        let is_last = match &state.page {
             None => false,
             Some(key) => Some(key) == last_page.as_ref(),
         };
 
-        let page_num = match &self.page {
+        let page_num = match &state.page {
             None => 0,
             Some(key) => props.pages.get_index_of(key).unwrap_or(0),
         };
@@ -390,6 +476,10 @@ impl PwtWizard {
                 }
                 Some((key, _)) => {
                     if !self.pages_valid.contains(key) && Some(key) != last_page.as_ref() {
+                        next_is_disabled = true;
+                        break;
+                    }
+                    if self.pages_lock.contains(key) {
                         next_is_disabled = true;
                         break;
                     }
