@@ -12,7 +12,7 @@ use pwt::convert_js_error;
 
 use proxmox_client::{HttpApiClient, HttpApiResponse};
 use proxmox_login::{Authentication, Login, Ticket, TicketResult};
-use yew::{Callback, html::IntoEventCallback};
+use yew::{html::IntoEventCallback, Callback};
 
 //use crate::percent_encoding::DEFAULT_ENCODE_SET;
 use crate::ProjectInfo;
@@ -328,11 +328,11 @@ impl HttpApiClient for HttpClientWasm {
     fn get<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
         Box::pin(async move {
             let request = Self::request_builder("GET", path_and_query, None::<()>)
-                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+                .map_err(proxmox_client::Error::Anyhow)?;
             let response = self
                 .fetch_request(request)
                 .await
-                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+                .map_err(proxmox_client::Error::Anyhow)?;
             Ok(response)
         })
     }
@@ -343,11 +343,11 @@ impl HttpApiClient for HttpClientWasm {
     {
         let request = Self::request_builder("POST", path_and_query, Some(params));
         Box::pin(async move {
-            let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let request = request.map_err(proxmox_client::Error::Anyhow)?;
             let response = self
                 .fetch_request(request)
                 .await
-                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+                .map_err(proxmox_client::Error::Anyhow)?;
             Ok(response)
         })
     }
@@ -355,11 +355,11 @@ impl HttpApiClient for HttpClientWasm {
     fn post_without_body<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
         let request = Self::request_builder("POST", path_and_query, None::<()>);
         Box::pin(async move {
-            let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let request = request.map_err(proxmox_client::Error::Anyhow)?;
             let response = self
                 .fetch_request(request)
                 .await
-                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+                .map_err(proxmox_client::Error::Anyhow)?;
             Ok(response)
         })
     }
@@ -370,11 +370,11 @@ impl HttpApiClient for HttpClientWasm {
     {
         let request = Self::request_builder("PUT", path_and_query, Some(params));
         Box::pin(async move {
-            let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let request = request.map_err(proxmox_client::Error::Anyhow)?;
             let response = self
                 .fetch_request(request)
                 .await
-                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+                .map_err(proxmox_client::Error::Anyhow)?;
             Ok(response)
         })
     }
@@ -382,11 +382,11 @@ impl HttpApiClient for HttpClientWasm {
     fn put_without_body<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
         let request = Self::request_builder("PUT", path_and_query, None::<()>);
         Box::pin(async move {
-            let request = request.map_err(|err| proxmox_client::Error::Anyhow(err))?;
+            let request = request.map_err(proxmox_client::Error::Anyhow)?;
             let response = self
                 .fetch_request(request)
                 .await
-                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+                .map_err(proxmox_client::Error::Anyhow)?;
             Ok(response)
         })
     }
@@ -394,11 +394,11 @@ impl HttpApiClient for HttpClientWasm {
     fn delete<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
         Box::pin(async move {
             let request = Self::request_builder("DELETE", path_and_query, None::<()>)
-                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+                .map_err(proxmox_client::Error::Anyhow)?;
             let response = self
                 .fetch_request(request)
                 .await
-                .map_err(|err| proxmox_client::Error::Anyhow(err))?;
+                .map_err(proxmox_client::Error::Anyhow)?;
             Ok(response)
         })
     }
