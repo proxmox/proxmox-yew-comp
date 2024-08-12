@@ -21,7 +21,7 @@ static CLIENT_NOTIFY_EPOCH: AtomicU32 = AtomicU32::new(0);
 
 
 thread_local! {
-    static CLIENT: RefCell<Rc<HttpClientWasm>> = {
+    pub static CLIENT: RefCell<Rc<HttpClientWasm>> = {
         start_ticket_refresh_loop();
         CLIENT_NOTIFY_EPOCH.fetch_add(1, Ordering::SeqCst);
         RefCell::new(Rc::new(
