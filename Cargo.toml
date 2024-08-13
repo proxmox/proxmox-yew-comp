@@ -60,7 +60,7 @@ proxmox-human-byte = "0.1"
 proxmox-time = "2"
 
 proxmox-login = "0.1"
-proxmox-client = "0.3"
+proxmox-client = "0.4"
 proxmox-tfa = { version = "5.0", default-features = false, features = [
   "api-types",
 ] }
