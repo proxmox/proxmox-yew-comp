@@ -9,6 +9,7 @@ use gloo_timers::callback::Timeout;
 use yew::html::Scope;
 
 use pwt::prelude::*;
+use pwt::state::NavigationContextExt;
 use pwt::widget::{AlertDialog, Column, VisibilityObserver};
 
 use crate::{TaskProgress, TaskViewer};
@@ -206,6 +207,20 @@ impl<L: LoadableComponent + Sized> RouterScopeExt for LoadableComponentLink<L> {
         cb: Callback<yew_router::prelude::Navigator>,
     ) -> Option<yew_router::prelude::NavigatorHandle> {
         self.link.add_navigator_listener(cb)
+    }
+}
+
+impl<L: LoadableComponent + Sized> NavigationContextExt for LoadableComponentLink<L> {
+    fn nav_context(&self) -> Option<pwt::state::NavigationContext> {
+        self.link.nav_context()
+    }
+
+    fn full_path(&self) -> Option<String> {
+        self.link.full_path()
+    }
+
+    fn push_relative_route(&self, path: &str) {
+        self.link.push_relative_route(path)
     }
 }
 
@@ -427,7 +442,8 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                 }
                 ViewState::TaskProgress(task_id) => {
                     let mut task_progress = TaskProgress::new(task_id).on_close(
-                        ctx.link().callback(move |_| Msg::ChangeView(true, ViewState::Main)),
+                        ctx.link()
+                            .callback(move |_| Msg::ChangeView(true, ViewState::Main)),
                     );
 
                     if let Some(base_url) = &self.comp_state.task_base_url {
@@ -437,9 +453,10 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                     Some(task_progress.into())
                 }
                 ViewState::TaskLog(task_id, endtime) => {
-                    let mut task_viewer = TaskViewer::new(task_id)
-                        .endtime(endtime)
-                        .on_close(ctx.link().callback(move |_| Msg::ChangeView(true, ViewState::Main)));
+                    let mut task_viewer = TaskViewer::new(task_id).endtime(endtime).on_close(
+                        ctx.link()
+                            .callback(move |_| Msg::ChangeView(true, ViewState::Main)),
+                    );
 
                     if let Some(base_url) = &self.comp_state.task_base_url {
                         task_viewer.set_base_url(base_url);
