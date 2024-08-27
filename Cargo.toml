@@ -10,26 +10,28 @@ exclude = ["debian"]
 [dependencies]
 anyhow = "1.0"
 derivative = "2.2.0"
+http = "0.2"
 yew = { version = "0.21", features = ["csr"] }
 yew-router = { version = "0.18" }
 web-sys = { version = "0.3", features = [
   "Attr",
-  "Url",
-  "NamedNodeMap",
-  "Node",
+  "Crypto",
   "Document",
-  "HtmlDocument",
   "DomParser",
-  "SupportedType",
-  "SvgsvgElement",
-  "SvgGraphicsElement",
-  "SvgRect",
   "DomRect",
   "Element",
+  "HtmlDocument",
   "HtmlElement",
-  "Crypto",
-  "Selection",
+  "NamedNodeMap",
+  "Node",
   "Range",
+  "ReadableStreamDefaultReader",
+  "Selection",
+  "SupportedType",
+  "SvgGraphicsElement",
+  "SvgRect",
+  "SvgsvgElement",
+  "Url",
 ] }
 js-sys = "0.3"
 log = "0.4.6"
@@ -61,7 +63,7 @@ proxmox-human-byte = "0.1"
 proxmox-time = "2"
 
 proxmox-login = "0.1"
-proxmox-client = "0.4"
+proxmox-client = "0.5"
 proxmox-tfa = { version = "5.0", default-features = false, features = [
   "api-types",
 ] }

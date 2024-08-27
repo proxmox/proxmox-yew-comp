@@ -10,7 +10,7 @@ use serde_json::Value;
 
 use pwt::convert_js_error;
 
-use proxmox_client::{HttpApiClient, HttpApiResponse};
+use proxmox_client::{HttpApiClient, HttpApiResponse, HttpApiResponseStream};
 use proxmox_login::{Authentication, Login, Ticket, TicketResult};
 use yew::{html::IntoEventCallback, Callback};
 
@@ -205,7 +205,8 @@ impl HttpClientWasm {
     }
 
     async fn fetch_request_text(&self, request: web_sys::Request) -> Result<String, Error> {
-        let response = self.fetch_request(request).await?;
+        let response =
+            web_sys_response_to_http_api_response(self.fetch_request(request).await?).await?;
 
         if !(response.status >= 200 && response.status < 300) {
             bail!("HTTP status {}", response.status);
@@ -216,7 +217,7 @@ impl HttpClientWasm {
         return Ok(text);
     }
 
-    async fn fetch_request(&self, request: web_sys::Request) -> Result<HttpApiResponse, Error> {
+    async fn fetch_request(&self, request: web_sys::Request) -> Result<web_sys::Response, Error> {
         let auth = self.get_auth();
         let headers = request.headers();
 
@@ -248,7 +249,7 @@ impl HttpClientWasm {
             }
         }
 
-        web_sys_response_to_http_api_response(resp).await
+        Ok(resp)
     }
 }
 
@@ -273,7 +274,27 @@ async fn web_sys_response_to_http_api_response(
     }
     Ok(HttpApiResponse {
         status: response.status(),
-        content_type: content_type,
+        content_type,
+        body,
+    })
+}
+
+async fn web_sys_response_to_http_api_stream_response(
+    response: web_sys::Response,
+) -> Result<HttpApiResponseStream<web_sys::ReadableStream>, Error> {
+    let body = response.body();
+
+    let mut content_type = response.headers().get("content-type").unwrap_or(None);
+    if let Some(ct) = &content_type {
+        if ct.starts_with("application/json;") {
+            // strip rest of information (i.e. charset=UTF8;),
+            // Note: proxmox_client crate expects "application/json"
+            content_type = Some(String::from("application/json"));
+        }
+    }
+    Ok(HttpApiResponseStream {
+        status: response.status(),
+        content_type,
         body,
     })
 }
@@ -325,81 +346,52 @@ impl HttpApiClient for HttpClientWasm {
     type ResponseFuture<'a> = Pin<Box<dyn Future<Output=Result<HttpApiResponse, proxmox_client::Error>> + 'a>>
         where Self: 'a;
 
-    fn get<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
-        Box::pin(async move {
-            let request = Self::request_builder("GET", path_and_query, None::<()>)
-                .map_err(proxmox_client::Error::Anyhow)?;
-            let response = self
-                .fetch_request(request)
-                .await
-                .map_err(proxmox_client::Error::Anyhow)?;
-            Ok(response)
-        })
-    }
+    type Body = web_sys::ReadableStream;
 
-    fn post<'a, T>(&'a self, path_and_query: &'a str, params: &T) -> Self::ResponseFuture<'a>
+    type ResponseStreamFuture<'a> = Pin<Box<dyn Future<Output=Result<HttpApiResponseStream<Self::Body>, proxmox_client::Error>> + 'a>>
+        where Self: 'a;
+
+    fn request<'a, T>(
+        &'a self,
+        method: http::Method,
+        path_and_query: &'a str,
+        params: Option<T>,
+    ) -> Self::ResponseFuture<'a>
     where
-        T: ?Sized + Serialize,
+        T: Serialize + 'a,
     {
-        let request = Self::request_builder("POST", path_and_query, Some(params));
         Box::pin(async move {
-            let request = request.map_err(proxmox_client::Error::Anyhow)?;
+            let request = Self::request_builder(method.as_str(), path_and_query, params)
+                .map_err(proxmox_client::Error::Anyhow)?;
             let response = self
                 .fetch_request(request)
                 .await
                 .map_err(proxmox_client::Error::Anyhow)?;
-            Ok(response)
-        })
-    }
-
-    fn post_without_body<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
-        let request = Self::request_builder("POST", path_and_query, None::<()>);
-        Box::pin(async move {
-            let request = request.map_err(proxmox_client::Error::Anyhow)?;
-            let response = self
-                .fetch_request(request)
+            web_sys_response_to_http_api_response(response)
                 .await
-                .map_err(proxmox_client::Error::Anyhow)?;
-            Ok(response)
+                .map_err(proxmox_client::Error::Anyhow)
         })
     }
 
-    fn put<'a, T>(&'a self, path_and_query: &'a str, params: &T) -> Self::ResponseFuture<'a>
+    fn streaming_request<'a, T>(
+        &'a self,
+        method: http::Method,
+        path_and_query: &'a str,
+        params: Option<T>,
+    ) -> Self::ResponseStreamFuture<'a>
     where
-        T: ?Sized + Serialize,
+        T: Serialize + 'a,
     {
-        let request = Self::request_builder("PUT", path_and_query, Some(params));
         Box::pin(async move {
-            let request = request.map_err(proxmox_client::Error::Anyhow)?;
-            let response = self
-                .fetch_request(request)
-                .await
-                .map_err(proxmox_client::Error::Anyhow)?;
-            Ok(response)
-        })
-    }
-
-    fn put_without_body<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
-        let request = Self::request_builder("PUT", path_and_query, None::<()>);
-        Box::pin(async move {
-            let request = request.map_err(proxmox_client::Error::Anyhow)?;
-            let response = self
-                .fetch_request(request)
-                .await
-                .map_err(proxmox_client::Error::Anyhow)?;
-            Ok(response)
-        })
-    }
-
-    fn delete<'a>(&'a self, path_and_query: &'a str) -> Self::ResponseFuture<'a> {
-        Box::pin(async move {
-            let request = Self::request_builder("DELETE", path_and_query, None::<()>)
+            let request = Self::request_builder(method.as_str(), path_and_query, params)
                 .map_err(proxmox_client::Error::Anyhow)?;
             let response = self
                 .fetch_request(request)
                 .await
                 .map_err(proxmox_client::Error::Anyhow)?;
-            Ok(response)
+            web_sys_response_to_http_api_stream_response(response)
+                .await
+                .map_err(proxmox_client::Error::Anyhow)
         })
     }
 }
