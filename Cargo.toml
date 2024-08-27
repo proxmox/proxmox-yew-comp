@@ -10,6 +10,7 @@ exclude = ["debian"]
 [dependencies]
 anyhow = "1.0"
 derivative = "2.2.0"
+futures = "0.3"
 http = "0.2"
 yew = { version = "0.21", features = ["csr"] }
 yew-router = { version = "0.18" }

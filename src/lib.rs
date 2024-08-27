@@ -44,6 +44,8 @@ pub use gauge::{Gauge, ProxmoxGauge};
 mod http_client_wasm;
 pub use http_client_wasm::*;
 
+pub mod http_stream;
+
 mod http_helpers;
 pub use http_helpers::*;
 
