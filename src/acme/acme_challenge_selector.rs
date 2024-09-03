@@ -85,7 +85,7 @@ impl Component for ProxmoxAcmeChallengeSelector {
 
                 GridPicker::new(table)
                     .selection(args.selection.clone())
-                    .on_select(args.on_select.clone())
+                    .on_select(args.controller.on_select_callback())
                     .into()
             },
         );

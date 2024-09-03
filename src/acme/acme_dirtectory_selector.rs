@@ -90,11 +90,12 @@ impl Component for ProxmoxAcmeDirectorySelector {
 
         let picker = RenderFn::new(
             move |args: &SelectorRenderArgs<Store<AcmeDirectoryListItem>>| {
-                let table = DataTable::new(columns.clone(), args.store.clone()).class("pwt-flex-fit");
+                let table =
+                    DataTable::new(columns.clone(), args.store.clone()).class("pwt-flex-fit");
 
                 GridPicker::new(table)
                     .selection(args.selection.clone())
-                    .on_select(args.on_select.clone())
+                    .on_select(args.controller.on_select_callback())
                     .into()
             },
         );
@@ -123,7 +124,7 @@ impl Component for ProxmoxAcmeDirectorySelector {
                         Some(entry) => entry.name.clone(),
                         None => url.to_string(),
                     };
-                    html!{text}
+                    html! {text}
                 }
             })
             .on_change({

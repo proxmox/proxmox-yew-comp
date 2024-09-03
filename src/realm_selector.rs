@@ -1,18 +1,18 @@
+use anyhow::format_err;
 use std::rc::Rc;
-use anyhow::{format_err};
 
-use yew::prelude::*;
 use yew::html::IntoPropValue;
+use yew::prelude::*;
 
 use pwt::props::RenderFn;
 use pwt::state::Store;
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
-use pwt::widget::GridPicker;
 use pwt::widget::form::{Selector, SelectorRenderArgs, ValidateFn};
+use pwt::widget::GridPicker;
 
 use crate::common_api_types::BasicRealmInfo;
 
-thread_local!{
+thread_local! {
     static COLUMNS: Rc<Vec<DataTableHeader<BasicRealmInfo>>> = Rc::new(vec![
         DataTableColumn::new("Realm")
             .width("100px")
@@ -31,8 +31,8 @@ thread_local!{
     ]);
 }
 
-use pwt_macros::{builder, widget};
 use pwt::props::{FieldBuilder, WidgetBuilder};
+use pwt_macros::{builder, widget};
 
 #[widget(comp=ProxmoxRealmSelector, @input)]
 #[derive(Clone, Properties, PartialEq)]
@@ -50,38 +50,44 @@ impl RealmSelector {
     }
 }
 
-pub struct ProxmoxRealmSelector{
+pub struct ProxmoxRealmSelector {
     store: Store<BasicRealmInfo>,
     validate: ValidateFn<(String, Store<BasicRealmInfo>)>,
     picker: RenderFn<SelectorRenderArgs<Store<BasicRealmInfo>>>,
 }
 
-impl Component for  ProxmoxRealmSelector {
+impl Component for ProxmoxRealmSelector {
     type Message = ();
-    type Properties =  RealmSelector;
+    type Properties = RealmSelector;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let store = Store::new()
-            .on_change(ctx.link().callback(|_| ())); // trigger redraw
+        let store = Store::new().on_change(ctx.link().callback(|_| ())); // trigger redraw
 
         let validate = ValidateFn::new(|(realm, store): &(String, Store<BasicRealmInfo>)| {
-            store.read().data().iter()
+            store
+                .read()
+                .data()
+                .iter()
                 .find(|item| &item.realm == realm)
                 .map(drop)
                 .ok_or_else(|| format_err!("no such realm"))
         });
 
         let picker = RenderFn::new(|args: &SelectorRenderArgs<Store<BasicRealmInfo>>| {
-            let table = DataTable::new(COLUMNS.with(Rc::clone), args.store.clone())
-                .class("pwt-fit");
+            let table =
+                DataTable::new(COLUMNS.with(Rc::clone), args.store.clone()).class("pwt-fit");
 
             GridPicker::new(table)
                 .selection(args.selection.clone())
-                .on_select(args.on_select.clone())
+                .on_select(args.controller.on_select_callback())
                 .into()
         });
 
-        Self { store, validate, picker }
+        Self {
+            store,
+            validate,
+            picker,
+        }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
