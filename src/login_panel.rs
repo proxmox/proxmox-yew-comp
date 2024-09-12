@@ -18,19 +18,25 @@ use crate::{RealmSelector, tfa::TfaDialog};
 pub struct LoginPanel {
     #[prop_or_default]
     pub on_login: Option<Callback<Authentication>>,
+
+    #[prop_or(AttrValue::from("pam"))]
+    pub default_realm: AttrValue,
 }
 
 impl LoginPanel {
-
     pub fn new() -> Self {
         yew::props!(Self {})
+    }
+
+    pub fn default_realm(mut self, realm: impl Into<AttrValue>) -> Self {
+        self.default_realm = realm.into();
+        self
     }
 
     pub fn on_login(mut self, cb: impl IntoEventCallback<Authentication>) -> Self {
         self.on_login = cb.into_event_callback();
         self
     }
-
 }
 
 pub enum Msg {
@@ -244,14 +250,14 @@ impl Component for ProxmoxLoginPanel {
         let link = ctx.link().clone();
 
         let mut default_username = String::from("root");
-        let mut default_realm = String::from("pam");
+        let mut default_realm = ctx.props().default_realm.to_owned();
 
         if *self.save_username {
             let last_userid: String = (*self.last_username).to_string();
             if !last_userid.is_empty() {
                 if let Some((user, realm)) = last_userid.rsplit_once('@') {
                     default_username = user.to_owned();
-                    default_realm = realm.to_owned();
+                    default_realm = realm.to_owned().into();
                 }
             }
         }
