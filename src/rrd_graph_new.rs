@@ -411,21 +411,17 @@ fn compute_outline_path(
 fn compute_fill_path(
     time_data: &[i64],
     values: &[f64],
-    fill_dir: bool,
     min_data: f64,
     max_data: f64,
     compute_x: impl Fn(i64) -> f64,
     compute_y: impl Fn(f64) -> f64,
 ) -> String {
     let mut y0 = compute_y(0.0);
-    if fill_dir {
-        if min_data > 0.0 {
-            y0 = compute_y(min_data)
-        }
-    } else {
-        if max_data < 0.0 {
-            y0 = compute_y(max_data)
-        }
+    if min_data > 0.0 {
+        y0 = compute_y(min_data)
+    }
+    if max_data < 0.0 {
+        y0 = compute_y(max_data)
     }
     let mut path = String::new();
     let mut last_undefined = true;
@@ -608,7 +604,7 @@ impl PwtRRDGraph {
         if self.serie0_visible && props.serie0.is_some() {
             let path = compute_outline_path(data0, data1, compute_x, compute_y);
             let pos_fill_path =
-                compute_fill_path(data0, data1, true, min_data, max_data, compute_x, compute_y);
+                compute_fill_path(data0, data1, min_data, max_data, compute_x, compute_y);
 
             children.extend(vec![
                 Path::new().class("pwt-rrd-outline-path1").d(path).into(),
@@ -622,7 +618,7 @@ impl PwtRRDGraph {
         if self.serie1_visible && props.serie1.is_some() {
             let path = compute_outline_path(data0, data2, compute_x, compute_y);
             let pos_fill_path =
-                compute_fill_path(data0, data2, true, min_data, max_data, compute_x, compute_y);
+                compute_fill_path(data0, data2, min_data, max_data, compute_x, compute_y);
 
             children.extend(vec![
                 Path::new().class("pwt-rrd-outline-path2").d(path).into(),
