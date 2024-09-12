@@ -431,17 +431,7 @@ fn compute_fill_path(
     let mut last_undefined = true;
     for i in 0..time_data.len() {
         let t = time_data[i];
-        let mut value = *values.get(i).unwrap_or(&f64::NAN);
-
-        if fill_dir {
-            if value < 0.0 {
-                value = f64::NAN;
-            }
-        } else {
-            if value > 0.0 {
-                value = f64::NAN;
-            }
-        }
+        let value = *values.get(i).unwrap_or(&f64::NAN);
 
         let x = compute_x(t);
 
@@ -451,13 +441,16 @@ fn compute_fill_path(
             }
             last_undefined = false;
             path.push_str(&format!(" M {:.1} {:.1}", x, y0));
-        } else {
-            if value.is_nan() {
-                last_undefined = true;
-                path.push_str(&format!(" L {:.1} {:.1}", x, y0));
+        } else if value.is_nan() {
+            last_undefined = true;
+            let x = if i > 0 {
+                compute_x(time_data[i - 1])
+            } else {
+                x
+            };
+            path.push_str(&format!(" L {:.1} {:.1}", x, y0));
 
-                continue;
-            }
+            continue;
         }
         let y = compute_y(value);
         path.push_str(&format!(" L {:.1} {:.1}", x, y));
@@ -616,19 +609,12 @@ impl PwtRRDGraph {
             let path = compute_outline_path(data0, data1, compute_x, compute_y);
             let pos_fill_path =
                 compute_fill_path(data0, data1, true, min_data, max_data, compute_x, compute_y);
-            let neg_fill_path = compute_fill_path(
-                data0, data1, false, min_data, max_data, compute_x, compute_y,
-            );
 
             children.extend(vec![
                 Path::new().class("pwt-rrd-outline-path1").d(path).into(),
                 Path::new()
                     .class("pwt-rrd-fill-path1")
                     .d(pos_fill_path)
-                    .into(),
-                Path::new()
-                    .class("pwt-rrd-fill-path1")
-                    .d(neg_fill_path)
                     .into(),
             ]);
         }
@@ -637,19 +623,12 @@ impl PwtRRDGraph {
             let path = compute_outline_path(data0, data2, compute_x, compute_y);
             let pos_fill_path =
                 compute_fill_path(data0, data2, true, min_data, max_data, compute_x, compute_y);
-            let neg_fill_path = compute_fill_path(
-                data0, data2, false, min_data, max_data, compute_x, compute_y,
-            );
 
             children.extend(vec![
                 Path::new().class("pwt-rrd-outline-path2").d(path).into(),
                 Path::new()
                     .class("pwt-rrd-fill-path2")
                     .d(pos_fill_path)
-                    .into(),
-                Path::new()
-                    .class("pwt-rrd-fill-path2")
-                    .d(neg_fill_path)
                     .into(),
             ]);
         }
