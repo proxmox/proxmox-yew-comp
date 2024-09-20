@@ -1,4 +1,4 @@
-use anyhow::{bail, Error};
+use anyhow::{format_err, Error};
 use serde_json::{json, Value};
 use std::rc::Rc;
 
@@ -6,10 +6,10 @@ use yew::html::IntoEventCallback;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
+use proxmox_rrd_api_types as rrd_types;
 use pwt::prelude::*;
 use pwt::state::local_storage;
 use pwt::widget::form::Combobox;
-
 use pwt_macros::builder;
 
 /// Combobox for selecting the theme density.
@@ -45,41 +45,37 @@ impl RRDTimeframeSelector {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Default)]
-pub enum RRDTimeframe {
-    HourAvg,
-    HourMax,
-    #[default]
-    DayAvg,
-    DayMax,
-    WeekAvg,
-    WeekMax,
-    MonthAvg,
-    MonthMax,
-    YearAvg,
-    YearMax,
-    DecadeAvg,
-    DecadeMax,
+#[derive(Copy, Clone, PartialEq)]
+pub struct RRDTimeframe {
+    pub timeframe: rrd_types::RrdTimeframe,
+    pub mode: rrd_types::RrdMode,
 }
 
-impl TryFrom<&str> for RRDTimeframe {
-    type Error = Error;
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Ok(match value {
-            "hour-avg" => RRDTimeframe::HourAvg,
-            "hour-max" => RRDTimeframe::HourMax,
-            "day-avg" => RRDTimeframe::DayAvg,
-            "day-max" => RRDTimeframe::DayMax,
-            "week-avg" => RRDTimeframe::WeekAvg,
-            "week-max" => RRDTimeframe::WeekMax,
-            "month-avg" => RRDTimeframe::MonthAvg,
-            "month-max" => RRDTimeframe::MonthMax,
-            "year-avg" => RRDTimeframe::YearAvg,
-            "year-max" => RRDTimeframe::YearMax,
-            "decade-avg" => RRDTimeframe::DecadeAvg,
-            "decade-max" => RRDTimeframe::DecadeMax,
-            _ => bail!("'{}' is not a valid RRD timeframe", value),
-        })
+impl RRDTimeframe {
+    pub const fn new(timeframe: rrd_types::RrdTimeframe, mode: rrd_types::RrdMode) -> Self {
+        Self { timeframe, mode }
+    }
+}
+
+impl Default for RRDTimeframe {
+    fn default() -> Self {
+        Self::new(rrd_types::RrdTimeframe::Day, rrd_types::RrdMode::Average)
+    }
+}
+
+impl std::str::FromStr for RRDTimeframe {
+    type Err = Error;
+
+    fn from_str(value: &str) -> Result<Self, Error> {
+        value
+            .split_once('-')
+            .and_then(|(timeframe, mode)| {
+                Some(Self {
+                    timeframe: timeframe.parse().ok()?,
+                    mode: mode.parse().ok()?,
+                })
+            })
+            .ok_or_else(|| format_err!("{value:?} is not a valid RRD timeframe"))
     }
 }
 
@@ -102,7 +98,7 @@ impl RRDTimeframe {
         };
 
         if let Ok(Some(timeframe_str)) = store.get_item("ProxmoxRRDTimeframe") {
-            if let Ok(timeframe) = RRDTimeframe::try_from(timeframe_str.as_str()) {
+            if let Ok(timeframe) = timeframe_str.as_str().parse() {
                 return timeframe;
             }
         }
@@ -111,21 +107,7 @@ impl RRDTimeframe {
     }
 
     fn serialize(&self) -> String {
-        match self {
-            RRDTimeframe::HourAvg => "hour-avg",
-            RRDTimeframe::HourMax => "hour-max",
-            RRDTimeframe::DayAvg => "day-avg",
-            RRDTimeframe::DayMax => "day-max",
-            RRDTimeframe::WeekAvg => "week-avg",
-            RRDTimeframe::WeekMax => "week-max",
-            RRDTimeframe::MonthAvg => "month-avg",
-            RRDTimeframe::MonthMax => "month-max",
-            RRDTimeframe::YearAvg => "year-avg",
-            RRDTimeframe::YearMax => "year-max",
-            RRDTimeframe::DecadeAvg => "decade-avg",
-            RRDTimeframe::DecadeMax => "decade-max",
-        }
-        .to_string()
+        format!("{}-{}", self.timeframe, self.mode)
     }
 
     pub fn store(&self) {
@@ -142,44 +124,7 @@ impl RRDTimeframe {
     }
 
     pub fn api_params(&self) -> Value {
-        match self {
-            RRDTimeframe::HourAvg => {
-                json!({"timeframe": "hour", "cf": "AVERAGE"})
-            }
-            RRDTimeframe::HourMax => {
-                json!({"timeframe": "hour", "cf": "MAX"})
-            }
-            RRDTimeframe::DayAvg => {
-                json!({"timeframe": "day", "cf": "AVERAGE"})
-            }
-            RRDTimeframe::DayMax => {
-                json!({"timeframe": "day", "cf": "MAX"})
-            }
-            RRDTimeframe::WeekAvg => {
-                json!({"timeframe": "week", "cf": "AVERAGE"})
-            }
-            RRDTimeframe::WeekMax => {
-                json!({"timeframe": "week", "cf": "MAX"})
-            }
-            RRDTimeframe::MonthAvg => {
-                json!({"timeframe": "month", "cf": "AVERAGE"})
-            }
-            RRDTimeframe::MonthMax => {
-                json!({"timeframe": "month", "cf": "MAX"})
-            }
-            RRDTimeframe::YearAvg => {
-                json!({"timeframe": "year", "cf": "AVERAGE"})
-            }
-            RRDTimeframe::YearMax => {
-                json!({"timeframe": "year", "cf": "MAX"})
-            }
-            RRDTimeframe::DecadeAvg => {
-                json!({"timeframe": "decade", "cf": "AVERAGE"})
-            }
-            RRDTimeframe::DecadeMax => {
-                json!({"timeframe": "decade", "cf": "MAX"})
-            }
-        }
+        json!({ "cf": self.mode, "timeframe": self.timeframe })
     }
 }
 
@@ -195,18 +140,18 @@ pub enum Msg {
 
 fn display_value(v: &AttrValue) -> &str {
     match v.as_str() {
-        "hour-avg" => "Hour (average)",
-        "hour-max" => "Hour (maximum)",
-        "day-avg" => "Day (average)",
-        "day-max" => "Day (maximum)",
-        "week-avg" => "Week (average)",
-        "week-max" => "Week (maximum)",
-        "month-avg" => "Month (average)",
-        "month-max" => "Month (maximum)",
-        "year-avg" => "Year (average)",
-        "year-max" => "Year (maximum)",
-        "decade-avg" => "Decade (average)",
-        "decade-max" => "Decade (maximum)",
+        "hour-AVERAGE" => "Hour (average)",
+        "hour-MAX" => "Hour (maximum)",
+        "day-AVERAGE" => "Day (average)",
+        "day-MAX" => "Day (maximum)",
+        "week-AVERAGE" => "Week (average)",
+        "week-MAX" => "Week (maximum)",
+        "month-AVERAGE" => "Month (average)",
+        "month-MAX" => "Month (maximum)",
+        "year-AVERAGE" => "Year (average)",
+        "year-MAX" => "Year (maximum)",
+        "decade-AVERAGE" => "Decade (average)",
+        "decade-MAX" => "Decade (maximum)",
         _ => v,
     }
 }
@@ -216,21 +161,24 @@ impl Component for PwtRRDTimeframeSelector {
     type Properties = RRDTimeframeSelector;
 
     fn create(_ctx: &Context<Self>) -> Self {
+        use rrd_types::RrdMode::*;
+        use rrd_types::RrdTimeframe::*;
+
         let timeframe = RRDTimeframe::load();
 
         let values = [
-            RRDTimeframe::HourAvg,
-            RRDTimeframe::HourMax,
-            RRDTimeframe::DayAvg,
-            RRDTimeframe::DayMax,
-            RRDTimeframe::WeekAvg,
-            RRDTimeframe::WeekMax,
-            RRDTimeframe::MonthAvg,
-            RRDTimeframe::MonthMax,
-            RRDTimeframe::YearAvg,
-            RRDTimeframe::YearMax,
-            RRDTimeframe::DecadeAvg,
-            RRDTimeframe::DecadeMax,
+            RRDTimeframe::new(Hour, Average),
+            RRDTimeframe::new(Hour, Max),
+            RRDTimeframe::new(Day, Average),
+            RRDTimeframe::new(Day, Max),
+            RRDTimeframe::new(Week, Average),
+            RRDTimeframe::new(Week, Max),
+            RRDTimeframe::new(Month, Average),
+            RRDTimeframe::new(Month, Max),
+            RRDTimeframe::new(Year, Average),
+            RRDTimeframe::new(Year, Max),
+            RRDTimeframe::new(Decade, Average),
+            RRDTimeframe::new(Decade, Max),
         ]
         .iter()
         .map(|v| AttrValue::from(v.serialize()))
@@ -246,7 +194,7 @@ impl Component for PwtRRDTimeframeSelector {
         let props = ctx.props();
         match msg {
             Msg::SetRRDTimeframe(timeframe_str) => {
-                if let Ok(timeframe) = RRDTimeframe::try_from(timeframe_str.as_str()) {
+                if let Ok(timeframe) = timeframe_str.as_str().parse::<RRDTimeframe>() {
                     timeframe.store();
                     self.timeframe = timeframe;
                     if let Some(on_change) = &props.on_change {

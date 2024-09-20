@@ -60,6 +60,7 @@ pwt-macros = "0.1"
 
 proxmox-schema = { version = "3", features = ["api-macro"] }
 proxmox-human-byte = "0.1"
+proxmox-rrd-api-types = "1"
 
 proxmox-time = "2"
 
