@@ -88,6 +88,11 @@ pub struct EditWindow {
     #[prop_or_default]
     pub on_submit: Option<SubmitCallback>,
 
+    /// Reset button press callback.
+    #[prop_or_default]
+    #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    pub on_reset: Option<Callback<()>>,
+
     /// Data change callback.
     #[builder_cb(IntoEventCallback, into_event_callback, FormContext)]
     #[prop_or_default]
@@ -280,7 +285,7 @@ impl Component for PwtEditWindow {
         }
 
         if edit_mode {
-            toolbar.add_child(ResetButton::new());
+            toolbar.add_child(ResetButton::new().on_reset(props.on_reset.clone()));
         }
 
         let submit_text = match &props.submit_text {
