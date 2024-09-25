@@ -7,12 +7,12 @@ use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{Checkbox, Field, Form, FormContext, ResetButton, SubmitButton, InputType};
-use pwt::widget::{Column, InputPanel, Mask, Row, LanguageSelector};
+use pwt::widget::form::{Checkbox, Field, Form, FormContext, InputType, ResetButton, SubmitButton};
+use pwt::widget::{Column, InputPanel, LanguageSelector, Mask, Row};
 
 use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
 
-use crate::{RealmSelector, tfa::TfaDialog};
+use crate::{tfa::TfaDialog, RealmSelector};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct LoginPanel {
@@ -63,12 +63,7 @@ pub struct ProxmoxLoginPanel {
 }
 
 impl ProxmoxLoginPanel {
-    fn send_login(
-        ctx: &Context<Self>,
-        username: String,
-        password: String,
-        realm: String,
-    ) {
+    fn send_login(ctx: &Context<Self>, username: String, password: String, realm: String) {
         let link = ctx.link().clone();
 
         wasm_bindgen_futures::spawn_local(async move {
@@ -194,13 +189,16 @@ impl Component for ProxmoxLoginPanel {
                 true
             }
 
-            Msg::WebAuthn(_data) => {
-                let _challenge = match self.challenge.take() {
+            Msg::WebAuthn(data) => {
+                let challenge = match self.challenge.take() {
                     Some(challenge) => challenge,
                     None => return true, // should never happen
                 };
 
-                /* diabled for now (requires feature webauthn)
+                // FIXME: once proxmox-login/tfa build with webauthn support, use
+                // `respond_webauthn`.
+                let response = challenge.respond_raw(&format!("webauthn:{data}"));
+                /*
                 let response = match challenge.respond_webauthn(&data) {
                     Ok(response) => response,
                     Err(err) => {
@@ -208,9 +206,9 @@ impl Component for ProxmoxLoginPanel {
                         return true;
                     }
                 };
+                */
 
                 Self::send_tfa_response(ctx, challenge, response);
-                */
                 true
             }
             Msg::SaveUsername(save_username) => {
@@ -280,7 +278,10 @@ impl Component for ProxmoxLoginPanel {
                     .required(true)
                     .input_type(InputType::Password),
             )
-            .with_field("Realm", RealmSelector::new().name("realm").default(default_realm));
+            .with_field(
+                "Realm",
+                RealmSelector::new().name("realm").default(default_realm),
+            );
 
         let tfa_dialog = match &self.challenge {
             Some(challenge) => Some(
@@ -289,7 +290,7 @@ impl Component for ProxmoxLoginPanel {
                     .on_totp(ctx.link().callback(Msg::Totp))
                     .on_yubico(ctx.link().callback(Msg::Yubico))
                     .on_recovery(ctx.link().callback(Msg::RecoveryKey))
-                    .on_webauthn(ctx.link().callback(Msg::WebAuthn))
+                    .on_webauthn(ctx.link().callback(Msg::WebAuthn)),
             ),
             None => None,
         };

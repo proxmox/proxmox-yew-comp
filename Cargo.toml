@@ -64,7 +64,7 @@ proxmox-rrd-api-types = "1"
 
 proxmox-time = "2"
 
-proxmox-login = "0.1"
+proxmox-login = "0.1.2"
 proxmox-client = "0.5"
 proxmox-tfa = { version = "5.0.1", default-features = false, features = [
   "api-types",

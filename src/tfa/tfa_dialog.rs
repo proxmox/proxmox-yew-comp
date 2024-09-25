@@ -1,6 +1,8 @@
 use std::rc::Rc;
 
+use anyhow::{bail, Context as _, Error};
 use derivative::Derivative;
+use wasm_bindgen::JsValue;
 
 use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
@@ -52,7 +54,11 @@ impl TfaDialog {
     }
 }
 
-pub struct ProxmoxTfaDialog {}
+#[derive(Default)]
+pub struct ProxmoxTfaDialog {
+    error: Option<String>,
+    webauthn_challenge: Option<(JsValue, String)>,
+}
 
 fn render_totp(callback: Option<Callback<String>>) -> Html {
     Form::new()
@@ -144,8 +150,31 @@ impl Component for ProxmoxTfaDialog {
     type Message = ();
     type Properties = TfaDialog;
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {}
+    fn create(ctx: &Context<Self>) -> Self {
+        let mut this = Self::default();
+
+        if let Some(challenge) = &ctx.props().challenge.challenge.webauthn_raw {
+            this.error = 'err: {
+                let challenge = match js_sys::JSON::parse(challenge) {
+                    Ok(c) => c,
+                    Err(err) => {
+                        break 'err Some(format!("failed to parse webauthn challenge: {err:?}"));
+                    }
+                };
+
+                let challenge_string = match fixup_challenge(&challenge) {
+                    Ok(s) => s,
+                    Err(err) => {
+                        break 'err Some(format!("failed to prepare webauthn challenge: {err:?}"));
+                    }
+                };
+
+                this.webauthn_challenge = Some((challenge, challenge_string));
+                None
+            };
+        }
+
+        this
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -175,16 +204,29 @@ impl Component for ProxmoxTfaDialog {
             });
         }
 
-        // webauthn not implemented - delayed to debian bookworm for newer rust packages ..
-        if true
-        /* props.challenge.challenge.webauthn.is_some() */
-        {
+        /*
+        // FIXME: switch to decoded value when we have a wasm-compatible webauthn-rs crate.
+        if props.challenge.challenge.webauthn.is_some() {
             panel.add_item_builder(TabBarItem::new().key("webauthn").label("WebAuthN"), {
                 let on_webauthn = props.on_webauthn.clone();
                 move |info: &SelectionViewRenderInfo| {
                     WebAuthn::new()
                         .visible(info.visible)
                         .on_webauthn(on_webauthn.clone())
+                        .into()
+                }
+            });
+        }
+        */
+        if let Some((challenge, challenge_string)) = self.webauthn_challenge.clone() {
+            panel.add_item_builder(TabBarItem::new().key("webauthn").label("WebAuthN"), {
+                let on_webauthn = props.on_webauthn.clone();
+                move |info: &SelectionViewRenderInfo| {
+                    WebAuthn::new()
+                        .visible(info.visible)
+                        .on_webauthn(on_webauthn.clone())
+                        .challenge(challenge.clone())
+                        .challenge_string(challenge_string.clone())
                         .into()
                 }
             });
@@ -205,4 +247,59 @@ impl Into<VNode> for TfaDialog {
         let comp = VComp::new::<ProxmoxTfaDialog>(Rc::new(self), None);
         VNode::from(comp)
     }
+}
+
+fn fixup_challenge(value: &JsValue) -> Result<String, Error> {
+    use js_sys::Reflect;
+    use wasm_bindgen::JsCast;
+
+    /*
+    challenge.publicKey.challenge = Proxmox.Utils.base64url_to_bytes(challenge.string);
+    for (const cred of challenge.publicKey.allowCredentials) {
+        cred.id = Proxmox.Utils.base64url_to_bytes(cred.id);
+    }
+    */
+
+    let public_key = Reflect::get(value, &"publicKey".into())
+        .ok()
+        .context("missing 'publicKey' value in webauthn challenge")?;
+    let challenge_string = turn_b64u_member_into_buffer(&public_key, "challenge")?;
+
+    let allow_credentials = Reflect::get(&public_key, &"allowCredentials".into())
+        .ok()
+        .context("failed to query list of allowed credentials")?
+        .dyn_into::<js_sys::Array>()
+        .ok()
+        .context("allowed credential list was not an array")?;
+    for cred in allow_credentials {
+        turn_b64u_member_into_buffer(&cred, "id")?;
+    }
+
+    Ok(challenge_string)
+}
+
+/// For convenience this returns the previous base64url string so we can keep the 'challenge'
+/// member around.
+fn turn_b64u_member_into_buffer(obj: &JsValue, member_str: &str) -> Result<String, Error> {
+    use js_sys::Reflect;
+
+    let member = member_str.into();
+
+    let mem_string = Reflect::get(obj, &member)
+        .ok()
+        .with_context(|| format!("failed to get '{member_str}' in object"))?
+        .as_string()
+        .with_context(|| format!("'{member_str}' in object was not a string"))?;
+    let buffer: js_sys::Uint8Array = base64::decode_config(&mem_string, base64::URL_SAFE_NO_PAD)
+        .with_context(|| format!("failed to decode '{member_str}'"))?[..]
+        .into();
+
+    if !Reflect::set(obj, &member, &buffer)
+        .ok()
+        .with_context(|| format!("failed to turn '{member_str}' into buffer"))?
+    {
+        bail!("failed to place buffer in '{member_str}' in object");
+    }
+
+    Ok(mem_string)
 }
