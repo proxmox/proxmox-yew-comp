@@ -299,10 +299,7 @@ impl Component for ProxmoxLoginPanel {
             .margin_start(1)
             .label_id(save_username_label_id.clone())
             .checked(*self.save_username)
-            .on_change(
-                ctx.link()
-                    .callback(|value| Msg::SaveUsername(value == "on")),
-            );
+            .on_change(ctx.link().callback(Msg::SaveUsername));
 
         let save_username = Row::new()
             .class("pwt-align-items-center")

@@ -6,7 +6,7 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{Boolean, Field, FormContext};
+use pwt::widget::form::{Checkbox, Field, FormContext};
 use pwt::widget::InputPanel;
 
 use crate::percent_encoding::percent_encode_component;
@@ -64,7 +64,7 @@ fn render_input_form(_form_ctx: FormContext, props: TfaEdit) -> Html {
                 .autofocus(true)
                 .submit_empty(true),
         )
-        .with_field(tr!("Enabled"), Boolean::new().name("enable").default(true))
+        .with_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
         .into()
 }
 

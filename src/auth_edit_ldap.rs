@@ -3,7 +3,7 @@ use std::rc::Rc;
 use anyhow::Error;
 use pwt::css::{Flex, Overflow};
 
-use pwt::widget::form::{Boolean, Combobox, FormContext, InputType, Number};
+use pwt::widget::form::{Checkbox, Combobox, FormContext, InputType, Number};
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
@@ -126,15 +126,15 @@ fn render_sync_form(_form_ctx: FormContext, _props: AuthEditLDAP) -> Html {
         )
         .with_field(
             tr!("Remove ACLs of vanished users"),
-            Boolean::new().name("remove-vanished-acl"),
+            Checkbox::new().name("remove-vanished-acl"),
         )
         .with_field(
             tr!("Remove vanished user"),
-            Boolean::new().name("remove-vanished-entry"),
+            Checkbox::new().name("remove-vanished-entry"),
         )
         .with_field(
             tr!("Remove vanished properties"),
-            Boolean::new().name("remove-vanished-properties"),
+            Checkbox::new().name("remove-vanished-properties"),
         )
         .into()
 }
@@ -198,7 +198,7 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
         )
         .with_field(
             tr!("Anonymous Search"),
-            Boolean::new()
+            Checkbox::new()
                 .name("anonymous_search")
                 .submit(false)
                 .default(true),
@@ -230,7 +230,7 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
         )
         .with_right_field(
             tr!("Verify Certificate"),
-            Boolean::new().name("verify").disabled(!tls_enabled),
+            Checkbox::new().name("verify").disabled(!tls_enabled),
         )
         .with_field(
             tr!("Bind Password"),

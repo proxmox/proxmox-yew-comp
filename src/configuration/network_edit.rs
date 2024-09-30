@@ -8,7 +8,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::LoadCallback;
-use pwt::widget::form::{delete_empty_values, Boolean, Field, FormContext, Hidden, Number};
+use pwt::widget::form::{delete_empty_values, Checkbox, Field, FormContext, Hidden, Number};
 use pwt::widget::InputPanel;
 
 use crate::utils::json_array_to_flat_string;
@@ -137,13 +137,13 @@ fn render_bridge_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
         )
         .with_right_field(
             tr!("Autostart"),
-            Boolean::new().name("autostart").default(true),
+            Checkbox::new().name("autostart").default(true),
         )
         .with_field(
             tr!("IPv4/CIDR"),
             Field::new().name("cidr").schema(&CIDR_V4_SCHEMA),
         )
-        .with_right_field(tr!("VLAN aware"), Boolean::new().name("bridge_vlan_aware"))
+        .with_right_field(tr!("VLAN aware"), Checkbox::new().name("bridge_vlan_aware"))
         .with_field(
             tr!("Gateway") + " (IPv4)",
             Field::new().name("gateway").schema(&IP_V4_SCHEMA),
@@ -215,7 +215,7 @@ fn render_bond_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
         )
         .with_right_field(
             tr!("Autostart"),
-            Boolean::new().name("autostart").default(true),
+            Checkbox::new().name("autostart").default(true),
         )
         .with_field(
             tr!("IPv4/CIDR"),
@@ -287,7 +287,7 @@ fn render_common_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
         )
         .with_right_field(
             tr!("Autostart"),
-            Boolean::new().name("autostart").default(true),
+            Checkbox::new().name("autostart").default(true),
         )
         .with_field(
             tr!("IPv4/CIDR"),

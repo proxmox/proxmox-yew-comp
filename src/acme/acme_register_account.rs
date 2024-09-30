@@ -7,7 +7,7 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{Boolean, Field, FormContext, ValidateFn};
+use pwt::widget::form::{Checkbox, Field, FormContext, ValidateFn};
 use pwt::widget::{Container, InputPanel};
 
 use crate::EditWindow;
@@ -128,7 +128,7 @@ impl Component for ProxmoxAcmeRegisterAccount {
                             panel.add_field(
                                 false,
                                 tr!("Accept TOS"),
-                                Boolean::new()
+                                Checkbox::new()
                                     .name("tos_checkbox")
                                     .submit(false)
                                     .validate(validate_tos.clone()),
@@ -140,7 +140,7 @@ impl Component for ProxmoxAcmeRegisterAccount {
                             panel.add_field(
                                 false,
                                 tr!("Accept TOS"),
-                                Boolean::new()
+                                Checkbox::new()
                                     .name("tos_checkbox_disabled")
                                     .disabled(true)
                                     .submit(false)

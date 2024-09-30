@@ -271,10 +271,7 @@ impl Component for PwtEditWindow {
                 .margin_start(1)
                 .label_id(advanced_label_id.clone())
                 .checked(*self.show_advanced)
-                .on_change(
-                    ctx.link()
-                        .callback(|value| Msg::ShowAdvanced(value == "on")),
-                );
+                .on_change(ctx.link().callback(Msg::ShowAdvanced));
 
             let advanced = Row::new()
                 .class("pwt-align-items-center")

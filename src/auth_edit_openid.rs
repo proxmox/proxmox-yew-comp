@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use anyhow::Error;
 
-use pwt::widget::form::{Boolean, Combobox, FormContext};
+use pwt::widget::form::{Checkbox, Combobox, FormContext};
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
@@ -99,7 +99,7 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditOpenID) -> Html {
                 .disabled(is_edit)
                 .submit(!is_edit),
         )
-        .with_right_field(tr!("Autocreate Users"), Boolean::new().name("autocreate"))
+        .with_right_field(tr!("Autocreate Users"), Checkbox::new().name("autocreate"))
         .with_field(
             tr!("Client ID"),
             Field::new().name("client-id").required(true),
