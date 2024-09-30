@@ -1,6 +1,15 @@
+rust-proxmox-yew-comp (0.2.0) bookworm; urgency=medium
+
+  * depend on pwt 0.3.0
+
+  * added more widgets
+
+  * see git changelog for details
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 30 Sep 2024 12:24:04 +0200
+
 rust-proxmox-yew-comp (0.1.0-1) unstable; urgency=medium
 
   * initial Debian package
 
  -- Proxmox Support Team <support@proxmox.com>  Thu, 12 Jan 2023 11:59:39 +0100
-
