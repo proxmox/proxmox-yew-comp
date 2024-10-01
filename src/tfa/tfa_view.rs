@@ -44,6 +44,7 @@ struct TfaEntry {
     description: String,
     created: i64,
     enable: bool,
+    locked: bool,
 }
 
 impl ExtractPrimaryKey for TfaEntry {
@@ -119,9 +120,12 @@ impl LoadableComponent for ProxmoxTfaView {
         let store = self.store.clone();
         Box::pin(async move {
             let data: Vec<TfaUser> = crate::http_get(&*base_url, None).await?;
+            let now = proxmox_time::epoch_i64();
 
             let mut flat_list = Vec::new();
             for tfa_user in data {
+                let tfa_locked = tfa_user.tfa_locked_until.is_some_and(|t| t > now);
+                let totp_locked = tfa_user.totp_locked;
                 for typed_tfa_info in tfa_user.entries {
                     flat_list.push(TfaEntry {
                         full_id: format!("{}/{}", tfa_user.userid, typed_tfa_info.info.id),
@@ -131,6 +135,7 @@ impl LoadableComponent for ProxmoxTfaView {
                         description: typed_tfa_info.info.description,
                         created: typed_tfa_info.info.created,
                         enable: typed_tfa_info.info.enable,
+                        locked: tfa_locked || typed_tfa_info.ty == TfaType::Totp && totp_locked,
                     });
                 }
             }
@@ -311,12 +316,14 @@ thread_local! {
             .render({
                 let yes_text = tr!("Yes");
                 let no_text = tr!("No");
+                let locked_text = tr!("Locked");
 
                 move |item: &TfaEntry| html!{
                     {
-                        match item.enable {
-                            true => &yes_text,
-                            false => &no_text,
+                        match (item.locked, item.enable) {
+                            (true, _) => &locked_text,
+                            (_, true) => &yes_text,
+                            (_, false) => &no_text,
                         }
                     }
                 }
