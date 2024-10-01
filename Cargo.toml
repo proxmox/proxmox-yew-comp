@@ -73,6 +73,7 @@ proxmox-auth-api = { version = "0.4", default-features = false, features = [
   "api-types",
 ] }
 proxmox-apt-api-types = "1.0"
+proxmox-access-control = "0.2.3"
 proxmox-dns-api = "0.1"
 proxmox-time-api = "0.1"
 proxmox-network-api = "0.1"

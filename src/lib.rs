@@ -176,6 +176,9 @@ pub use proxmox_product::{ExistingProduct, ProjectInfo};
 mod wizard;
 pub use wizard::{PwtWizard, Wizard, WizardPageRenderInfo};
 
+mod user_panel;
+pub use user_panel::UserPanel;
+
 pub mod utils;
 
 mod xtermjs;
