@@ -4,7 +4,6 @@ use std::rc::Rc;
 
 use anyhow::Error;
 use pwt::props::ExtractPrimaryKey;
-use serde::{Deserialize, Serialize};
 
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
@@ -19,7 +18,7 @@ use pwt_macros::builder;
 
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
-use proxmox_tfa::{TfaType, TypedTfaInfo};
+use proxmox_tfa::{TfaType, TfaUser};
 
 use crate::percent_encoding::percent_encode_component;
 use crate::tfa::TfaEdit;
@@ -32,19 +31,8 @@ async fn delete_item(base_url: AttrValue, user_id: String, entry_id: String) -> 
         percent_encode_component(&user_id),
         percent_encode_component(&entry_id),
     );
-    let _ = crate::http_delete(&url, None).await?;
+    crate::http_delete(&url, None).await?;
     Ok(())
-}
-
-// fixme: use proxmox_tfa::api::methods::TfaUser;
-#[derive(Deserialize, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub struct TfaUser {
-    /// The user this entry belongs to.
-    pub userid: String,
-
-    /// TFA entries.
-    pub entries: Vec<TypedTfaInfo>,
 }
 
 #[derive(Clone, PartialEq)]
