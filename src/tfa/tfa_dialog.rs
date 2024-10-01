@@ -280,7 +280,10 @@ fn fixup_challenge(value: &JsValue) -> Result<String, Error> {
 
 /// For convenience this returns the previous base64url string so we can keep the 'challenge'
 /// member around.
-fn turn_b64u_member_into_buffer(obj: &JsValue, member_str: &str) -> Result<String, Error> {
+pub(super) fn turn_b64u_member_into_buffer(
+    obj: &JsValue,
+    member_str: &str,
+) -> Result<String, Error> {
     use js_sys::Reflect;
 
     let member = member_str.into();

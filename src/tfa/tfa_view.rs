@@ -23,7 +23,7 @@ use proxmox_tfa::{TfaType, TfaUser};
 use crate::percent_encoding::percent_encode_component;
 use crate::tfa::TfaEdit;
 
-use super::{TfaAddRecovery, TfaAddTotp};
+use super::{TfaAddRecovery, TfaAddTotp, TfaAddWebauthn};
 
 async fn delete_item(base_url: AttrValue, user_id: String, entry_id: String) -> Result<(), Error> {
     let url = format!(
@@ -278,7 +278,12 @@ impl LoadableComponent for ProxmoxTfaView {
                     .on_close(ctx.link().change_view_callback(|_| None))
                     .into(),
             ),
-            ViewState::AddWebAuthn => None,
+            ViewState::AddWebAuthn => Some(
+                TfaAddWebauthn::new()
+                    .base_url(props.base_url.clone())
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .into(),
+            ),
             ViewState::AddRecoveryKeys => Some(
                 TfaAddRecovery::new()
                     .base_url(props.base_url.clone())

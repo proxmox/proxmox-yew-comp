@@ -25,10 +25,10 @@ use pwt_macros::builder;
 extern "C" {
     #[wasm_bindgen(extends = ::js_sys::Object, js_name = Window)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    type WasmWindow;
+    pub(super) type WasmWindow;
 
     #[wasm_bindgen(method, getter, js_class = "Window")]
-    fn navigator(this: &WasmWindow) -> WasmNavigator;
+    pub(super) fn navigator(this: &WasmWindow) -> WasmNavigator;
 }
 
 impl From<web_sys::Window> for WasmWindow {
@@ -42,17 +42,17 @@ impl From<web_sys::Window> for WasmWindow {
 extern "C" {
     #[wasm_bindgen(extends = ::js_sys::Object, js_name = Navigator)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    type WasmNavigator;
+    pub(super) type WasmNavigator;
 
     #[wasm_bindgen(method, getter, js_class = "Navigator")]
-    fn credentials(this: &WasmNavigator) -> WasmCredentialsContainer;
+    pub(super) fn credentials(this: &WasmNavigator) -> WasmCredentialsContainer;
 }
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends = ::js_sys::Object, js_name = CredentialsContainer)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    type WasmCredentialsContainer;
+    pub(super) type WasmCredentialsContainer;
 
     #[wasm_bindgen(
         catch,
@@ -61,6 +61,17 @@ extern "C" {
         js_name = get,
     )]
     fn get_with_options(
+        this: &WasmCredentialsContainer,
+        options: &JsValue,
+    ) -> Result<::js_sys::Promise, JsValue>;
+
+    #[wasm_bindgen(
+        catch,
+        method,
+        js_class = "CredentialsContainer",
+        js_name = create,
+    )]
+    pub(super) fn create(
         this: &WasmCredentialsContainer,
         options: &JsValue,
     ) -> Result<::js_sys::Promise, JsValue>;
