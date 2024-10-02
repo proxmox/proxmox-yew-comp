@@ -12,10 +12,10 @@ use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::{IntoLoadCallback, LoadCallback};
+use pwt::props::{IntoLoadCallback, IntoSubmitCallback, LoadCallback, SubmitCallback};
 use pwt::state::{SharedState, SharedStateObserver};
 use pwt::widget::data_table::{DataTableKeyboardEvent, DataTableMouseEvent};
-use pwt::widget::form::{FormContext, IntoSubmitCallback, SubmitCallback};
+use pwt::widget::form::FormContext;
 use pwt::widget::{Button, Toolbar};
 
 use crate::{EditWindow, KVGrid, KVGridRow, LoadableComponentLink};
@@ -167,7 +167,7 @@ pub struct ObjectGrid {
     data: Option<Value>,
 
     #[prop_or_default]
-    on_submit: Option<SubmitCallback>,
+    on_submit: Option<SubmitCallback<FormContext>>,
 
     /// Tools (buttons) added to the toolbar.
     #[prop_or_default]
@@ -220,7 +220,7 @@ impl ObjectGrid {
         self.tools.push(tool.into());
     }
 
-    pub fn on_submit(mut self, callback: impl IntoSubmitCallback) -> Self {
+    pub fn on_submit(mut self, callback: impl IntoSubmitCallback<FormContext>) -> Self {
         self.on_submit = callback.into_submit_callback();
         self
     }

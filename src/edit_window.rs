@@ -10,11 +10,10 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{
-    AsCssStylesMut, CssStyles, IntoLoadCallback, LoadCallback, RenderFn, WidgetStyleBuilder,
+    AsCssStylesMut, CssStyles, IntoLoadCallback, IntoSubmitCallback, LoadCallback, RenderFn,
+    SubmitCallback, WidgetStyleBuilder,
 };
-use pwt::widget::form::{
-    Checkbox, Form, FormContext, IntoSubmitCallback, ResetButton, SubmitButton, SubmitCallback,
-};
+use pwt::widget::form::{Checkbox, Form, FormContext, ResetButton, SubmitButton};
 use pwt::widget::{AlertDialog, Column, Dialog, Mask, Row};
 
 use pwt_macros::builder;
@@ -86,7 +85,7 @@ pub struct EditWindow {
 
     /// Submit callback.
     #[prop_or_default]
-    pub on_submit: Option<SubmitCallback>,
+    pub on_submit: Option<SubmitCallback<FormContext>>,
 
     /// Reset button press callback.
     #[prop_or_default]
@@ -131,7 +130,7 @@ impl EditWindow {
         self
     }
 
-    pub fn on_submit(mut self, callback: impl IntoSubmitCallback) -> Self {
+    pub fn on_submit(mut self, callback: impl IntoSubmitCallback<FormContext>) -> Self {
         self.on_submit = callback.into_submit_callback();
         self
     }
