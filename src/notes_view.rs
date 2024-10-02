@@ -3,28 +3,43 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{IntoSubmitCallback, LoadCallback, SubmitCallback};
-use pwt::widget::form::{FormContext, TextArea};
-use pwt::widget::{Button, Container, Toolbar};
+use pwt::widget::form::{FormContext, Hidden, TextArea};
+use pwt::widget::{Button, Column, Container, Toolbar};
+
+use proxmox_client::ApiResponseData;
 
 use crate::{
     EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster, Markdown,
 };
 
-async fn load_pve_notes() -> Result<String, Error> {
-    let data: Value = crate::http_get("/nodes/localhost/config", None).await?;
-    let text = data["description"].as_str().unwrap_or("").to_owned();
-    Ok(text)
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+pub struct NotesWithDigest {
+    notes: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    digest: Option<Value>,
 }
 
-async fn update_pve_notes(notes: String) -> Result<(), Error> {
-    let data = json!({ "description": notes });
-    let _ = crate::http_put("/nodes/localhost/config", Some(data)).await?;
+async fn load_pve_notes() -> Result<NotesWithDigest, Error> {
+    let resp: ApiResponseData<Value> =
+        crate::http_get_full("/nodes/localhost/config", None).await?;
+    let notes = resp.data["description"].as_str().unwrap_or("").to_owned();
+    let digest = resp.attribs.get("digest").cloned();
+    Ok(NotesWithDigest { notes, digest })
+}
+
+async fn update_pve_notes(data: NotesWithDigest) -> Result<(), Error> {
+    let mut param = json!({ "description": data.notes});
+    if let Some(digest) = data.digest {
+        param["digest"] = digest;
+    }
+    let _ = crate::http_put("/nodes/localhost/config", Some(param)).await?;
     Ok(())
 }
 
@@ -34,16 +49,16 @@ use pwt_macros::builder;
 #[builder]
 pub struct NotesView {
     /// The load callback
-    pub loader: LoadCallback<String>,
+    pub loader: LoadCallback<NotesWithDigest>,
 
     /// Submit callback.
-    #[builder_cb(IntoSubmitCallback, into_submit_callback, String)]
+    #[builder_cb(IntoSubmitCallback, into_submit_callback, NotesWithDigest)]
     #[prop_or_default]
-    pub on_submit: Option<SubmitCallback<String>>,
+    pub on_submit: Option<SubmitCallback<NotesWithDigest>>,
 }
 
 impl NotesView {
-    pub fn new(loader: impl Into<LoadCallback<String>>) -> Self {
+    pub fn new(loader: impl Into<LoadCallback<NotesWithDigest>>) -> Self {
         let loader = loader.into();
         yew::props!(Self { loader })
     }
@@ -64,12 +79,12 @@ pub enum ViewState {
 }
 
 pub enum Msg {
-    Load(String),
+    Load(NotesWithDigest),
 }
 
 #[doc(hidden)]
 pub struct ProxmoxNotesView {
-    text: AttrValue,
+    data: NotesWithDigest,
     edit_window_loader: LoadCallback<Value>,
 }
 
@@ -84,12 +99,16 @@ impl LoadableComponent for ProxmoxNotesView {
         let edit_window_loader = LoadCallback::new(move || {
             let loader = loader.clone();
             async move {
-                let text = loader.apply().await?;
-                Ok(json!({ "description": text }))
+                let data = loader.apply().await?;
+                let data = serde_json::to_value(data)?;
+                Ok(data)
             }
         });
         Self {
-            text: "".into(),
+            data: NotesWithDigest {
+                notes: String::new(),
+                digest: None,
+            },
             edit_window_loader,
         }
     }
@@ -101,16 +120,16 @@ impl LoadableComponent for ProxmoxNotesView {
         let loader = ctx.props().loader.clone();
         let link = ctx.link();
         Box::pin(async move {
-            let text: String = loader.apply().await?;
-            link.send_message(Msg::Load(text));
+            let data: NotesWithDigest = loader.apply().await?;
+            link.send_message(Msg::Load(data));
             Ok(())
         })
     }
 
     fn update(&mut self, _ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Load(text) => {
-                self.text = text.into();
+            Msg::Load(data) => {
+                self.data = data;
                 true
             }
         }
@@ -138,7 +157,7 @@ impl LoadableComponent for ProxmoxNotesView {
             .padding(2)
             .class("pwt-flex-fit")
             .class("pwt-embedded-html")
-            .with_child(Markdown::new().text(self.text.clone()))
+            .with_child(Markdown::new().text(self.data.notes.clone()))
             .into()
     }
 
@@ -162,19 +181,25 @@ impl LoadableComponent for ProxmoxNotesView {
                             let on_submit = on_submit.clone();
                             async move {
                                 if let Some(on_submit) = &on_submit {
-                                    let notes = form_ctx.read().get_field_text("description");
-                                    on_submit.apply(notes).await?;
+                                    let data = form_ctx.read().get_submit_data();
+                                    let data: NotesWithDigest = serde_json::from_value(data)?;
+                                    on_submit.apply(data).await?;
                                 }
                                 Ok(())
                             }
                         }
                     })
                     .renderer(|_form_ctx| {
-                        TextArea::new()
-                            .padding(2)
-                            .name("description")
-                            .submit_empty(true)
-                            .class("pwt-flex-fit")
+                        Column::new()
+                            .class(pwt::css::FlexFit)
+                            .with_child(
+                                TextArea::new()
+                                    .padding(2)
+                                    .name("notes")
+                                    .submit_empty(true)
+                                    .class(pwt::css::FlexFit),
+                            )
+                            .with_child(Hidden::new().name("digest").submit_empty(false))
                             .into()
                     });
 
