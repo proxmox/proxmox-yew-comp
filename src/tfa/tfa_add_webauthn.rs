@@ -81,12 +81,21 @@ impl Component for ProxmoxTfaAddWebauthn {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
+        let abort_handler = match web_sys::AbortController::new().map_err(convert_js_error) {
+            Ok(g) => g,
+            Err(err) => {
+                return pwt::widget::AlertDialog::new(format!("internal error: {err:?}")).into()
+            }
+        };
+
         let base_url = props.base_url.to_string();
         let on_submit = {
             let base_url = base_url.clone();
+            let abort_signal = abort_handler.signal();
             move |form_context| {
                 let base_url = base_url.clone();
-                async move { create_item(form_context, base_url.clone()).await }
+                let abort_signal = abort_signal.clone();
+                async move { create_item(form_context, base_url.clone(), abort_signal.clone()).await }
             }
         };
 
@@ -95,6 +104,7 @@ impl Component for ProxmoxTfaAddWebauthn {
             .on_done(props.on_close.clone())
             .submit_text(tr!("Register Webauthn Device"))
             .on_submit(on_submit)
+            .on_close(yew::Callback::<()>::from(move |()| abort_handler.abort()))
             .into()
     }
 }
@@ -106,7 +116,11 @@ impl Into<VNode> for TfaAddWebauthn {
     }
 }
 
-async fn create_item(form_ctx: FormContext, base_url: String) -> Result<(), Error> {
+async fn create_item(
+    form_ctx: FormContext,
+    base_url: String,
+    abort_signal: web_sys::AbortSignal,
+) -> Result<(), Error> {
     let mut data = form_ctx.get_submit_data();
     let password = data["password"].clone();
 
@@ -125,7 +139,7 @@ async fn create_item(form_ctx: FormContext, base_url: String) -> Result<(), Erro
     .map_err(convert_js_error)
     .context(tr!("failed to parse webauthn registration challenge"))?;
 
-    let challenge_string = fixup_challenge(&challenge)?;
+    let challenge_string = fixup_challenge(&challenge, abort_signal)?;
 
     let promise = super::webauthn::WasmWindow::from(web_sys::window().unwrap())
         .navigator()
@@ -193,11 +207,15 @@ fn handle_hw_rsp(hw_rsp: JsValue) -> Result<String, Error> {
     .context("failed to build response json object")
 }
 
-fn fixup_challenge(value: &JsValue) -> Result<String, Error> {
+fn fixup_challenge(value: &JsValue, abort_signal: web_sys::AbortSignal) -> Result<String, Error> {
     use js_sys::Reflect;
     use wasm_bindgen::JsCast;
 
     use super::tfa_dialog::turn_b64u_member_into_buffer;
+
+    Reflect::set(value, &"signal".into(), &abort_signal)
+        .ok()
+        .context("failed to set 'signal' property on webauthn challenge")?;
 
     let public_key = Reflect::get(value, &"publicKey".into())
         .ok()

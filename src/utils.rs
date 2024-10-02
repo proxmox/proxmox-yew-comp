@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::Mutex;
 
+use anyhow::{Context as _, Error};
 use serde_json::Value;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
@@ -353,4 +354,29 @@ pub fn set_location_href(href: &str) {
     let window = web_sys::window().unwrap();
     let location = window.location();
     let _ = location.set_href(href);
+}
+
+/// A scope guard for an `AbortController`.
+pub struct AbortGuard {
+    controller: web_sys::AbortController,
+}
+
+impl Drop for AbortGuard {
+    fn drop(&mut self) {
+        self.controller.abort();
+    }
+}
+
+impl AbortGuard {
+    pub fn new() -> Result<Self, Error> {
+        Ok(Self {
+            controller: web_sys::AbortController::new()
+                .map_err(pwt::convert_js_error)
+                .context("failed to create AbortController")?,
+        })
+    }
+
+    pub fn signal(&self) -> web_sys::AbortSignal {
+        self.controller.signal()
+    }
 }

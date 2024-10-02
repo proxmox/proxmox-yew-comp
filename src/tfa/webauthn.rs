@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use anyhow::{Context as _, Error};
+use js_sys::Reflect;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 use yew::html::IntoEventCallback;
@@ -13,6 +14,8 @@ use pwt::{
     widget::{Button, Column},
 };
 use pwt_macros::builder;
+
+use crate::utils::AbortGuard;
 
 //
 // Web API definition:
@@ -117,14 +120,12 @@ pub enum Msg {
 }
 
 pub struct ProxmoxWebAuthn {
-    running: bool, // fixme: replace with webnauthn promise
+    running: Option<AbortGuard>,
     error: Option<String>,
 }
 
 impl ProxmoxWebAuthn {
     fn handle_hw_rsp(hw_rsp: JsValue, challenge_string: String) -> Result<String, Error> {
-        use js_sys::Reflect;
-
         fn get_string(value: &JsValue, name: &str) -> Result<String, Error> {
             Reflect::get(value, &name.into())
                 .ok()
@@ -163,6 +164,39 @@ impl ProxmoxWebAuthn {
         }))
         .context("failed to build response json object")
     }
+
+    fn start(&mut self, ctx: &Context<Self>) -> Result<(), Error> {
+        let running = AbortGuard::new()?;
+
+        let challenge = &ctx.props().challenge;
+        Reflect::set(challenge, &"signal".into(), &running.signal())
+            .ok()
+            .context("failed to set 'signal' property in challenge")?;
+
+        let promise = WasmWindow::from(web_sys::window().unwrap())
+            .navigator()
+            .credentials()
+            .get_with_options(challenge)
+            .map_err(convert_js_error)
+            .context("failed to start webauthn authentication")?;
+
+        let challenge_string = ctx.props().challenge_string.clone();
+
+        ctx.link().send_future(async move {
+            match wasm_bindgen_futures::JsFuture::from(promise)
+                .await
+                .map_err(convert_js_error)
+                .and_then(|rsp| Self::handle_hw_rsp(rsp, challenge_string))
+            {
+                Ok(rsp) => Msg::Respond(rsp),
+                Err(err) => Msg::Error(err),
+            }
+        });
+
+        self.running = Some(running);
+
+        Ok(())
+    }
 }
 
 impl Component for ProxmoxWebAuthn {
@@ -171,7 +205,7 @@ impl Component for ProxmoxWebAuthn {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            running: false,
+            running: None,
             error: None,
         }
     }
@@ -179,6 +213,7 @@ impl Component for ProxmoxWebAuthn {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Error(err) => {
+                self.running = None;
                 self.error = Some(format!("{err:?}"));
                 true
             }
@@ -194,27 +229,8 @@ impl Component for ProxmoxWebAuthn {
                 }
             },
             Msg::Start => {
-                self.running = true;
-                match WasmWindow::from(web_sys::window().unwrap())
-                    .navigator()
-                    .credentials()
-                    .get_with_options(&ctx.props().challenge)
-                    .map_err(convert_js_error)
-                {
-                    Err(err) => self.error = Some(format!("{err:?}")),
-                    Ok(promise) => {
-                        let challenge_string = ctx.props().challenge_string.clone();
-                        ctx.link().send_future(async move {
-                            match wasm_bindgen_futures::JsFuture::from(promise)
-                                .await
-                                .map_err(convert_js_error)
-                                .and_then(|rsp| Self::handle_hw_rsp(rsp, challenge_string))
-                            {
-                                Ok(rsp) => Msg::Respond(rsp),
-                                Err(err) => Msg::Error(err),
-                            }
-                        });
-                    }
+                if let Err(err) = self.start(ctx) {
+                    self.error = Some(format!("{err:?}"));
                 }
                 true
             }
@@ -224,37 +240,38 @@ impl Component for ProxmoxWebAuthn {
     fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         let props = ctx.props();
 
-        if props.visible == false {
+        if !props.visible {
             log::info!("Abort running Webauthn challenge.");
-            self.running = false;
+            self.running = None;
         }
 
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let text = self
-            .error
-            .as_deref()
-            .unwrap_or("Click the button to start the authentication");
+        let text = tr!("Click the button to start the authentication");
+        let text = match self.error.as_deref() {
+            Some(err) => html! { <div>{text}<br/><i class="fa fa-warning"/> {err}</div> },
+            None => html! { <div>{text}</div> },
+        };
 
         let panel = Column::new()
             .padding(2)
             .gap(2)
-            .with_child(html! {<div>{text}</div>})
+            .with_child(text)
             .with_flex_spacer()
             .with_child(
                 Button::new("Start WebAuthn challenge")
                     .class("pwt-align-self-flex-end")
                     .class("pwt-scheme-primary")
-                    .disabled(self.running)
+                    .disabled(self.running.is_some())
                     .onclick(ctx.link().callback(|_| Msg::Start)),
             );
 
         Mask::new(panel)
             .class("pwt-flex-fill")
             .text("Please insert your authentication device and press its button")
-            .visible(self.running)
+            .visible(self.running.is_some())
             .into()
     }
 }
