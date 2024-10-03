@@ -27,24 +27,28 @@ pub struct NotesWithDigest {
     digest: Option<Value>,
 }
 
-async fn load_pve_notes() -> Result<ApiResponseData<String>, Error> {
-    let resp: ApiResponseData<Value> =
-        crate::http_get_full("/nodes/localhost/config", None).await?;
-    let notes = resp.data["description"].as_str().unwrap_or("").to_owned();
-    //let digest = resp.attribs.get("digest").cloned();
-
+async fn load_notes_property(
+    url: AttrValue,
+    prop_name: AttrValue,
+) -> Result<ApiResponseData<String>, Error> {
+    let resp: ApiResponseData<Value> = crate::http_get_full(&*url, None).await?;
+    let notes = resp.data[&*prop_name].as_str().unwrap_or("").to_owned();
     Ok(ApiResponseData {
         data: notes,
         attribs: resp.attribs,
     })
 }
 
-async fn update_pve_notes(data: NotesWithDigest) -> Result<(), Error> {
-    let mut param = json!({ "description": data.notes});
+async fn update_notes_property(
+    url: AttrValue,
+    prop_name: AttrValue,
+    data: NotesWithDigest,
+) -> Result<(), Error> {
+    let mut param = json!({ &*prop_name: data.notes});
     if let Some(digest) = data.digest {
         param["digest"] = digest;
     }
-    let _ = crate::http_put("/nodes/localhost/config", Some(param)).await?;
+    let _ = crate::http_put(&*url, Some(param)).await?;
     Ok(())
 }
 
@@ -63,14 +67,28 @@ pub struct NotesView {
 }
 
 impl NotesView {
+    /// Create a new instance
     pub fn new(loader: impl Into<ApiLoadCallback<String>>) -> Self {
         let loader = loader.into();
         yew::props!(Self { loader })
     }
+    /// Create a new instance, assume that notes are stored as object property.
+    ///
+    /// Automatically create a loader and on_submit callback.
+    pub fn edit_property(url: impl Into<AttrValue>, prop_name: impl Into<AttrValue>) -> Self {
+        let url = url.into();
+        let prop_name = prop_name.into();
 
-    pub fn pve_compatible() -> Self {
-        let loader = ApiLoadCallback::new(load_pve_notes);
-        let on_submit = SubmitCallback::new(update_pve_notes);
+        let loader = ApiLoadCallback::new({
+            let url = url.clone();
+            let prop_name = prop_name.clone();
+            move || load_notes_property(url.clone(), prop_name.clone())
+        });
+        let on_submit = SubmitCallback::new({
+            let url = url.clone();
+            let prop_name = prop_name.clone();
+            move |data| update_notes_property(url.clone(), prop_name.clone(), data)
+        });
         yew::props!(Self {
             loader,
             on_submit: Some(on_submit)
