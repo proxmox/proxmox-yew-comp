@@ -1,5 +1,8 @@
 pub mod acme;
 
+mod api_load_callback;
+pub use api_load_callback::{ApiLoadCallback, IntoApiLoadCallback};
+
 mod apt_package_manager;
 pub use apt_package_manager::{AptPackageManager, ProxmoxAptPackageManager};
 
@@ -69,7 +72,7 @@ pub use loadable_component::{
 };
 
 mod notes_view;
-pub use notes_view::{NotesView, ProxmoxNotesView};
+pub use notes_view::{NotesView, NotesWithDigest, ProxmoxNotesView};
 
 mod object_grid;
 pub use object_grid::{
