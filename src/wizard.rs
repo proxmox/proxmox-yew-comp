@@ -39,7 +39,7 @@ pub struct WizardPageRenderInfo {
     /// So that the item can react on visibility changes.
     pub visible: bool,
 
-    /// The [FormContext]
+    /// The [FormContext] of the current page
     pub form_ctx: FormContext,
 
     /// Submit data from all forms.
