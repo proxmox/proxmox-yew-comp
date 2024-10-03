@@ -16,7 +16,8 @@ use pwt::widget::{Button, Column, Container, Toolbar};
 use proxmox_client::ApiResponseData;
 
 use crate::{
-    EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster, Markdown,
+    ApiLoadCallback, EditWindow, LoadableComponent, LoadableComponentContext,
+    LoadableComponentMaster, Markdown,
 };
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
@@ -26,12 +27,16 @@ pub struct NotesWithDigest {
     digest: Option<Value>,
 }
 
-async fn load_pve_notes() -> Result<NotesWithDigest, Error> {
+async fn load_pve_notes() -> Result<ApiResponseData<String>, Error> {
     let resp: ApiResponseData<Value> =
         crate::http_get_full("/nodes/localhost/config", None).await?;
     let notes = resp.data["description"].as_str().unwrap_or("").to_owned();
-    let digest = resp.attribs.get("digest").cloned();
-    Ok(NotesWithDigest { notes, digest })
+    //let digest = resp.attribs.get("digest").cloned();
+
+    Ok(ApiResponseData {
+        data: notes,
+        attribs: resp.attribs,
+    })
 }
 
 async fn update_pve_notes(data: NotesWithDigest) -> Result<(), Error> {
@@ -49,7 +54,7 @@ use pwt_macros::builder;
 #[builder]
 pub struct NotesView {
     /// The load callback
-    pub loader: LoadCallback<NotesWithDigest>,
+    pub loader: ApiLoadCallback<String>,
 
     /// Submit callback.
     #[builder_cb(IntoSubmitCallback, into_submit_callback, NotesWithDigest)]
@@ -58,13 +63,13 @@ pub struct NotesView {
 }
 
 impl NotesView {
-    pub fn new(loader: impl Into<LoadCallback<NotesWithDigest>>) -> Self {
+    pub fn new(loader: impl Into<ApiLoadCallback<String>>) -> Self {
         let loader = loader.into();
         yew::props!(Self { loader })
     }
 
     pub fn pve_compatible() -> Self {
-        let loader = LoadCallback::new(load_pve_notes);
+        let loader = ApiLoadCallback::new(load_pve_notes);
         let on_submit = SubmitCallback::new(update_pve_notes);
         yew::props!(Self {
             loader,
@@ -99,8 +104,10 @@ impl LoadableComponent for ProxmoxNotesView {
         let edit_window_loader = LoadCallback::new(move || {
             let loader = loader.clone();
             async move {
-                let data = loader.apply().await?;
-                let data = serde_json::to_value(data)?;
+                let resp = loader.apply().await?;
+                let notes = resp.data;
+                let digest = resp.attribs.get("digest").cloned();
+                let data = json!({ "notes": notes, "digest": digest});
                 Ok(data)
             }
         });
@@ -120,8 +127,10 @@ impl LoadableComponent for ProxmoxNotesView {
         let loader = ctx.props().loader.clone();
         let link = ctx.link();
         Box::pin(async move {
-            let data: NotesWithDigest = loader.apply().await?;
-            link.send_message(Msg::Load(data));
+            let resp = loader.apply().await?;
+            let notes = resp.data;
+            let digest = resp.attribs.get("digest").cloned();
+            link.send_message(Msg::Load(NotesWithDigest { notes, digest }));
             Ok(())
         })
     }
