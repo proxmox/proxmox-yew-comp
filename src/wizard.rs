@@ -63,6 +63,24 @@ impl WizardPageRenderInfo {
             .link
             .send_message(Msg::PageLock(self.key.clone(), lock));
     }
+
+    /// Resets the valid pages state for all pages after the current one.
+    ///
+    /// Useful for pages that want to reset the state of the remaining wizard.
+    pub fn reset_remaining_valid_pages(&self) {
+        let mut reset = false;
+        let controller = self.controller.write();
+        for page in controller.page_list.iter() {
+            if reset {
+                controller
+                    .link
+                    .send_message(Msg::ChangeValid(page.clone(), false));
+            }
+            if *page == self.key {
+                reset = true;
+            }
+        }
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -203,6 +221,7 @@ struct WizardState {
     link: Scope<PwtWizard>,
     page: Option<Key>,
     page_data: HashMap<Key, FormContext>,
+    page_list: Vec<Key>,
 }
 
 impl WizardController {
@@ -211,6 +230,7 @@ impl WizardController {
             link,
             page: None,
             page_data: HashMap::new(),
+            page_list: Vec::new(),
         };
         Self {
             state: Rc::new(RefCell::new(state)),
@@ -227,6 +247,7 @@ impl WizardController {
 
     fn insert_page(&self, key: &Key) {
         let mut state = self.write();
+        state.page_list.push(key.clone());
         let form_ctx = FormContext::new().on_change(state.link.callback({
             let key = key.clone();
             move |form_ctx: FormContext| Msg::ChangeValid(key.clone(), form_ctx.read().is_valid())
