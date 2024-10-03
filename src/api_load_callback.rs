@@ -132,17 +132,17 @@ where
 
 /// Helper trait to create an optional [ApiLoadCallback] property.
 pub trait IntoApiLoadCallback<T> {
-    fn into_load_callback(self) -> Option<ApiLoadCallback<T>>;
+    fn into_api_load_callback(self) -> Option<ApiLoadCallback<T>>;
 }
 
 impl<T, I: Into<ApiLoadCallback<T>>> IntoApiLoadCallback<T> for I {
-    fn into_load_callback(self) -> Option<ApiLoadCallback<T>> {
+    fn into_api_load_callback(self) -> Option<ApiLoadCallback<T>> {
         Some(self.into())
     }
 }
 
 impl<T, I: Into<ApiLoadCallback<T>>> IntoApiLoadCallback<T> for Option<I> {
-    fn into_load_callback(self) -> Option<ApiLoadCallback<T>> {
+    fn into_api_load_callback(self) -> Option<ApiLoadCallback<T>> {
         self.map(|callback| callback.into())
     }
 }
