@@ -16,7 +16,9 @@ use pwt::css::ColorScheme;
 use pwt::props::{AsCssStylesMut, ContainerBuilder, CssStyles};
 use pwt::state::Selection;
 use pwt::widget::form::{Form, FormContext};
-use pwt::widget::{Button, Dialog, MiniScrollMode, Row, TabBarItem, TabBarStyle, TabPanel};
+use pwt::widget::{
+    AlertDialog, Button, Container, Dialog, MiniScrollMode, Row, TabBarItem, TabBarStyle, TabPanel,
+};
 
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{Key, VComp, VNode};
@@ -254,6 +256,7 @@ pub enum Msg {
     CloseDialog,
     Submit,
     SubmitResult(Result<(), Error>),
+    ClearError,
 }
 
 impl Component for PwtWizard {
@@ -343,6 +346,9 @@ impl Component for PwtWizard {
                     }
                 }
             }
+            Msg::ClearError => {
+                self.submit_error = None;
+            }
             Msg::PageLock(page, lock) => {
                 self.change_page_lock(&page, lock);
             }
@@ -394,15 +400,21 @@ impl Component for PwtWizard {
             tab_panel.add_item(tab_bar_item, page_content);
         }
 
-        Dialog::new(props.title.clone())
-            .html_title(props.html_title.clone())
-            .styles(props.styles.clone())
-            .draggable(props.draggable)
-            .resizable(props.resizable)
-            .auto_center(props.auto_center)
-            .on_close(ctx.link().callback(|_| Msg::CloseDialog))
-            .with_child(tab_panel)
-            .with_child(self.create_bottom_bar(ctx))
+        Container::new()
+            .with_child(
+                Dialog::new(props.title.clone())
+                    .html_title(props.html_title.clone())
+                    .styles(props.styles.clone())
+                    .draggable(props.draggable)
+                    .resizable(props.resizable)
+                    .auto_center(props.auto_center)
+                    .on_close(ctx.link().callback(|_| Msg::CloseDialog))
+                    .with_child(tab_panel)
+                    .with_child(self.create_bottom_bar(ctx)),
+            )
+            .with_optional_child(self.submit_error.as_deref().map(|err| {
+                AlertDialog::new(err).on_close(ctx.link().callback(|_| Msg::ClearError))
+            }))
             .into()
     }
 }
