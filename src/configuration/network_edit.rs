@@ -1,19 +1,21 @@
 use std::rc::Rc;
 
 use anyhow::Error;
+use proxmox_client::ApiResponseData;
 use serde_json::Value;
 
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::LoadCallback;
 use pwt::widget::form::{delete_empty_values, Checkbox, Field, FormContext, Hidden, Number};
 use pwt::widget::InputPanel;
 
 use crate::utils::json_array_to_flat_string;
 
-use crate::{BondModeSelector, BondXmitHashPolicySelector, EditWindow, SchemaValidation};
+use crate::{
+    ApiLoadCallback, BondModeSelector, BondXmitHashPolicySelector, EditWindow, SchemaValidation,
+};
 
 use proxmox_network_api::NetworkInterfaceType;
 use proxmox_schema::api_types::{CIDR_V4_SCHEMA, CIDR_V6_SCHEMA, IP_V4_SCHEMA, IP_V6_SCHEMA};
@@ -23,28 +25,28 @@ use pwt_macros::builder;
 
 use super::format_network_interface_type;
 
-async fn load_item(name: AttrValue) -> Result<Value, Error> {
+async fn load_item(name: AttrValue) -> Result<ApiResponseData<Value>, Error> {
     let url = format!(
         "/nodes/localhost/network/{}",
         percent_encode_component(&name)
     );
-    let mut data: Value = crate::http_get(url, None).await?;
+    let mut resp: ApiResponseData<Value> = crate::http_get_full(url, None).await?;
 
-    if let Value::Array(bridge_ports) = &data["bridge_ports"] {
-        data["bridge_ports"] = json_array_to_flat_string(bridge_ports).into();
+    if let Value::Array(bridge_ports) = &resp.data["bridge_ports"] {
+        resp.data["bridge_ports"] = json_array_to_flat_string(bridge_ports).into();
     }
-    if let Value::Array(slaves) = &data["slaves"] {
-        data["slaves"] = json_array_to_flat_string(slaves).into();
+    if let Value::Array(slaves) = &resp.data["slaves"] {
+        resp.data["slaves"] = json_array_to_flat_string(slaves).into();
     }
 
     // fix backup-server 3.0-1 API bug (spurious NULL value)
-    if let Some(map) = data.as_object_mut() {
+    if let Some(map) = resp.data.as_object_mut() {
         if map.get("bond_xmit_hash_policy") == Some(&Value::Null) {
             map.remove("bond_xmit_hash_policy");
         }
     }
 
-    Ok(data)
+    Ok(resp)
 }
 
 async fn create_item(
@@ -116,7 +118,7 @@ impl NetworkEdit {
 }
 
 pub struct ProxmoxNetworkEdit {
-    loader: Option<LoadCallback<Value>>,
+    loader: Option<ApiLoadCallback<Value>>,
 }
 
 fn render_bridge_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
@@ -189,15 +191,13 @@ fn render_bond_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
 
     if !allow_xmit_hash_policy {
         form_ctx
-           .write()
-           .set_field_value("bond_xmit_hash_policy", "".into())
+            .write()
+            .set_field_value("bond_xmit_hash_policy", "".into())
     }
 
     let allow_bond_primary = mode == "active-backup";
-    if !allow_bond_primary  {
-        form_ctx
-            .write()
-            .set_field_value("bond-primary", "".into())
+    if !allow_bond_primary {
+        form_ctx.write().set_field_value("bond-primary", "".into())
     }
 
     InputPanel::new()
@@ -223,9 +223,9 @@ fn render_bond_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
         )
         .with_right_field(
             tr!("Slaves"),
-            Field::new()
-                .name("slaves")
-                .tip(tr!("Space-separated list of interfaces, for example: enp0s0 enp1s0"))
+            Field::new().name("slaves").tip(tr!(
+                "Space-separated list of interfaces, for example: enp0s0 enp1s0"
+            )),
         )
         .with_field(
             tr!("Gateway") + " (IPv4)",
@@ -335,7 +335,7 @@ impl Component for ProxmoxNetworkEdit {
 
         let loader = props.name.as_ref().map(|name| {
             let name = name.clone();
-            LoadCallback::new(move || load_item(name.clone()))
+            ApiLoadCallback::new(move || load_item(name.clone()))
         });
 
         Self { loader }
@@ -351,7 +351,6 @@ impl Component for ProxmoxNetworkEdit {
         let interface_type = props.interface_type;
         let on_submit = move |form_context| async move {
             if is_edit {
-
                 update_item(form_context).await
             } else {
                 create_item(form_context, interface_type).await

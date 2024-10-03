@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::{IntoSubmitCallback, LoadCallback, SubmitCallback};
+use pwt::props::{IntoSubmitCallback, SubmitCallback};
 use pwt::widget::form::{FormContext, Hidden, TextArea};
 use pwt::widget::{Button, Column, Container, Toolbar};
 
@@ -108,7 +108,7 @@ pub enum Msg {
 #[doc(hidden)]
 pub struct ProxmoxNotesView {
     data: NotesWithDigest,
-    edit_window_loader: LoadCallback<Value>,
+    edit_window_loader: ApiLoadCallback<Value>,
 }
 
 impl LoadableComponent for ProxmoxNotesView {
@@ -119,14 +119,14 @@ impl LoadableComponent for ProxmoxNotesView {
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let props = ctx.props();
         let loader = props.loader.clone();
-        let edit_window_loader = LoadCallback::new(move || {
+        let edit_window_loader = ApiLoadCallback::new(move || {
             let loader = loader.clone();
             async move {
                 let resp = loader.apply().await?;
-                let notes = resp.data;
-                let digest = resp.attribs.get("digest").cloned();
-                let data = json!({ "notes": notes, "digest": digest});
-                Ok(data)
+                Ok(ApiResponseData {
+                    data: json!({ "notes": resp.data }),
+                    attribs: resp.attribs,
+                })
             }
         });
         Self {

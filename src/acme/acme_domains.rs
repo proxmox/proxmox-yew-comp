@@ -3,6 +3,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::{bail, Error};
+use proxmox_client::ApiResponseData;
 use serde_json::{json, Value};
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
@@ -379,11 +380,15 @@ impl ProxmoxAcmeDomainsPanel {
                         let config_key = config_key.clone();
                         let url = url.clone();
                         async move {
-                            let data: Value = crate::http_get(&*url, None).await?;
-                            if let Some(acme_config_string) = data[&config_key].as_str() {
+                            let resp: ApiResponseData<Value> =
+                                crate::http_get_full(&*url, None).await?;
+                            if let Some(acme_config_string) = resp.data[&config_key].as_str() {
                                 let config = parse_acme_domain_string(acme_config_string)?;
                                 let config = serde_json::to_value(config)?;
-                                Ok(config)
+                                Ok(ApiResponseData {
+                                    data: config,
+                                    attribs: resp.attribs,
+                                })
                             } else {
                                 bail!("unable to load ACME domain config '{}'", config_key);
                             }
@@ -408,13 +413,19 @@ impl ProxmoxAcmeDomainsPanel {
             .on_done(ctx.link().change_view_callback(|_| None))
             .loader((
                 |url: AttrValue| async move {
-                    let data: Value = crate::http_get(&*url, None).await?;
-                    if let Some(Value::String(acme_account)) = data.get("acme") {
+                    let resp: ApiResponseData<Value> = crate::http_get_full(&*url, None).await?;
+                    if let Some(Value::String(acme_account)) = resp.data.get("acme") {
                         let acme_account = parse_acme_config_string(acme_account)?;
                         let acme_account = serde_json::to_value(acme_account)?;
-                        Ok(acme_account)
+                        Ok(ApiResponseData {
+                            data: acme_account,
+                            attribs: resp.attribs,
+                        })
                     } else {
-                        Ok(Value::Null)
+                        Ok(ApiResponseData {
+                            data: Value::Null,
+                            attribs: resp.attribs,
+                        })
                     }
                 },
                 url.clone(),

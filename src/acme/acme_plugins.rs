@@ -4,6 +4,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
+use proxmox_client::ApiResponseData;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use yew::virtual_dom::{Key, VComp, VNode};
@@ -393,10 +394,11 @@ impl ProxmoxAcmePluginsPanel {
                         let url = url.clone();
                         let link = link.clone();
                         async move {
-                            let data: Value = crate::http_get(&*url, None).await?;
-                            let api_data = data["data"].as_str().unwrap_or("");
+                            let resp: ApiResponseData<Value> =
+                                crate::http_get_full(&*url, None).await?;
+                            let api_data = resp.data["data"].as_str().unwrap_or("");
                             link.send_message(Msg::ApiData(api_data.to_owned()));
-                            Ok(data)
+                            Ok(resp)
                         }
                     }
                 },

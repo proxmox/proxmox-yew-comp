@@ -5,6 +5,7 @@ use std::rc::Rc;
 use anyhow::Error;
 use derivative::Derivative;
 use indexmap::IndexMap;
+use proxmox_client::ApiResponseData;
 use serde_json::Value;
 
 use yew::html::IntoPropValue;
@@ -12,12 +13,13 @@ use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::{IntoLoadCallback, IntoSubmitCallback, LoadCallback, SubmitCallback};
+use pwt::props::{IntoSubmitCallback, SubmitCallback};
 use pwt::state::{SharedState, SharedStateObserver};
 use pwt::widget::data_table::{DataTableKeyboardEvent, DataTableMouseEvent};
 use pwt::widget::form::FormContext;
 use pwt::widget::{Button, Toolbar};
 
+use crate::{ApiLoadCallback, IntoApiLoadCallback};
 use crate::{EditWindow, KVGrid, KVGridRow, LoadableComponentLink};
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
 
@@ -135,7 +137,7 @@ impl ObjectGridRow {
 }
 
 pub enum Msg {
-    DataChange(Value),
+    DataChange(ApiResponseData<Value>),
     Select(Option<Key>),
     ControllerCommand(ObjectGridCommand),
 }
@@ -159,9 +161,9 @@ pub struct ObjectGrid {
     #[builder]
     rows: Rc<Vec<ObjectGridRow>>,
 
-    #[builder_cb(IntoLoadCallback, into_load_callback, Value)]
+    #[builder_cb(IntoApiLoadCallback, into_api_load_callback, Value)]
     #[prop_or_default]
-    loader: Option<LoadCallback<Value>>,
+    loader: Option<ApiLoadCallback<Value>>,
 
     #[prop_or_default]
     data: Option<Value>,
@@ -351,8 +353,8 @@ impl LoadableComponent for PwtObjectGrid {
 
         Box::pin(async move {
             if let Some(loader) = &loader {
-                let data: Value = loader.apply().await?;
-                link.send_message(Msg::DataChange(data));
+                let api_resp: ApiResponseData<Value> = loader.apply().await?;
+                link.send_message(Msg::DataChange(api_resp));
             }
             Ok(())
         })
@@ -360,8 +362,8 @@ impl LoadableComponent for PwtObjectGrid {
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::DataChange(data) => {
-                self.data = Rc::new(data);
+            Msg::DataChange(api_resp) => {
+                self.data = Rc::new(api_resp.data);
                 true
             }
             Msg::Select(opt_key) => {

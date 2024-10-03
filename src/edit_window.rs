@@ -8,15 +8,18 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
+use proxmox_client::ApiResponseData;
+
 use pwt::prelude::*;
 use pwt::props::{
-    AsCssStylesMut, CssStyles, IntoLoadCallback, IntoSubmitCallback, LoadCallback, RenderFn,
-    SubmitCallback, WidgetStyleBuilder,
+    AsCssStylesMut, CssStyles, IntoSubmitCallback, RenderFn, SubmitCallback, WidgetStyleBuilder,
 };
-use pwt::widget::form::{Checkbox, Form, FormContext, ResetButton, SubmitButton};
+use pwt::widget::form::{Checkbox, Form, FormContext, Hidden, ResetButton, SubmitButton};
 use pwt::widget::{AlertDialog, Column, Dialog, Mask, Row};
 
 use pwt_macros::builder;
+
+use crate::{ApiLoadCallback, IntoApiLoadCallback};
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -43,9 +46,9 @@ pub struct EditWindow {
     pub renderer: Option<RenderFn<FormContext>>,
 
     /// Form data loader.
-    #[builder_cb(IntoLoadCallback, into_load_callback, Value)]
+    #[builder_cb(IntoApiLoadCallback, into_api_load_callback, Value)]
     #[prop_or_default]
-    pub loader: Option<LoadCallback<Value>>,
+    pub loader: Option<ApiLoadCallback<Value>>,
 
     /// Submit button text.
     ///
@@ -53,6 +56,11 @@ pub struct EditWindow {
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
     pub submit_text: Option<AttrValue>,
+
+    /// Submit the digest if the loader returned one.
+    #[prop_or(true)]
+    #[builder]
+    pub submit_digest: bool,
 
     /// Determines if the dialog can be moved
     #[prop_or(true)]
@@ -145,7 +153,7 @@ pub enum Msg {
     Submit,
     SubmitResult(Result<(), Error>),
     Load,
-    LoadResult(Result<Value, Error>),
+    LoadResult(Result<ApiResponseData<Value>, Error>),
     ClearError,
     ShowAdvanced(bool),
 }
@@ -205,7 +213,13 @@ impl Component for PwtEditWindow {
                 self.loading = false;
                 match result {
                     Err(err) => log::error!("Load error: {}", err),
-                    Ok(value) => {
+                    Ok(api_resp) => {
+                        let mut value = api_resp.data;
+                        if props.submit_digest {
+                            if let Some(digest) = api_resp.attribs.get("digest") {
+                                value["digest"] = digest.clone();
+                            }
+                        }
                         self.form_ctx.load_form(value);
                     }
                 }
@@ -282,6 +296,10 @@ impl Component for PwtEditWindow {
 
         if edit_mode {
             toolbar.add_child(ResetButton::new().on_reset(props.on_reset.clone()));
+
+            if props.submit_digest {
+                toolbar.add_child(Hidden::new().name("digest").submit_empty(false));
+            }
         }
 
         let submit_text = match &props.submit_text {

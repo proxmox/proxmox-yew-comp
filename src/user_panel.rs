@@ -3,6 +3,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
+use proxmox_client::ApiResponseData;
 use serde_json::Value;
 
 use proxmox_access_control::types::UserWithTokens;
@@ -29,18 +30,18 @@ async fn load_user_list() -> Result<Vec<UserWithTokens>, Error> {
     crate::http_get("/access/users", None).await
 }
 
-async fn load_user(userid: Key) -> Result<Value, Error> {
+async fn load_user(userid: Key) -> Result<ApiResponseData<Value>, Error> {
     let url = format!("/access/users/{}", percent_encode_component(&userid));
 
-    let mut data: Value = crate::http_get(&url, None).await?;
+    let mut resp: ApiResponseData<Value> = crate::http_get_full(&url, None).await?;
 
-    if let Value::Number(number) = &data["expire"] {
+    if let Value::Number(number) = &resp.data["expire"] {
         if let Some(epoch) = number.as_f64() {
-            data["expire"] = Value::String(epoch_to_input_value(epoch as i64));
+            resp.data["expire"] = Value::String(epoch_to_input_value(epoch as i64));
         }
     }
 
-    Ok(data)
+    Ok(resp)
 }
 
 async fn delete_user(userid: Key) -> Result<(), Error> {
