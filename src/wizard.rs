@@ -17,7 +17,8 @@ use pwt::props::{AsCssStylesMut, ContainerBuilder, CssStyles};
 use pwt::state::Selection;
 use pwt::widget::form::{Form, FormContext};
 use pwt::widget::{
-    AlertDialog, Button, Container, Dialog, MiniScrollMode, Row, TabBarItem, TabBarStyle, TabPanel,
+    AlertDialog, Button, Container, Dialog, Mask, MiniScrollMode, Row, TabBarItem, TabBarStyle,
+    TabPanel,
 };
 
 use yew::html::{IntoEventCallback, IntoPropValue};
@@ -421,6 +422,8 @@ impl Component for PwtWizard {
             tab_panel.add_item(tab_bar_item, page_content);
         }
 
+        let tab_panel = Mask::new(tab_panel).visible(self.loading);
+
         Container::new()
             .with_child(
                 Dialog::new(props.title.clone())
@@ -520,6 +523,10 @@ impl PwtWizard {
             }
         }
 
+        if self.loading {
+            next_is_disabled = true;
+        }
+
         let next_page = props
             .pages
             .get_index(page_num + 1)
@@ -547,7 +554,7 @@ impl PwtWizard {
             .class(ColorScheme::Surface)
             .class("pwt-panel-header")
             .with_optional_child((!is_first).then(|| {
-                Button::new(tr!("Back")).onclick({
+                Button::new(tr!("Back")).disabled(self.loading).onclick({
                     let link = ctx.link().clone();
                     let prev_page = prev_page.clone();
                     move |_| {
