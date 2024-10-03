@@ -44,7 +44,7 @@ impl TfaAddWebauthn {
 pub struct ProxmoxTfaAddWebauthn {}
 
 fn render_input_form(_form_ctx: FormContext) -> Html {
-    InputPanel::new()
+    let panel = InputPanel::new()
         .min_width(600)
         .label_width("120px")
         .padding(4)
@@ -66,8 +66,9 @@ fn render_input_form(_form_ctx: FormContext) -> Html {
                 .placeholder(tr!(
                     "For example: TFA device ID, required to identify multiple factors."
                 )),
-        )
-        .into()
+        );
+
+    super::add_password_field(panel, false).into()
 }
 
 impl Component for ProxmoxTfaAddWebauthn {

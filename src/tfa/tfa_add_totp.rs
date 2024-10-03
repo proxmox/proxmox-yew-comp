@@ -73,7 +73,7 @@ pub struct ProxmoxTfaAddTotp {
 fn render_input_form(form_ctx: FormContext, secret: AttrValue) -> Html {
     let totp_link = extract_totp_link(&form_ctx);
 
-    InputPanel::new()
+    let panel = InputPanel::new()
         .min_width(600)
         .label_width("120px")
         .padding(4)
@@ -129,8 +129,9 @@ fn render_input_form(form_ctx: FormContext, secret: AttrValue) -> Html {
             Field::new().name("value").required(true).placeholder(tr!(
                 "Scan QR code in a TOTP app and enter an auth. code here"
             )),
-        )
-        .into()
+        );
+
+    super::add_password_field(panel, false).into()
 }
 
 impl Component for ProxmoxTfaAddTotp {

@@ -80,7 +80,7 @@ pub struct ProxmoxTfaAddRecovery {
 }
 
 fn render_input_form(_form_ctx: FormContext) -> Html {
-    InputPanel::new()
+    let panel = InputPanel::new()
         .min_width(600)
         .label_width("120px")
         .padding(4)
@@ -92,8 +92,9 @@ fn render_input_form(_form_ctx: FormContext) -> Html {
                 .name("userid")
                 .required(true)
                 .submit(false),
-        )
-        .into()
+        );
+
+    super::add_password_field(panel, false).into()
 }
 
 impl ProxmoxTfaAddRecovery {

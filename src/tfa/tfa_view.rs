@@ -12,7 +12,7 @@ use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::{Button, Toolbar};
+use pwt::widget::{Button, Mask, Toolbar};
 
 use pwt_macros::builder;
 
@@ -23,28 +23,39 @@ use proxmox_tfa::{TfaType, TfaUser};
 use crate::percent_encoding::percent_encode_component;
 use crate::tfa::TfaEdit;
 
+use super::tfa_confirm_remove::TfaConfirmRemove;
 use super::{TfaAddRecovery, TfaAddTotp, TfaAddWebauthn};
 
-async fn delete_item(base_url: AttrValue, user_id: String, entry_id: String) -> Result<(), Error> {
+async fn delete_item(
+    base_url: AttrValue,
+    user_id: String,
+    entry_id: String,
+    password: Option<String>,
+) -> Result<(), Error> {
     let url = format!(
         "{base_url}/{}/{}",
         percent_encode_component(&user_id),
         percent_encode_component(&entry_id),
     );
-    crate::http_delete(&url, None).await?;
+    let password = password.map(|password| {
+        serde_json::json!({
+            "password": password
+        })
+    });
+    crate::http_delete(&url, password).await?;
     Ok(())
 }
 
 #[derive(Clone, PartialEq)]
-struct TfaEntry {
-    full_id: String,
-    user_id: String,
-    entry_id: String,
-    tfa_type: TfaType,
-    description: String,
-    created: i64,
-    enable: bool,
-    locked: bool,
+pub(super) struct TfaEntry {
+    pub full_id: String,
+    pub user_id: String,
+    pub entry_id: String,
+    pub tfa_type: TfaType,
+    pub description: String,
+    pub created: i64,
+    pub enable: bool,
+    pub locked: bool,
 }
 
 impl ExtractPrimaryKey for TfaEntry {
@@ -72,7 +83,8 @@ impl TfaView {
 pub enum Msg {
     Redraw,
     Edit,
-    Remove,
+    Remove(Option<String>),
+    RemoveResult(Result<(), Error>),
 }
 
 #[derive(PartialEq)]
@@ -81,12 +93,14 @@ pub enum ViewState {
     AddWebAuthn,
     AddRecoveryKeys,
     Edit(AttrValue, AttrValue),
+    Remove,
 }
 
 #[doc(hidden)]
 pub struct ProxmoxTfaView {
     selection: Selection,
     store: Store<TfaEntry>,
+    removing: bool,
 }
 
 impl ProxmoxTfaView {
@@ -108,7 +122,11 @@ impl LoadableComponent for ProxmoxTfaView {
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let store = Store::new();
         let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Redraw));
-        Self { store, selection }
+        Self {
+            store,
+            selection,
+            removing: false,
+        }
     }
 
     fn load(
@@ -171,7 +189,8 @@ impl LoadableComponent for ProxmoxTfaView {
 
                 false
             }
-            Msg::Remove => {
+            Msg::Remove(password) => {
+                self.removing = true;
                 let info = match self.get_selected_record() {
                     Some(info) => info,
                     None => return true,
@@ -179,15 +198,27 @@ impl LoadableComponent for ProxmoxTfaView {
                 // fixme: ask use if he really wants to remove
                 let link = ctx.link().clone();
                 let base_url = props.base_url.clone();
-                wasm_bindgen_futures::spawn_local(async move {
-                    if let Err(err) =
-                        delete_item(base_url, info.user_id.clone(), info.entry_id.clone()).await
-                    {
-                        link.show_error(tr!("Unable to delete item"), err, true);
-                    }
-                    link.send_reload();
+                link.send_future(async move {
+                    Msg::RemoveResult(
+                        delete_item(
+                            base_url,
+                            info.user_id.clone(),
+                            info.entry_id.clone(),
+                            password,
+                        )
+                        .await,
+                    )
                 });
 
+                false
+            }
+            Msg::RemoveResult(res) => {
+                self.removing = false;
+                if let Err(err) = res {
+                    ctx.link()
+                        .show_error(tr!("Unable to delete item"), err, true);
+                }
+                ctx.link().send_reload();
                 false
             }
         }
@@ -241,7 +272,7 @@ impl LoadableComponent for ProxmoxTfaView {
             .with_child(
                 Button::new(tr!("Remove"))
                     .disabled(remove_disabled)
-                    .onclick(ctx.link().callback(|_| Msg::Remove)),
+                    .onclick(ctx.link().change_view_callback(|_| Some(ViewState::Remove))),
             )
             .with_flex_spacer()
             .with_child({
@@ -255,14 +286,14 @@ impl LoadableComponent for ProxmoxTfaView {
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let columns = COLUMNS.with(Rc::clone);
-        DataTable::new(columns, self.store.clone())
+        let view = DataTable::new(columns, self.store.clone())
             .selection(self.selection.clone())
             .class("pwt-flex-fit")
             .on_row_dblclick({
                 let link = ctx.link();
                 move |_: &mut _| link.send_message(Msg::Edit)
-            })
-            .into()
+            });
+        Mask::new(view).visible(self.removing).into()
     }
 
     fn dialog_view(
@@ -272,6 +303,18 @@ impl LoadableComponent for ProxmoxTfaView {
     ) -> Option<Html> {
         let props = ctx.props();
         match view_state {
+            ViewState::Remove => Some({
+                let Some(info) = self.get_selected_record() else {
+                    return None;
+                };
+                TfaConfirmRemove::new(info)
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .on_confirm({
+                        let link = ctx.link();
+                        move |password| link.send_message(Msg::Remove(password))
+                    })
+                    .into()
+            }),
             ViewState::AddTotp => Some(
                 TfaAddTotp::new()
                     .base_url(props.base_url.clone())
