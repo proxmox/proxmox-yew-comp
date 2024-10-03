@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use pwt::css::{AlignItems, Flex, FontColor, JustifyContent};
 use serde_json::Value;
 
 use yew::html::IntoEventCallback;
@@ -7,7 +8,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::Loader;
-use pwt::widget::{Container, Panel};
+use pwt::widget::{Column, Fa, Panel, Row};
 
 use pwt_macros::builder;
 
@@ -16,8 +17,8 @@ use crate::{HelpButton, ProjectInfo};
 pub fn subscription_status_text(status: &str) -> String {
     match status {
         "new" => tr!("Newly set subscription, not yet checked"),
-        "notfound" => tr!("You do not have a valid subscription."),
-        "active" => tr!("Subscription set and active."),
+        "notfound" => tr!("No valid subscription"),
+        "active" => tr!("Your subscription status is valid."),
         "invalid" => tr!("Subscription set but invalid for this server."),
         "expired" => tr!("Subscription set but expired for this server."),
         "suspended" => tr!("Subscription got (recently) suspended"),
@@ -26,41 +27,41 @@ pub fn subscription_status_text(status: &str) -> String {
 }
 
 pub fn subscription_note(url: Option<&str>) -> Html {
-    let msg2 = String::from("<p>")
-        + &tr!(
-            "
-Please visit <a target=\"_blank\" href=\"{}\">www.proxmox.com</a> to get
-a list of available options.
-",
-            url.unwrap_or("https://www.proxmox.com")
-        )
-        + "</p>";
+    let msg = tr!(
+        "You do not have a valid subscription for this server. Please visit <a target=\"_blank\" href=\"{}\">www.proxmox.com</a> to get
+a list of available options. ",
+        url.unwrap_or("https://www.proxmox.com")
+    );
 
-    let msg2 = Html::from_html_unchecked(msg2.into());
+    let msg = Html::from_html_unchecked(msg.into());
 
-    let msg = Container::from_tag("p").padding_bottom(2).with_child(tr!("
-The Proxmox team works very hard to make sure you are running the best
-software and getting stable updates and security enhancements,
-as well as quick enterprise support.
-"));
-
-    html! {<>{msg}{msg2}</>}
+    html! {<p>{msg}</p>}
 }
 
 pub fn subscription_status_message(status: &str, url: Option<&str>) -> Html {
     let status_text = subscription_status_text(status);
-    if matches!(status, "new" | "active") {
-        return html! {<p>{status_text}</p>};
-    }
 
-    let msg = html! {
-        <>
-            <h1>{status_text}</h1>
-            {subscription_note(url)}
-        </>
+    match status {
+        "new" | "active" => Row::new().with_child(status_text).into(),
+        _ => Column::new()
+            .class(JustifyContent::Center)
+            .class(AlignItems::Center)
+            .class(Flex::Fill)
+            .with_child(html! {<h3>{status_text}</h3>})
+            .with_child(subscription_note(url))
+            .into(),
+    }
+}
+
+/// Returns a fitting status icon for the various states the subscription can be in
+pub fn subscription_icon(status: &str) -> Fa {
+    let (icon, color) = match status {
+        "new" | "active" => ("check", FontColor::Success),
+        "notfound" => ("times-circle", FontColor::Error),
+        _ => ("exclamation-triangle", FontColor::Warning),
     };
 
-    msg
+    Fa::new(icon).class(color)
 }
 
 #[derive(Properties, PartialEq, Clone)]
@@ -126,11 +127,17 @@ impl Component for ProxmoxSubscriptionInfo {
             let status = data["status"].as_str().unwrap_or("").to_owned();
             let url = data["url"].as_str();
             let msg = subscription_status_message(&status, url);
-            Container::new().padding(2).with_child(msg)
+            Row::new()
+                .padding(2)
+                .class(Flex::Fill)
+                .class(AlignItems::Center)
+                .with_child(subscription_icon(&status).large_3x().padding(6))
+                .with_child(msg)
         });
 
         Panel::new()
             .border(true)
+            .min_height(200)
             .title("Subscription")
             .with_tool(HelpButton::new().section("subscription"))
             .with_child(main_view)
