@@ -61,6 +61,7 @@ impl NetworkView {
 
 #[doc(hidden)]
 pub struct ProxmoxNetworkView {
+    columns: Rc<Vec<DataTableHeader<Interface>>>,
     store: Store<Interface>,
     changes: String,
     selection: Selection,
@@ -129,6 +130,7 @@ impl LoadableComponent for ProxmoxNetworkView {
             store,
             selection,
             changes: String::new(),
+            columns: columns(),
         }
     }
 
@@ -243,7 +245,7 @@ impl LoadableComponent for ProxmoxNetworkView {
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let link = ctx.link();
 
-        let table = DataTable::new(columns(), self.store.clone())
+        let table = DataTable::new(Rc::clone(&self.columns), self.store.clone())
             .class("pwt-flex-fit")
             .selection(self.selection.clone())
             .striped(true)
