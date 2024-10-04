@@ -10,7 +10,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{IntoSubmitCallback, SubmitCallback};
-use pwt::widget::form::{FormContext, Hidden, TextArea};
+use pwt::widget::form::{FormContext, TextArea};
 use pwt::widget::{Button, Column, Container, Toolbar};
 
 use proxmox_client::ApiResponseData;
@@ -226,7 +226,6 @@ impl LoadableComponent for ProxmoxNotesView {
                                     .submit_empty(true)
                                     .class(pwt::css::FlexFit),
                             )
-                            .with_child(Hidden::new().name("digest").submit_empty(false))
                             .into()
                     });
 
