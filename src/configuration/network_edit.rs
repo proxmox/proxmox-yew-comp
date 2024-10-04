@@ -8,7 +8,7 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Checkbox, Field, FormContext, Hidden, Number};
+use pwt::widget::form::{delete_empty_values, Checkbox, Field, FormContext, Number};
 use pwt::widget::InputPanel;
 
 use crate::utils::json_array_to_flat_string;
