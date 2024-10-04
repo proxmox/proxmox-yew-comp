@@ -173,7 +173,6 @@ fn render_bridge_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             tr!("MTU"),
             Number::new().min(1).name("mtu").placeholder("1500"),
         )
-        .with_child(Hidden::new().name("digest"))
         .into()
 }
 
@@ -266,7 +265,6 @@ fn render_bond_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             tr!("MTU"),
             Number::new().min(1).name("mtu").placeholder("1500"),
         )
-        .with_child(Hidden::new().name("digest"))
         .into()
 }
 
@@ -314,7 +312,6 @@ fn render_common_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             tr!("MTU"),
             Number::new().min(1).name("mtu").placeholder("1500"),
         )
-        .with_child(Hidden::new().name("digest"))
         .into()
 }
 
