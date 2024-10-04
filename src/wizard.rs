@@ -331,8 +331,15 @@ impl Component for PwtWizard {
             }
             Msg::SelectionChange(selection) => {
                 if let Some(selected_key) = selection.selected_key() {
-                    let mut state = self.controller.write();
-                    state.page = Some(selected_key);
+                    {
+                        let mut state = self.controller.write();
+                        state.page = Some(selected_key.clone());
+                    }
+                    return <Self as yew::Component>::update(
+                        self,
+                        ctx,
+                        Msg::SelectPage(selected_key),
+                    );
                 }
             }
             Msg::CloseDialog => {
