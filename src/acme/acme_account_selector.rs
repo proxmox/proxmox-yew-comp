@@ -20,8 +20,9 @@ use super::acme_accounts::AcmeAccountEntry;
 #[derive(Clone, Properties, PartialEq)]
 #[builder]
 pub struct AcmeAccountSelector {
+    #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(AttrValue::Static("/config/acme/account"))]
-    url: AttrValue,
+    pub url: AttrValue,
 
     /// The default value.
     #[builder(IntoPropValue, into_prop_value)]

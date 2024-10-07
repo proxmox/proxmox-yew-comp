@@ -20,8 +20,9 @@ use super::acme_plugins::{load_acme_plugin_list, PluginConfig};
 #[derive(Clone, Properties, PartialEq)]
 #[builder]
 pub struct AcmePluginSelector {
+    #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(AttrValue::Static("/config/acme/plugins"))]
-    url: AttrValue,
+    pub url: AttrValue,
 
     /// The default value.
     #[builder(IntoPropValue, into_prop_value)]

@@ -19,8 +19,9 @@ use pwt_macros::{builder, widget};
 #[derive(Clone, Properties, PartialEq)]
 #[builder]
 pub struct AcmeDirectorySelector {
+    #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(AttrValue::Static("/config/acme/directories"))]
-    url: AttrValue,
+    pub url: AttrValue,
 
     /// The default value.
     #[builder(IntoPropValue, into_prop_value)]

@@ -4,6 +4,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
+use html::IntoPropValue;
 use proxmox_client::ApiResponseData;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -14,6 +15,8 @@ use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
 use pwt::widget::form::{delete_empty_values, DisplayField, Field, FormContext, Number, TextArea};
 use pwt::widget::{Button, InputPanel, Toolbar};
+
+use pwt_macros::builder;
 
 use crate::percent_encoding::percent_encode_component;
 use crate::{
@@ -47,10 +50,16 @@ pub(crate) struct PluginConfig {
     pub api: Option<String>,
 }
 
-#[derive(PartialEq, Properties)]
+#[derive(PartialEq, Clone, Properties)]
+#[builder]
 pub struct AcmePluginsPanel {
+    #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(AttrValue::Static("/config/acme/plugins"))]
     url: AttrValue,
+
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or(AttrValue::Static("/config/acme/challenge-schema"))]
+    challenge_shema_url: AttrValue,
 }
 
 impl AcmePluginsPanel {
@@ -264,6 +273,7 @@ impl ProxmoxAcmePluginsPanel {
         id: Option<&str>,
         challenge_schema: Option<&AcmeChallengeSchemaItem>,
         api_data: &str,
+        props: &AcmePluginsPanel,
     ) -> InputPanel {
         let mut panel = InputPanel::new()
             .width(600)
@@ -295,6 +305,7 @@ impl ProxmoxAcmePluginsPanel {
             .with_field(
                 tr!("DNS API"),
                 AcmeChallengeSelector::new()
+                    .url(props.challenge_shema_url.clone())
                     .name("api")
                     .required(true)
                     .on_change(link.callback(move |schema| Msg::ChallengeSchema(schema))),
@@ -380,6 +391,7 @@ impl ProxmoxAcmePluginsPanel {
             base64::encode(form_ctx.get_field_text("data"))
         }
     }
+
     fn create_edit_dns_plugin_dialog(
         &self,
         ctx: &crate::LoadableComponentContext<Self>,
@@ -410,6 +422,7 @@ impl ProxmoxAcmePluginsPanel {
                 let link = ctx.link();
                 let challenge_schema = self.challenge_schema.clone();
                 let api_data = self.api_data.clone();
+                let props: AcmePluginsPanel = ctx.props().clone();
                 move |form_ctx: &FormContext| {
                     Self::dns_plugin_input_panel(
                         &link,
@@ -417,6 +430,7 @@ impl ProxmoxAcmePluginsPanel {
                         Some(&id),
                         challenge_schema.as_ref(),
                         &api_data,
+                        &props,
                     )
                     .into()
                 }
@@ -450,6 +464,7 @@ impl ProxmoxAcmePluginsPanel {
                 let link = ctx.link();
                 let challenge_schema = self.challenge_schema.clone();
                 let api_data = self.api_data.clone();
+                let props: AcmePluginsPanel = ctx.props().clone();
                 move |form_ctx: &FormContext| {
                     Self::dns_plugin_input_panel(
                         &link,
@@ -457,6 +472,7 @@ impl ProxmoxAcmePluginsPanel {
                         None,
                         challenge_schema.as_ref(),
                         &api_data,
+                        &props,
                     )
                     .into()
                 }

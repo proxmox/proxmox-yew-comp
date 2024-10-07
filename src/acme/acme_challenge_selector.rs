@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use anyhow::format_err;
+use html::IntoPropValue;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -20,8 +21,9 @@ use pwt_macros::{builder, widget};
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct AcmeChallengeSelector {
+    #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(AttrValue::Static("/config/acme/challenge-schema"))]
-    url: AttrValue,
+    pub url: AttrValue,
 
     /// Change callback
     #[builder_cb(IntoEventCallback, into_event_callback, Option<AcmeChallengeSchemaItem>)]
