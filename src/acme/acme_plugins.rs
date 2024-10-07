@@ -306,7 +306,7 @@ impl ProxmoxAcmePluginsPanel {
             panel.add_field(
                 false,
                 tr!("Hint"),
-                DisplayField::new(description.to_string()),
+                DisplayField::new(description.to_string()).key("__hint__"),
             );
         }
 
