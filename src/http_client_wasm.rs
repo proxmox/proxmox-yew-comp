@@ -90,7 +90,7 @@ impl HttpClientWasm {
     }
 
     pub fn set_auth(&self, auth: Authentication) {
-        let cookie = auth.ticket.cookie();
+        let cookie = format!("{}; SameSite=Lax; Secure;", auth.ticket.cookie());
         crate::set_cookie(&cookie);
         crate::store_csrf_token(&auth.csrfprevention_token);
         *self.auth.lock().unwrap() = Some(auth);
@@ -226,7 +226,7 @@ impl HttpClientWasm {
                 .append("CSRFPreventionToken", &auth.csrfprevention_token)
                 .map_err(|err| convert_js_error(err))?;
 
-            let cookie = auth.ticket.cookie();
+            let cookie = format!("{}; SameSite=Lax; Secure;", auth.ticket.cookie());
             crate::set_cookie(&cookie);
         }
 

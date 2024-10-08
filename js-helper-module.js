@@ -10,7 +10,7 @@ function set_cookie(value) {
 
 // name is PBSAuthCookie, PVEAuthCookie or PMGAuthCookie
 function clear_auth_cookie(name) {
-    document.cookie = name + "=; expires=Thu, 01-Jan-1970 00:00:01 GMT;";
+    document.cookie = name + "=; expires=Thu, 01-Jan-1970 00:00:01 GMT; SameSite=Lax;";
 }
 
 function get_cookie() {
