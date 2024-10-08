@@ -9,7 +9,7 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::Key;
 
 use pwt::prelude::*;
-use pwt::props::RenderFn;
+use pwt::props::{ExtractPrimaryKey, RenderFn};
 use pwt::state::Store;
 use pwt::widget::data_table::{DataTable, DataTableColumn};
 use pwt::widget::form::{Selector, SelectorRenderArgs, ValidateFn};
@@ -25,6 +25,10 @@ pub struct AcmeChallengeSelector {
     #[prop_or(AttrValue::Static("/config/acme/challenge-schema"))]
     pub url: AttrValue,
 
+    // Allow to use preloaded list
+    #[prop_or_default]
+    store: Option<Store<AcmeChallengeSchemaItem>>,
+
     /// Change callback
     #[builder_cb(IntoEventCallback, into_event_callback, Option<AcmeChallengeSchemaItem>)]
     #[prop_or_default]
@@ -36,6 +40,10 @@ impl AcmeChallengeSelector {
     pub fn new() -> Self {
         yew::props!(Self {})
     }
+
+    pub fn with_store(store: Store<AcmeChallengeSchemaItem>) -> Self {
+        yew::props!(Self { store })
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
@@ -44,6 +52,12 @@ pub struct AcmeChallengeSchemaItem {
     #[serde(rename = "type")]
     pub ty: String,
     pub schema: Value,
+}
+
+impl ExtractPrimaryKey for AcmeChallengeSchemaItem {
+    fn extract_key(&self) -> Key {
+        Key::from(self.id.clone())
+    }
 }
 
 pub struct ProxmoxAcmeChallengeSelector {
@@ -65,9 +79,11 @@ impl Component for ProxmoxAcmeChallengeSelector {
             })
             .into()]);
 
-        let store =
-            Store::with_extract_key(|item: &AcmeChallengeSchemaItem| Key::from(item.id.clone()))
-                .on_change(ctx.link().callback(|_| ())); // trigger redraw
+        let store = match &ctx.props().store {
+            Some(store) => store.clone(),
+            None => Store::new(),
+        }
+        .on_change(ctx.link().callback(|_| ())); // trigger redraw;
 
         let validate = ValidateFn::new(|(id, store): &(String, Store<AcmeChallengeSchemaItem>)| {
             store
@@ -117,7 +133,11 @@ impl Component for ProxmoxAcmeChallengeSelector {
                         .into()
                 }
             })
-            .loader(&*props.url)
+            .loader(if props.store.is_some() {
+                None
+            } else {
+                Some(&*props.url)
+            })
             .validate(self.validate.clone())
             .on_change({
                 let on_change = props.on_change.clone();

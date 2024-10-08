@@ -20,8 +20,8 @@ use pwt_macros::builder;
 
 use crate::percent_encoding::percent_encode_component;
 use crate::{
-    ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentLink,
-    LoadableComponentMaster,
+    http_get, ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,
+    LoadableComponentLink, LoadableComponentMaster,
 };
 
 use super::{AcmeChallengeSchemaItem, AcmeChallengeSelector};
@@ -68,6 +68,11 @@ impl AcmePluginsPanel {
     }
 }
 
+struct ChallengeSchemaInfo {
+    schema_name_map: Rc<HashMap<String, String>>,
+    store: Store<AcmeChallengeSchemaItem>,
+}
+
 #[doc(hidden)]
 pub struct ProxmoxAcmePluginsPanel {
     selection: Selection,
@@ -75,6 +80,7 @@ pub struct ProxmoxAcmePluginsPanel {
     columns: Rc<Vec<DataTableHeader<PluginConfig>>>,
     challenge_schema: Option<AcmeChallengeSchemaItem>,
     api_data: String,
+    schema_info: ChallengeSchemaInfo,
 }
 
 #[derive(PartialEq)]
@@ -90,6 +96,21 @@ pub enum Msg {
     Edit(Key),
     ChallengeSchema(Option<AcmeChallengeSchemaItem>),
     ApiData(String),
+    LoadChallengeSchemaList,
+    UpdateChallengeSchemaList(Result<Vec<AcmeChallengeSchemaItem>, Error>),
+}
+
+impl ProxmoxAcmePluginsPanel {
+    fn update_challenge_info(&mut self, list: Vec<AcmeChallengeSchemaItem>) {
+        let mut map = HashMap::new();
+        for item in list.iter() {
+            if let Value::String(ref name) = item.schema["name"] {
+                map.insert(item.id.clone(), name.clone());
+            }
+        }
+        self.schema_info.schema_name_map = Rc::new(map);
+        self.schema_info.store.set_data(list);
+    }
 }
 
 impl LoadableComponent for ProxmoxAcmePluginsPanel {
@@ -102,24 +123,10 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
         let store =
             Store::with_extract_key(|record: &PluginConfig| Key::from(record.plugin.clone()));
 
-        let columns = Rc::new(vec![
-            DataTableColumn::new(tr!("Plugin"))
-                .flex(1)
-                .render(|record: &PluginConfig| html! { &record.plugin })
-                .sorter(|a: &PluginConfig, b: &PluginConfig| a.plugin.cmp(&b.plugin))
-                .sort_order(true)
-                .into(),
-            DataTableColumn::new(tr!("API"))
-                .flex(1)
-                .render(|record: &PluginConfig| {
-                    let text = match &record.api {
-                        Some(api) => api,
-                        None => "",
-                    };
-                    html! {text}
-                })
-                .into(),
-        ]);
+        let schema_name_map = Rc::new(HashMap::new());
+        let columns = columns(schema_name_map.clone());
+
+        ctx.link().send_message(Msg::LoadChallengeSchemaList);
 
         Self {
             selection,
@@ -127,6 +134,10 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             columns,
             challenge_schema: None,
             api_data: String::new(),
+            schema_info: ChallengeSchemaInfo {
+                schema_name_map,
+                store: Store::new(),
+            },
         }
     }
 
@@ -172,6 +183,23 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                 self.api_data = String::new();
                 ctx.link().change_view(None);
                 ctx.link().send_reload();
+                true
+            }
+            Msg::LoadChallengeSchemaList => {
+                let url = ctx.props().challenge_shema_url.clone();
+                let link = ctx.link();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let result = http_get(&*url, None).await;
+                    link.send_message(Msg::UpdateChallengeSchemaList(result));
+                });
+                false
+            }
+            Msg::UpdateChallengeSchemaList(result) => {
+                // fixme: handle errors
+                if let Ok(list) = result {
+                    self.update_challenge_info(list);
+                    self.columns = columns(self.schema_info.schema_name_map.clone());
+                }
                 true
             }
         }
@@ -273,7 +301,7 @@ impl ProxmoxAcmePluginsPanel {
         id: Option<&str>,
         challenge_schema: Option<&AcmeChallengeSchemaItem>,
         api_data: &str,
-        props: &AcmePluginsPanel,
+        challenge_store: Store<AcmeChallengeSchemaItem>,
     ) -> InputPanel {
         let mut panel = InputPanel::new()
             .width(600)
@@ -304,8 +332,7 @@ impl ProxmoxAcmePluginsPanel {
             )
             .with_field(
                 tr!("DNS API"),
-                AcmeChallengeSelector::new()
-                    .url(props.challenge_shema_url.clone())
+                AcmeChallengeSelector::with_store(challenge_store)
                     .name("api")
                     .required(true)
                     .on_change(link.callback(move |schema| Msg::ChallengeSchema(schema))),
@@ -422,7 +449,7 @@ impl ProxmoxAcmePluginsPanel {
                 let link = ctx.link();
                 let challenge_schema = self.challenge_schema.clone();
                 let api_data = self.api_data.clone();
-                let props: AcmePluginsPanel = ctx.props().clone();
+                let challenge_store = self.schema_info.store.clone();
                 move |form_ctx: &FormContext| {
                     Self::dns_plugin_input_panel(
                         &link,
@@ -430,7 +457,7 @@ impl ProxmoxAcmePluginsPanel {
                         Some(&id),
                         challenge_schema.as_ref(),
                         &api_data,
-                        &props,
+                        challenge_store.clone(),
                     )
                     .into()
                 }
@@ -464,7 +491,7 @@ impl ProxmoxAcmePluginsPanel {
                 let link = ctx.link();
                 let challenge_schema = self.challenge_schema.clone();
                 let api_data = self.api_data.clone();
-                let props: AcmePluginsPanel = ctx.props().clone();
+                let challenge_store = self.schema_info.store.clone();
                 move |form_ctx: &FormContext| {
                     Self::dns_plugin_input_panel(
                         &link,
@@ -472,7 +499,7 @@ impl ProxmoxAcmePluginsPanel {
                         None,
                         challenge_schema.as_ref(),
                         &api_data,
-                        &props,
+                        challenge_store.clone(),
                     )
                     .into()
                 }
@@ -498,4 +525,30 @@ impl ProxmoxAcmePluginsPanel {
             })
             .into()
     }
+}
+
+fn columns(
+    schema_name_hash: Rc<HashMap<String, String>>,
+) -> Rc<Vec<DataTableHeader<PluginConfig>>> {
+    Rc::new(vec![
+        DataTableColumn::new(tr!("Plugin"))
+            .flex(1)
+            .render(|record: &PluginConfig| html! { &record.plugin })
+            .sorter(|a: &PluginConfig, b: &PluginConfig| a.plugin.cmp(&b.plugin))
+            .sort_order(true)
+            .into(),
+        DataTableColumn::new(tr!("API"))
+            .flex(1)
+            .render(move |record: &PluginConfig| {
+                let text = match &record.api {
+                    Some(api) => match schema_name_hash.get(api) {
+                        Some(name) => name.clone(),
+                        None => api.clone(),
+                    },
+                    None => String::new(),
+                };
+                html! {text}
+            })
+            .into(),
+    ])
 }
