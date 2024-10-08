@@ -167,6 +167,29 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             Msg::Edit(key) => {
                 self.challenge_schema = None;
                 self.api_data = String::new();
+
+                // avoid flickering by setting the correct challenge_schema
+                // before opening the edit dialog
+                if let Some(plugin) = self
+                    .store
+                    .read()
+                    .iter()
+                    .find(|item| item.plugin == &*key && item.ty == "dns")
+                    .cloned()
+                {
+                    if let Some(api) = &plugin.api {
+                        if let Some(schema) = self
+                            .schema_info
+                            .store
+                            .read()
+                            .iter()
+                            .find(|item| item.id == *api)
+                            .cloned()
+                        {
+                            self.challenge_schema = Some(schema);
+                        }
+                    }
+                }
                 ctx.link().change_view(Some(ViewState::Edit(key)));
                 false
             }
