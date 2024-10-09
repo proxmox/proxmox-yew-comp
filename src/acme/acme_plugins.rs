@@ -447,7 +447,7 @@ impl ProxmoxAcmePluginsPanel {
         ctx: &crate::LoadableComponentContext<Self>,
         id: &str,
     ) -> Html {
-        let url = format!("/config/acme/plugins/{}", percent_encode_component(id));
+        let url = format!("{}/{}", ctx.props().url, percent_encode_component(id));
         EditWindow::new(tr!("Edit") + ": " + &tr!("ACME DNS Plugin"))
             .loader((
                 {
@@ -464,7 +464,7 @@ impl ProxmoxAcmePluginsPanel {
                         }
                     }
                 },
-                url,
+                url.clone(),
             ))
             .on_done(ctx.link().callback(|_| Msg::CloseDialog))
             .renderer({
@@ -489,17 +489,15 @@ impl ProxmoxAcmePluginsPanel {
                 let challenge_schema = self.challenge_schema.clone();
                 move |form_ctx: FormContext| {
                     let mut data = form_ctx.get_submit_data();
+                    let url = url.clone();
 
                     data["data"] =
                         Self::assemble_api_data(&form_ctx, challenge_schema.as_ref()).into();
 
                     let data = delete_empty_values(&data, &["validation-delay"], true);
 
-                    let plugin = form_ctx.read().get_field_text("plugin");
-
                     async move {
-                        crate::http_put(format!("/config/acme/plugins/{plugin}"), Some(data))
-                            .await?;
+                        crate::http_put(&url, Some(data)).await?;
                         Ok(())
                     }
                 }
