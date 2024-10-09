@@ -11,7 +11,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
-use pwt::widget::form::{Field, FormContext};
+use pwt::widget::form::{Field, FormContext, Hidden};
 use pwt::widget::{ActionIcon, Button, InputPanel, Toolbar, Tooltip};
 
 use pwt_macros::builder;
@@ -128,9 +128,9 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
                     domain_list.push(AcmeDomainEntry {
                         config_key: key,
                         config_type: if config.plugin.is_some() {
-                            "dns"
+                            "DNS"
                         } else {
-                            "standalone"
+                            "HTTP"
                         },
                         config,
                     });
@@ -294,13 +294,16 @@ impl ProxmoxAcmeDomainsPanel {
                     .default(AttrValue::Static("HTTP")),
             );
 
-        if challenge_type == "DNS" {
-            panel.add_field(
-                false,
-                tr!("Plugin"),
-                AcmePluginSelector::new().name("plugin").required(true),
-            );
-        }
+        panel.add_field(
+            false,
+            tr!("Plugin"),
+            AcmePluginSelector::new()
+                .name("plugin")
+                .required(true)
+                .submit(challenge_type == "DNS")
+                // fixme: we should hide instead of disable (both field and label)
+                .disabled(challenge_type != "DNS"),
+        );
 
         panel.add_field(
             false,
@@ -384,7 +387,14 @@ impl ProxmoxAcmeDomainsPanel {
                                 crate::http_get_full(&*url, None).await?;
                             if let Some(acme_config_string) = resp.data[&config_key].as_str() {
                                 let config = parse_acme_domain_string(acme_config_string)?;
-                                let config = serde_json::to_value(config)?;
+                                let config_type = if config.plugin.is_some() {
+                                    "DNS"
+                                } else {
+                                    "HTTP"
+                                };
+                                let mut config = serde_json::to_value(config)?;
+                                config["type"] = config_type.into();
+
                                 Ok(ApiResponseData {
                                     data: config,
                                     attribs: resp.attribs,
