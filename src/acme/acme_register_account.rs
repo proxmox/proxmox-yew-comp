@@ -126,7 +126,6 @@ impl Component for ProxmoxAcmeRegisterAccount {
                                 html! {<a key="tos_url" target="_blank" href={tos_url.clone()}>{&tos_url}</a>},
                             );
                             panel.add_field(
-                                false,
                                 tr!("Accept TOS"),
                                 Checkbox::new()
                                     .name("tos_checkbox")
@@ -138,7 +137,6 @@ impl Component for ProxmoxAcmeRegisterAccount {
                             let msg = pwt::widget::error_message(&tr!("Loading TOS failed: {0}", err));
                             panel.add_custom_child(html! {<span key="tos_url">{msg}</span>});
                             panel.add_field(
-                                false,
                                 tr!("Accept TOS"),
                                 Checkbox::new()
                                     .name("tos_checkbox_disabled")

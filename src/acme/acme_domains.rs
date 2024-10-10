@@ -11,7 +11,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
-use pwt::widget::form::{Field, FormContext, Hidden};
+use pwt::widget::form::{Field, FormContext};
 use pwt::widget::{ActionIcon, Button, InputPanel, Toolbar, Tooltip};
 
 use pwt_macros::builder;
@@ -294,22 +294,18 @@ impl ProxmoxAcmeDomainsPanel {
                     .default(AttrValue::Static("HTTP")),
             );
 
-        panel.add_field(
+        panel.add_field_with_options(
+            pwt::widget::FieldPosition::Left,
             false,
+            challenge_type != "DNS",
             tr!("Plugin"),
             AcmePluginSelector::new()
                 .name("plugin")
                 .required(true)
-                .submit(challenge_type == "DNS")
-                // fixme: we should hide instead of disable (both field and label)
-                .disabled(challenge_type != "DNS"),
+                .submit(challenge_type == "DNS"),
         );
 
-        panel.add_field(
-            false,
-            tr!("Domain"),
-            Field::new().name("domain").required(true),
-        );
+        panel.add_field(tr!("Domain"), Field::new().name("domain").required(true));
 
         panel
     }

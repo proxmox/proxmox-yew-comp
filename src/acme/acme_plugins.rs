@@ -332,10 +332,9 @@ impl ProxmoxAcmePluginsPanel {
             .padding(4);
 
         if let Some(id) = id {
-            panel.add_field(false, tr!("Plugin ID"), DisplayField::new(id.to_string()));
+            panel.add_field(tr!("Plugin ID"), DisplayField::new(id.to_string()));
         } else {
             panel.add_field(
-                false,
                 tr!("Plugin ID"),
                 Field::new()
                     .name("plugin")
@@ -365,7 +364,6 @@ impl ProxmoxAcmePluginsPanel {
             challenge_schema.and_then(|schema| schema.schema["description"].as_str())
         {
             panel.add_field(
-                false,
                 tr!("Hint"),
                 DisplayField::new(description.to_string()).key("__hint__"),
             );
@@ -383,7 +381,6 @@ impl ProxmoxAcmePluginsPanel {
                 let placeholder = field_schema["default"].as_str().map(|s| s.to_owned());
 
                 panel.add_field(
-                    false,
                     format!("{}=", field_name),
                     Field::new()
                         .name(format!("data_{}", field_name))
@@ -395,7 +392,6 @@ impl ProxmoxAcmePluginsPanel {
             }
         } else {
             panel.add_field(
-                false,
                 tr!("API Data"),
                 TextArea::new()
                     .name("data")
