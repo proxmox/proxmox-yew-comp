@@ -5,7 +5,6 @@ use std::rc::Rc;
 
 use anyhow::Error;
 use html::IntoPropValue;
-use proxmox_client::ApiResponseData;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use yew::virtual_dom::{Key, VComp, VNode};
@@ -79,7 +78,6 @@ pub struct ProxmoxAcmePluginsPanel {
     store: Store<PluginConfig>,
     columns: Rc<Vec<DataTableHeader<PluginConfig>>>,
     challenge_schema: Option<AcmeChallengeSchemaItem>,
-    api_data: String,
     schema_info: ChallengeSchemaInfo,
 }
 
@@ -95,7 +93,7 @@ pub enum Msg {
     Add,
     Edit(Key),
     ChallengeSchema(Option<AcmeChallengeSchemaItem>),
-    ApiData(String),
+    ApiDataChange(FormContext, String, String),
     LoadChallengeSchemaList,
     UpdateChallengeSchemaList(Result<Vec<AcmeChallengeSchemaItem>, Error>),
 }
@@ -133,7 +131,6 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             store,
             columns,
             challenge_schema: None,
-            api_data: String::new(),
             schema_info: ChallengeSchemaInfo {
                 schema_name_map,
                 store: Store::new(),
@@ -160,14 +157,11 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             Msg::Redraw => true,
             Msg::Add => {
                 self.challenge_schema = None;
-                self.api_data = String::new();
                 ctx.link().change_view(Some(ViewState::Add));
                 false
             }
             Msg::Edit(key) => {
                 self.challenge_schema = None;
-                self.api_data = String::new();
-
                 // avoid flickering by setting the correct challenge_schema
                 // before opening the edit dialog
                 if let Some(plugin) = self
@@ -197,13 +191,16 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                 self.challenge_schema = schema;
                 true
             }
-            Msg::ApiData(api_data) => {
-                self.api_data = api_data;
+            Msg::ApiDataChange(form_ctx, name, value) => {
+                Self::update_api_data(
+                    &form_ctx,
+                    self.challenge_schema.as_ref(),
+                    Some((name, value)),
+                );
                 true
             }
             Msg::CloseDialog => {
                 self.challenge_schema = None;
-                self.api_data = String::new();
                 ctx.link().change_view(None);
                 ctx.link().send_reload();
                 true
@@ -318,14 +315,57 @@ impl Into<VNode> for AcmePluginsPanel {
 }
 
 impl ProxmoxAcmePluginsPanel {
+    fn update_api_data(
+        form_ctx: &FormContext,
+        challenge_schema: Option<&AcmeChallengeSchemaItem>,
+        insert: Option<(String, String)>,
+    ) {
+        let api_data = form_ctx.read().get_field_text("data");
+        let mut parsed_data = Self::parse_plugin_data(&api_data);
+
+        if let Some((name, value)) = insert {
+            // just add the new data
+            parsed_data.insert(name, value);
+            let mut api_data = Vec::new();
+            for (field_name, value) in parsed_data {
+                api_data.push(format!("{field_name}={value}"));
+            }
+            let api_data = api_data.join("\n");
+            form_ctx
+                .write()
+                .set_field_value("data", api_data.clone().into());
+        } else {
+            let field_list = challenge_schema
+                .and_then(|challenge_schema| challenge_schema.schema["fields"].as_object());
+
+            // only add data from known fields
+            if let Some(field_list) = field_list {
+                let mut api_data = Vec::new();
+                for (field_name, _field_schema) in field_list {
+                    if let Some(value) = parsed_data.get(field_name) {
+                        let value = value.trim();
+                        if !value.is_empty() {
+                            api_data.push(format!("{field_name}={value}"))
+                        }
+                    }
+                }
+                let api_data = api_data.join("\n");
+                form_ctx
+                    .write()
+                    .set_field_value("data", api_data.clone().into());
+            }
+        }
+    }
+
     fn dns_plugin_input_panel(
         link: &LoadableComponentLink<Self>,
-        _form_ctx: &FormContext,
+        form_ctx: &FormContext,
         id: Option<&str>,
         challenge_schema: Option<&AcmeChallengeSchemaItem>,
-        api_data: &str,
         challenge_store: Store<AcmeChallengeSchemaItem>,
     ) -> InputPanel {
+        let api_data = form_ctx.read().get_field_text("data");
+
         let mut panel = InputPanel::new()
             .width(600)
             .class("pwt-flex-fit")
@@ -372,10 +412,26 @@ impl ProxmoxAcmePluginsPanel {
         let field_list = challenge_schema
             .and_then(|challenge_schema| challenge_schema.schema["fields"].as_object());
 
+        panel.add_field_with_options(
+            pwt::widget::FieldPosition::Left,
+            false,
+            field_list.is_some(),
+            tr!("API Data"),
+            TextArea::new()
+                .name("data")
+                .class("pwt-w-100")
+                .submit_empty(true)
+                .submit(false)
+                .attribute("rows", "4"),
+        );
+
         if let Some(field_list) = field_list {
             for (field_name, field_schema) in field_list {
-                let parsed_data = Self::parse_plugin_data(api_data);
-                let default = parsed_data.get(field_name).map(|s| s.to_owned());
+                let parsed_data = Self::parse_plugin_data(&api_data);
+                let value = parsed_data
+                    .get(field_name)
+                    .map(|s| s.to_owned())
+                    .unwrap_or(String::new());
                 let description: Option<String> =
                     field_schema["description"].as_str().map(|s| s.to_owned());
                 let placeholder = field_schema["default"].as_str().map(|s| s.to_owned());
@@ -383,25 +439,22 @@ impl ProxmoxAcmePluginsPanel {
                 panel.add_field(
                     format!("{}=", field_name),
                     Field::new()
-                        .name(format!("data_{}", field_name))
+                        .key(format!("data_{}", field_name))
                         .tip(description)
                         .submit(false)
                         .placeholder(placeholder)
-                        .default(default),
+                        .value(value)
+                        .on_change({
+                            let field_name = field_name.clone();
+                            let form_ctx = form_ctx.clone();
+                            link.callback(move |v| {
+                                Msg::ApiDataChange(form_ctx.clone(), field_name.clone(), v)
+                            })
+                        }),
                 )
             }
-        } else {
-            panel.add_field(
-                tr!("API Data"),
-                TextArea::new()
-                    .name("data")
-                    .default(api_data.to_owned())
-                    .class("pwt-w-100")
-                    .submit_empty(true)
-                    .submit(false)
-                    .attribute("rows", "4"),
-            );
         }
+
         panel
     }
 
@@ -415,29 +468,6 @@ impl ProxmoxAcmePluginsPanel {
         map
     }
 
-    fn assemble_api_data(
-        form_ctx: &FormContext,
-        challenge_schema: Option<&AcmeChallengeSchemaItem>,
-    ) -> String {
-        let field_list = challenge_schema
-            .and_then(|challenge_schema| challenge_schema.schema["fields"].as_object());
-
-        let form_ctx = form_ctx.read();
-        if let Some(field_list) = field_list {
-            let mut api_data = Vec::new();
-            for (field_name, _field_schema) in field_list {
-                let value = form_ctx.get_field_text(format!("data_{field_name}"));
-                let value = value.trim();
-                if !value.is_empty() {
-                    api_data.push(format!("{field_name}={value}"))
-                }
-            }
-            base64::encode(api_data.join("\n"))
-        } else {
-            base64::encode(form_ctx.get_field_text("data"))
-        }
-    }
-
     fn create_edit_dns_plugin_dialog(
         &self,
         ctx: &crate::LoadableComponentContext<Self>,
@@ -446,20 +476,7 @@ impl ProxmoxAcmePluginsPanel {
         let url = format!("{}/{}", ctx.props().url, percent_encode_component(id));
         EditWindow::new(tr!("Edit") + ": " + &tr!("ACME DNS Plugin"))
             .loader((
-                {
-                    let link = ctx.link();
-                    move |url: AttrValue| {
-                        let url = url.clone();
-                        let link = link.clone();
-                        async move {
-                            let resp: ApiResponseData<Value> =
-                                crate::http_get_full(&*url, None).await?;
-                            let api_data = resp.data["data"].as_str().unwrap_or("");
-                            link.send_message(Msg::ApiData(api_data.to_owned()));
-                            Ok(resp)
-                        }
-                    }
-                },
+                move |url: AttrValue| crate::http_get_full(url.to_string(), None),
                 url.clone(),
             ))
             .on_done(ctx.link().callback(|_| Msg::CloseDialog))
@@ -467,7 +484,6 @@ impl ProxmoxAcmePluginsPanel {
                 let id = id.to_owned();
                 let link = ctx.link();
                 let challenge_schema = self.challenge_schema.clone();
-                let api_data = self.api_data.clone();
                 let challenge_store = self.schema_info.store.clone();
                 move |form_ctx: &FormContext| {
                     Self::dns_plugin_input_panel(
@@ -475,7 +491,6 @@ impl ProxmoxAcmePluginsPanel {
                         form_ctx,
                         Some(&id),
                         challenge_schema.as_ref(),
-                        &api_data,
                         challenge_store.clone(),
                     )
                     .into()
@@ -487,8 +502,8 @@ impl ProxmoxAcmePluginsPanel {
                     let mut data = form_ctx.get_submit_data();
                     let url = url.clone();
 
-                    data["data"] =
-                        Self::assemble_api_data(&form_ctx, challenge_schema.as_ref()).into();
+                    Self::update_api_data(&form_ctx, challenge_schema.as_ref(), None);
+                    data["data"] = base64::encode(form_ctx.read().get_field_text("data")).into();
 
                     let data = delete_empty_values(&data, &["validation-delay"], true);
 
@@ -507,7 +522,6 @@ impl ProxmoxAcmePluginsPanel {
             .renderer({
                 let link = ctx.link();
                 let challenge_schema = self.challenge_schema.clone();
-                let api_data = self.api_data.clone();
                 let challenge_store = self.schema_info.store.clone();
                 move |form_ctx: &FormContext| {
                     Self::dns_plugin_input_panel(
@@ -515,7 +529,6 @@ impl ProxmoxAcmePluginsPanel {
                         form_ctx,
                         None,
                         challenge_schema.as_ref(),
-                        &api_data,
                         challenge_store.clone(),
                     )
                     .into()
@@ -524,6 +537,8 @@ impl ProxmoxAcmePluginsPanel {
             .on_submit({
                 let challenge_schema = self.challenge_schema.clone();
                 move |form_ctx: FormContext| {
+                    Self::update_api_data(&form_ctx, challenge_schema.as_ref(), None);
+
                     let mut data = form_ctx.get_submit_data();
                     data["type"] = "dns".into();
                     data["id"] = data
@@ -531,8 +546,8 @@ impl ProxmoxAcmePluginsPanel {
                         .unwrap()
                         .remove("plugin")
                         .unwrap_or(Value::Null);
-                    data["data"] =
-                        Self::assemble_api_data(&form_ctx, challenge_schema.as_ref()).into();
+
+                    data["data"] = base64::encode(form_ctx.read().get_field_text("data")).into();
 
                     async move {
                         crate::http_post("/config/acme/plugins", Some(data)).await?;
