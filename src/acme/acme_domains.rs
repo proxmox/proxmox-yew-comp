@@ -326,8 +326,7 @@ impl ProxmoxAcmeDomainsPanel {
         let acme_domain: AcmeDomain = serde_json::from_value(acme_domain)?;
         let mut data = json!({});
         data[config_key] = create_acme_domain_string(&acme_domain).into();
-        crate::http_put(&*url, Some(data)).await?;
-        Ok(())
+        crate::http_put(&*url, Some(data)).await
     }
 
     fn create_add_acme_domain_dialog(&self, ctx: &crate::LoadableComponentContext<Self>) -> Html {
@@ -461,8 +460,8 @@ impl ProxmoxAcmeDomainsPanel {
                         let acme = create_acme_config_string(&acme);
                         json!({ "acme": acme })
                     };
-                    crate::http_put(&*url, Some(data)).await?;
-                    Ok(())
+
+                    crate::http_put(&*url, Some(data)).await
                 }
             })
             .into()

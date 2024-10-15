@@ -508,8 +508,7 @@ impl ProxmoxAcmePluginsPanel {
                     let data = delete_empty_values(&data, &["validation-delay"], true);
 
                     async move {
-                        crate::http_put(&url, Some(data)).await?;
-                        Ok(())
+                        crate::http_put(&url, Some(data)).await
                     }
                 }
             })
@@ -550,8 +549,7 @@ impl ProxmoxAcmePluginsPanel {
                     data["data"] = base64::encode(form_ctx.read().get_field_text("data")).into();
 
                     async move {
-                        crate::http_post("/config/acme/plugins", Some(data)).await?;
-                        Ok(())
+                        crate::http_post("/config/acme/plugins", Some(data)).await
                     }
                 }
             })

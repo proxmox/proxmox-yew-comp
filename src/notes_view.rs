@@ -48,8 +48,8 @@ async fn update_notes_property(
     if let Some(digest) = data.digest {
         param["digest"] = digest;
     }
-    let _ = crate::http_put(&*url, Some(param)).await?;
-    Ok(())
+
+    crate::http_put(&*url, Some(param)).await
 }
 
 use pwt_macros::builder;
