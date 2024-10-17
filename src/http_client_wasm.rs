@@ -206,7 +206,7 @@ impl HttpClientWasm {
 
     async fn fetch_request_text(&self, request: web_sys::Request) -> Result<String, Error> {
         let response =
-            web_sys_response_to_http_api_response(self.fetch_request(request).await?).await?;
+            web_sys_response_to_http_api_response(self.fetch_request(request, None).await?).await?;
 
         if !(response.status >= 200 && response.status < 300) {
             bail!("HTTP status {}", response.status);
@@ -217,7 +217,11 @@ impl HttpClientWasm {
         return Ok(text);
     }
 
-    async fn fetch_request(&self, request: web_sys::Request) -> Result<web_sys::Response, Error> {
+    async fn fetch_request(
+        &self,
+        request: web_sys::Request,
+        init: Option<web_sys::RequestInit>,
+    ) -> Result<web_sys::Response, Error> {
         let auth = self.get_auth();
         let headers = request.headers();
 
@@ -231,7 +235,7 @@ impl HttpClientWasm {
         }
 
         let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
-        let promise = window.fetch_with_request(&request);
+        let promise = window.fetch_with_request_and_init(&request, &init.unwrap_or_default());
 
         let js_resp = wasm_bindgen_futures::JsFuture::from(promise)
             .await
@@ -363,8 +367,13 @@ impl HttpApiClient for HttpClientWasm {
         Box::pin(async move {
             let request = Self::request_builder(method.as_str(), path_and_query, params)
                 .map_err(proxmox_client::Error::Anyhow)?;
+
+            let abort = crate::utils::AbortGuard::new().map_err(proxmox_client::Error::Anyhow)?;
+            let mut init = web_sys::RequestInit::new();
+            init.signal(Some(&abort.signal()));
+
             let response = self
-                .fetch_request(request)
+                .fetch_request(request, Some(init))
                 .await
                 .map_err(proxmox_client::Error::Anyhow)?;
             web_sys_response_to_http_api_response(response)
@@ -385,8 +394,13 @@ impl HttpApiClient for HttpClientWasm {
         Box::pin(async move {
             let request = Self::request_builder(method.as_str(), path_and_query, params)
                 .map_err(proxmox_client::Error::Anyhow)?;
+
+            let abort = crate::utils::AbortGuard::new().map_err(proxmox_client::Error::Anyhow)?;
+            let mut init = web_sys::RequestInit::new();
+            init.signal(Some(&abort.signal()));
+
             let response = self
-                .fetch_request(request)
+                .fetch_request(request, Some(init))
                 .await
                 .map_err(proxmox_client::Error::Anyhow)?;
             web_sys_response_to_http_api_stream_response(response)
