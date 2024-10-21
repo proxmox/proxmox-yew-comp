@@ -68,7 +68,7 @@ fn xtermjs_url(console_type: ConsoleType, node_name: &str) -> String {
     let console = match console_type {
         ConsoleType::KVM(_vmid) => "kvm",
         ConsoleType::LXC(_vmid) => "lxc",
-        ConsoleType::UpgradeShell => "shell",
+        ConsoleType::UpgradeShell => "upgrade",
         ConsoleType::LoginShell => "shell",
     };
 
@@ -85,9 +85,7 @@ fn xtermjs_url(console_type: ConsoleType, node_name: &str) -> String {
         ConsoleType::LXC(vmid) => {
             param["vmid"] = vmid.into();
         }
-        ConsoleType::UpgradeShell => {
-            param["cmd"] = "upgrade".into();
-        }
+        ConsoleType::UpgradeShell => { /* no additional parameters required */ }
         ConsoleType::LoginShell => {
             param["cmd"] = "login".into();
         }
