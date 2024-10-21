@@ -19,7 +19,9 @@ use pwt::widget::{Button, Container, Toolbar, Tooltip};
 
 use crate::common_api_types::APTUpdateInfo;
 use crate::percent_encoding::percent_encode_component;
-use crate::{DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::{
+    DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster, XTermJs,
+};
 
 use pwt_macros::builder;
 
@@ -37,6 +39,11 @@ pub struct AptPackageManager {
     #[builder(IntoPropValue, into_prop_value)]
     /// The base url for
     pub base_url: AttrValue,
+
+    /// Enable the upgrade button
+    #[prop_or_default]
+    #[builder]
+    pub enable_upgrade: bool,
 }
 
 impl AptPackageManager {
@@ -183,6 +190,16 @@ impl LoadableComponent for ProxmoxAptPackageManager {
                 let command = format!("{}/update", props.base_url);
                 move |_| link.start_task(&command, None, false)
             }))
+            .with_child(
+                Button::new(tr!("Upgrade"))
+                    .disabled(!props.enable_upgrade)
+                    .onclick(|_| {
+                        XTermJs::open_xterm_js_viewer(
+                            crate::ConsoleType::UpgradeShell,
+                            "localhost",
+                        );
+                    }),
+            )
             .with_child(
                 Button::new(tr!("Changelog"))
                     .disabled(selected_package.is_none())
