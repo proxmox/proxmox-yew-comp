@@ -78,11 +78,11 @@ impl<L: LoadableComponent + Sized> LoadableComponentLink<L> {
         M: Into<L::Message>,
         Fut: Future<Output = M> + 'static,
     {
-        let link = self.clone();
-        wasm_bindgen_futures::spawn_local(async move {
+        let link = self.link.clone();
+        self.link.send_message(Msg::Spawn(Box::pin(async move {
             let message: L::Message = future.await.into();
-            link.send_message(message);
-        });
+            link.send_message(Msg::ChildMessage(message));
+        })));
     }
 
     pub fn callback_future<F, Fut, IN, M>(&self, function: F) -> Callback<IN>
@@ -160,7 +160,7 @@ impl<L: LoadableComponent + Sized> LoadableComponentLink<L> {
         let command_path: String = command_path.into();
         let link = self.clone();
         let command_future = crate::http_post::<String>(command_path, data);
-        wasm_bindgen_futures::spawn_local(async move {
+        self.link.send_message(Msg::Spawn(Box::pin(async move {
             match command_future.await {
                 Ok(task_id) => {
                     link.send_reload();
@@ -175,7 +175,7 @@ impl<L: LoadableComponent + Sized> LoadableComponentLink<L> {
                     link.show_error("Start command failed", err, true);
                 }
             }
-        });
+        })));
     }
 }
 
@@ -279,6 +279,7 @@ pub enum Msg<M, V: PartialEq> {
     ChildMessage(M),
     TaskBaseUrl(AttrValue),
     Visible(bool),
+    Spawn(Pin<Box<dyn Future<Output = ()>>>),
 }
 
 pub struct LoadableComponentMaster<L: LoadableComponent> {
@@ -327,6 +328,10 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
+            Msg::Spawn(future) => {
+                wasm_bindgen_futures::spawn_local(future);
+                false
+            }
             Msg::DataChange => true,
             Msg::Load => {
                 self.comp_state.loading += 1;
