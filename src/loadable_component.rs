@@ -12,7 +12,7 @@ use pwt::prelude::*;
 use pwt::state::NavigationContextExt;
 use pwt::widget::{AlertDialog, Column, VisibilityObserver};
 
-use crate::{TaskProgress, TaskViewer};
+use crate::{AsyncPool, TaskProgress, TaskViewer};
 
 pub struct LoadableComponentState {
     loading: usize,
@@ -290,6 +290,7 @@ pub struct LoadableComponentMaster<L: LoadableComponent> {
     visible: bool,
     visibitlity_observer: Option<VisibilityObserver>,
     node_ref: NodeRef,
+    async_pool: AsyncPool,
 }
 
 impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
@@ -323,13 +324,14 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
             visible: true,
             visibitlity_observer: None,
             node_ref: NodeRef::default(),
+            async_pool: AsyncPool::new(),
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Spawn(future) => {
-                wasm_bindgen_futures::spawn_local(future);
+                self.async_pool.spawn(future);
                 false
             }
             Msg::DataChange => true,
@@ -341,7 +343,7 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                     comp_state: &self.comp_state,
                 };
                 let load_future = self.state.load(&sub_context);
-                wasm_bindgen_futures::spawn_local(async move {
+                self.async_pool.spawn(async move {
                     let data = load_future.await;
                     link.send_message(Msg::LoadResult(data));
                 });
