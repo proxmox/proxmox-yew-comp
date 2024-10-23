@@ -74,6 +74,14 @@ impl<L: LoadableComponent + Sized> LoadableComponentLink<L> {
         })
     }
 
+    /// Spawn a future using the [AsyncPool] from the component.
+    pub fn spawn<Fut>(&self, future: Fut)
+    where
+        Fut: Future<Output = ()> + 'static,
+    {
+        self.link.send_message(Msg::Spawn(Box::pin(future)));
+    }
+
     pub fn send_future<Fut, M>(&self, future: Fut)
     where
         M: Into<L::Message>,
