@@ -15,7 +15,7 @@ use pwt::{
 };
 use pwt_macros::builder;
 
-use crate::utils::AbortGuard;
+use pwt::WebSysAbortGuard;
 
 //
 // Web API definition:
@@ -120,7 +120,7 @@ pub enum Msg {
 }
 
 pub struct ProxmoxWebAuthn {
-    running: Option<AbortGuard>,
+    running: Option<WebSysAbortGuard>,
     error: Option<String>,
 }
 
@@ -166,7 +166,7 @@ impl ProxmoxWebAuthn {
     }
 
     fn start(&mut self, ctx: &Context<Self>) -> Result<(), Error> {
-        let running = AbortGuard::new()?;
+        let running = WebSysAbortGuard::new()?;
 
         let challenge = &ctx.props().challenge;
         Reflect::set(challenge, &"signal".into(), &running.signal())

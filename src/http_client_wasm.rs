@@ -368,7 +368,7 @@ impl HttpApiClient for HttpClientWasm {
             let request = Self::request_builder(method.as_str(), path_and_query, params)
                 .map_err(proxmox_client::Error::Anyhow)?;
 
-            let abort = crate::utils::AbortGuard::new().map_err(proxmox_client::Error::Anyhow)?;
+            let abort = pwt::WebSysAbortGuard::new().map_err(proxmox_client::Error::Anyhow)?;
             let mut init = web_sys::RequestInit::new();
             init.signal(Some(&abort.signal()));
 
@@ -395,7 +395,7 @@ impl HttpApiClient for HttpClientWasm {
             let request = Self::request_builder(method.as_str(), path_and_query, params)
                 .map_err(proxmox_client::Error::Anyhow)?;
 
-            let abort = crate::utils::AbortGuard::new().map_err(proxmox_client::Error::Anyhow)?;
+            let abort = pwt::WebSysAbortGuard::new().map_err(proxmox_client::Error::Anyhow)?;
             let mut init = web_sys::RequestInit::new();
             init.signal(Some(&abort.signal()));
 
