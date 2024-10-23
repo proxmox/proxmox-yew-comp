@@ -11,8 +11,9 @@ use yew::html::Scope;
 use pwt::prelude::*;
 use pwt::state::NavigationContextExt;
 use pwt::widget::{AlertDialog, Column, VisibilityObserver};
+use pwt::AsyncPool;
 
-use crate::{AsyncPool, TaskProgress, TaskViewer};
+use crate::{TaskProgress, TaskViewer};
 
 pub struct LoadableComponentState {
     loading: usize,

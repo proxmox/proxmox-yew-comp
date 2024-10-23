@@ -1,6 +1,3 @@
-mod async_pool;
-pub use async_pool::AsyncPool;
-
 pub mod acme;
 
 mod api_load_callback;
