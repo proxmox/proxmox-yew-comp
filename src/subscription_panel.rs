@@ -88,14 +88,17 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                         let link = ctx.link();
                         let base_url = ctx.props().base_url.to_string();
                         move |_| {
-                            let link = link.clone();
-                            let base_url = base_url.clone();
-                            wasm_bindgen_futures::spawn_local(async move {
-                                match crate::http_post(base_url, Some(json!({"force": true}))).await
-                                {
-                                    Ok(()) => link.send_reload(),
-                                    Err(err) => {
-                                        link.show_error(tr!("Error"), err.to_string(), true)
+                            link.spawn({
+                                let base_url = base_url.clone();
+                                let link = link.clone();
+                                async move {
+                                    match crate::http_post(base_url, Some(json!({"force": true})))
+                                        .await
+                                    {
+                                        Ok(()) => link.send_reload(),
+                                        Err(err) => {
+                                            link.show_error(tr!("Error"), err.to_string(), true)
+                                        }
                                     }
                                 }
                             })
@@ -112,13 +115,15 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                         let link = ctx.link();
                         let base_url = ctx.props().base_url.to_string();
                         move |_| {
-                            let link = link.clone();
-                            let base_url = base_url.clone();
-                            wasm_bindgen_futures::spawn_local(async move {
-                                match crate::http_delete(base_url, None).await {
-                                    Ok(()) => link.change_view(None),
-                                    Err(err) => {
-                                        link.show_error(tr!("Error"), err.to_string(), true)
+                            link.spawn({
+                                let link = link.clone();
+                                let base_url = base_url.clone();
+                                async move {
+                                    match crate::http_delete(base_url, None).await {
+                                        Ok(()) => link.change_view(None),
+                                        Err(err) => {
+                                            link.show_error(tr!("Error"), err.to_string(), true)
+                                        }
                                     }
                                 }
                             })
