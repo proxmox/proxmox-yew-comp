@@ -6,9 +6,9 @@ use yew::html::IntoEventCallback;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
-use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, Field, Form, FormContext, InputType, ResetButton, SubmitButton};
 use pwt::widget::{Column, InputPanel, LanguageSelector, Mask, Row};
+use pwt::{prelude::*, AsyncPool};
 
 use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
 
@@ -60,13 +60,13 @@ pub struct ProxmoxLoginPanel {
     challenge: Option<Rc<SecondFactorChallenge>>,
     save_username: PersistentState<bool>,
     last_username: PersistentState<String>,
+    async_pool: AsyncPool,
 }
 
 impl ProxmoxLoginPanel {
-    fn send_login(ctx: &Context<Self>, username: String, password: String, realm: String) {
+    fn send_login(&self, ctx: &Context<Self>, username: String, password: String, realm: String) {
         let link = ctx.link().clone();
-
-        wasm_bindgen_futures::spawn_local(async move {
+        self.async_pool.spawn(async move {
             match crate::http_login(username, password, realm).await {
                 Ok(TicketResult::Full(info)) => {
                     link.send_message(Msg::Login(info));
@@ -82,13 +82,13 @@ impl ProxmoxLoginPanel {
     }
 
     fn send_tfa_response(
+        &self,
         ctx: &Context<Self>,
         challenge: Rc<proxmox_login::SecondFactorChallenge>,
         response: proxmox_login::Request,
     ) {
         let link = ctx.link().clone();
-
-        wasm_bindgen_futures::spawn_local(async move {
+        self.async_pool.spawn(async move {
             match crate::http_login_tfa(challenge, response).await {
                 Ok(info) => {
                     link.send_message(Msg::Login(info));
@@ -118,6 +118,7 @@ impl Component for ProxmoxLoginPanel {
             challenge: None,
             save_username,
             last_username,
+            async_pool: AsyncPool::new(),
         }
     }
 
@@ -151,7 +152,7 @@ impl Component for ProxmoxLoginPanel {
                     }
                 };
 
-                Self::send_tfa_response(ctx, challenge, response);
+                self.send_tfa_response(ctx, challenge, response);
                 true
             }
             Msg::Yubico(data) => {
@@ -168,7 +169,7 @@ impl Component for ProxmoxLoginPanel {
                     }
                 };
 
-                Self::send_tfa_response(ctx, challenge, response);
+                self.send_tfa_response(ctx, challenge, response);
                 true
             }
             Msg::RecoveryKey(data) => {
@@ -185,7 +186,7 @@ impl Component for ProxmoxLoginPanel {
                     }
                 };
 
-                Self::send_tfa_response(ctx, challenge, response);
+                self.send_tfa_response(ctx, challenge, response);
                 true
             }
 
@@ -208,7 +209,7 @@ impl Component for ProxmoxLoginPanel {
                 };
                 */
 
-                Self::send_tfa_response(ctx, challenge, response);
+                self.send_tfa_response(ctx, challenge, response);
                 true
             }
             Msg::SaveUsername(save_username) => {
@@ -222,7 +223,7 @@ impl Component for ProxmoxLoginPanel {
                 let password = self.form_ctx.read().get_field_text("password");
                 let realm = self.form_ctx.read().get_field_text("realm");
 
-                Self::send_login(ctx, username, password, realm);
+                self.send_login(ctx, username, password, realm);
                 true
             }
             Msg::Login(info) => {
