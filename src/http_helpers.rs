@@ -1,24 +1,24 @@
-use std::rc::Rc;
 use std::cell::RefCell;
-use std::thread_local;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::thread_local;
 
 use anyhow::{bail, Error};
+use pwt::AsyncAbortGuard;
 use slab::Slab;
 
 use proxmox_client::ApiResponseData;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
-use proxmox_login::{Authentication, TicketResult, ticket::Validity};
 use proxmox_client::HttpApiClient;
+use proxmox_login::{ticket::Validity, Authentication, TicketResult};
 use yew::Callback;
 
 use crate::{json_object_to_query, ExistingProduct, HttpClientWasm, ProjectInfo};
 
 static LAST_NOTIFY_EPOCH: AtomicU32 = AtomicU32::new(0);
 static CLIENT_NOTIFY_EPOCH: AtomicU32 = AtomicU32::new(0);
-
 
 thread_local! {
     pub static CLIENT: RefCell<Rc<HttpClientWasm>> = {
@@ -36,13 +36,8 @@ fn update_global_client(client: HttpClientWasm) {
 }
 
 thread_local! {
-    static AUTH_OBSERVER: RefCell<Slab<Callback<()>>> = {
-        start_ticket_refresh_loop();
-        RefCell::new(Slab::new())
-    };
+    static AUTH_OBSERVER: RefCell<Slab<Callback<()>>> = RefCell::new(Slab::new());
 }
-
-
 
 fn notify_auth_listeners(_: ()) {
     let last_epoch = LAST_NOTIFY_EPOCH.load(Ordering::SeqCst);
@@ -57,9 +52,8 @@ fn notify_auth_listeners(_: ()) {
     LAST_NOTIFY_EPOCH.store(client_epoch, Ordering::SeqCst);
 
     // Note: short borrow, just clone callbacks
-    let list: Vec<Callback<()>> = AUTH_OBSERVER.with(|slab| {
-        slab.borrow().iter().map(|(_key, cb)| cb.clone()).collect()
-    });
+    let list: Vec<Callback<()>> =
+        AUTH_OBSERVER.with(|slab| slab.borrow().iter().map(|(_key, cb)| cb.clone()).collect());
     for callback in list {
         callback.emit(());
     }
@@ -87,39 +81,45 @@ pub fn register_auth_observer(callback: impl Into<Callback<()>>) -> AuthObserver
     })
 }
 
-fn start_ticket_refresh_loop() {
-    wasm_bindgen_futures::spawn_local(async move {
-
-        loop {
-            let sleep_time_ms = 5000;
-            let future: wasm_bindgen_futures::JsFuture = crate::async_sleep(sleep_time_ms).into();
-            future.await.unwrap();
-
-            let auth = CLIENT.with(|c| c.borrow().get_auth());
-
-             if let Some(data) = &auth {
-                match data.ticket.validity() {
-                    Validity::Expired => {
-                        log::info!("ticket_refresh_loop: Ticket is expired.");
-                        http_clear_auth()
-                    }
-                    Validity::Refresh => {
-                        let client = CLIENT.with(|c| Rc::clone(&*c.borrow()));
-                        if let Ok(TicketResult::Full(auth)) = client.login(&data.userid, &data.ticket.to_string()).await {
-                            log::info!("ticket_refresh_loop: Got ticket update.");
-                            client.set_auth(auth.clone());
-                        }
-                    }
-                    Validity::Valid => {
-                        /* do nothing  */
-                    }
-                }
-            };
-
-        }
-    });
+thread_local! {
+    static TICKET_REFRESH_LOOP_GUARD: RefCell<Option<AsyncAbortGuard>> = RefCell::new(None);
 }
 
+fn start_ticket_refresh_loop() {
+    let abort_guard = AsyncAbortGuard::spawn(ticket_refresh_loop());
+
+    // Make sure there is a single loop running.
+    TICKET_REFRESH_LOOP_GUARD.with_borrow_mut(|v| *v = Some(abort_guard));
+}
+
+async fn ticket_refresh_loop() {
+    loop {
+        let sleep_time_ms = 5000;
+        let future: wasm_bindgen_futures::JsFuture = crate::async_sleep(sleep_time_ms).into();
+        future.await.unwrap();
+
+        let auth = CLIENT.with(|c| c.borrow().get_auth());
+
+        if let Some(data) = &auth {
+            match data.ticket.validity() {
+                Validity::Expired => {
+                    log::info!("ticket_refresh_loop: Ticket is expired.");
+                    http_clear_auth()
+                }
+                Validity::Refresh => {
+                    let client = CLIENT.with(|c| Rc::clone(&*c.borrow()));
+                    if let Ok(TicketResult::Full(auth)) =
+                        client.login(&data.userid, &data.ticket.to_string()).await
+                    {
+                        log::info!("ticket_refresh_loop: Got ticket update.");
+                        client.set_auth(auth.clone());
+                    }
+                }
+                Validity::Valid => { /* do nothing  */ }
+            }
+        };
+    }
+}
 
 pub fn http_setup(project: &'static dyn ProjectInfo) {
     let client = HttpClientWasm::new(project, notify_auth_listeners);
@@ -152,7 +152,9 @@ pub async fn http_login(
 
     let product = CLIENT.with(|c| c.borrow().product());
     let client = HttpClientWasm::new(product, notify_auth_listeners);
-    let ticket_result = client.login(format!("{username}@{realm}"), password).await?;
+    let ticket_result = client
+        .login(format!("{username}@{realm}"), password)
+        .await?;
 
     match ticket_result {
         TicketResult::Full(auth) => {
@@ -200,13 +202,19 @@ pub async fn http_get_full<T: DeserializeOwned>(
     Ok(resp)
 }
 
-pub async fn http_get<T: DeserializeOwned>(path: impl Into<String>, data: Option<Value>) -> Result<T, Error> {
+pub async fn http_get<T: DeserializeOwned>(
+    path: impl Into<String>,
+    data: Option<Value>,
+) -> Result<T, Error> {
     let resp = http_get_full(path, data).await?;
     Ok(resp.data)
 }
 
 /// Delete and return data
-pub async fn http_delete_get<T: DeserializeOwned>(path: impl Into<String>, data: Option<Value>) -> Result<T, Error> {
+pub async fn http_delete_get<T: DeserializeOwned>(
+    path: impl Into<String>,
+    data: Option<Value>,
+) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
     let path_and_query = path_and_param_to_api_url(&path.into(), data)?;
@@ -229,12 +237,15 @@ pub async fn http_delete(path: impl Into<String>, data: Option<Value>) -> Result
     Ok(())
 }
 
-pub async fn http_post<T: DeserializeOwned>(path: impl Into<String>, data: Option<Value>) -> Result<T, Error> {
+pub async fn http_post<T: DeserializeOwned>(
+    path: impl Into<String>,
+    data: Option<Value>,
+) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
     let path_and_query = path_and_param_to_api_url(&path.into(), None::<()>)?;
 
-    let resp: proxmox_client::HttpApiResponse  = if let Some(data) = &data {
+    let resp: proxmox_client::HttpApiResponse = if let Some(data) = &data {
         client.post(&path_and_query, &data).await?
     } else {
         client.post_without_body(&path_and_query).await?
@@ -243,12 +254,15 @@ pub async fn http_post<T: DeserializeOwned>(path: impl Into<String>, data: Optio
     Ok(resp.data)
 }
 
-pub async fn http_put<T: DeserializeOwned>(path: impl Into<String>, data: Option<Value>) -> Result<T, Error> {
+pub async fn http_put<T: DeserializeOwned>(
+    path: impl Into<String>,
+    data: Option<Value>,
+) -> Result<T, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
     let path_and_query = path_and_param_to_api_url(&path.into(), None::<()>)?;
 
-    let resp: proxmox_client::HttpApiResponse  = if let Some(data) = &data {
+    let resp: proxmox_client::HttpApiResponse = if let Some(data) = &data {
         client.put(&path_and_query, &data).await?
     } else {
         client.put_without_body(&path_and_query).await?
