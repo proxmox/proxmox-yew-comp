@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 
 use pwt::css::{Flex, Overflow};
 use pwt::props::RenderFn;
-use pwt::{prelude::*, AsyncAbortGuard, AsyncPool};
+use pwt::{prelude::*, AsyncPool};
 
 use pwt::css::ColorScheme;
 use pwt::props::{AsCssStylesMut, ContainerBuilder, CssStyles};
