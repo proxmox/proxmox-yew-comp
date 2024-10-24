@@ -201,10 +201,10 @@ impl Component for PwtEditWindow {
             Msg::Load => {
                 if let Some(loader) = props.loader.clone() {
                     self.loading = true;
-                    let link = ctx.link().clone();
-                    wasm_bindgen_futures::spawn_local(async move {
+                    let link = ctx.link();
+                    link.send_future(async move {
                         let res = loader.apply().await;
-                        link.send_message(Msg::LoadResult(res));
+                        Msg::LoadResult(res)
                     });
                 }
                 true
@@ -237,12 +237,12 @@ impl Component for PwtEditWindow {
             }
             Msg::Submit => {
                 if let Some(on_submit) = props.on_submit.clone() {
-                    let link = ctx.link().clone();
+                    let link = ctx.link();
                     let form_ctx = self.form_ctx.clone();
                     self.loading = true;
-                    wasm_bindgen_futures::spawn_local(async move {
+                    link.send_future(async move {
                         let result = on_submit.apply(form_ctx).await;
-                        link.send_message(Msg::SubmitResult(result));
+                        Msg::SubmitResult(result)
                     });
                 }
                 true
