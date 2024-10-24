@@ -121,7 +121,7 @@ impl LoadableComponent for ProxmoxCertificateList {
                             let command_path = format!("/nodes/localhost/certificates/custom");
                             let data = Some(json!({"restart": true}));
                             let command_future = crate::http_delete(command_path, data);
-                            wasm_bindgen_futures::spawn_local(async move {
+                            link.clone().spawn(async move {
                                 match command_future.await {
                                     Ok(()) => {
                                         link.change_view(Some(ViewState::PleaseReload));
@@ -194,7 +194,7 @@ impl Into<VNode> for CertificateList {
     }
 }
 
-fn update_field_from_file(
+async fn update_field_from_file(
     form_ctx: FormContext,
     field_name: &'static str,
     file_list: Option<web_sys::FileList>,
@@ -203,30 +203,29 @@ fn update_field_from_file(
         if let Some(file) = file_list.get(0) {
             let text_future = wasm_bindgen_futures::JsFuture::from(file.text());
             let form_ctx = form_ctx.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                match text_future.await {
-                    Ok(text) => {
-                        let text = text.as_string().unwrap();
-                        form_ctx
-                            .write()
-                            .set_field_value(field_name, Value::String(text));
-                    }
-                    Err(err) => {
-                        log::error!("File::text(): {err:?}");
-                    }
+            match text_future.await {
+                Ok(text) => {
+                    let text = text.as_string().unwrap();
+                    form_ctx
+                        .write()
+                        .set_field_value(field_name, Value::String(text));
                 }
-            });
+                Err(err) => {
+                    log::error!("File::text(): {err:?}");
+                }
+            }
         }
     }
 }
 
 impl ProxmoxCertificateList {
     fn create_upload_custom_certificate(&self, ctx: &LoadableComponentContext<Self>) -> Html {
+        let link = ctx.link();
         EditWindow::new(tr!("Upload Custom Certificate"))
             .width(600)
             .on_close(ctx.link().change_view_callback(|_| None))
             .submit_text(tr!("Upload"))
-            .renderer(|form_ctx: &FormContext| {
+            .renderer(move |form_ctx: &FormContext| {
                 Form::new()
                     .padding(2)
                     .class("pwt-gap-2 pwt-flex-direction-column")
@@ -243,8 +242,13 @@ impl ProxmoxCertificateList {
                             .class("pwt-align-self-flex-start pwt-scheme-primary")
                             .on_change({
                                 let form_ctx = form_ctx.clone();
+                                let link = link.clone();
                                 move |file_list: Option<web_sys::FileList>| {
-                                    update_field_from_file(form_ctx.clone(), "key", file_list);
+                                    link.spawn(update_field_from_file(
+                                        form_ctx.clone(),
+                                        "key",
+                                        file_list,
+                                    ));
                                 }
                             }),
                     )
@@ -264,12 +268,13 @@ impl ProxmoxCertificateList {
                             .class("pwt-align-self-flex-start pwt-scheme-primary")
                             .on_change({
                                 let form_ctx = form_ctx.clone();
+                                let link = link.clone();
                                 move |file_list: Option<web_sys::FileList>| {
-                                    update_field_from_file(
+                                    link.spawn(update_field_from_file(
                                         form_ctx.clone(),
                                         "certificates",
                                         file_list,
-                                    );
+                                    ));
                                 }
                             }),
                     )
