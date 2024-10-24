@@ -139,8 +139,8 @@ impl LoadableComponent for ProxmoxNetworkView {
             Msg::SelectionChange => true,
             Msg::RemoveItem => {
                 if let Some(key) = self.selection.selected_key() {
-                    let link = ctx.link().clone();
-                    wasm_bindgen_futures::spawn_local(async move {
+                    let link = ctx.link();
+                    link.clone().spawn(async move {
                         if let Err(err) = delete_interface(key).await {
                             link.show_error(tr!("Unable to delete item"), err, true);
                         }
@@ -154,8 +154,8 @@ impl LoadableComponent for ProxmoxNetworkView {
                 true
             }
             Msg::RevertChanges => {
-                let link = ctx.link().clone();
-                wasm_bindgen_futures::spawn_local(async move {
+                let link = ctx.link();
+                link.clone().spawn(async move {
                     if let Err(err) = revert_changes().await {
                         link.show_error(tr!("Unable to revert changes"), err, true);
                     }
@@ -164,8 +164,8 @@ impl LoadableComponent for ProxmoxNetworkView {
                 false
             }
             Msg::ApplyChanges => {
-                let link = ctx.link().clone();
-                wasm_bindgen_futures::spawn_local(async move {
+                let link = ctx.link();
+                link.clone().spawn(async move {
                     match apply_changes().await {
                         Err(err) => {
                             link.show_error(tr!("Unable to apply changes"), err, true);
