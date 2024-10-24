@@ -194,7 +194,7 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
                             if let Some(selected_key) = &selected_key {
                                 let data = json!({ "delete": &[ selected_key.to_string()] });
                                 let command_future = crate::http_put(url.to_string(), Some(data));
-                                wasm_bindgen_futures::spawn_local(async move {
+                                link.clone().spawn(async move {
                                     match command_future.await {
                                         Ok(()) => {
                                             link.send_reload();
