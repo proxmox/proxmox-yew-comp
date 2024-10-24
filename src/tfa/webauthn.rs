@@ -7,8 +7,8 @@ use wasm_bindgen::JsValue;
 use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
-use pwt::convert_js_error;
 use pwt::widget::Mask;
+use pwt::{convert_js_error, AsyncPool};
 use pwt::{
     prelude::*,
     widget::{Button, Column},
@@ -122,6 +122,7 @@ pub enum Msg {
 pub struct ProxmoxWebAuthn {
     running: Option<WebSysAbortGuard>,
     error: Option<String>,
+    async_pool: AsyncPool,
 }
 
 impl ProxmoxWebAuthn {
@@ -181,15 +182,16 @@ impl ProxmoxWebAuthn {
             .context("failed to start webauthn authentication")?;
 
         let challenge_string = ctx.props().challenge_string.clone();
+        let link = ctx.link().clone();
 
-        ctx.link().send_future(async move {
+        self.async_pool.spawn(async move {
             match wasm_bindgen_futures::JsFuture::from(promise)
                 .await
                 .map_err(convert_js_error)
                 .and_then(|rsp| Self::handle_hw_rsp(rsp, challenge_string))
             {
-                Ok(rsp) => Msg::Respond(rsp),
-                Err(err) => Msg::Error(err),
+                Ok(rsp) => link.send_message(Msg::Respond(rsp)),
+                Err(err) => link.send_message(Msg::Error(err)),
             }
         });
 
@@ -207,6 +209,7 @@ impl Component for ProxmoxWebAuthn {
         Self {
             running: None,
             error: None,
+            async_pool: AsyncPool::new(),
         }
     }
 
