@@ -8,9 +8,9 @@ use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::dom::IntoHtmlElement;
-use pwt::prelude::*;
 use pwt::props::{AsClassesMut, AsCssStylesMut, CssStyles};
 use pwt::widget::{Column, Container, VisibilityContext};
+use pwt::{prelude::*, AsyncPool};
 use pwt_macros::builder;
 
 const ENTRIES_LOAD_NUM: usize = 500;
@@ -93,6 +93,7 @@ pub struct ProxmoxJournalView {
     old_scroll_height: i32,
     visibility: VisibilityContext,
     _visibility_context_observer: Option<ContextHandle<VisibilityContext>>,
+    async_pool: AsyncPool,
 }
 
 async fn load_content(
@@ -149,16 +150,18 @@ impl ProxmoxJournalView {
         let link = ctx.link().clone();
         let callback = ctx.props().on_loading_change.clone();
         let tailview = self.position == Position::Bottom;
+        let async_pool = self.async_pool.clone();
         self.timeout = Some(Timeout::new(timeout, move || {
-            link.send_future_batch(async move {
+            async_pool.spawn(async move {
                 if let Some(callback) = callback {
                     callback.emit((true, tailview));
                 }
 
-                match load_content(props.url, request).await {
-                    Ok((res, response_type)) => Some(Msg::PageLoad(res, response_type)),
-                    Err(err) => Some(Msg::Error(err)),
-                }
+                let msg = match load_content(props.url, request).await {
+                    Ok((res, response_type)) => Msg::PageLoad(res, response_type),
+                    Err(err) => Msg::Error(err),
+                };
+                link.send_message(msg);
             });
         }));
     }
@@ -184,6 +187,7 @@ impl Component for ProxmoxJournalView {
             old_scroll_height: 0,
             visibility: visibility.unwrap_or_default(),
             _visibility_context_observer,
+            async_pool: AsyncPool::new(),
         };
 
         this.load(ctx);
