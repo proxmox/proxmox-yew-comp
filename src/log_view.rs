@@ -7,6 +7,7 @@ use pwt::props::{
     AsClassesMut, AsCssStylesMut, ContainerBuilder, CssMarginBuilder, CssPaddingBuilder, CssStyles,
     WidgetBuilder, WidgetStyleBuilder,
 };
+use pwt::AsyncPool;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -203,6 +204,8 @@ pub struct PwtLogView {
     enable_tail_view: bool,
 
     line_height: Option<u64>,
+
+    async_pool: AsyncPool,
 }
 
 impl PwtLogView {
@@ -236,14 +239,14 @@ impl PwtLogView {
         if !self.pending_pages.contains_key(&page_num) {
             let props = ctx.props().clone();
             let link = ctx.link().clone();
+            let async_pool = self.async_pool.clone();
             //log::info!("REQUEST {}", page_num);
             let timeout = Timeout::new(delay, move || {
-                link.send_future_batch(async move {
+                async_pool.spawn(async move {
                     match load_log_page(&props, page_num).await {
-                        Ok(page) => Some(Msg::PageLoad(page)),
+                        Ok(page) => link.send_message(Msg::PageLoad(page)),
                         Err(err) => {
                             log::error!("Page load failed: {}", err);
-                            None
                         }
                     }
                 });
@@ -367,6 +370,7 @@ impl Component for PwtLogView {
             line_height: None,
             scale: 1.0,
             required_pages: HashSet::new(),
+            async_pool: AsyncPool::new(),
         }
     }
 
