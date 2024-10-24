@@ -129,7 +129,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
                                 );
                                 let command_future =
                                     crate::http_delete_get::<String>(command_path, None);
-                                wasm_bindgen_futures::spawn_local(async move {
+                                link.clone().spawn(async move {
                                     match command_future.await {
                                         Ok(task_id) => {
                                             link.show_task_progres(task_id);
