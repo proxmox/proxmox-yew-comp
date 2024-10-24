@@ -9,11 +9,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use yew::virtual_dom::{Key, VComp, VNode};
 
-use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
 use pwt::widget::form::{delete_empty_values, DisplayField, Field, FormContext, Number, TextArea};
 use pwt::widget::{Button, InputPanel, Toolbar};
+use pwt::{prelude::*, AsyncPool};
 
 use pwt_macros::builder;
 
@@ -79,6 +79,7 @@ pub struct ProxmoxAcmePluginsPanel {
     columns: Rc<Vec<DataTableHeader<PluginConfig>>>,
     challenge_schema: Option<AcmeChallengeSchemaItem>,
     schema_info: ChallengeSchemaInfo,
+    async_pool: AsyncPool,
 }
 
 #[derive(PartialEq)]
@@ -92,6 +93,7 @@ pub enum Msg {
     CloseDialog,
     Add,
     Edit(Key),
+    Delete(Option<Key>),
     ChallengeSchema(Option<AcmeChallengeSchemaItem>),
     ApiDataChange(FormContext, String, String),
     LoadChallengeSchemaList,
@@ -135,6 +137,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                 schema_name_map,
                 store: Store::new(),
             },
+            async_pool: AsyncPool::new(),
         }
     }
 
@@ -208,7 +211,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             Msg::LoadChallengeSchemaList => {
                 let url = ctx.props().challenge_shema_url.clone();
                 let link = ctx.link();
-                wasm_bindgen_futures::spawn_local(async move {
+                self.async_pool.spawn(async move {
                     let result = http_get(&*url, None).await;
                     link.send_message(Msg::UpdateChallengeSchemaList(result));
                 });
@@ -221,6 +224,29 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                     self.columns = columns(self.schema_info.schema_name_map.clone());
                 }
                 true
+            }
+            Msg::Delete(selected_key) => {
+                if let Some(selected_key) = &selected_key {
+                    let command_path = format!(
+                        "{}/{}",
+                        ctx.props().url,
+                        percent_encode_component(&*selected_key)
+                    );
+                    let command_future = crate::http_delete(command_path, None);
+                    let link = ctx.link().clone();
+                    self.async_pool.spawn(async move {
+                        match command_future.await {
+                            Ok(()) => {
+                                link.send_reload();
+                            }
+                            Err(err) => {
+                                link.show_error(tr!("Error"), err, true);
+                            }
+                        }
+                    });
+                }
+
+                false
             }
         }
     }
@@ -249,29 +275,10 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             .with_child(
                 ConfirmButton::remove_entry(selected_key.as_deref().unwrap_or("").to_string())
                     .disabled(selected_key.is_none())
-                    .on_activate({
-                        let link = ctx.link();
-                        move |_| {
-                            let link = link.clone();
-                            if let Some(selected_key) = &selected_key {
-                                let command_path = format!(
-                                    "/config/acme/plugins/{}",
-                                    percent_encode_component(&*selected_key)
-                                );
-                                let command_future = crate::http_delete(command_path, None);
-                                wasm_bindgen_futures::spawn_local(async move {
-                                    match command_future.await {
-                                        Ok(()) => {
-                                            link.send_reload();
-                                        }
-                                        Err(err) => {
-                                            link.show_error(tr!("Error"), err, true);
-                                        }
-                                    }
-                                });
-                            }
-                        }
-                    }),
+                    .on_activate(ctx.link().callback({
+                        let selected_key = selected_key.clone();
+                        move |_| Msg::Delete(selected_key.clone())
+                    })),
             );
 
         Some(toolbar.into())
@@ -507,9 +514,7 @@ impl ProxmoxAcmePluginsPanel {
 
                     let data = delete_empty_values(&data, &["validation-delay"], true);
 
-                    async move {
-                        crate::http_put(&url, Some(data)).await
-                    }
+                    async move { crate::http_put(&url, Some(data)).await }
                 }
             })
             .into()
@@ -548,9 +553,7 @@ impl ProxmoxAcmePluginsPanel {
 
                     data["data"] = base64::encode(form_ctx.read().get_field_text("data")).into();
 
-                    async move {
-                        crate::http_post("/config/acme/plugins", Some(data)).await
-                    }
+                    async move { crate::http_post("/config/acme/plugins", Some(data)).await }
                 }
             })
             .into()
