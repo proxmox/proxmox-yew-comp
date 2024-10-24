@@ -6,9 +6,9 @@ use serde_json::json;
 use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
-use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, Field, FormContext, ValidateFn};
 use pwt::widget::{Container, InputPanel};
+use pwt::{prelude::*, AsyncPool};
 
 use crate::EditWindow;
 
@@ -40,6 +40,7 @@ pub enum Msg {
 pub struct ProxmoxAcmeRegisterAccount {
     validate_tos: ValidateFn<bool>,
     tos_url: Option<Result<String, String>>,
+    async_pool: AsyncPool,
 }
 
 impl Component for ProxmoxAcmeRegisterAccount {
@@ -55,6 +56,7 @@ impl Component for ProxmoxAcmeRegisterAccount {
                 Ok(())
             }),
             tos_url: None,
+            async_pool: AsyncPool::new(),
         }
     }
 
@@ -67,7 +69,7 @@ impl Component for ProxmoxAcmeRegisterAccount {
             Msg::AcmeDirectory(entry) => {
                 self.tos_url = None;
                 let link = ctx.link().clone();
-                wasm_bindgen_futures::spawn_local(async move {
+                self.async_pool.spawn(async move {
                     let msg = if let Some(entry) = entry {
                         let param = Some(json!({ "directory": &entry.url }));
                         let tos: Result<String, Error> =
