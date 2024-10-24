@@ -10,12 +10,12 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use proxmox_client::ApiResponseData;
 
-use pwt::prelude::*;
 use pwt::props::{
     AsCssStylesMut, CssStyles, IntoSubmitCallback, RenderFn, SubmitCallback, WidgetStyleBuilder,
 };
 use pwt::widget::form::{Checkbox, Form, FormContext, Hidden, ResetButton, SubmitButton};
 use pwt::widget::{AlertDialog, Column, Dialog, Mask, Row};
+use pwt::{prelude::*, AsyncPool};
 
 use pwt_macros::builder;
 
@@ -164,6 +164,7 @@ pub struct PwtEditWindow {
     form_ctx: FormContext,
     submit_error: Option<String>,
     show_advanced: PersistentState<bool>,
+    async_pool: AsyncPool,
 }
 
 impl Component for PwtEditWindow {
@@ -183,6 +184,7 @@ impl Component for PwtEditWindow {
             loading: false,
             submit_error: None,
             show_advanced,
+            async_pool: AsyncPool::new(),
         }
     }
 
@@ -201,10 +203,10 @@ impl Component for PwtEditWindow {
             Msg::Load => {
                 if let Some(loader) = props.loader.clone() {
                     self.loading = true;
-                    let link = ctx.link();
-                    link.send_future(async move {
+                    let link = ctx.link().clone();
+                    self.async_pool.spawn(async move {
                         let res = loader.apply().await;
-                        Msg::LoadResult(res)
+                        link.send_message(Msg::LoadResult(res));
                     });
                 }
                 true
@@ -237,12 +239,12 @@ impl Component for PwtEditWindow {
             }
             Msg::Submit => {
                 if let Some(on_submit) = props.on_submit.clone() {
-                    let link = ctx.link();
+                    let link = ctx.link().clone();
                     let form_ctx = self.form_ctx.clone();
                     self.loading = true;
-                    link.send_future(async move {
+                    self.async_pool.spawn(async move {
                         let result = on_submit.apply(form_ctx).await;
-                        Msg::SubmitResult(result)
+                        link.send_message(Msg::SubmitResult(result));
                     });
                 }
                 true
