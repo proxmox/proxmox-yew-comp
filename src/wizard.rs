@@ -9,8 +9,8 @@ use indexmap::IndexMap;
 use serde_json::{json, Value};
 
 use pwt::css::{Flex, Overflow};
-use pwt::prelude::*;
 use pwt::props::RenderFn;
+use pwt::{prelude::*, AsyncAbortGuard, AsyncPool};
 
 use pwt::css::ColorScheme;
 use pwt::props::{AsCssStylesMut, ContainerBuilder, CssStyles};
@@ -268,6 +268,7 @@ pub struct PwtWizard {
     valid_data: Rc<Value>,
 
     controller: WizardController,
+    async_pool: AsyncPool,
 }
 
 pub enum Msg {
@@ -305,6 +306,7 @@ impl Component for PwtWizard {
             selection,
             valid_data: Rc::new(json!({})),
             controller,
+            async_pool: AsyncPool::new(),
         }
     }
 
@@ -355,7 +357,7 @@ impl Component for PwtWizard {
                     let link = ctx.link().clone();
                     let data = self.valid_data.as_ref().clone();
                     self.loading = true;
-                    wasm_bindgen_futures::spawn_local(async move {
+                    self.async_pool.spawn(async move {
                         let result = on_submit.apply(data).await;
                         link.send_message(Msg::SubmitResult(result));
                     });
