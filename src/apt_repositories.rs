@@ -423,9 +423,9 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let status_columns = Self::status_columns(ctx);
 
         let link = ctx.link();
-        wasm_bindgen_futures::spawn_local(async move {
+        link.send_future(async move {
             let data = crate::http_get("/nodes/localhost/subscription", None).await;
-            link.send_message(Msg::SubscriptionInfo(data));
+            Msg::SubscriptionInfo(data)
         });
 
         Self {
@@ -526,7 +526,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
                         // fixme: add digest to protect against concurrent changes
                         let url = format!("{}/repositories", props.base_url);
                         let link = ctx.link();
-                        wasm_bindgen_futures::spawn_local(async move {
+                        link.clone().spawn(async move {
                             match crate::http_post(url, Some(param)).await {
                                 Ok(()) => {
                                     link.send_reload();
