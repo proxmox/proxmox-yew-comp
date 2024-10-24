@@ -8,9 +8,9 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
-use pwt::prelude::*;
 use pwt::state::Loader;
 use pwt::widget::{Button, Column, Dialog, TabBarItem, TabPanel, Toolbar};
+use pwt::{prelude::*, AsyncPool};
 
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::{format_duration_human, format_upid, render_epoch};
@@ -74,6 +74,7 @@ pub struct PwtTaskViewer {
     reload_timeout: Option<Timeout>,
     active: bool,
     endtime: Option<i64>,
+    async_pool: AsyncPool,
 }
 
 impl Component for PwtTaskViewer {
@@ -109,6 +110,7 @@ impl Component for PwtTaskViewer {
             reload_timeout: None,
             active: props.endtime.is_none(),
             endtime: props.endtime,
+            async_pool: AsyncPool::new(),
         }
     }
 
@@ -135,9 +137,10 @@ impl Component for PwtTaskViewer {
                     props.base_url,
                     percent_encode_component(&props.task_id),
                 );
-                ctx.link().send_future(async move {
+                let link = ctx.link().clone();
+                self.async_pool.spawn(async move {
                     let _ = crate::http_delete(&url, None).await; // ignore errors?
-                    Msg::Reload
+                    link.send_message(Msg::Reload);
                 });
 
                 true
