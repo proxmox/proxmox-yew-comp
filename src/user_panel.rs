@@ -144,8 +144,8 @@ impl LoadableComponent for ProxmoxUserPanel {
             Msg::SelectionChange => true,
             Msg::RemoveItem => {
                 if let Some(key) = self.selection.selected_key() {
-                    let link = ctx.link().clone();
-                    wasm_bindgen_futures::spawn_local(async move {
+                    let link = ctx.link();
+                    link.clone().spawn(async move {
                         if let Err(err) = delete_user(key).await {
                             link.show_error(tr!("Unable to delete user"), err, true);
                         }
