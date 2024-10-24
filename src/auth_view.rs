@@ -71,7 +71,6 @@ pub struct ProxmoxAuthView {
 }
 
 async fn delete_item(base_url: AttrValue, realm: AttrValue) -> Result<(), Error> {
-
     let url = format!("{base_url}/{}", percent_encode_component(&realm));
     let _ = crate::http_delete(&url, None).await?;
     Ok(())
@@ -118,16 +117,16 @@ impl LoadableComponent for ProxmoxAuthView {
         let props = ctx.props();
 
         match msg {
-            Msg::Redraw => { true }
+            Msg::Redraw => true,
             Msg::Remove => {
                 let info = match self.get_selected_record() {
                     Some(info) => info,
                     None => return true,
                 };
 
-                let link = ctx.link().clone();
+                let link = ctx.link();
                 let base_url = props.base_url.clone();
-                wasm_bindgen_futures::spawn_local(async move {
+                link.clone().spawn(async move {
                     if let Err(err) = delete_item(base_url, info.realm.into()).await {
                         link.show_error(tr!("Unable to delete item"), err, true);
                     }
