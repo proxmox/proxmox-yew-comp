@@ -26,6 +26,24 @@ impl Status {
     }
 }
 
+/// Used to represent the state of a Node, being PVE or PBS
+pub enum NodeState {
+    Online,
+    Offline,
+    Unknown,
+}
+
+impl NodeState {
+    pub fn to_fa_icon(&self) -> Fa {
+        let (icon, class) = match self {
+            NodeState::Online => ("check-circle", FontColor::Success),
+            NodeState::Offline => ("times-circle", FontColor::Error),
+            NodeState::Unknown => ("question-circle", FontColor::Surface),
+        };
+        Fa::new(icon).class(class)
+    }
+}
+
 /// Used to represent the state of a PVE guest, such as a VM
 pub enum GuestState {
     Running,

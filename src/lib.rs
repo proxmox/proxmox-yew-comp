@@ -131,7 +131,7 @@ mod schema_validation;
 pub use schema_validation::*;
 
 mod status;
-pub use status::{GuestState, Status, StorageState};
+pub use status::{GuestState, NodeState, Status, StorageState};
 
 mod status_row;
 pub use status_row::{ProxmoxStatusRow, StatusRow};
