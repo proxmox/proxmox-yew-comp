@@ -251,6 +251,15 @@ pub trait LoadableComponent: Sized {
     }
 
     #[allow(unused_variables)]
+    fn changed(
+        &mut self,
+        ctx: &LoadableComponentContext<Self>,
+        _old_props: &Self::Properties,
+    ) -> bool {
+        true
+    }
+
+    #[allow(unused_variables)]
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
         None
     }
@@ -435,6 +444,15 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                 false
             }
         }
+    }
+
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        let sub_context = LoadableComponentContext {
+            ctx,
+            comp_state: &self.comp_state,
+        };
+
+        self.state.changed(&sub_context, _old_props)
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
