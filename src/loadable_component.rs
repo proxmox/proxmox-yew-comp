@@ -245,25 +245,29 @@ pub trait LoadableComponent: Sized {
         ctx: &LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), Error>>>>;
 
-    fn update(&mut self, _ctx: &LoadableComponentContext<Self>, _msg: Self::Message) -> bool {
+    #[allow(unused_variables)]
+    fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         true
     }
 
-    fn toolbar(&self, _ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+    #[allow(unused_variables)]
+    fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
         None
     }
 
-    fn main_view(&self, _ctx: &LoadableComponentContext<Self>) -> Html;
+    fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html;
 
+    #[allow(unused_variables)]
     fn dialog_view(
         &self,
-        _ctx: &LoadableComponentContext<Self>,
-        _view_state: &Self::ViewState,
+        ctx: &LoadableComponentContext<Self>,
+        view_state: &Self::ViewState,
     ) -> Option<Html> {
         None
     }
 
-    fn rendered(&mut self, _ctx: &LoadableComponentContext<Self>, _first_render: bool) {}
+    #[allow(unused_variables)]
+    fn rendered(&mut self, ctx: &LoadableComponentContext<Self>, first_render: bool) {}
 }
 
 #[derive(Clone, PartialEq)]
