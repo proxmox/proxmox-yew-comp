@@ -186,6 +186,13 @@ impl<L: LoadableComponent + Sized> LoadableComponentLink<L> {
             }
         })));
     }
+
+    /// Returns the original [`yew::html::Scope`] of the master component.
+    ///
+    /// This is useful when e.g. trying to get an higher level context
+    pub fn yew_link(&self) -> &Scope<LoadableComponentMaster<L>> {
+        &self.link
+    }
 }
 
 impl<L: LoadableComponent + Sized> RouterScopeExt for LoadableComponentLink<L> {
