@@ -341,9 +341,11 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
             comp_state: &comp_state,
         };
 
-        let state = L::create(&sub_context);
-
+        // Send Msg::Load first (before any Msg::RepeatedLoad in create), so that we
+        // can avoid multiple loads at startup
         ctx.link().send_message(Msg::Load);
+
+        let state = L::create(&sub_context);
 
         Self {
             state,
@@ -380,6 +382,7 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
             }
             Msg::RepeatedLoad(timespan) => {
                 self.comp_state.repeat_timespan = timespan;
+                self.reload_timeout = None;
                 if self.comp_state.loading == 0 {
                     <Self as yew::Component>::update(self, ctx, Msg::Load);
                 }
@@ -441,6 +444,9 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                 false
             }
             Msg::Visible(visible) => {
+                if self.visible == visible {
+                    return false;
+                }
                 self.visible = visible;
                 if self.comp_state.loading == 0 && self.visible {
                     /* no outstanding loads */
