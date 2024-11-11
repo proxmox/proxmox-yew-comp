@@ -3,10 +3,14 @@ pub mod acme;
 mod api_load_callback;
 pub use api_load_callback::{ApiLoadCallback, IntoApiLoadCallback};
 
+#[cfg(feature = "apt")]
 mod apt_package_manager;
+#[cfg(feature = "apt")]
 pub use apt_package_manager::{AptPackageManager, ProxmoxAptPackageManager};
 
+#[cfg(feature = "apt")]
 mod apt_repositories;
+#[cfg(feature = "apt")]
 pub use apt_repositories::{AptRepositories, ProxmoxAptRepositories};
 
 mod auth_view;
@@ -88,13 +92,19 @@ pub use realm_selector::RealmSelector;
 mod role_selector;
 pub use role_selector::RoleSelector;
 
+#[cfg(feature = "rrd")]
 mod rrd_graph_new;
+#[cfg(feature = "rrd")]
 pub use rrd_graph_new::{RRDGraph, Series};
 
+#[cfg(feature = "rrd")]
 mod rrd_grid;
+#[cfg(feature = "rrd")]
 pub use rrd_grid::RRDGrid;
 
+#[cfg(feature = "rrd")]
 mod rrd_timeframe_selector;
+#[cfg(feature = "rrd")]
 pub use rrd_timeframe_selector::{RRDTimeframe, RRDTimeframeSelector};
 
 mod running_tasks;

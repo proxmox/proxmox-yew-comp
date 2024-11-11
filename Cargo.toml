@@ -63,7 +63,7 @@ pwt-macros = "0.1"
 
 proxmox-schema = { version = "3", features = ["api-macro"] }
 proxmox-human-byte = "0.1"
-proxmox-rrd-api-types = "1"
+proxmox-rrd-api-types = { version = "1", optional = true }
 
 proxmox-time = "2"
 
@@ -75,8 +75,23 @@ proxmox-tfa = { version = "5.0.1", default-features = false, features = [
 proxmox-auth-api = { version = "0.4", default-features = false, features = [
   "api-types",
 ] }
-proxmox-apt-api-types = "1.0"
+proxmox-apt-api-types = { version = "1.0", optional = true }
 proxmox-access-control = "0.2.3"
-proxmox-dns-api = "0.1"
 proxmox-time-api = "0.1"
-proxmox-network-api = "0.1"
+proxmox-dns-api = { version = "0.1", optional = true }
+proxmox-network-api = { version = "0.1", optional = true }
+
+[features]
+default = []
+apt = [
+    "dep:proxmox-apt-api-types"
+]
+dns = [
+    "dep:proxmox-dns-api"
+]
+network = [
+    "dep:proxmox-network-api"
+]
+rrd = [
+    "dep:proxmox-rrd-api-types"
+]
