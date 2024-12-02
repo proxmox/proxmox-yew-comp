@@ -163,6 +163,7 @@ pub struct PwtEditWindow {
     loading: bool,
     form_ctx: FormContext,
     submit_error: Option<String>,
+    load_error: Option<String>,
     show_advanced: PersistentState<bool>,
     async_pool: AsyncPool,
 }
@@ -183,6 +184,7 @@ impl Component for PwtEditWindow {
             form_ctx,
             loading: false,
             submit_error: None,
+            load_error: None,
             show_advanced,
             async_pool: AsyncPool::new(),
         }
@@ -198,6 +200,7 @@ impl Component for PwtEditWindow {
             }
             Msg::ClearError => {
                 self.submit_error = None;
+                self.load_error = None;
                 true
             }
             Msg::Load => {
@@ -214,7 +217,7 @@ impl Component for PwtEditWindow {
             Msg::LoadResult(result) => {
                 self.loading = false;
                 match result {
-                    Err(err) => log::error!("Load error: {}", err),
+                    Err(err) => self.load_error = Some(err.to_string()),
                     Ok(api_resp) => {
                         let mut value = api_resp.data;
                         if props.submit_digest {
@@ -364,6 +367,11 @@ impl Component for PwtEditWindow {
             }
         };
 
+        let load_err = match self.load_error.as_ref() {
+            None => None,
+            Some(msg) => Some(AlertDialog::new(msg).on_close(on_close.clone())),
+        };
+
         Dialog::new(props.title.clone())
             .node_ref(props.node_ref.clone())
             .on_close(on_close)
@@ -378,6 +386,7 @@ impl Component for PwtEditWindow {
                     .with_child(input_panel),
             )
             .with_optional_child(alert)
+            .with_optional_child(load_err)
             .into()
     }
 }
