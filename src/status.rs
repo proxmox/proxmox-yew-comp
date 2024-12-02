@@ -47,6 +47,7 @@ impl NodeState {
 /// Used to represent the state of a PVE guest, such as a VM
 pub enum GuestState {
     Running,
+    Paused,
     Stopped,
     Template,
     Unknown,
@@ -56,6 +57,7 @@ impl GuestState {
     pub fn to_fa_icon(&self) -> Fa {
         let (icon, class): (&str, Classes) = match self {
             GuestState::Running => ("play", FontColor::Success.into()),
+            GuestState::Paused => ("pause", FontColor::Warning.into()),
             GuestState::Stopped => ("stop", Opacity::Quarter.into()),
             GuestState::Template => ("file-o", "".into()),
             GuestState::Unknown => ("question-circle", Opacity::Quarter.into()),
