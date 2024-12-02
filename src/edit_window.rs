@@ -346,20 +346,27 @@ impl Component for PwtEditWindow {
             }
         };
 
-        Dialog::new(props.title.clone())
-            .node_ref(props.node_ref.clone())
-            .on_close({
-                let on_close = props.on_close.clone();
-                let on_done = props.on_done.clone();
-                move |()| {
+        let on_close = {
+            let on_close = props.on_close.clone();
+            let on_done = props.on_done.clone();
+
+            if on_close.is_some() || on_done.is_some() {
+                Some(move |()| {
                     if let Some(on_close) = &on_close {
                         on_close.emit(());
                     }
                     if let Some(on_done) = &on_done {
                         on_done.emit(());
                     }
-                }
-            })
+                })
+            } else {
+                None
+            }
+        };
+
+        Dialog::new(props.title.clone())
+            .node_ref(props.node_ref.clone())
+            .on_close(on_close)
             .draggable(props.draggable)
             .resizable(props.resizable)
             .auto_center(props.auto_center)
