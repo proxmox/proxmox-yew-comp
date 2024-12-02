@@ -234,6 +234,7 @@ fn render_bond_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             tr!("Mode"),
             BondModeSelector::new()
                 .name("bond_mode")
+                .required(true)
                 .default("balance-rr"), //.placeholder(tr!("Default"))
         )
         .with_field(

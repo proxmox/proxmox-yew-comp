@@ -34,7 +34,10 @@ fn timezone_editor(_form_ctx: &FormContext, _name: &str, _value: &Value, _record
         .padding(4)
         .with_field(
             tr!("Time zone"),
-            TimezoneSelector::new().name("timezone").autofocus(true),
+            TimezoneSelector::new()
+                .name("timezone")
+                .autofocus(true)
+                .required(true),
         )
         .into()
 }

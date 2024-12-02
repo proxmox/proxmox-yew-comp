@@ -708,6 +708,7 @@ impl ProxmoxAptRepositories {
                     .with_item("enterprise")
                     .with_item("no-subscription")
                     .with_item("test")
+                    .required(true)
                     .default("enterprise")
                     .validate(validate_standard_repo.clone())
                     .render_value(|value: &AttrValue| {
