@@ -1,6 +1,6 @@
 [package]
 name = "proxmox-yew-comp"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Dietmar Maurer <dietmar@proxmox.com>"]
 license = "AGPLv3"
 edition = "2021"
@@ -58,8 +58,8 @@ slab = "0.4"
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
-pwt = "0.3"
-pwt-macros = "0.1"
+pwt = "0.4"
+pwt-macros = "0.2"
 
 proxmox-schema = { version = "3", features = ["api-macro"] }
 proxmox-human-byte = "0.1"

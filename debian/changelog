@@ -1,3 +1,51 @@
+rust-proxmox-yew-comp (0.3.0) bookworm; urgency=medium
+
+  * edit window: show alert on load error and close window
+
+  * guest status: add paused
+
+  * apt repositories: add support for ceph squid repositories
+
+  * LoadableComponent: avoid multiple reloads at startup
+
+  * LoadableComponent: add method to return original yew scope
+
+  * LoadableComponent: add changed method
+
+  * use AsyncPool to spawn futures
+
+  * only start a single ticket refresh loop
+
+  * use WebSysAbortGuard from proxmox-yew-widget-toolkit
+
+  * apt: add upgrade button
+
+  * HttpClientWasm: make dropping request abort the fetch request
+
+  * js-helper/http-client: set SameSite and Secure properties
+
+  * wizard: trigger SelectPage on tab click
+
+  * tfa: add password fields and implement remove confirmation
+
+  * tfa: use AbortControllers to deal with user aborts and errors
+
+  * tfa: implement webauthn token enrollment
+
+  * tfa: implement webauthn login
+
+  * pass data in http_delete as body
+
+  * wizard: add reset_remaining_valid_pages
+
+  * wizard: add submit error handling
+
+  * use ApiLoadCallback for EditWindow loader
+
+  * add UserPanel
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 13 Dec 2024 17:50:58 +0100
+
 rust-proxmox-yew-comp (0.2.0) bookworm; urgency=medium
 
   * depend on pwt 0.3.0
