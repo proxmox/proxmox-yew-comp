@@ -266,7 +266,7 @@ impl ProxmoxAptPackageManager {
 
         DataViewWindow::<String>::new(tr!("Changelog") + ": " + package)
             .width(640)
-            .height(400)
+            .height(600)
             .resizable(true)
             .on_done(ctx.link().change_view_callback(|_| None))
             .loader(url)
