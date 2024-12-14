@@ -276,7 +276,7 @@ impl ProxmoxAptPackageManager {
                     .class("pwt-flex-fit pwt-monospace");
 
                 if let Some((title, body)) = description.split_once("\n") {
-                    panel.add_child(html! {<h3>{title}</h3>});
+                    panel.add_child(html! {<h6>{title}</h6>});
                     panel.add_child(body);
                 } else {
                     panel.add_child(description);
