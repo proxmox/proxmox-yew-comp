@@ -1,0 +1,217 @@
+Source: rust-proxmox-yew-comp
+Section: rust
+Priority: optional
+Build-Depends: debhelper-compat (= 13),
+ dh-sequence-cargo,
+ cargo:native <!nocheck>,
+ rustc:native <!nocheck>,
+ libstd-rust-dev <!nocheck>,
+ librust-anyhow-1+default-dev <!nocheck>,
+ librust-base64-0.13+default-dev <!nocheck>,
+ librust-derivative-2+default-dev (>= 2.2.0-~~) <!nocheck>,
+ librust-futures-0.3+default-dev <!nocheck>,
+ librust-gloo-events-0.2+default-dev <!nocheck>,
+ librust-gloo-timers-0.3+default-dev <!nocheck>,
+ librust-html-escape-0.2+default-dev <!nocheck>,
+ librust-http-0.2+default-dev <!nocheck>,
+ librust-indexmap+default-dev (>= 1.9-~~) <!nocheck>,
+ librust-indexmap+std-dev (>= 1.9-~~) <!nocheck>,
+ librust-js-sys-0.3+default-dev <!nocheck>,
+ librust-log-0.4+default-dev (>= 0.4.6-~~) <!nocheck>,
+ librust-percent-encoding-2+default-dev (>= 2.1-~~) <!nocheck>,
+ librust-proxmox-access-control-0.2+default-dev (>= 0.2.3-~~) <!nocheck>,
+ librust-proxmox-auth-api-0.4+api-types-dev <!nocheck>,
+ librust-proxmox-client-0.5+default-dev <!nocheck>,
+ librust-proxmox-human-byte-0.1+default-dev <!nocheck>,
+ librust-proxmox-login-0.1+default-dev (>= 0.1.2-~~) <!nocheck>,
+ librust-proxmox-schema-3+api-macro-dev <!nocheck>,
+ librust-proxmox-schema-3+default-dev <!nocheck>,
+ librust-proxmox-tfa-5+api-types-dev (>= 5.0.1-~~) <!nocheck>,
+ librust-proxmox-time-2+default-dev <!nocheck>,
+ librust-pulldown-cmark-0.11+default-dev <!nocheck>,
+ librust-pwt-0.4+default-dev <!nocheck>,
+ librust-pwt-macros-0.2+default-dev <!nocheck>,
+ librust-qrcode-0.12+svg-dev <!nocheck>,
+ librust-serde-1+default-dev <!nocheck>,
+ librust-serde-1+derive-dev <!nocheck>,
+ librust-serde-json-1+default-dev <!nocheck>,
+ librust-serde-plain-1+default-dev <!nocheck>,
+ librust-slab-0.4+default-dev <!nocheck>,
+ librust-url-2+default-dev (>= 2.1-~~) <!nocheck>,
+ librust-wasm-bindgen-0.2+default-dev <!nocheck>,
+ librust-wasm-bindgen-0.2+serde-serialize-dev <!nocheck>,
+ librust-wasm-bindgen-futures-0.4+default-dev <!nocheck>,
+ librust-wasm-logger-0.2+default-dev <!nocheck>,
+ librust-web-sys-0.3+abortcontroller-dev <!nocheck>,
+ librust-web-sys-0.3+abortsignal-dev <!nocheck>,
+ librust-web-sys-0.3+attr-dev <!nocheck>,
+ librust-web-sys-0.3+crypto-dev <!nocheck>,
+ librust-web-sys-0.3+default-dev <!nocheck>,
+ librust-web-sys-0.3+document-dev <!nocheck>,
+ librust-web-sys-0.3+domparser-dev <!nocheck>,
+ librust-web-sys-0.3+domrect-dev <!nocheck>,
+ librust-web-sys-0.3+element-dev <!nocheck>,
+ librust-web-sys-0.3+htmldocument-dev <!nocheck>,
+ librust-web-sys-0.3+htmlelement-dev <!nocheck>,
+ librust-web-sys-0.3+namednodemap-dev <!nocheck>,
+ librust-web-sys-0.3+node-dev <!nocheck>,
+ librust-web-sys-0.3+range-dev <!nocheck>,
+ librust-web-sys-0.3+readablestreamdefaultreader-dev <!nocheck>,
+ librust-web-sys-0.3+requestinit-dev <!nocheck>,
+ librust-web-sys-0.3+selection-dev <!nocheck>,
+ librust-web-sys-0.3+supportedtype-dev <!nocheck>,
+ librust-web-sys-0.3+svggraphicselement-dev <!nocheck>,
+ librust-web-sys-0.3+svgrect-dev <!nocheck>,
+ librust-web-sys-0.3+svgsvgelement-dev <!nocheck>,
+ librust-web-sys-0.3+url-dev <!nocheck>,
+ librust-yew-0.21+csr-dev <!nocheck>,
+ librust-yew-0.21+default-dev <!nocheck>,
+ librust-yew-router-0.18+default-dev <!nocheck>
+Maintainer: Proxmox Support Team <support@proxmox.com>
+Standards-Version: 4.7.0
+Vcs-Git: git://git.proxmox.com/git/ui/proxmox-yew-comp.git
+Vcs-Browser: https://git.proxmox.com/?p=ui/proxmox-yew-comp.git
+X-Cargo-Crate: proxmox-yew-comp
+Rules-Requires-Root: no
+
+Package: librust-proxmox-yew-comp-dev
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ librust-anyhow-1+default-dev,
+ librust-base64-0.13+default-dev,
+ librust-derivative-2+default-dev (>= 2.2.0-~~),
+ librust-futures-0.3+default-dev,
+ librust-gloo-events-0.2+default-dev,
+ librust-gloo-timers-0.3+default-dev,
+ librust-html-escape-0.2+default-dev,
+ librust-http-0.2+default-dev,
+ librust-indexmap+default-dev (>= 1.9-~~),
+ librust-indexmap+std-dev (>= 1.9-~~),
+ librust-js-sys-0.3+default-dev,
+ librust-log-0.4+default-dev (>= 0.4.6-~~),
+ librust-percent-encoding-2+default-dev (>= 2.1-~~),
+ librust-proxmox-access-control-0.2+default-dev (>= 0.2.3-~~),
+ librust-proxmox-auth-api-0.4+api-types-dev,
+ librust-proxmox-client-0.5+default-dev,
+ librust-proxmox-human-byte-0.1+default-dev,
+ librust-proxmox-login-0.1+default-dev (>= 0.1.2-~~),
+ librust-proxmox-schema-3+api-macro-dev,
+ librust-proxmox-schema-3+default-dev,
+ librust-proxmox-tfa-5+api-types-dev (>= 5.0.1-~~),
+ librust-proxmox-time-2+default-dev,
+ librust-pulldown-cmark-0.11+default-dev,
+ librust-pwt-0.4+default-dev,
+ librust-pwt-macros-0.2+default-dev,
+ librust-qrcode-0.12+svg-dev,
+ librust-serde-1+default-dev,
+ librust-serde-1+derive-dev,
+ librust-serde-json-1+default-dev,
+ librust-serde-plain-1+default-dev,
+ librust-slab-0.4+default-dev,
+ librust-url-2+default-dev (>= 2.1-~~),
+ librust-wasm-bindgen-0.2+default-dev,
+ librust-wasm-bindgen-0.2+serde-serialize-dev,
+ librust-wasm-bindgen-futures-0.4+default-dev,
+ librust-wasm-logger-0.2+default-dev,
+ librust-web-sys-0.3+abortcontroller-dev,
+ librust-web-sys-0.3+abortsignal-dev,
+ librust-web-sys-0.3+attr-dev,
+ librust-web-sys-0.3+crypto-dev,
+ librust-web-sys-0.3+default-dev,
+ librust-web-sys-0.3+document-dev,
+ librust-web-sys-0.3+domparser-dev,
+ librust-web-sys-0.3+domrect-dev,
+ librust-web-sys-0.3+element-dev,
+ librust-web-sys-0.3+htmldocument-dev,
+ librust-web-sys-0.3+htmlelement-dev,
+ librust-web-sys-0.3+namednodemap-dev,
+ librust-web-sys-0.3+node-dev,
+ librust-web-sys-0.3+range-dev,
+ librust-web-sys-0.3+readablestreamdefaultreader-dev,
+ librust-web-sys-0.3+requestinit-dev,
+ librust-web-sys-0.3+selection-dev,
+ librust-web-sys-0.3+supportedtype-dev,
+ librust-web-sys-0.3+svggraphicselement-dev,
+ librust-web-sys-0.3+svgrect-dev,
+ librust-web-sys-0.3+svgsvgelement-dev,
+ librust-web-sys-0.3+url-dev,
+ librust-yew-0.21+csr-dev,
+ librust-yew-0.21+default-dev,
+ librust-yew-router-0.18+default-dev
+Suggests:
+ librust-proxmox-yew-comp+apt-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp+dns-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp+network-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp+rrd-dev (= ${binary:Version})
+Provides:
+ librust-proxmox-yew-comp+default-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0+default-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3+default-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3.0-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3.0+default-dev (= ${binary:Version})
+Description: Rust crate "proxmox-yew-comp" - Rust source code
+ Source code for Debianized Rust crate "proxmox-yew-comp"
+
+Package: librust-proxmox-yew-comp+apt-dev
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ librust-proxmox-yew-comp-dev (= ${binary:Version}),
+ librust-proxmox-apt-api-types-1+default-dev
+Provides:
+ librust-proxmox-yew-comp-0+apt-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3+apt-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3.0+apt-dev (= ${binary:Version})
+Description: Rust crate "proxmox-yew-comp" - feature "apt"
+ This metapackage enables feature "apt" for the Rust proxmox-yew-comp crate, by
+ pulling in any additional dependencies needed by that feature.
+
+Package: librust-proxmox-yew-comp+dns-dev
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ librust-proxmox-yew-comp-dev (= ${binary:Version}),
+ librust-proxmox-dns-api-0.1+default-dev
+Provides:
+ librust-proxmox-yew-comp-0+dns-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3+dns-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3.0+dns-dev (= ${binary:Version})
+Description: Rust crate "proxmox-yew-comp" - feature "dns"
+ This metapackage enables feature "dns" for the Rust proxmox-yew-comp crate, by
+ pulling in any additional dependencies needed by that feature.
+
+Package: librust-proxmox-yew-comp+network-dev
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ librust-proxmox-yew-comp-dev (= ${binary:Version}),
+ librust-proxmox-network-api-0.1+default-dev
+Provides:
+ librust-proxmox-yew-comp-0+network-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3+network-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3.0+network-dev (= ${binary:Version})
+Description: Rust crate "proxmox-yew-comp" - feature "network"
+ This metapackage enables feature "network" for the Rust proxmox-yew-comp crate,
+ by pulling in any additional dependencies needed by that feature.
+
+Package: librust-proxmox-yew-comp+rrd-dev
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ librust-proxmox-yew-comp-dev (= ${binary:Version}),
+ librust-proxmox-rrd-api-types-1+default-dev
+Provides:
+ librust-proxmox-yew-comp-0+rrd-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3+rrd-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.3.0+rrd-dev (= ${binary:Version})
+Description: Rust crate "proxmox-yew-comp" - feature "rrd"
+ This metapackage enables feature "rrd" for the Rust proxmox-yew-comp crate, by
+ pulling in any additional dependencies needed by that feature.

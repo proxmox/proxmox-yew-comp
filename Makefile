@@ -8,12 +8,14 @@ deb:
 	rm -rf build
 	mkdir build
 	echo system >build/rust-toolchain
+	rm -f debian/control
 	debcargo package \
 	  --config "${PWD}/debian/debcargo.toml" \
 	  --changelog-ready --no-overlay-write-back \
 	  --directory "${PWD}/build/proxmox-yew-comp" \
 	  "proxmox-yew-comp" "${PKG_VER}"
 	cd build/proxmox-yew-comp; dpkg-buildpackage -b -uc -us
+	cp build/proxmox-yew-comp/debian/control -f debian/control
 
 
 .PHONY: check
