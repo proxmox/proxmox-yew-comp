@@ -265,7 +265,7 @@ impl ProxmoxAptPackageManager {
         );
 
         DataViewWindow::<String>::new(tr!("Changelog") + ": " + package)
-            .width(640)
+            .width(720)
             .height(600)
             .resizable(true)
             .on_done(ctx.link().change_view_callback(|_| None))
@@ -273,7 +273,7 @@ impl ProxmoxAptPackageManager {
             .renderer(|description: &String| {
                 let mut panel = Container::from_tag("pre")
                     .padding(2)
-                    .class("pwt-flex-fit pwt-monospace");
+                    .class("pwt-flex-fit pwt-font-monospace");
 
                 if let Some((title, body)) = description.split_once("\n") {
                     panel.add_child(html! {<h6>{title}</h6>});
@@ -328,10 +328,10 @@ fn render_description(record: &TreeEntry) -> Html {
             if let Some((title, body)) = info.description.split_once("\n") {
                 let title = html! {<h3>{title}</h3>};
                 Tooltip::new(html! {&info.title})
-                    .rich_tip(html! {<pre class="pwt-monospace">{title}{body}</pre>})
+                    .rich_tip(html! {<pre class="pwt-font-monospace">{title}{body}</pre>})
                     .into()
             } else {
-                html! {<pre class="pwt-monospace">{&info.description}</pre>}
+                html! {<pre class="pwt-font-monospace">{&info.description}</pre>}
             }
         }
         _ => html! {},
