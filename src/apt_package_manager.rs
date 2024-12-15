@@ -326,7 +326,9 @@ fn render_description(record: &TreeEntry) -> Html {
     match record {
         TreeEntry::Package(_, info) => {
             if let Some((title, body)) = info.description.split_once("\n") {
-                let title = html! {<h3>{title}</h3>};
+                let title = html! {<h6>{title}</h6>};
+                // TODO: drop rather subtle tooltip and add full-fledge package info window that
+                // includes other metadata like dependencies.
                 Tooltip::new(html! {&info.title})
                     .rich_tip(html! {<pre class="pwt-font-monospace">{title}{body}</pre>})
                     .into()
