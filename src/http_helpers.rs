@@ -289,7 +289,6 @@ pub async fn http_task_result(task: Result<Value, Error>) -> Result<Value, Error
         "/nodes/localhost/tasks/{}/status",
         percent_encode_component(&upid)
     );
-    log::info!("url {}", url);
 
     let mut stat: Value;
     let mut sleep_time_ms = 100;

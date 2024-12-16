@@ -51,7 +51,6 @@ impl Component for ProxmoxTimezoneSelector {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        log::info!("NEW CB {:?}", props.default);
         Combobox::new()
             .with_std_props(&props.std_props)
             .with_input_props(&props.input_props)

@@ -52,7 +52,6 @@ async fn delete_user(userid: Key) -> Result<(), Error> {
 
 async fn create_user(form_ctx: FormContext) -> Result<(), Error> {
     let mut data = form_ctx.get_submit_data();
-    log::info!("Submit Data {:?}", data);
 
     let username = form_ctx.read().get_field_text("username");
     let realm = form_ctx.read().get_field_text("realm");
