@@ -1,3 +1,11 @@
+rust-proxmox-yew-comp (0.3.2) bookworm; urgency=medium
+
+  * remove debug log statements
+
+  * edit window: add explicit 'edit' option
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 16 Dec 2024 14:26:57 +0100
+
 rust-proxmox-yew-comp (0.3.1) bookworm; urgency=medium
 
   * apt changelog: use correct class for monospace font
