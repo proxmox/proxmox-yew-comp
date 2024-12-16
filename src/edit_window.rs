@@ -104,6 +104,13 @@ pub struct EditWindow {
     #[builder_cb(IntoEventCallback, into_event_callback, FormContext)]
     #[prop_or_default]
     pub on_change: Option<Callback<FormContext>>,
+
+    /// Determines if the window is in edit mode (enabled reset button + dirty tracking)
+    ///
+    /// Set automatically if a loader is present, can be turned off or on manually with this option.
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    pub edit: Option<bool>,
 }
 
 impl AsCssStylesMut for EditWindow {
@@ -144,7 +151,11 @@ impl EditWindow {
     }
 
     pub fn is_edit(&self) -> bool {
-        self.loader.is_some()
+        if let Some(is_edit) = self.edit {
+            is_edit
+        } else {
+            self.loader.is_some()
+        }
     }
 }
 
