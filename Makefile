@@ -2,13 +2,19 @@ include /usr/share/dpkg/pkg-info.mk
 
 BUILDDIR?=build
 
-DEB=librust-proxmox-yew-comp-dev_$(DEB_VERSION)_amd64.deb
-BUILD_DEB=$(addprefix $(BUILDDIR)/,$(DEB))
+DEBS= \
+librust-proxmox-yew-comp+apt-dev_$(DEB_VERSION)_amd64.deb \
+librust-proxmox-yew-comp+dns-dev_$(DEB_VERSION)_amd64.deb \
+librust-proxmox-yew-comp+network-dev_$(DEB_VERSION)_amd64.deb \
+librust-proxmox-yew-comp+rrd-dev_$(DEB_VERSION)_amd64.deb \
+librust-proxmox-yew-comp-dev_$(DEB_VERSION)_amd64.deb
+
+BUILD_DEBS=$(addprefix $(BUILDDIR)/,$(DEBS))
 
 all:
 	cargo build --target wasm32-unknown-unknown
 
-$(BUILD_DEB): deb
+$(BUILD_DEBS): deb
 
 .PHONY: deb
 deb:
@@ -25,8 +31,8 @@ deb:
 	cp $(BUILDDIR)/proxmox-yew-comp/debian/control -f debian/control
 
 upload: UPLOAD_DIST ?= $(DEB_DISTRIBUTION)
-upload: $(BUILD_DEB)
-	cd $(BUILDDIR); tar cf - $(DEB) | ssh -X repoman@repo.proxmox.com -- upload --product devel --dist $(UPLOAD_DIST)
+upload: $(BUILD_DEBS)
+	cd $(BUILDDIR); tar cf - $(DEBS) | ssh -X repoman@repo.proxmox.com -- upload --product devel --dist $(UPLOAD_DIST)
 
 .PHONY: check
 check:
