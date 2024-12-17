@@ -6,9 +6,9 @@ use wasm_bindgen::JsCast;
 use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
+use pwt::dom::align::{align_to, AlignOptions, GrowDirection, Point};
 use pwt::prelude::*;
 use pwt::state::{Loader, LoaderState, SharedStateObserver};
-use pwt::widget::align::{AlignOptions, GrowDirection, Point};
 use pwt::widget::{Button, Container};
 
 use crate::common_api_types::TaskListItem;
@@ -62,7 +62,7 @@ impl ProxmoxRunningTasksButton {
 
     fn align_popup(&self) {
         if self.show_submenu {
-            if let Err(err) = pwt::widget::align::align_to(
+            if let Err(err) = align_to(
                 &self.node_ref,
                 &self.submenu_ref,
                 Some(self.align_options.clone()),
