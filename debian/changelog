@@ -1,3 +1,9 @@
+rust-proxmox-yew-comp (0.3.5) bookworm; urgency=medium
+
+  * rrd: adapt to pwt 0.4.3 changes
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 17 Dec 2024 14:33:08 +0100
+
 rust-proxmox-yew-comp (0.3.4) bookworm; urgency=medium
 
   * depend on pwt 0.4.3
