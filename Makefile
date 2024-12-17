@@ -24,6 +24,9 @@ deb:
 	cd $(BUILDDIR)/proxmox-yew-comp; dpkg-buildpackage -b -uc -us
 	cp $(BUILDDIR)/proxmox-yew-comp/debian/control -f debian/control
 
+upload: UPLOAD_DIST ?= $(DEB_DISTRIBUTION)
+upload: $(BUILD_DEB)
+	cd $(BUILDDIR); tar cf - $(DEB) | ssh -X repoman@repo.proxmox.com -- upload --product devel --dist $(UPLOAD_DIST)
 
 .PHONY: check
 check:
