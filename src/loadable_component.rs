@@ -8,9 +8,10 @@ use gloo_timers::callback::Timeout;
 
 use yew::html::Scope;
 
+use pwt::dom::DomVisibilityObserver;
 use pwt::prelude::*;
 use pwt::state::NavigationContextExt;
-use pwt::widget::{AlertDialog, Column, VisibilityObserver};
+use pwt::widget::{AlertDialog, Column};
 use pwt::AsyncPool;
 
 use crate::{TaskProgress, TaskViewer};
@@ -317,7 +318,7 @@ pub struct LoadableComponentMaster<L: LoadableComponent> {
     view_state: ViewState<L::ViewState>,
     reload_timeout: Option<Timeout>,
     visible: bool,
-    visibitlity_observer: Option<VisibilityObserver>,
+    visibitlity_observer: Option<DomVisibilityObserver>,
     node_ref: NodeRef,
     async_pool: AsyncPool,
 }
@@ -539,7 +540,7 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if self.visibitlity_observer.is_none() && self.reload_timeout.is_some() {
             if let Some(el) = self.node_ref.cast::<web_sys::Element>() {
-                self.visibitlity_observer = Some(VisibilityObserver::new(
+                self.visibitlity_observer = Some(DomVisibilityObserver::new(
                     &el,
                     ctx.link().callback(Msg::Visible),
                 ))

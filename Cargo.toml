@@ -58,8 +58,8 @@ slab = "0.4"
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
-pwt = "0.4"
-pwt-macros = "0.2"
+pwt = "0.4.2"
+pwt-macros = "0.3"
 
 proxmox-schema = { version = "3", features = ["api-macro"] }
 proxmox-human-byte = "0.1"

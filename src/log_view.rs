@@ -17,7 +17,8 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
-use pwt::widget::{Container, SizeObserver};
+use pwt::dom::DomSizeObserver;
+use pwt::widget::Container;
 
 use pwt_macros::builder;
 
@@ -197,7 +198,7 @@ pub struct PwtLogView {
     // This is probably good enouth until scale gets larger than line_height...
     scale: f64,
 
-    size_observer: Option<SizeObserver>,
+    size_observer: Option<DomSizeObserver>,
 
     tailview_trigger: Option<Interval>,
 
@@ -543,7 +544,7 @@ impl Component for PwtLogView {
         if first_render {
             if let Some(el) = self.viewport_ref.cast::<web_sys::Element>() {
                 let link = ctx.link().clone();
-                let size_observer = SizeObserver::new(&el, move |(width, height)| {
+                let size_observer = DomSizeObserver::new(&el, move |(width, height)| {
                     link.send_message(Msg::ViewportResize(width, height));
                 });
 

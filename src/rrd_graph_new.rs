@@ -6,11 +6,12 @@ use yew::html::IntoPropValue;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
+use pwt::dom::DomSizeObserver;
 use pwt::prelude::*;
 use pwt::props::{IntoOptionalTextRenderFn, TextRenderFn};
 use pwt::state::optional_rc_ptr_eq;
 use pwt::widget::align::{align_to, AlignOptions};
-use pwt::widget::{Button, Container, Panel, SizeObserver};
+use pwt::widget::{Button, Container, Panel};
 
 use pwt_macros::builder;
 
@@ -130,7 +131,7 @@ pub enum Msg {
 
 pub struct PwtRRDGraph {
     node_ref: NodeRef,
-    size_observer: Option<SizeObserver>,
+    size_observer: Option<DomSizeObserver>,
     canvas_ref: NodeRef,
     layout: LayoutProps,
     selection: Option<(usize, usize)>,
@@ -1004,7 +1005,7 @@ impl Component for PwtRRDGraph {
         if first_render {
             if let Some(el) = self.node_ref.cast::<web_sys::Element>() {
                 let link = ctx.link().clone();
-                let size_observer = SizeObserver::new(&el, move |(width, height)| {
+                let size_observer = DomSizeObserver::new(&el, move |(width, height)| {
                     link.send_message(Msg::ViewportResize(width, height));
                 });
                 self.size_observer = Some(size_observer);

@@ -1,6 +1,7 @@
 use pwt::css::{Display, FlexDirection};
+use pwt::dom::DomSizeObserver;
 use pwt::prelude::*;
-use pwt::widget::{Container, SizeObserver};
+use pwt::widget::Container;
 
 use pwt_macros::widget;
 
@@ -20,7 +21,7 @@ pub enum Msg {
 
 #[doc(hidden)]
 pub struct ProxmoxRRDGrid {
-    size_observer: Option<SizeObserver>,
+    size_observer: Option<DomSizeObserver>,
     cols: usize,
     col_width: usize,
 }
@@ -82,7 +83,7 @@ impl Component for ProxmoxRRDGrid {
         if first_render {
             if let Some(el) = props.std_props.node_ref.cast::<web_sys::Element>() {
                 let link = ctx.link().clone();
-                let size_observer = SizeObserver::new(&el, move |(width, height)| {
+                let size_observer = DomSizeObserver::new(&el, move |(width, height)| {
                     link.send_message(Msg::ViewportResize(width, height));
                 });
                 self.size_observer = Some(size_observer);

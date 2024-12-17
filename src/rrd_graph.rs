@@ -3,12 +3,13 @@ use std::rc::Rc;
 use serde_json::json;
 use wasm_bindgen::JsValue;
 
+use yew::html::IntoPropValue;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
-use yew::html::IntoPropValue;
 
+use pwt::dom::DomSizeObserver;
 use pwt::prelude::*;
-use pwt::widget::{Panel, SizeObserver};
+use pwt::widget::Panel;
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct RRDGraph {
@@ -24,7 +25,6 @@ pub struct RRDGraph {
 }
 
 impl RRDGraph {
-
     pub fn new(data: Rc<(Vec<i64>, Vec<f64>)>) -> Self {
         yew::props!(RRDGraph { data })
     }
@@ -62,7 +62,7 @@ pub enum Msg {
 
 pub struct PwtRRDGraph {
     node_ref: NodeRef,
-    size_observer: Option<SizeObserver>,
+    size_observer: Option<DomSizeObserver>,
     width: usize,
     uplot: Option<JsValue>,
 }
@@ -121,7 +121,7 @@ impl Component for PwtRRDGraph {
         if first_render {
             if let Some(el) = self.node_ref.cast::<web_sys::Element>() {
                 let link = ctx.link().clone();
-                let size_observer = SizeObserver::new(&el, move |(width, height)| {
+                let size_observer = DomSizeObserver::new(&el, move |(width, height)| {
                     link.send_message(Msg::ViewportResize(width, height));
                 });
 
@@ -130,7 +130,7 @@ impl Component for PwtRRDGraph {
 
             let props = ctx.props();
 
-            let mut serie1 =json!({
+            let mut serie1 = json!({
                 // initial toggled state (optional)
                 "show": true,
 
