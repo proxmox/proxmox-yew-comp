@@ -6,11 +6,11 @@ use yew::html::IntoPropValue;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
+use pwt::dom::align::{align_to, AlignOptions};
 use pwt::dom::DomSizeObserver;
 use pwt::prelude::*;
 use pwt::props::{IntoOptionalTextRenderFn, TextRenderFn};
 use pwt::state::optional_rc_ptr_eq;
-use pwt::widget::align::{align_to, AlignOptions};
 use pwt::widget::{Button, Container, Panel};
 
 use pwt_macros::builder;
