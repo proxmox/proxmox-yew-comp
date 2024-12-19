@@ -1,8 +1,8 @@
 use yew::html::{IntoEventCallback, IntoPropValue};
 
+use pwt::prelude::*;
 use pwt::props::IntoOptionalInlineHtml;
-use pwt::widget::{Button, Column, MessageBoxButtons};
-use pwt::{prelude::*, widget::MessageBox};
+use pwt::widget::{Button, Column, ConfirmDialog};
 
 use pwt_macros::{builder, widget};
 
@@ -122,25 +122,15 @@ impl Component for ProxmoxConfirmButton {
         let props = ctx.props();
         match msg {
             Msg::Request => {
-                if let Some(message) = &props.confirm_message {
-                    if self.dialog.is_some() {
-                        return false;
-                    }
+                let mut dialog = ConfirmDialog::default()
+                    .on_confirm(ctx.link().callback(|_| Msg::Activate))
+                    .on_close(ctx.link().callback(|_| Msg::CloseDialog));
 
-                    let dialog = MessageBox::new(tr!("Confirm"), message.clone())
-                        .buttons(MessageBoxButtons::YesNo)
-                        .on_close(ctx.link().callback(|confirm| {
-                            if confirm {
-                                Msg::Activate
-                            } else {
-                                Msg::CloseDialog
-                            }
-                        }));
-
-                    self.dialog = Some(dialog.into());
-                } else {
-                    ctx.link().send_message(Msg::Activate);
+                if let Some(confirm_message) = &props.confirm_message {
+                    dialog.set_confirm_message(confirm_message.clone())
                 }
+
+                self.dialog = Some(dialog.into());
                 true
             }
             Msg::Activate => {
