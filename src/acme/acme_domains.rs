@@ -301,7 +301,7 @@ impl ProxmoxAcmeDomainsPanel {
             tr!("Plugin"),
             AcmePluginSelector::new()
                 .name("plugin")
-                .required(true)
+                .required(challenge_type == "DNS")
                 .submit(challenge_type == "DNS"),
         );
 
