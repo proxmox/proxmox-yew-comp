@@ -36,6 +36,12 @@ pub struct AuthEditLDAP {
     pub realm: Option<AttrValue>,
 }
 
+impl Default for AuthEditLDAP {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AuthEditLDAP {
     pub fn new() -> Self {
         yew::props!(Self {})

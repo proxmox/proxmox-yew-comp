@@ -9,6 +9,12 @@ use pwt_macros::widget;
 #[derive(Clone, Properties, PartialEq)]
 pub struct TaskTypeSelector {}
 
+impl Default for TaskTypeSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TaskTypeSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -124,6 +124,12 @@ pub struct AuthidSelector {
     pub include_users: bool,
 }
 
+impl Default for AuthidSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AuthidSelector {
     /// Create a new instance.
     pub fn new() -> Self {

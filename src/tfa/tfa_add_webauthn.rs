@@ -34,6 +34,12 @@ pub struct TfaAddWebauthn {
     pub base_url: AttrValue,
 }
 
+impl Default for TfaAddWebauthn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TfaAddWebauthn {
     pub fn new() -> Self {
         yew::props!(Self {})

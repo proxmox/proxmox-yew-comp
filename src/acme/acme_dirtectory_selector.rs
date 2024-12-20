@@ -34,6 +34,12 @@ pub struct AcmeDirectorySelector {
     pub on_change: Option<Callback<Option<AcmeDirectoryListItem>>>,
 }
 
+impl Default for AcmeDirectorySelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AcmeDirectorySelector {
     /// Create a new instance for a local datastore.
     pub fn new() -> Self {

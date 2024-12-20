@@ -25,6 +25,12 @@ pub struct AcmeRegisterAccount {
     pub on_done: Option<Callback<()>>,
 }
 
+impl Default for AcmeRegisterAccount {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AcmeRegisterAccount {
     pub fn new() -> Self {
         yew::props!(Self {})

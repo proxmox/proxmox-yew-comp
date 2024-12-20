@@ -44,6 +44,12 @@ pub struct RealmSelector {
     pub default: Option<AttrValue>,
 }
 
+impl Default for RealmSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RealmSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -23,6 +23,12 @@ pub struct LoginPanel {
     pub default_realm: AttrValue,
 }
 
+impl Default for LoginPanel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LoginPanel {
     pub fn new() -> Self {
         yew::props!(Self {})

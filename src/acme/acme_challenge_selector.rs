@@ -35,6 +35,12 @@ pub struct AcmeChallengeSelector {
     pub on_change: Option<Callback<Option<AcmeChallengeSchemaItem>>>,
 }
 
+impl Default for AcmeChallengeSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AcmeChallengeSelector {
     /// Create a new instance for a local datastore.
     pub fn new() -> Self {

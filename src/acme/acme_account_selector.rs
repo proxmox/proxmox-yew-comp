@@ -35,6 +35,12 @@ pub struct AcmeAccountSelector {
     pub on_change: Option<Callback<Option<String>>>,
 }
 
+impl Default for AcmeAccountSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AcmeAccountSelector {
     /// Create a new instance.
     pub fn new() -> Self {

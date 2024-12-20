@@ -74,6 +74,12 @@ pub struct TfaView {
     pub base_url: AttrValue,
 }
 
+impl Default for TfaView {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TfaView {
     pub fn new() -> Self {
         yew::props!(Self {})

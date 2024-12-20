@@ -17,6 +17,12 @@ pub struct Markdown {
     text: Option<AttrValue>,
 }
 
+impl Default for Markdown {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Markdown {
     /// Creates a new instance.
     pub fn new() -> Self {

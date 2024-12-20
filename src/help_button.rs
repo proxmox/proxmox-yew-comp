@@ -14,6 +14,11 @@ pub struct HelpButton {
     class: Classes,
 }
 
+impl Default for HelpButton {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl HelpButton {
     pub fn new() -> Self {
@@ -45,7 +50,6 @@ pub fn pbs_help_button(props: &HelpButton) -> Html {
         Button::new("Documentation")
             .icon_class("fa fa-book")
             .aria_label("documentation")
-
     };
 
     button

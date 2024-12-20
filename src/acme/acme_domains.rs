@@ -40,6 +40,12 @@ pub struct AcmeDomainsPanel {
     pub url: AttrValue,
 }
 
+impl Default for AcmeDomainsPanel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AcmeDomainsPanel {
     pub fn new() -> Self {
         yew::props! {Self {}}

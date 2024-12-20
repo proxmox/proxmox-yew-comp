@@ -14,6 +14,12 @@ use pwt_macros::widget;
 #[derive(Clone, Properties, PartialEq)]
 pub struct TaskStatusSelector {}
 
+impl Default for TaskStatusSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TaskStatusSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -45,6 +45,12 @@ pub struct Tasks {
     pub base_url: Option<AttrValue>,
 }
 
+impl Default for Tasks {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Tasks {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -59,6 +59,12 @@ pub struct CalendarEventSelector {
     pub default: Option<AttrValue>,
 }
 
+impl Default for CalendarEventSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CalendarEventSelector {
     /// Create a new instance.
     pub fn new() -> Self {

@@ -35,6 +35,12 @@ pub struct AcmePluginSelector {
     pub on_change: Option<Callback<Option<String>>>,
 }
 
+impl Default for AcmePluginSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AcmePluginSelector {
     /// Create a new instance.
     pub fn new() -> Self {

@@ -44,6 +44,12 @@ pub struct AuthView {
     ldap_base_url: Option<AttrValue>,
 }
 
+impl Default for AuthView {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AuthView {
     pub fn new() -> Self {
         yew::props!(Self {})

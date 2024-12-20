@@ -43,6 +43,12 @@ use pwt_macros::widget;
 #[derive(Clone, Properties, PartialEq)]
 pub struct RoleSelector {}
 
+impl Default for RoleSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RoleSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

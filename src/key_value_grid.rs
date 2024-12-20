@@ -113,6 +113,12 @@ pub struct KVGrid {
     pub on_row_keydown: Option<CallbackMut<DataTableKeyboardEvent>>,
 }
 
+impl Default for KVGrid {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl KVGrid {
     pub fn new() -> Self {
         yew::props!(Self {

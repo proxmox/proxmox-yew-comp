@@ -35,6 +35,12 @@ pub struct AuthEditOpenID {
     pub realm: Option<AttrValue>,
 }
 
+impl Default for AuthEditOpenID {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AuthEditOpenID {
     pub fn new() -> Self {
         yew::props!(Self {})

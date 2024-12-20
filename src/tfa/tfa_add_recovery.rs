@@ -53,6 +53,12 @@ pub struct TfaAddRecovery {
     pub base_url: AttrValue,
 }
 
+impl Default for TfaAddRecovery {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TfaAddRecovery {
     pub fn new() -> Self {
         yew::props!(Self {})

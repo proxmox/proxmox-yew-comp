@@ -28,6 +28,12 @@ pub struct Gauge {
     pub warning_threshold: f32,
 }
 
+impl Default for Gauge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Gauge {
     /// Create a new instance.
     pub fn new() -> Self {

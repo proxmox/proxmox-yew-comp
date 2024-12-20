@@ -34,6 +34,12 @@ pub struct BandwidthSelector {
     pub default_unit: SizeUnit,
 }
 
+impl Default for BandwidthSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BandwidthSelector {
     /// Create a new instance.
     pub fn new() -> Self {

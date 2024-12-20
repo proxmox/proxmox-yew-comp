@@ -16,6 +16,12 @@ pub struct TimezoneSelector {
     pub default: Option<AttrValue>,
 }
 
+impl Default for TimezoneSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TimezoneSelector {
     /// Create a new instance.
     pub fn new() -> Self {

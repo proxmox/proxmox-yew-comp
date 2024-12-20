@@ -30,6 +30,12 @@ pub struct AcmeAccountEntry {
 #[derive(PartialEq, Properties)]
 pub struct AcmeAccountsPanel {}
 
+impl Default for AcmeAccountsPanel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AcmeAccountsPanel {
     pub fn new() -> Self {
         Self {}

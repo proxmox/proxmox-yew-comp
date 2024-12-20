@@ -16,6 +16,12 @@ pub struct BondXmitHashPolicySelector {
     pub default: Option<AttrValue>,
 }
 
+impl Default for BondXmitHashPolicySelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BondXmitHashPolicySelector {
     /// Create a new instance.
     pub fn new() -> Self {

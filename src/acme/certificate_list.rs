@@ -34,6 +34,12 @@ async fn upload_custom_certificate(form_ctx: FormContext) -> Result<(), Error> {
 #[derive(PartialEq, Properties)]
 pub struct CertificateList {}
 
+impl Default for CertificateList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CertificateList {
     pub fn new() -> Self {
         Self {}

@@ -16,6 +16,12 @@ pub struct BondModeSelector {
     pub default: Option<AttrValue>,
 }
 
+impl Default for BondModeSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BondModeSelector {
     /// Create a new instance.
     pub fn new() -> Self {

@@ -87,6 +87,12 @@ async fn update_user(form_ctx: FormContext) -> Result<(), Error> {
 #[derive(PartialEq, Properties)]
 pub struct UserPanel {}
 
+impl Default for UserPanel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UserPanel {
     pub fn new() -> Self {
         Self {}

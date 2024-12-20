@@ -34,6 +34,12 @@ pub struct PermissionPanel {
     pub auth_id: Option<AttrValue>,
 }
 
+impl Default for PermissionPanel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PermissionPanel {
     pub fn new() -> Self {
         yew::props!(Self {})

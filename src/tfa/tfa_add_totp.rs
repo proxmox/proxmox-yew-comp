@@ -59,6 +59,12 @@ pub struct TfaAddTotp {
     pub base_url: AttrValue,
 }
 
+impl Default for TfaAddTotp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TfaAddTotp {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -18,6 +18,12 @@ pub struct AcmeChallengeTypeSelector {
     pub default: Option<AttrValue>,
 }
 
+impl Default for AcmeChallengeTypeSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AcmeChallengeTypeSelector {
     /// Create a new instance.
     pub fn new() -> Self {

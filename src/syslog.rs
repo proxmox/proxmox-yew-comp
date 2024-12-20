@@ -31,6 +31,12 @@ pub struct Syslog {
     pub service: Option<AttrValue>,
 }
 
+impl Default for Syslog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Syslog {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -36,6 +36,12 @@ pub struct ObjectGridController {
     state: SharedState<Vec<ObjectGridCommand>>,
 }
 
+impl Default for ObjectGridController {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ObjectGridController {
     pub fn new() -> Self {
         Self {
@@ -184,6 +190,12 @@ impl Into<VNode> for ObjectGrid {
         let key = self.key.clone();
         let comp = VComp::new::<LoadableComponentMaster<PwtObjectGrid>>(Rc::new(self), key);
         VNode::from(comp)
+    }
+}
+
+impl Default for ObjectGrid {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

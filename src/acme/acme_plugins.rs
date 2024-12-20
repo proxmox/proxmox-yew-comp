@@ -61,6 +61,12 @@ pub struct AcmePluginsPanel {
     challenge_shema_url: AttrValue,
 }
 
+impl Default for AcmePluginsPanel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AcmePluginsPanel {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -27,6 +27,12 @@ pub struct XTermJs {
     pub console_type: ConsoleType,
 }
 
+impl Default for XTermJs {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl XTermJs {
     /// Create a new terminal panel (iframe)
     pub fn new() -> Self {

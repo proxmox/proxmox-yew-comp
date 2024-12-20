@@ -16,6 +16,12 @@ pub struct ThemeDialog {
     pub on_close: Option<Callback<()>>,
 }
 
+impl Default for ThemeDialog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ThemeDialog {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -17,6 +17,12 @@ pub struct LanguageDialog {
     pub on_close: Option<Callback<()>>,
 }
 
+impl Default for LanguageDialog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LanguageDialog {
     pub fn new() -> Self {
         yew::props!(Self {})
