@@ -335,9 +335,9 @@ thread_local! {
         ]);
 }
 
-impl Into<VNode> for Tasks {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<LoadableComponentMaster<ProxmoxTasks>>(Rc::new(self), None);
+impl From<Tasks> for VNode {
+    fn from(val: Tasks) -> Self {
+        let comp = VComp::new::<LoadableComponentMaster<ProxmoxTasks>>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

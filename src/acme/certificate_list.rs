@@ -192,10 +192,10 @@ impl LoadableComponent for ProxmoxCertificateList {
     }
 }
 
-impl Into<VNode> for CertificateList {
-    fn into(self) -> VNode {
+impl From<CertificateList> for VNode {
+    fn from(val: CertificateList) -> Self {
         let comp =
-            VComp::new::<LoadableComponentMaster<ProxmoxCertificateList>>(Rc::new(self), None);
+            VComp::new::<LoadableComponentMaster<ProxmoxCertificateList>>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

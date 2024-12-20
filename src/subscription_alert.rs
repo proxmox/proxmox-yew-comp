@@ -57,9 +57,9 @@ impl Component for ProxmoxSubscriptionAlert {
     }
 }
 
-impl Into<VNode> for SubscriptionAlert {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxSubscriptionAlert>(Rc::new(self), None);
+impl From<SubscriptionAlert> for VNode {
+    fn from(val: SubscriptionAlert) -> Self {
+        let comp = VComp::new::<ProxmoxSubscriptionAlert>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

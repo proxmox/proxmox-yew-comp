@@ -192,10 +192,10 @@ fn columns(store: &TreeStore<PermissionInfo>) -> Vec<DataTableHeader<PermissionI
     ]
 }
 
-impl Into<VNode> for PermissionPanel {
-    fn into(self) -> VNode {
+impl From<PermissionPanel> for VNode {
+    fn from(val: PermissionPanel) -> Self {
         let comp =
-            VComp::new::<LoadableComponentMaster<ProxmoxPermissionPanel>>(Rc::new(self), None);
+            VComp::new::<LoadableComponentMaster<ProxmoxPermissionPanel>>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

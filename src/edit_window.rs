@@ -402,10 +402,10 @@ impl Component for PwtEditWindow {
     }
 }
 
-impl Into<VNode> for EditWindow {
-    fn into(self) -> VNode {
-        let key = self.key.clone();
-        let comp = VComp::new::<PwtEditWindow>(Rc::new(self), key);
+impl From<EditWindow> for VNode {
+    fn from(val: EditWindow) -> Self {
+        let key = val.key.clone();
+        let comp = VComp::new::<PwtEditWindow>(Rc::new(val), key);
         VNode::from(comp)
     }
 }

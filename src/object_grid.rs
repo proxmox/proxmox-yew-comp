@@ -185,10 +185,10 @@ pub struct ObjectGrid {
     pub controller: Option<ObjectGridController>,
 }
 
-impl Into<VNode> for ObjectGrid {
-    fn into(self) -> VNode {
-        let key = self.key.clone();
-        let comp = VComp::new::<LoadableComponentMaster<PwtObjectGrid>>(Rc::new(self), key);
+impl From<ObjectGrid> for VNode {
+    fn from(val: ObjectGrid) -> Self {
+        let key = val.key.clone();
+        let comp = VComp::new::<LoadableComponentMaster<PwtObjectGrid>>(Rc::new(val), key);
         VNode::from(comp)
     }
 }

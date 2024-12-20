@@ -585,10 +585,10 @@ impl Component for PwtLogView {
     }
 }
 
-impl Into<VNode> for LogView {
-    fn into(self) -> VNode {
-        let key = self.key.clone();
-        let comp = VComp::new::<PwtLogView>(Rc::new(self), key);
+impl From<LogView> for VNode {
+    fn from(val: LogView) -> Self {
+        let key = val.key.clone();
+        let comp = VComp::new::<PwtLogView>(Rc::new(val), key);
         VNode::from(comp)
     }
 }

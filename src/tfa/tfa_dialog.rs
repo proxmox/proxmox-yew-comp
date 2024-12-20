@@ -242,9 +242,9 @@ impl Component for ProxmoxTfaDialog {
     }
 }
 
-impl Into<VNode> for TfaDialog {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxTfaDialog>(Rc::new(self), None);
+impl From<TfaDialog> for VNode {
+    fn from(val: TfaDialog) -> Self {
+        let comp = VComp::new::<ProxmoxTfaDialog>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

@@ -157,7 +157,7 @@ impl Component for PwtTaskProgress {
                 .class("pwt-flex-fill pwt-overflow-auto")
                 .with_child({
                     if active {
-                        Progress::new().into()
+                        Progress::new()
                     } else {
                         Progress::new().value(1.0)
                     }
@@ -187,10 +187,10 @@ impl Component for PwtTaskProgress {
     }
 }
 
-impl Into<VNode> for TaskProgress {
-    fn into(self) -> VNode {
-        let key = self.key.clone();
-        let comp = VComp::new::<PwtTaskProgress>(Rc::new(self), key);
+impl From<TaskProgress> for VNode {
+    fn from(val: TaskProgress) -> Self {
+        let key = val.key.clone();
+        let comp = VComp::new::<PwtTaskProgress>(Rc::new(val), key);
         VNode::from(comp)
     }
 }

@@ -138,9 +138,9 @@ impl Component for ProxmoxGauge {
     }
 }
 
-impl Into<VNode> for Gauge {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxGauge>(Rc::new(self), None);
+impl From<Gauge> for VNode {
+    fn from(val: Gauge) -> Self {
+        let comp = VComp::new::<ProxmoxGauge>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

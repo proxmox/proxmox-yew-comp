@@ -64,9 +64,9 @@ pub fn pbs_help_button(props: &HelpButton) -> Html {
         .into()
 }
 
-impl Into<VNode> for HelpButton {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<PbsHelpButton>(Rc::new(self), None);
+impl From<HelpButton> for VNode {
+    fn from(val: HelpButton) -> Self {
+        let comp = VComp::new::<PbsHelpButton>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

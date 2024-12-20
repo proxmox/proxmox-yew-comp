@@ -279,9 +279,9 @@ impl Component for ProxmoxWebAuthn {
     }
 }
 
-impl Into<VNode> for WebAuthn {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxWebAuthn>(Rc::new(self), None);
+impl From<WebAuthn> for VNode {
+    fn from(val: WebAuthn) -> Self {
+        let comp = VComp::new::<ProxmoxWebAuthn>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

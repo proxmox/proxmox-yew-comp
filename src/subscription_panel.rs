@@ -169,10 +169,10 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
     }
 }
 
-impl Into<VNode> for SubscriptionPanel {
-    fn into(self) -> VNode {
+impl From<SubscriptionPanel> for VNode {
+    fn from(val: SubscriptionPanel) -> Self {
         let comp =
-            VComp::new::<LoadableComponentMaster<ProxmoxSubscriptionPanel>>(Rc::new(self), None);
+            VComp::new::<LoadableComponentMaster<ProxmoxSubscriptionPanel>>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

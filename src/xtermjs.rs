@@ -117,10 +117,10 @@ impl Component for ProxmoxXTermJs {
     }
 }
 
-impl Into<VNode> for XTermJs {
-    fn into(self) -> VNode {
-        let key = self.key.clone();
-        let comp = VComp::new::<ProxmoxXTermJs>(Rc::new(self), key);
+impl From<XTermJs> for VNode {
+    fn from(val: XTermJs) -> Self {
+        let key = val.key.clone();
+        let comp = VComp::new::<ProxmoxXTermJs>(Rc::new(val), key);
         VNode::from(comp)
     }
 }

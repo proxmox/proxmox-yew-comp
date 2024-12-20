@@ -295,9 +295,9 @@ impl Component for ProxmoxAuthEditLDAP {
     }
 }
 
-impl Into<VNode> for AuthEditLDAP {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxAuthEditLDAP>(Rc::new(self), None);
+impl From<AuthEditLDAP> for VNode {
+    fn from(val: AuthEditLDAP) -> Self {
+        let comp = VComp::new::<ProxmoxAuthEditLDAP>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

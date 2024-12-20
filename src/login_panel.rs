@@ -354,9 +354,9 @@ impl Component for ProxmoxLoginPanel {
     }
 }
 
-impl Into<VNode> for LoginPanel {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxLoginPanel>(Rc::new(self), None);
+impl From<LoginPanel> for VNode {
+    fn from(val: LoginPanel) -> Self {
+        let comp = VComp::new::<ProxmoxLoginPanel>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

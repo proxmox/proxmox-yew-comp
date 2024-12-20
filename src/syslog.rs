@@ -254,9 +254,9 @@ impl Component for ProxmoxSyslog {
     }
 }
 
-impl Into<VNode> for Syslog {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxSyslog>(Rc::new(self), None);
+impl From<Syslog> for VNode {
+    fn from(val: Syslog) -> Self {
+        let comp = VComp::new::<ProxmoxSyslog>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

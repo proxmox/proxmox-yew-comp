@@ -305,10 +305,10 @@ impl Component for PwtKVGrid {
     }
 }
 
-impl Into<VNode> for KVGrid {
-    fn into(self) -> VNode {
-        let key = self.key.clone();
-        let comp = VComp::new::<PwtKVGrid>(Rc::new(self), key);
+impl From<KVGrid> for VNode {
+    fn from(val: KVGrid) -> Self {
+        let key = val.key.clone();
+        let comp = VComp::new::<PwtKVGrid>(Rc::new(val), key);
         VNode::from(comp)
     }
 }

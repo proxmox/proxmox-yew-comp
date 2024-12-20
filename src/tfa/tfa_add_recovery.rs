@@ -232,9 +232,9 @@ impl Component for ProxmoxTfaAddRecovery {
     }
 }
 
-impl Into<VNode> for TfaAddRecovery {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxTfaAddRecovery>(Rc::new(self), None);
+impl From<TfaAddRecovery> for VNode {
+    fn from(val: TfaAddRecovery) -> Self {
+        let comp = VComp::new::<ProxmoxTfaAddRecovery>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

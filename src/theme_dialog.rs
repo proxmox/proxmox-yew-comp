@@ -61,9 +61,9 @@ impl Component for ProxmoxThemeDialog {
     }
 }
 
-impl Into<VNode> for ThemeDialog {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxThemeDialog>(Rc::new(self), None);
+impl From<ThemeDialog> for VNode {
+    fn from(val: ThemeDialog) -> Self {
+        let comp = VComp::new::<ProxmoxThemeDialog>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

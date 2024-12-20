@@ -303,9 +303,9 @@ impl ProxmoxUserPanel {
     }
 }
 
-impl Into<VNode> for UserPanel {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<LoadableComponentMaster<ProxmoxUserPanel>>(Rc::new(self), None);
+impl From<UserPanel> for VNode {
+    fn from(val: UserPanel) -> Self {
+        let comp = VComp::new::<LoadableComponentMaster<ProxmoxUserPanel>>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

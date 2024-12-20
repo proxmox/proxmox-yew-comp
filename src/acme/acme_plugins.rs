@@ -319,10 +319,10 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
     }
 }
 
-impl Into<VNode> for AcmePluginsPanel {
-    fn into(self) -> VNode {
+impl From<AcmePluginsPanel> for VNode {
+    fn from(val: AcmePluginsPanel) -> Self {
         let comp =
-            VComp::new::<LoadableComponentMaster<ProxmoxAcmePluginsPanel>>(Rc::new(self), None);
+            VComp::new::<LoadableComponentMaster<ProxmoxAcmePluginsPanel>>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

@@ -235,9 +235,9 @@ impl LoadableComponent for ProxmoxNotesView {
     }
 }
 
-impl Into<VNode> for NotesView {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<LoadableComponentMaster<ProxmoxNotesView>>(Rc::new(self), None);
+impl From<NotesView> for VNode {
+    fn from(val: NotesView) -> Self {
+        let comp = VComp::new::<LoadableComponentMaster<ProxmoxNotesView>>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

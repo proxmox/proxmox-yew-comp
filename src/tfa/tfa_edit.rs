@@ -106,9 +106,9 @@ impl Component for ProxmoxTfaEdit {
     }
 }
 
-impl Into<VNode> for TfaEdit {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxTfaEdit>(Rc::new(self), None);
+impl From<TfaEdit> for VNode {
+    fn from(val: TfaEdit) -> Self {
+        let comp = VComp::new::<ProxmoxTfaEdit>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

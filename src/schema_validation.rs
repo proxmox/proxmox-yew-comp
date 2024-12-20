@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use proxmox_schema::Schema;
-use pwt::widget::form::{ValidateFn, InputType};
+use pwt::widget::form::{InputType, ValidateFn};
 
 pub trait SchemaValidation {
     fn schema(mut self, schema: &'static Schema) -> Self

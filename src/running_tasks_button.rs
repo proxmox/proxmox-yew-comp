@@ -198,9 +198,9 @@ impl Component for ProxmoxRunningTasksButton {
     }
 }
 
-impl Into<VNode> for RunningTasksButton {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxRunningTasksButton>(Rc::new(self), None);
+impl From<RunningTasksButton> for VNode {
+    fn from(val: RunningTasksButton) -> Self {
+        let comp = VComp::new::<ProxmoxRunningTasksButton>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

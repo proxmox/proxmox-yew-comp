@@ -173,9 +173,9 @@ impl Component for ProxmoxTfaAddTotp {
     }
 }
 
-impl Into<VNode> for TfaAddTotp {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxTfaAddTotp>(Rc::new(self), None);
+impl From<TfaAddTotp> for VNode {
+    fn from(val: TfaAddTotp) -> Self {
+        let comp = VComp::new::<ProxmoxTfaAddTotp>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

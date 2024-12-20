@@ -145,9 +145,9 @@ impl Component for ProxmoxSubscriptionInfo {
     }
 }
 
-impl Into<VNode> for SubscriptionInfo {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxSubscriptionInfo>(Rc::new(self), None);
+impl From<SubscriptionInfo> for VNode {
+    fn from(val: SubscriptionInfo) -> Self {
+        let comp = VComp::new::<ProxmoxSubscriptionInfo>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

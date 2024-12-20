@@ -415,9 +415,9 @@ thread_local! {
     ]);
 }
 
-impl Into<VNode> for TfaView {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<LoadableComponentMaster<ProxmoxTfaView>>(Rc::new(self), None);
+impl From<TfaView> for VNode {
+    fn from(val: TfaView) -> Self {
+        let comp = VComp::new::<LoadableComponentMaster<ProxmoxTfaView>>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

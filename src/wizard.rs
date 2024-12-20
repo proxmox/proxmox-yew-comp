@@ -592,10 +592,10 @@ impl PwtWizard {
     }
 }
 
-impl Into<VNode> for Wizard {
-    fn into(self) -> VNode {
-        let key = self.key.clone();
-        let comp = VComp::new::<PwtWizard>(Rc::new(self), key);
+impl From<Wizard> for VNode {
+    fn from(val: Wizard) -> Self {
+        let key = val.key.clone();
+        let comp = VComp::new::<PwtWizard>(Rc::new(val), key);
         VNode::from(comp)
     }
 }

@@ -181,9 +181,9 @@ impl Component for ProxmoxAcmeRegisterAccount {
     }
 }
 
-impl Into<VNode> for AcmeRegisterAccount {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxAcmeRegisterAccount>(Rc::new(self), None);
+impl From<AcmeRegisterAccount> for VNode {
+    fn from(val: AcmeRegisterAccount) -> Self {
+        let comp = VComp::new::<ProxmoxAcmeRegisterAccount>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

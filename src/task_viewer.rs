@@ -181,10 +181,10 @@ impl Component for PwtTaskViewer {
     }
 }
 
-impl Into<VNode> for TaskViewer {
-    fn into(self) -> VNode {
-        let key = self.key.clone();
-        let comp = VComp::new::<PwtTaskViewer>(Rc::new(self), key);
+impl From<TaskViewer> for VNode {
+    fn from(val: TaskViewer) -> Self {
+        let key = val.key.clone();
+        let comp = VComp::new::<PwtTaskViewer>(Rc::new(val), key);
         VNode::from(comp)
     }
 }
