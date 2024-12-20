@@ -1,12 +1,12 @@
 use std::rc::Rc;
 
-use yew::prelude::*;
 use yew::html::IntoPropValue;
+use yew::prelude::*;
 
 use pwt::widget::form::Combobox;
 
-use pwt_macros::widget;
 use pwt::props::{FieldBuilder, WidgetBuilder};
+use pwt_macros::widget;
 
 #[widget(comp=ProxmoxBondModeSelector, @input)]
 #[derive(Clone, Properties, PartialEq)]
@@ -44,7 +44,12 @@ impl Component for ProxmoxBondModeSelector {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            items: Rc::new(BOND_MODES.iter().map(|s| AttrValue::from(*s)).collect::<Vec<AttrValue>>()),
+            items: Rc::new(
+                BOND_MODES
+                    .iter()
+                    .map(|s| AttrValue::from(*s))
+                    .collect::<Vec<AttrValue>>(),
+            ),
         }
     }
 

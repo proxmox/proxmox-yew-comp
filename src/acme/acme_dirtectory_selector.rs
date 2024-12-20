@@ -121,7 +121,12 @@ impl Component for ProxmoxAcmeDirectorySelector {
             .render_value({
                 let store = self.store.clone();
                 move |url: &AttrValue| {
-                    let text = match store.read().data().iter().find(|item| &item.url == url.as_str()) {
+                    let text = match store
+                        .read()
+                        .data()
+                        .iter()
+                        .find(|item| &item.url == url.as_str())
+                    {
                         Some(entry) => entry.name.clone(),
                         None => url.to_string(),
                     };

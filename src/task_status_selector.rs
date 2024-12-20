@@ -79,7 +79,8 @@ impl ManagedField for ProxmoxTaskStatusSelector {
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {
         let state = ctx.state();
-        let filter: Vec<TaskFilterEntry> = serde_json::from_value(state.value.clone()).unwrap_or(Vec::new());
+        let filter: Vec<TaskFilterEntry> =
+            serde_json::from_value(state.value.clone()).unwrap_or(Vec::new());
         let mut filter_map: HashSet<TaskFilterEntry> = filter.into_iter().collect();
 
         match msg {
@@ -120,7 +121,8 @@ impl ManagedField for ProxmoxTaskStatusSelector {
 
     fn view(&self, ctx: &ManagedFieldContext<Self>) -> Html {
         let state = ctx.state();
-        let filter: Vec<TaskFilterEntry> = serde_json::from_value(state.value.clone()).unwrap_or(Vec::new());
+        let filter: Vec<TaskFilterEntry> =
+            serde_json::from_value(state.value.clone()).unwrap_or(Vec::new());
         let unique_map: HashSet<TaskFilterEntry> = filter.into_iter().collect();
 
         let pressed_scheme = "pwt-scheme-secondary-container";
@@ -135,25 +137,41 @@ impl ManagedField for ProxmoxTaskStatusSelector {
             .with_button(
                 Button::new(tr!("Ok"))
                     .pressed(unique_map.contains(&TaskFilterEntry::Ok))
-                    .class(unique_map.contains(&TaskFilterEntry::Ok).then(|| pressed_scheme))
+                    .class(
+                        unique_map
+                            .contains(&TaskFilterEntry::Ok)
+                            .then(|| pressed_scheme),
+                    )
                     .onclick(ctx.link().callback(|_| Msg::ToggleOk)),
             )
             .with_button(
                 Button::new(tr!("Errors"))
                     .pressed(unique_map.contains(&TaskFilterEntry::Error))
-                    .class(unique_map.contains(&TaskFilterEntry::Error).then(|| pressed_scheme))
+                    .class(
+                        unique_map
+                            .contains(&TaskFilterEntry::Error)
+                            .then(|| pressed_scheme),
+                    )
                     .onclick(ctx.link().callback(|_| Msg::ToggleErrors)),
             )
             .with_button(
                 Button::new(tr!("Warnings"))
                     .pressed(unique_map.contains(&TaskFilterEntry::Warning))
-                    .class(unique_map.contains(&TaskFilterEntry::Warning).then(|| pressed_scheme))
+                    .class(
+                        unique_map
+                            .contains(&TaskFilterEntry::Warning)
+                            .then(|| pressed_scheme),
+                    )
                     .onclick(ctx.link().callback(|_| Msg::ToggleWarnings)),
             )
             .with_button(
                 Button::new(tr!("Unknown"))
                     .pressed(unique_map.contains(&TaskFilterEntry::Unknown))
-                    .class(unique_map.contains(&TaskFilterEntry::Unknown).then(|| pressed_scheme))
+                    .class(
+                        unique_map
+                            .contains(&TaskFilterEntry::Unknown)
+                            .then(|| pressed_scheme),
+                    )
                     .onclick(ctx.link().callback(|_| Msg::ToggleUnknown)),
             )
             .into()

@@ -1,12 +1,12 @@
 use std::rc::Rc;
 
-use yew::prelude::*;
 use yew::html::IntoPropValue;
+use yew::prelude::*;
 
 use pwt::widget::form::Combobox;
 
-use pwt_macros::widget;
 use pwt::props::{FieldBuilder, WidgetBuilder};
+use pwt_macros::widget;
 
 #[widget(comp=ProxmoxBondXmitHashPolicySelector, @input)]
 #[derive(Clone, Properties, PartialEq)]
@@ -44,7 +44,12 @@ impl Component for ProxmoxBondXmitHashPolicySelector {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            items: Rc::new(XMIT_HASH_POLICY.iter().map(|s| AttrValue::from(*s)).collect::<Vec<AttrValue>>()),
+            items: Rc::new(
+                XMIT_HASH_POLICY
+                    .iter()
+                    .map(|s| AttrValue::from(*s))
+                    .collect::<Vec<AttrValue>>(),
+            ),
         }
     }
 
@@ -61,8 +66,4 @@ impl Component for ProxmoxBondXmitHashPolicySelector {
 }
 
 #[allow(dead_code)]
-static XMIT_HASH_POLICY: &'static [&'static str] = &[
-    "layer2",
-    "layer2+3",
-    "layer3+4",
-];
+static XMIT_HASH_POLICY: &'static [&'static str] = &["layer2", "layer2+3", "layer3+4"];

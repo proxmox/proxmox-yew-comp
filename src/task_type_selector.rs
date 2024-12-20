@@ -29,7 +29,9 @@ impl Component for ProxmoxTaskTypeSelector {
         items.sort();
 
         let items = items.into_iter().map(|a| a.into()).collect();
-        Self { items: Rc::new(items) }
+        Self {
+            items: Rc::new(items),
+        }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {

@@ -14,8 +14,8 @@ pub struct HelpButton {
     class: Classes,
 }
 
-impl HelpButton {
 
+impl HelpButton {
     pub fn new() -> Self {
         yew::props!(Self {})
     }
@@ -40,10 +40,10 @@ impl HelpButton {
 #[function_component(PbsHelpButton)]
 pub fn pbs_help_button(props: &HelpButton) -> Html {
     let button = if props.section.is_some() {
-        Button::new("?").class("circle")
-            .aria_label("help")
+        Button::new("?").class("circle").aria_label("help")
     } else {
-        Button::new("Documentation").icon_class("fa fa-book")
+        Button::new("Documentation")
+            .icon_class("fa fa-book")
             .aria_label("documentation")
 
     };
@@ -56,7 +56,8 @@ pub fn pbs_help_button(props: &HelpButton) -> Html {
                 let window = web_sys::window().unwrap();
                 let _ = window.open_with_url_and_target(&url, "top");
             }
-        }).into()
+        })
+        .into()
 }
 
 impl Into<VNode> for HelpButton {
