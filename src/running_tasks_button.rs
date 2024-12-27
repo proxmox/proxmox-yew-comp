@@ -54,7 +54,7 @@ pub struct ProxmoxRunningTasksButton {
 impl ProxmoxRunningTasksButton {
     fn restore_focus(&mut self) {
         if let Some(node) = self.node_ref.get() {
-            if let Some(el) = node.dyn_into::<web_sys::HtmlElement>().ok() {
+            if let Ok(el) = node.dyn_into::<web_sys::HtmlElement>() {
                 let _ = el.focus();
             }
         }
