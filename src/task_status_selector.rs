@@ -26,6 +26,7 @@ impl TaskStatusSelector {
     }
 }
 
+#[allow(clippy::enum_variant_names)]
 pub enum Msg {
     ToggleAll,
     ToggleOk,
