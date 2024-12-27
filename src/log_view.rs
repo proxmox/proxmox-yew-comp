@@ -287,14 +287,14 @@ impl PwtLogView {
         let line = self.physical_to_logical(self.scroll_top) / self.line_height();
 
         let prev = if line > 100 {
-            (line as u64 - 100) / PAGE_HEIGHT
+            (line - 100) / PAGE_HEIGHT
         } else {
             0
         };
-        let start = (line as u64) / PAGE_HEIGHT;
+        let start = line / PAGE_HEIGHT;
         let end = (line + self.viewport_lines) / PAGE_HEIGHT;
         let next = if line + 100 < self.total.unwrap_or(0) {
-            (line as u64 + self.viewport_lines + 100) / PAGE_HEIGHT
+            (line + self.viewport_lines + 100) / PAGE_HEIGHT
         } else {
             end
         };
