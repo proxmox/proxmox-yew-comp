@@ -50,9 +50,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
     type Message = Msg;
     type ValidateClosure = ();
 
-    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure {
-        ()
-    }
+    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure {}
 
     fn validator(_props: &Self::ValidateClosure, value: &Value) -> Result<Value, Error> {
         let filter: Vec<TaskFilterEntry> = serde_json::from_value(value.clone())?;
