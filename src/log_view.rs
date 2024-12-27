@@ -394,10 +394,8 @@ impl Component for PwtLogView {
                     if !at_end {
                         self.enable_tail_view = false;
                     }
-                } else {
-                    if at_end && ctx.props().active {
-                        self.enable_tail_view = true;
-                    }
+                } else if at_end && ctx.props().active {
+                    self.enable_tail_view = true;
                 }
 
                 true

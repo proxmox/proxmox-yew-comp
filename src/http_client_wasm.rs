@@ -184,23 +184,20 @@ impl HttpClientWasm {
             }
             init.headers(&js_headers);
             web_sys::Request::new_with_str_and_init(url, &init).map_err(|err| convert_js_error(err))
+        } else if let Some(data) = data {
+            js_headers
+                .append("content-type", "application/x-www-form-urlencoded")
+                .map_err(|err| convert_js_error(err))?;
+            let data = serde_json::to_value(data)
+                .map_err(|err| format_err!("serialize failure: {}", err))?;
+            let query = json_object_to_query(data)?;
+            let url = format!("{}?{}", url, query);
+            init.headers(&js_headers);
+            web_sys::Request::new_with_str_and_init(&url, &init)
+                .map_err(|err| convert_js_error(err))
         } else {
-            if let Some(data) = data {
-                js_headers
-                    .append("content-type", "application/x-www-form-urlencoded")
-                    .map_err(|err| convert_js_error(err))?;
-                let data = serde_json::to_value(data)
-                    .map_err(|err| format_err!("serialize failure: {}", err))?;
-                let query = json_object_to_query(data)?;
-                let url = format!("{}?{}", url, query);
-                init.headers(&js_headers);
-                web_sys::Request::new_with_str_and_init(&url, &init)
-                    .map_err(|err| convert_js_error(err))
-            } else {
-                init.headers(&js_headers);
-                web_sys::Request::new_with_str_and_init(url, &init)
-                    .map_err(|err| convert_js_error(err))
-            }
+            init.headers(&js_headers);
+            web_sys::Request::new_with_str_and_init(url, &init).map_err(|err| convert_js_error(err))
         }
     }
 

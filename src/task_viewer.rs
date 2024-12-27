@@ -124,10 +124,8 @@ impl Component for PwtTaskViewer {
                     self.reload_timeout = Some(Timeout::new(1_000, move || {
                         link.send_message(Msg::Reload);
                     }));
-                } else {
-                    if self.endtime.is_none() {
-                        self.endtime = Some(proxmox_time::epoch_i64());
-                    }
+                } else if self.endtime.is_none() {
+                    self.endtime = Some(proxmox_time::epoch_i64());
                 }
                 true
             }
