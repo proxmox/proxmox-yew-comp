@@ -24,16 +24,16 @@ pub fn format_duration_human(ut: f64) -> String {
     }
     let mut remaining = ut as u64;
     let seconds = remaining % 60;
-    remaining = remaining / 60;
+    remaining /= 60;
     if remaining > 0 {
         minutes = remaining % 60;
-        remaining = remaining / 60;
+        remaining /= 60;
         if remaining > 0 {
             hours = remaining % 24;
-            remaining = remaining / 24;
+            remaining /= 24;
             if remaining > 0 {
                 days = remaining % 365;
-                remaining = remaining / 365; // yea, just lets ignore leap years...
+                remaining /= 365; // yea, just lets ignore leap years...
                 if remaining > 0 {
                     years = remaining;
                 }
