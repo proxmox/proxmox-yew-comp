@@ -105,12 +105,15 @@ fn render_input_form(_form_ctx: FormContext) -> Html {
 
 impl ProxmoxTfaAddRecovery {
     fn recovery_keys_dialog(&self, ctx: &Context<Self>, data: &RecoveryKeyInfo) -> Html {
+        use std::fmt::Write;
         let text: String = data
             .keys
             .iter()
             .enumerate()
-            .map(|(i, key)| format!("{i}: {key}\n"))
-            .collect();
+            .fold(String::new(), |mut acc, (i, key)| {
+                let _ = writeln!(acc, "{i}: {key}\n");
+                acc
+            });
 
         Dialog::new(tr!("Recovery Keys for user '{}'", data.userid))
             .on_close(ctx.props().on_close.clone())
@@ -247,12 +250,15 @@ fn create_paperkey_page(data: &RecoveryKeyInfo, print_counter: usize) -> Html {
     let title = document.title();
     let host = document.location().unwrap().host().unwrap();
 
+    use std::fmt::Write;
     let key_text: String = data
         .keys
         .iter()
         .enumerate()
-        .map(|(i, key)| format!("{i}: {key}\n"))
-        .collect();
+        .fold(String::new(), |mut acc, (i, key)| {
+            let _ = writeln!(acc, "{i}: {key}");
+            acc
+        });
 
     let html = format!(
         r###"
