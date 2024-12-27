@@ -93,7 +93,7 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
             DataTableColumn::new(tr!("Type"))
                 .width("150px")
                 .render(|record: &AcmeDomainEntry| html! { record.config_type })
-                .sorter(|a: &AcmeDomainEntry, b: &AcmeDomainEntry| a.config_type.cmp(&b.config_type))
+                .sorter(|a: &AcmeDomainEntry, b: &AcmeDomainEntry| a.config_type.cmp(b.config_type))
                 .into(),
             DataTableColumn::new(tr!("Plugin"))
                 .width("150px")

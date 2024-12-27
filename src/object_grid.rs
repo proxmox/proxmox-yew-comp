@@ -326,7 +326,7 @@ impl PwtObjectGrid {
             EditWindow::new(format!("Edit: {}", title))
                 .loader(props.loader.clone())
                 .on_done(ctx.link().change_view_callback(|_| None))
-                .renderer(move |form_state| (editor.0)(&form_state, &name, &value, &data))
+                .renderer(move |form_state| (editor.0)(form_state, &name, &value, &data))
                 .on_submit(props.on_submit.clone())
                 .into(),
         )

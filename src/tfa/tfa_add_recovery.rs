@@ -206,7 +206,7 @@ impl Component for ProxmoxTfaAddRecovery {
         let props = ctx.props();
 
         if let Some(data) = &self.recovery_keys {
-            return self.recovery_keys_dialog(ctx, &data);
+            return self.recovery_keys_dialog(ctx, data);
         }
 
         let base_url = props.base_url.to_string();

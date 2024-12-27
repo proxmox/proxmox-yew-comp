@@ -115,7 +115,7 @@ impl HttpClientWasm {
         let login = Login::new("", username, password);
         let request = login.request();
         let request =
-            Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
+            Self::post_request_builder(&request.url, request.content_type, &request.body)?;
         let resp = self.fetch_request_text(request).await?;
 
         Ok(login.response(&resp)?)
@@ -127,7 +127,7 @@ impl HttpClientWasm {
         request: proxmox_login::Request,
     ) -> Result<Authentication, Error> {
         let request =
-            Self::post_request_builder(&request.url, &request.content_type, &request.body)?;
+            Self::post_request_builder(&request.url, request.content_type, &request.body)?;
         let resp = self.fetch_request_text(request).await?;
         Ok(challenge.response(&resp)?)
     }
@@ -151,10 +151,10 @@ impl HttpClientWasm {
             .append("content-type", content_type)
             .map_err(|err| convert_js_error(err))?;
 
-        init.body(Some(&wasm_bindgen::JsValue::from_str(&data)));
+        init.body(Some(&wasm_bindgen::JsValue::from_str(data)));
         init.headers(&js_headers);
 
-        web_sys::Request::new_with_str_and_init(&url, &init).map_err(|err| convert_js_error(err))
+        web_sys::Request::new_with_str_and_init(url, &init).map_err(|err| convert_js_error(err))
     }
 
     fn request_builder<P: Serialize>(
@@ -319,7 +319,7 @@ pub fn json_object_to_query(data: Value) -> Result<String, Error> {
                 query.append_pair(key, &n.to_string());
             }
             Value::String(s) => {
-                query.append_pair(key, &s);
+                query.append_pair(key, s);
             }
             Value::Array(arr) => {
                 for element in arr {
@@ -331,7 +331,7 @@ pub fn json_object_to_query(data: Value) -> Result<String, Error> {
                             query.append_pair(key, &n.to_string());
                         }
                         Value::String(s) => {
-                            query.append_pair(key, &s);
+                            query.append_pair(key, s);
                         }
                         _ => bail!(
                             "json_object_to_query: unable to handle complex array data types."

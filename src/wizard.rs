@@ -420,10 +420,10 @@ impl Component for PwtWizard {
             let tab_bar_item = page.tab_bar_item.clone().disabled(disabled);
 
             if !disabled {
-                if !self.pages_valid.contains(&key) {
+                if !self.pages_valid.contains(key) {
                     disabled = true;
                 }
-                if self.pages_lock.contains(&key) {
+                if self.pages_lock.contains(key) {
                     disabled = true;
                 }
             }

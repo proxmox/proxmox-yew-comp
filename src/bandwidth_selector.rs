@@ -153,7 +153,7 @@ impl ManagedField for ProxmoxBandwidthField {
                 }
             }
             Value::String(v) => {
-                if let Ok(hb) = HumanByte::from_str(&v) {
+                if let Ok(hb) = HumanByte::from_str(v) {
                     self.current_size = pwt::dom::format_float(hb.size);
                     self.current_unit = hb.unit.to_string();
                 } else {
