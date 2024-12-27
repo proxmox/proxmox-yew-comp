@@ -28,7 +28,7 @@ pub struct LoadableComponentContext<'a, L: LoadableComponent + Sized + 'static> 
     comp_state: &'a LoadableComponentState,
 }
 
-impl<'a, L: LoadableComponent + Sized> LoadableComponentContext<'a, L> {
+impl<L: LoadableComponent + Sized> LoadableComponentContext<'_, L> {
     pub fn props(&self) -> &L::Properties {
         self.ctx.props()
     }

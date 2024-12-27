@@ -65,8 +65,8 @@ impl ExtractPrimaryKey for PermissionInfo {
     }
 }
 
-fn insert_node<'a>(
-    mut node: SlabTreeNodeMut<'a, PermissionInfo>,
+fn insert_node(
+    mut node: SlabTreeNodeMut<'_, PermissionInfo>,
     components: &[&str],
     perm_map: HashMap<String, bool>,
 ) {
