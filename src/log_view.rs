@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
@@ -236,7 +237,7 @@ impl PwtLogView {
     }
 
     fn request_page(&mut self, ctx: &Context<Self>, page_num: u64, delay: u32) {
-        if !self.pending_pages.contains_key(&page_num) {
+        if let Entry::Vacant(e) = self.pending_pages.entry(page_num) {
             let props = ctx.props().clone();
             let link = ctx.link().clone();
             let async_pool = self.async_pool.clone();
@@ -251,7 +252,7 @@ impl PwtLogView {
                     }
                 });
             });
-            self.pending_pages.insert(page_num, timeout);
+            e.insert(timeout);
             self.emit_pending_change(ctx);
         }
     }
