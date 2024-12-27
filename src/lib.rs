@@ -254,7 +254,7 @@ mod panic_wrapper {
 
 pub fn store_csrf_token(crsf_token: &str) {
     if let Some(store) = pwt::state::session_storage() {
-        if let Err(_) = store.set_item("CSRFToken", crsf_token) {
+        if store.set_item("CSRFToken", crsf_token).is_err() {
             log::error!("store_csrf_token: store.set_item() failed");
         }
     }
