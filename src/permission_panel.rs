@@ -87,9 +87,12 @@ fn insert_node(
         let component = components[0];
         let components = &components[1..];
 
-        if let Some(child) = node.children_mut().find(|c| match c.record() {
-            PermissionInfo::Path(_, name) if name == component => true,
-            _ => false,
+        if let Some(child) = node.children_mut().find(|c| {
+            if let PermissionInfo::Path(_, name) = c.record() {
+                name == component
+            } else {
+                false
+            }
         }) {
             insert_node(child, components, perm_map);
         } else {

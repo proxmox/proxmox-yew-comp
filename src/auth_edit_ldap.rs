@@ -159,11 +159,7 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
     let tls_enabled = form_ctx
         .read()
         .get_field_value("mode")
-        .map(|v| match v.as_str() {
-            Some("ldap+starttls") => true,
-            Some("ldaps") => true,
-            _ => false,
-        })
+        .map(|v| matches!(v.as_str(), Some("ldap+starttls") | Some("ldaps")))
         .unwrap_or(false);
 
     InputPanel::new()
