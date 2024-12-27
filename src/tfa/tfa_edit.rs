@@ -82,8 +82,8 @@ impl Component for ProxmoxTfaEdit {
         let url = format!(
             "{}/{}/{}",
             props.base_url,
-            percent_encode_component(&*props.user_id),
-            percent_encode_component(&*props.entry_id),
+            percent_encode_component(&props.user_id),
+            percent_encode_component(&props.entry_id),
         );
 
         let on_submit = {
