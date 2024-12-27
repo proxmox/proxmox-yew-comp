@@ -341,7 +341,7 @@ impl ProxmoxAcmeDomainsPanel {
             let store = self.store.read();
             for i in 0..5 {
                 let key = format!("acmedomain{i}");
-                if store.iter().find(|item| item.config_key == key).is_some() {
+                if store.iter().any(|item| item.config_key == key) {
                     continue;
                 }
                 next_key = Some(key);

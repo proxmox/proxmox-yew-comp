@@ -183,8 +183,7 @@ impl From<TfaAddTotp> for VNode {
 fn validate_secret(secret: &String) -> Result<(), Error> {
     let invalid = secret
         .chars()
-        .find(|c| !matches!(c, '2'..='7' | 'A'..='Z' | '='))
-        .is_some();
+        .any(|c| !matches!(&c, '2'..='7' | 'A'..='Z' | '='));
 
     if invalid {
         bail!(tr!("Must be base32 [A-Z2-7=]"));
