@@ -159,7 +159,7 @@ impl Component for ProxmoxRunningTasksButton {
         let button = Button::new(tr!("Tasks") + &format!(": {}", count))
             .node_ref(self.node_ref.clone())
             .attribute("aria-haspopup", "true")
-            .attribute("aria-expanded", show_submenu.then(|| "true"))
+            .attribute("aria-expanded", show_submenu.then_some("true"))
             .show_arrow(true)
             .class(ColorScheme::Primary)
             .icon_class("fa fa-list-alt")

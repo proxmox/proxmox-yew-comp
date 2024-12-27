@@ -135,7 +135,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
             .with_button(
                 Button::new(tr!("All"))
                     .pressed(unique_map.is_empty())
-                    .class(unique_map.is_empty().then(|| pressed_scheme))
+                    .class(unique_map.is_empty().then_some(pressed_scheme))
                     .onclick(ctx.link().callback(|_| Msg::ToggleAll)),
             )
             .with_button(
@@ -144,7 +144,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
                     .class(
                         unique_map
                             .contains(&TaskFilterEntry::Ok)
-                            .then(|| pressed_scheme),
+                            .then_some(pressed_scheme),
                     )
                     .onclick(ctx.link().callback(|_| Msg::ToggleOk)),
             )
@@ -154,7 +154,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
                     .class(
                         unique_map
                             .contains(&TaskFilterEntry::Error)
-                            .then(|| pressed_scheme),
+                            .then_some(pressed_scheme),
                     )
                     .onclick(ctx.link().callback(|_| Msg::ToggleErrors)),
             )
@@ -164,7 +164,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
                     .class(
                         unique_map
                             .contains(&TaskFilterEntry::Warning)
-                            .then(|| pressed_scheme),
+                            .then_some(pressed_scheme),
                     )
                     .onclick(ctx.link().callback(|_| Msg::ToggleWarnings)),
             )
@@ -174,7 +174,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
                     .class(
                         unique_map
                             .contains(&TaskFilterEntry::Unknown)
-                            .then(|| pressed_scheme),
+                            .then_some(pressed_scheme),
                     )
                     .onclick(ctx.link().callback(|_| Msg::ToggleUnknown)),
             )
