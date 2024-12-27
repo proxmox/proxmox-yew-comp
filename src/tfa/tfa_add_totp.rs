@@ -180,6 +180,7 @@ impl From<TfaAddTotp> for VNode {
     }
 }
 
+#[allow(clippy::ptr_arg)]
 fn validate_secret(secret: &String) -> Result<(), Error> {
     let invalid = secret
         .chars()
