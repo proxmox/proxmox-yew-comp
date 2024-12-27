@@ -90,8 +90,7 @@ async fn load_log_page(props: &LogView, page: u64) -> Result<LogPage, Error> {
     let total = resp
         .attribs
         .get("total")
-        .map(|v| v.as_u64())
-        .flatten()
+        .and_then(|v| v.as_u64())
         .unwrap_or(data_len);
 
     Ok(LogPage {

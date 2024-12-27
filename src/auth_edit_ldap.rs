@@ -153,8 +153,7 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
     let anonymous_search = form_ctx
         .read()
         .get_field_value("anonymous_search")
-        .map(|v| v.as_bool())
-        .flatten()
+        .and_then(|v| v.as_bool())
         .unwrap_or(false);
 
     let tls_enabled = form_ctx
