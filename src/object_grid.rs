@@ -412,7 +412,7 @@ impl LoadableComponent for PwtObjectGrid {
         let props = ctx.props();
 
         let disable_edit = if let Some(key) = &self.selection {
-            let name: &str = &*key;
+            let name: &str = key;
             !self.editors.contains_key(name)
         } else {
             true

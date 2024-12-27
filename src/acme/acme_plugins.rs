@@ -236,7 +236,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                     let command_path = format!(
                         "{}/{}",
                         ctx.props().url,
-                        percent_encode_component(&*selected_key)
+                        percent_encode_component(selected_key)
                     );
                     let command_future = crate::http_delete(command_path, None);
                     let link = ctx.link().clone();
@@ -314,7 +314,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
     ) -> Option<Html> {
         match view_state {
             ViewState::Add => Some(self.create_add_dns_plugin_dialog(ctx)),
-            ViewState::Edit(id) => Some(self.create_edit_dns_plugin_dialog(ctx, &*id)),
+            ViewState::Edit(id) => Some(self.create_edit_dns_plugin_dialog(ctx, id)),
         }
     }
 }

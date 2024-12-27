@@ -131,7 +131,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
                             if let Some(selected_key) = &selected_key {
                                 let command_path = format!(
                                     "/config/acme/account/{}",
-                                    percent_encode_component(&*selected_key)
+                                    percent_encode_component(selected_key)
                                 );
                                 let command_future =
                                     crate::http_delete_get::<String>(command_path, None);
@@ -181,7 +181,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
                     .into(),
             ),
             ViewState::View(account_name) => {
-                Some(self.create_account_view_dialog(ctx, &*account_name))
+                Some(self.create_account_view_dialog(ctx, account_name))
             }
         }
     }

@@ -270,7 +270,7 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
         match view_state {
             ViewState::Add => Some(self.create_add_acme_domain_dialog(ctx)),
             ViewState::Edit(domain_name) => {
-                Some(self.create_edit_acme_domain_dialog(ctx, &*domain_name))
+                Some(self.create_edit_acme_domain_dialog(ctx, domain_name))
             }
             ViewState::EditAccount => Some(self.create_edit_acme_account_dialog(ctx)),
         }
