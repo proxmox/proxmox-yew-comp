@@ -196,8 +196,8 @@ fn validate_secret(secret: &String) -> Result<(), Error> {
 fn render_qrcode(text: &str) -> Html {
     let code = qrcode::QrCode::new(text).unwrap();
     let svg_xml = code.render::<qrcode::render::svg::Color>().build();
-    let parsed = Html::from_html_unchecked(AttrValue::from(svg_xml));
-    parsed
+
+    Html::from_html_unchecked(AttrValue::from(svg_xml))
 }
 
 fn randomize_secret() -> String {
