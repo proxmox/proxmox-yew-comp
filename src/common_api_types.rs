@@ -200,7 +200,7 @@ pub struct AcmeAccountData {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub contact: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>
+    pub created_at: Option<String>,
 }
 
 #[derive(Clone, PartialEq, Deserialize, Serialize)]
@@ -238,4 +238,3 @@ pub fn parse_acme_config_string(value_str: &str) -> Result<AcmeConfig, Error> {
 pub fn create_acme_config_string(config: &AcmeConfig) -> String {
     proxmox_schema::property_string::print::<AcmeConfig>(config).unwrap()
 }
-

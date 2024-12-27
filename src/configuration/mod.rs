@@ -17,9 +17,9 @@ mod network_edit;
 pub use network_edit::{NetworkEdit, ProxmoxNetworkEdit};
 
 #[cfg(feature = "network")]
-use pwt::tr;
-#[cfg(feature = "network")]
 use proxmox_network_api::NetworkInterfaceType;
+#[cfg(feature = "network")]
+use pwt::tr;
 
 #[cfg(feature = "network")]
 pub fn format_network_interface_type(interface_type: NetworkInterfaceType) -> String {
