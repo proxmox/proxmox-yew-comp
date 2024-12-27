@@ -401,7 +401,7 @@ impl Component for PwtLogView {
                 true
             }
             Msg::ViewportResize(_width, height) => {
-                let lines = (height as u64 + self.line_height() - 1) / self.line_height();
+                let lines = (height as u64).div_ceil(self.line_height());
                 self.viewport_lines = lines;
                 self.request_pages(ctx);
                 true
