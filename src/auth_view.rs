@@ -78,7 +78,7 @@ pub struct ProxmoxAuthView {
 
 async fn delete_item(base_url: AttrValue, realm: AttrValue) -> Result<(), Error> {
     let url = format!("{base_url}/{}", percent_encode_component(&realm));
-    let _ = crate::http_delete(&url, None).await?;
+    crate::http_delete(&url, None).await?;
     Ok(())
 }
 
