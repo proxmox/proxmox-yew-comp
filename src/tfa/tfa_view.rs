@@ -310,9 +310,7 @@ impl LoadableComponent for ProxmoxTfaView {
         let props = ctx.props();
         match view_state {
             ViewState::Remove => Some({
-                let Some(info) = self.get_selected_record() else {
-                    return None;
-                };
+                let info = self.get_selected_record()?;
                 TfaConfirmRemove::new(info)
                     .on_close(ctx.link().change_view_callback(|_| None))
                     .on_confirm({
