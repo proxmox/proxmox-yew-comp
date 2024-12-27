@@ -198,13 +198,9 @@ pub fn register_task_description(
 pub fn lookup_task_description(name: &str, id: Option<&str>) -> Option<String> {
     let map = TASK_DESCR_TABLE.lock().unwrap();
     match *map {
-        Some(ref map) => {
-            match map.get(name) {
-                //Some(function) => Some(function(name, id)),
-                Some(function) => Some(function(name.to_string(), id.map(|id| id.to_string()))),
-                None => None,
-            }
-        }
+        Some(ref map) => map
+            .get(name)
+            .map(|function| function(name.to_string(), id.map(|id| id.to_string()))),
         None => None,
     }
 }

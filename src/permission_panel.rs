@@ -122,11 +122,10 @@ impl LoadableComponent for ProxmoxPermissionPanel {
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let props = ctx.props();
         let base_url = props.base_url.clone();
-        let args: Option<Value> = if let Some(auth_id) = &props.auth_id {
-            Some(json!({ "auth-id": **auth_id}))
-        } else {
-            None
-        };
+        let args: Option<Value> = props
+            .auth_id
+            .as_ref()
+            .map(|auth_id| json!({ "auth-id": **auth_id}));
         let store = self.store.clone();
 
         Box::pin(async move {

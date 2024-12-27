@@ -290,17 +290,14 @@ impl Component for ProxmoxLoginPanel {
                 RealmSelector::new().name("realm").default(default_realm),
             );
 
-        let tfa_dialog = match &self.challenge {
-            Some(challenge) => Some(
-                TfaDialog::new(challenge.clone())
-                    .on_close(ctx.link().callback(|_| Msg::AbortTfa))
-                    .on_totp(ctx.link().callback(Msg::Totp))
-                    .on_yubico(ctx.link().callback(Msg::Yubico))
-                    .on_recovery(ctx.link().callback(Msg::RecoveryKey))
-                    .on_webauthn(ctx.link().callback(Msg::WebAuthn)),
-            ),
-            None => None,
-        };
+        let tfa_dialog = self.challenge.as_ref().map(|challenge| {
+            TfaDialog::new(challenge.clone())
+                .on_close(ctx.link().callback(|_| Msg::AbortTfa))
+                .on_totp(ctx.link().callback(Msg::Totp))
+                .on_yubico(ctx.link().callback(Msg::Yubico))
+                .on_recovery(ctx.link().callback(Msg::RecoveryKey))
+                .on_webauthn(ctx.link().callback(Msg::WebAuthn))
+        });
 
         let save_username_label_id = pwt::widget::get_unique_element_id();
         let save_username_field = Checkbox::new()

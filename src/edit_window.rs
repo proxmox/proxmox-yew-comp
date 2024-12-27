@@ -353,12 +353,10 @@ impl Component for PwtEditWindow {
         .class("pwt-flex-fit")
         .visible(loading);
 
-        let alert = match self.submit_error.as_ref() {
-            None => None,
-            Some(msg) => {
-                Some(AlertDialog::new(msg).on_close(ctx.link().callback(|_| Msg::ClearError)))
-            }
-        };
+        let alert = self
+            .submit_error
+            .as_ref()
+            .map(|msg| AlertDialog::new(msg).on_close(ctx.link().callback(|_| Msg::ClearError)));
 
         let on_close = {
             let on_close = props.on_close.clone();
@@ -378,10 +376,10 @@ impl Component for PwtEditWindow {
             }
         };
 
-        let load_err = match self.load_error.as_ref() {
-            None => None,
-            Some(msg) => Some(AlertDialog::new(msg).on_close(on_close.clone())),
-        };
+        let load_err = self
+            .load_error
+            .as_ref()
+            .map(|msg| AlertDialog::new(msg).on_close(on_close.clone()));
 
         Dialog::new(props.title.clone())
             .node_ref(props.node_ref.clone())
