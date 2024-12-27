@@ -72,7 +72,7 @@ impl Component for ProxmoxBondModeSelector {
 }
 
 #[allow(dead_code)]
-static BOND_MODES: &'static [&'static str] = &[
+static BOND_MODES: &[&str] = &[
     "balance-rr",
     "active-backup",
     "balance-xor",

@@ -72,4 +72,4 @@ impl Component for ProxmoxBondXmitHashPolicySelector {
 }
 
 #[allow(dead_code)]
-static XMIT_HASH_POLICY: &'static [&'static str] = &["layer2", "layer2+3", "layer3+4"];
+static XMIT_HASH_POLICY: &[&str] = &["layer2", "layer2+3", "layer3+4"];

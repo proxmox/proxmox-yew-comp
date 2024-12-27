@@ -72,7 +72,7 @@ impl Component for ProxmoxTimezoneSelector {
 }
 
 #[allow(dead_code)]
-static TIMEZONES: &'static [&'static str] = &[
+static TIMEZONES: &[&str] = &[
     "Africa/Abidjan",
     "Africa/Accra",
     "Africa/Addis_Ababa",
