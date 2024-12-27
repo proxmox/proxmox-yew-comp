@@ -88,7 +88,7 @@ impl LoadableComponent for ProxmoxCertificateList {
         &self,
         _ctx: &LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
-        let path = format!("/nodes/localhost/certificates/info");
+        let path = "/nodes/localhost/certificates/info".to_string();
         let store = self.store.clone();
         Box::pin(async move {
             let data = crate::http_get(&path, None).await?;
@@ -124,7 +124,7 @@ impl LoadableComponent for ProxmoxCertificateList {
                         let link = ctx.link();
                         move |_| {
                             let link = link.clone();
-                            let command_path = format!("/nodes/localhost/certificates/custom");
+                            let command_path = "/nodes/localhost/certificates/custom".to_string();
                             let data = Some(json!({"restart": true}));
                             let command_future = crate::http_delete(command_path, data);
                             link.clone().spawn(async move {

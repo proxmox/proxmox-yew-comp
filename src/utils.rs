@@ -241,7 +241,7 @@ pub fn format_upid(upid: &str) -> String {
             } else {
                 match (upid.worker_type.as_str(), upid.worker_id) {
                     (worker_type, Some(id)) => format!("{} {}", worker_type, id),
-                    (worker_type, None) => format!("{}", worker_type),
+                    (worker_type, None) => worker_type.to_string(),
                 }
             }
         }

@@ -73,5 +73,5 @@ impl From<HelpButton> for VNode {
 
 fn get_help_link(_section: Option<&str>) -> String {
     // TODO:
-    format!("/docs/index.html")
+    "/docs/index.html".to_string()
 }
