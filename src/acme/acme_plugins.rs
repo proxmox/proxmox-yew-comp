@@ -444,7 +444,7 @@ impl ProxmoxAcmePluginsPanel {
                 let value = parsed_data
                     .get(field_name)
                     .map(|s| s.to_owned())
-                    .unwrap_or(String::new());
+                    .unwrap_or_default();
                 let description: Option<String> =
                     field_schema["description"].as_str().map(|s| s.to_owned());
                 let placeholder = field_schema["default"].as_str().map(|s| s.to_owned());

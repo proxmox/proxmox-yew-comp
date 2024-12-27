@@ -98,7 +98,7 @@ thread_local! {
             .width("300px")
             .show_menu(false)
             .render(|item: &AuthidListEntry| {
-                html!{item.comment.clone().unwrap_or(String::new())}
+                html!{item.comment.clone().unwrap_or_default()}
             })
             .into(),
     ]);

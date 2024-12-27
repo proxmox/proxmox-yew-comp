@@ -53,7 +53,7 @@ fn extract_auth_from_cookie(project: &dyn ProjectInfo) -> Option<(String, String
             if key == name {
                 let items: Vec<&str> = value.split(':').take(2).collect();
                 if prefixes.contains(&items[0]) {
-                    let csrf_token = crate::load_csrf_token().unwrap_or(String::new());
+                    let csrf_token = crate::load_csrf_token().unwrap_or_default();
                     return Some((value.to_string(), csrf_token));
                 }
             }

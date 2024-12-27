@@ -301,7 +301,7 @@ thread_local! {
         DataTableColumn::new("Comment")
             .flex(1)
             .render(|record: &BasicRealmInfo| {
-                html!{record.comment.clone().unwrap_or(String::new())}
+                html!{record.comment.clone().unwrap_or_default()}
             })
             .into(),
     ]);

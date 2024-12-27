@@ -25,7 +25,7 @@ thread_local! {
             .width("300px")
             .show_menu(false)
             .render(|record: &BasicRealmInfo| {
-                html!{record.comment.clone().unwrap_or(String::new())}
+                html!{record.comment.clone().unwrap_or_default()}
             })
             .into(),
     ]);

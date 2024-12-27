@@ -98,7 +98,7 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str) -> Result<(), Err
 pub fn sanitize_html(text: &str) -> Result<String, Error> {
     let window = web_sys::window().unwrap();
     let location = window.location();
-    let origin = location.origin().unwrap_or(String::new());
+    let origin = location.origin().unwrap_or_default();
 
     let dom_parser = web_sys::DomParser::new().map_err(convert_js_error)?;
     let doc = dom_parser
