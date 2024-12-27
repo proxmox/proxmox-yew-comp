@@ -347,13 +347,22 @@ pub fn json_object_to_query(data: Value) -> Result<String, Error> {
 }
 
 impl HttpApiClient for HttpClientWasm {
-    type ResponseFuture<'a> = Pin<Box<dyn Future<Output=Result<HttpApiResponse, proxmox_client::Error>> + 'a>>
-        where Self: 'a;
+    type ResponseFuture<'a>
+        = Pin<Box<dyn Future<Output = Result<HttpApiResponse, proxmox_client::Error>> + 'a>>
+    where
+        Self: 'a;
 
     type Body = web_sys::ReadableStream;
 
-    type ResponseStreamFuture<'a> = Pin<Box<dyn Future<Output=Result<HttpApiResponseStream<Self::Body>, proxmox_client::Error>> + 'a>>
-        where Self: 'a;
+    type ResponseStreamFuture<'a>
+        = Pin<
+        Box<
+            dyn Future<Output = Result<HttpApiResponseStream<Self::Body>, proxmox_client::Error>>
+                + 'a,
+        >,
+    >
+    where
+        Self: 'a;
 
     fn request<'a, T>(
         &'a self,
