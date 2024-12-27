@@ -67,7 +67,7 @@ impl Component for ProxmoxGauge {
         let props = ctx.props();
         let fraction = props.value;
 
-        let fraction = fraction.max(0f32).min(1f32);
+        let fraction = fraction.clamp(0f32, 1f32);
 
         let r = 100f32;
         let stroke_width = 10.0;
