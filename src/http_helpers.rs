@@ -295,7 +295,7 @@ pub async fn http_task_result(task: Result<Value, Error>) -> Result<Value, Error
     loop {
         stat = http_get(&url, None).await?;
 
-        if stat["status"] != Value::from("running") {
+        if stat["status"] != *"running" {
             break;
         }
 
