@@ -36,7 +36,7 @@ fn update_global_client(client: HttpClientWasm) {
 }
 
 thread_local! {
-    static AUTH_OBSERVER: RefCell<Slab<Callback<()>>> = RefCell::new(Slab::new());
+    static AUTH_OBSERVER: RefCell<Slab<Callback<()>>> = const { RefCell::new(Slab::new()) };
 }
 
 fn notify_auth_listeners(_: ()) {
@@ -82,7 +82,7 @@ pub fn register_auth_observer(callback: impl Into<Callback<()>>) -> AuthObserver
 }
 
 thread_local! {
-    static TICKET_REFRESH_LOOP_GUARD: RefCell<Option<AsyncAbortGuard>> = RefCell::new(None);
+    static TICKET_REFRESH_LOOP_GUARD: RefCell<Option<AsyncAbortGuard>> = const { RefCell::new(None) };
 }
 
 fn start_ticket_refresh_loop() {
