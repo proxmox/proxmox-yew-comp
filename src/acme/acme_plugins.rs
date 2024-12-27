@@ -177,7 +177,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                     .store
                     .read()
                     .iter()
-                    .find(|item| item.plugin == &*key && item.ty == "dns")
+                    .find(|item| item.plugin == *key && item.ty == "dns")
                     .cloned()
                 {
                     if let Some(api) = &plugin.api {

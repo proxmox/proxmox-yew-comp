@@ -150,7 +150,7 @@ impl Component for ProxmoxAcmeChallengeSelector {
                 let store = self.store.clone();
                 move |id: Key| {
                     if let Some(on_change) = &on_change {
-                        match store.read().data().iter().find(|item| &item.id == &*id) {
+                        match store.read().data().iter().find(|item| item.id == *id) {
                             Some(entry) => {
                                 on_change.emit(Some(entry.clone()));
                             }

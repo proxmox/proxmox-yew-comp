@@ -131,7 +131,7 @@ impl Component for ProxmoxAcmeDirectorySelector {
                         .read()
                         .data()
                         .iter()
-                        .find(|item| &item.url == url.as_str())
+                        .find(|item| item.url == url.as_str())
                     {
                         Some(entry) => entry.name.clone(),
                         None => url.to_string(),
@@ -144,7 +144,7 @@ impl Component for ProxmoxAcmeDirectorySelector {
                 let store = self.store.clone();
                 move |url: Key| {
                     if let Some(on_change) = &on_change {
-                        match store.read().data().iter().find(|item| &item.url == &*url) {
+                        match store.read().data().iter().find(|item| item.url == *url) {
                             Some(entry) => {
                                 on_change.emit(Some(entry.clone()));
                             }
