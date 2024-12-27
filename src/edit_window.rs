@@ -242,7 +242,7 @@ impl Component for PwtEditWindow {
                 true
             }
             Msg::FormDataChange => {
-                if self.submit_error != None {
+                if self.submit_error.is_some() {
                     self.submit_error = None;
                 }
                 if let Some(on_change) = &props.on_change {
