@@ -114,7 +114,7 @@ impl ProxmoxTfaView {
         let selected_key = self.selection.selected_key();
         let mut selected_record = None;
         if let Some(key) = &selected_key {
-            selected_record = self.store.read().lookup_record(key).map(|r| r.clone());
+            selected_record = self.store.read().lookup_record(key).cloned();
         }
         selected_record
     }
