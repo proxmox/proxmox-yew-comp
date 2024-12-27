@@ -21,7 +21,9 @@ use pwt_macros::builder;
 #[derive(Derivative)]
 #[derivative(Clone, PartialEq)]
 pub struct RenderKVGridRecordFn(
-    #[derivative(PartialEq(compare_with = "Rc::ptr_eq"))] Rc<dyn Fn(&str, &Value, &Value) -> Html>,
+    #[derivative(PartialEq(compare_with = "Rc::ptr_eq"))]
+    #[allow(clippy::type_complexity)]
+    Rc<dyn Fn(&str, &Value, &Value) -> Html>,
 );
 
 impl RenderKVGridRecordFn {

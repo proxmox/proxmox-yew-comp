@@ -225,6 +225,7 @@ impl AsyncBufRead for ReadableStreamReader {
 
 pub enum Records {
     New(ReadableStreamReader),
+    #[allow(clippy::type_complexity)]
     Reading(Pin<Box<dyn Future<Output = io::Result<Option<(Vec<u8>, ReadableStreamReader)>>>>>),
     Done,
 }

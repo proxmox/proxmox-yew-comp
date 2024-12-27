@@ -15,6 +15,7 @@ use proxmox_client::ApiResponseData;
 /// Similar to [pwt::props::LoadCallback], but return [ApiResponseData] to
 /// allow access to additional properties like digest.
 pub struct ApiLoadCallback<T> {
+    #[allow(clippy::type_complexity)]
     callback: Rc<dyn Fn() -> Pin<Box<dyn Future<Output = Result<ApiResponseData<T>, Error>>>>>,
     url: Option<AttrValue>, // only used for change tracking
 }

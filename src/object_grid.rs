@@ -82,6 +82,7 @@ impl IntoObjectGridController for Option<ObjectGridController> {
 #[derivative(Clone, PartialEq)]
 pub struct RenderObjectGridItemFn(
     #[derivative(PartialEq(compare_with = "Rc::ptr_eq"))]
+    #[allow(clippy::type_complexity)]
     Rc<dyn Fn(&FormContext, &str, &Value, &Value) -> Html>,
 );
 

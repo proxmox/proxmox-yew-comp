@@ -15,6 +15,7 @@ use serde_json::Value;
 #[derivative(Clone, PartialEq)]
 pub struct SubmitValueCallback(
     #[derivative(PartialEq(compare_with = "Rc::ptr_eq"))]
+    #[allow(clippy::type_complexity)]
     Rc<dyn Fn(Value) -> Pin<Box<dyn Future<Output = Result<(), Error>>>>>,
 );
 

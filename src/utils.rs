@@ -133,6 +133,7 @@ pub fn render_url(url: &str) -> Html {
 }
 
 // todo: we want to use Fn(&str, Option<&str>),
+#[allow(clippy::type_complexity)]
 static TASK_DESCR_TABLE: Mutex<
     Option<HashMap<String, Box<dyn Send + Sync + Fn(String, Option<String>) -> String>>>,
 > = Mutex::new(None);
