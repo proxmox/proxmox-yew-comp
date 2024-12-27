@@ -141,20 +141,20 @@ impl HttpClientWasm {
         let mut init = web_sys::RequestInit::new();
         init.method("POST");
 
-        let js_headers = web_sys::Headers::new().map_err(|err| convert_js_error(err))?;
+        let js_headers = web_sys::Headers::new().map_err(convert_js_error)?;
 
         js_headers
             .append("cache-control", "no-cache")
-            .map_err(|err| convert_js_error(err))?;
+            .map_err(convert_js_error)?;
 
         js_headers
             .append("content-type", content_type)
-            .map_err(|err| convert_js_error(err))?;
+            .map_err(convert_js_error)?;
 
         init.body(Some(&wasm_bindgen::JsValue::from_str(data)));
         init.headers(&js_headers);
 
-        web_sys::Request::new_with_str_and_init(url, &init).map_err(|err| convert_js_error(err))
+        web_sys::Request::new_with_str_and_init(url, &init).map_err(convert_js_error)
     }
 
     fn request_builder<P: Serialize>(
@@ -165,17 +165,17 @@ impl HttpClientWasm {
         let mut init = web_sys::RequestInit::new();
         init.method(method);
 
-        let js_headers = web_sys::Headers::new().map_err(|err| convert_js_error(err))?;
+        let js_headers = web_sys::Headers::new().map_err(convert_js_error)?;
 
         js_headers
             .append("cache-control", "no-cache")
-            .map_err(|err| convert_js_error(err))?;
+            .map_err(convert_js_error)?;
 
         if method == "POST" || method == "PUT" {
             if let Some(data) = data {
                 js_headers
                     .append("content-type", "application/json")
-                    .map_err(|err| convert_js_error(err))?;
+                    .map_err(convert_js_error)?;
                 let body: Vec<u8> = serde_json::to_vec(&data)
                     .map_err(|err| format_err!("serialize failure: {}", err))?;
                 let js_body = js_sys::Uint8Array::new_with_length(body.len() as u32);
@@ -183,21 +183,20 @@ impl HttpClientWasm {
                 init.body(Some(&js_body));
             }
             init.headers(&js_headers);
-            web_sys::Request::new_with_str_and_init(url, &init).map_err(|err| convert_js_error(err))
+            web_sys::Request::new_with_str_and_init(url, &init).map_err(convert_js_error)
         } else if let Some(data) = data {
             js_headers
                 .append("content-type", "application/x-www-form-urlencoded")
-                .map_err(|err| convert_js_error(err))?;
+                .map_err(convert_js_error)?;
             let data = serde_json::to_value(data)
                 .map_err(|err| format_err!("serialize failure: {}", err))?;
             let query = json_object_to_query(data)?;
             let url = format!("{}?{}", url, query);
             init.headers(&js_headers);
-            web_sys::Request::new_with_str_and_init(&url, &init)
-                .map_err(|err| convert_js_error(err))
+            web_sys::Request::new_with_str_and_init(&url, &init).map_err(convert_js_error)
         } else {
             init.headers(&js_headers);
-            web_sys::Request::new_with_str_and_init(url, &init).map_err(|err| convert_js_error(err))
+            web_sys::Request::new_with_str_and_init(url, &init).map_err(convert_js_error)
         }
     }
 
@@ -225,7 +224,7 @@ impl HttpClientWasm {
         if let Some(auth) = &auth {
             headers
                 .append("CSRFPreventionToken", &auth.csrfprevention_token)
-                .map_err(|err| convert_js_error(err))?;
+                .map_err(convert_js_error)?;
 
             let cookie = format!("{}; SameSite=Lax; Secure;", auth.ticket.cookie());
             crate::set_cookie(&cookie);
@@ -236,7 +235,7 @@ impl HttpClientWasm {
 
         let js_resp = wasm_bindgen_futures::JsFuture::from(promise)
             .await
-            .map_err(|err| convert_js_error(err))?;
+            .map_err(convert_js_error)?;
 
         let resp: web_sys::Response = js_resp.into();
 
@@ -257,12 +256,10 @@ impl HttpClientWasm {
 async fn web_sys_response_to_http_api_response(
     response: web_sys::Response,
 ) -> Result<HttpApiResponse, Error> {
-    let promise = response
-        .array_buffer()
-        .map_err(|err| convert_js_error(err))?;
+    let promise = response.array_buffer().map_err(convert_js_error)?;
 
     let js_fut = wasm_bindgen_futures::JsFuture::from(promise);
-    let body = js_fut.await.map_err(|err| convert_js_error(err))?;
+    let body = js_fut.await.map_err(convert_js_error)?;
     let body = js_sys::Uint8Array::new(&body).to_vec();
 
     let mut content_type = response.headers().get("content-type").unwrap_or(None);

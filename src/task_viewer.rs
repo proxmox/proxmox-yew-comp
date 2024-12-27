@@ -259,7 +259,7 @@ impl PwtTaskViewer {
                             let duration = if let Some(endtime) = record["endtime"].as_i64() {
                                 endtime - starttime
                             } else {
-                                let now = endtime.unwrap_or_else(|| proxmox_time::epoch_i64());
+                                let now = endtime.unwrap_or_else(proxmox_time::epoch_i64);
                                 now - starttime
                             };
                             return html! {format_duration_human(duration as f64)};

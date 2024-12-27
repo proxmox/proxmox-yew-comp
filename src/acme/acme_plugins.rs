@@ -410,7 +410,7 @@ impl ProxmoxAcmePluginsPanel {
                 AcmeChallengeSelector::with_store(challenge_store)
                     .name("api")
                     .required(true)
-                    .on_change(link.callback(move |schema| Msg::ChallengeSchema(schema))),
+                    .on_change(link.callback(Msg::ChallengeSchema)),
             );
 
         if let Some(description) =

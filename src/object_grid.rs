@@ -446,7 +446,7 @@ impl LoadableComponent for PwtObjectGrid {
             .class("pwt-flex-fit")
             .rows(Rc::clone(&self.rows))
             .data(self.data.clone())
-            .on_select(ctx.link().callback(|key| Msg::Select(key)))
+            .on_select(ctx.link().callback(Msg::Select))
             .on_row_dblclick({
                 let link = ctx.link().clone();
                 move |event: &mut DataTableMouseEvent| {
