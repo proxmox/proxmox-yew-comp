@@ -400,7 +400,7 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
                         self.comp_state.last_load_error = Some(err.to_string());
                         if this_is_the_first_error {
                             self.view_state =
-                                ViewState::Error(tr!("Load failed").into(), err.to_string(), false);
+                                ViewState::Error(tr!("Load failed"), err.to_string(), false);
                         }
                     }
                 }
