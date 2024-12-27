@@ -57,10 +57,8 @@ pub fn format_duration_human(ut: f64) -> String {
         if minutes > 0 {
             parts.push(format!("{minutes}m"))
         };
-        if days == 0 {
-            if seconds > 0 {
-                parts.push(format!("{seconds}s"))
-            };
+        if days == 0 && seconds > 0 {
+            parts.push(format!("{seconds}s"))
         }
     }
 
