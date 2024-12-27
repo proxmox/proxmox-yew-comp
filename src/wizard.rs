@@ -393,7 +393,7 @@ impl Component for PwtWizard {
         let mut tab_panel = TabPanel::new()
             .class(Overflow::Auto)
             .class(Flex::Fill)
-            .tab_bar_style(props.tab_bar_style.clone())
+            .tab_bar_style(props.tab_bar_style)
             .selection(self.selection.clone());
 
         let state = self.controller.read();
