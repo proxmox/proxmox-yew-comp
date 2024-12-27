@@ -210,7 +210,7 @@ impl HttpClientWasm {
 
         let text = String::from_utf8(response.body)?;
 
-        return Ok(text);
+        Ok(text)
     }
 
     async fn fetch_request(

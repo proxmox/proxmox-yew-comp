@@ -17,7 +17,7 @@ fn sanitize_url(text: &str, base_url: &str, allow_data_url: bool) -> Result<Stri
     let url = web_sys::Url::new_with_base(text, base_url).map_err(convert_js_error)?;
     let protocol = url.protocol().to_lowercase();
     if (allow_data_url && protocol == "data:") || is_http_like(&protocol) {
-        return Ok(url.href());
+        Ok(url.href())
     } else {
         bail!("got unexpected url protocol: {protocol}");
     }
@@ -82,7 +82,7 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str) -> Result<(), Err
                 }
             }
 
-            return Ok(());
+            Ok(())
         }
         n => {
             bail!("got unexpected node type {n}");

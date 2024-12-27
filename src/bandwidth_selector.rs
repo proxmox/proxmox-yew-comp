@@ -114,9 +114,9 @@ impl ManagedField for ProxmoxBandwidthField {
                     }
                     Ok(Value::String(hb_str))
                 }
-                _ => return Err(Error::msg(tr!("Got wrong data type!"))),
+                _ => Err(Error::msg(tr!("Got wrong data type!"))),
             },
-            _ => return Err(Error::msg(tr!("Got wrong data type!"))),
+            _ => Err(Error::msg(tr!("Got wrong data type!"))),
         }
     }
 
