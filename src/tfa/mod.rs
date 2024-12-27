@@ -11,7 +11,7 @@ pub use webauthn::{ProxmoxWebAuthn, WebAuthn};
 mod tfa_dialog;
 pub use tfa_dialog::{ProxmoxTfaDialog, TfaDialog};
 
-pub(self) mod tfa_view;
+mod tfa_view;
 pub use tfa_view::{ProxmoxTfaView, TfaView};
 
 mod tfa_edit;
@@ -26,7 +26,7 @@ pub use tfa_add_webauthn::{ProxmoxTfaAddWebauthn, TfaAddWebauthn};
 mod tfa_add_recovery;
 pub use tfa_add_recovery::{ProxmoxTfaAddRecovery, TfaAddRecovery};
 
-pub(self) mod tfa_confirm_remove;
+mod tfa_confirm_remove;
 
 /// If we're not logged in as `root@pam`, the user needs to provide their password as a
 /// confirmation when modifying TFA entries, including their own.
