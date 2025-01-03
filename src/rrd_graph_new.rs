@@ -634,26 +634,32 @@ impl PwtRRDGraph {
             let start = (*start).min(data0.len() - 1);
             let end = (*end).min(data0.len() - 1);
 
-            let mut start_x = compute_x(data0[start]);
-            let mut end_x = compute_x(data0[end]);
+            match (data0.get(start), data0.get(end)) {
+                (Some(start_data), Some(end_data)) => {
+                    let mut start_x = compute_x(*start_data);
+                    let mut end_x = compute_x(*end_data);
 
-            if start_x > end_x {
-                let t = start_x;
-                start_x = end_x;
-                end_x = t;
+                    if start_x > end_x {
+                        let t = start_x;
+                        start_x = end_x;
+                        end_x = t;
+                    }
+
+                    let start_y = compute_y(min_data);
+                    let end_y = compute_y(max_data);
+
+                    children.push(
+                        Rect::new()
+                            .class("pwt-rrd-selection")
+                            .position(start_x as f32, end_y as f32)
+                            .width((end_x - start_x) as f32)
+                            .height((start_y - end_y) as f32)
+                            .into(),
+                    );
+                }
+                _ if data0.len() == 0 => {}
+                _ => log::debug!("out of bound selection start {start}, end {end} for {data0:?}"),
             }
-
-            let start_y = compute_y(min_data);
-            let end_y = compute_y(max_data);
-
-            children.push(
-                Rect::new()
-                    .class("pwt-rrd-selection")
-                    .position(start_x as f32, end_y as f32)
-                    .width((end_x - start_x) as f32)
-                    .height((start_y - end_y) as f32)
-                    .into(),
-            );
         }
 
         if self.draw_cross {
