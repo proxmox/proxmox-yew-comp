@@ -331,11 +331,10 @@ impl Component for ProxmoxLoginPanel {
             .class("pwt-flex-fill pwt-overflow-auto")
             .with_child(input_panel)
             .with_optional_child(tfa_dialog)
-            .with_optional_child(
-                self.login_error
-                    .as_ref()
-                    .map(|msg| pwt::widget::error_message(msg).padding(2)),
-            )
+            .with_optional_child(self.login_error.as_ref().map(|msg| {
+                pwt::widget::error_message(&tr!("Login failed. Please try again ({0})", msg))
+                    .padding(2)
+            }))
             .with_flex_spacer()
             .with_child(toolbar);
 
