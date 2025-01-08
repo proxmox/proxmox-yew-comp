@@ -1,3 +1,13 @@
+rust-proxmox-yew-comp (0.3.7) bookworm; urgency=medium
+
+  * depend on pwt 0.4.7
+
+  * confirm_button: use confirm dialog and always spawn a dialog
+
+  * code cleanups (clippy fixes)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 08 Jan 2025 10:41:47 +0100
+
 rust-proxmox-yew-comp (0.3.6) bookworm; urgency=medium
 
   * acme domains: do not require dns-plugin field in http-mode
