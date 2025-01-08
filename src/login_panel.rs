@@ -269,6 +269,7 @@ impl Component for ProxmoxLoginPanel {
 
         let input_panel = InputPanel::new()
             .class(Overflow::Auto)
+            .width("initial") // don't try to minimize size
             .padding(4)
             .with_field(
                 "User name",
@@ -339,6 +340,7 @@ impl Component for ProxmoxLoginPanel {
             .with_child(toolbar);
 
         let form = Form::new()
+            .width(500)
             .class("pwt-overflow-auto")
             .form_context(self.form_ctx.clone())
             .with_child(form_panel);
