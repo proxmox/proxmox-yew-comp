@@ -205,7 +205,8 @@ impl HttpClientWasm {
             web_sys_response_to_http_api_response(self.fetch_request(request, None).await?).await?;
 
         if !(response.status >= 200 && response.status < 300) {
-            bail!("HTTP status {}", response.status);
+            let status = http::StatusCode::from_u16(response.status)?;
+            bail!("HTTP status {status}");
         }
 
         let text = String::from_utf8(response.body)?;
