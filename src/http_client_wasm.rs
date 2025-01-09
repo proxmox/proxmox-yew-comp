@@ -3,19 +3,21 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Mutex;
 
-use anyhow::{bail, format_err, Error};
 use percent_encoding::percent_decode_str;
 use serde::Serialize;
 use serde_json::Value;
 
-use pwt::convert_js_error;
-
-use proxmox_client::{HttpApiClient, HttpApiResponse, HttpApiResponseStream};
+use proxmox_client::{Error, HttpApiClient, HttpApiResponse, HttpApiResponseStream};
 use proxmox_login::{Authentication, Login, Ticket, TicketResult};
 use yew::{html::IntoEventCallback, Callback};
 
 //use crate::percent_encoding::DEFAULT_ENCODE_SET;
 use crate::ProjectInfo;
+
+fn convert_js_error(js_err: ::wasm_bindgen::JsValue) -> Error {
+    let err = pwt::convert_js_error(js_err);
+    Error::Client(err.into())
+}
 
 pub fn authentication_from_cookie(project: &dyn ProjectInfo) -> Option<Authentication> {
     if let Some((ticket, csrfprevention_token)) = extract_auth_from_cookie(project) {
@@ -177,7 +179,7 @@ impl HttpClientWasm {
                     .append("content-type", "application/json")
                     .map_err(convert_js_error)?;
                 let body: Vec<u8> = serde_json::to_vec(&data)
-                    .map_err(|err| format_err!("serialize failure: {}", err))?;
+                    .map_err(|err| Error::Internal("failed to serialize data", Box::new(err)))?;
                 let js_body = js_sys::Uint8Array::new_with_length(body.len() as u32);
                 js_body.copy_from(&body);
                 init.body(Some(&js_body));
@@ -189,7 +191,7 @@ impl HttpClientWasm {
                 .append("content-type", "application/x-www-form-urlencoded")
                 .map_err(convert_js_error)?;
             let data = serde_json::to_value(data)
-                .map_err(|err| format_err!("serialize failure: {}", err))?;
+                .map_err(|err| Error::Internal("failed to serialize data", Box::new(err)))?;
             let query = json_object_to_query(data)?;
             let url = format!("{}?{}", url, query);
             init.headers(&js_headers);
@@ -205,11 +207,13 @@ impl HttpClientWasm {
             web_sys_response_to_http_api_response(self.fetch_request(request, None).await?).await?;
 
         if !(response.status >= 200 && response.status < 300) {
-            let status = http::StatusCode::from_u16(response.status)?;
-            bail!("HTTP status {status}");
+            let status = http::StatusCode::from_u16(response.status)
+                .map_err(|err| Error::Anyhow(err.into()))?;
+            return Err(Error::Api(status, status.to_string()));
         }
 
-        let text = String::from_utf8(response.body)?;
+        let text = String::from_utf8(response.body)
+            .map_err(|_| Error::Other("API returned non-utf8 data"))?;
 
         Ok(text)
     }
@@ -231,7 +235,8 @@ impl HttpClientWasm {
             crate::set_cookie(&cookie);
         }
 
-        let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
+        let window =
+            web_sys::window().ok_or_else(|| Error::Other("unable to get js window object"))?;
         let promise = window.fetch_with_request_and_init(&request, &init.unwrap_or_default());
 
         let js_resp = wasm_bindgen_futures::JsFuture::from(promise)
@@ -302,7 +307,7 @@ pub fn json_object_to_query(data: Value) -> Result<String, Error> {
     let mut query = url::form_urlencoded::Serializer::new(String::new());
 
     let object = data.as_object().ok_or_else(|| {
-        format_err!("json_object_to_query: got wrong data type (expected object).")
+        Error::Other("json_object_to_query: got wrong data type (expected object).")
     })?;
 
     for (key, value) in object {
@@ -328,13 +333,19 @@ pub fn json_object_to_query(data: Value) -> Result<String, Error> {
                         Value::String(s) => {
                             query.append_pair(key, s);
                         }
-                        _ => bail!(
-                            "json_object_to_query: unable to handle complex array data types."
-                        ),
+                        _ => {
+                            return Err(Error::Other(
+                                "json_object_to_query: unable to handle complex array data types.",
+                            ))
+                        }
                     }
                 }
             }
-            _ => bail!("json_object_to_query: unable to handle complex data types."),
+            _ => {
+                return Err(Error::Other(
+                    "json_object_to_query: unable to handle complex data types.",
+                ))
+            }
         }
     }
 
@@ -343,19 +354,14 @@ pub fn json_object_to_query(data: Value) -> Result<String, Error> {
 
 impl HttpApiClient for HttpClientWasm {
     type ResponseFuture<'a>
-        = Pin<Box<dyn Future<Output = Result<HttpApiResponse, proxmox_client::Error>> + 'a>>
+        = Pin<Box<dyn Future<Output = Result<HttpApiResponse, Error>> + 'a>>
     where
         Self: 'a;
 
     type Body = web_sys::ReadableStream;
 
     type ResponseStreamFuture<'a>
-        = Pin<
-        Box<
-            dyn Future<Output = Result<HttpApiResponseStream<Self::Body>, proxmox_client::Error>>
-                + 'a,
-        >,
-    >
+        = Pin<Box<dyn Future<Output = Result<HttpApiResponseStream<Self::Body>, Error>> + 'a>>
     where
         Self: 'a;
 
@@ -369,20 +375,14 @@ impl HttpApiClient for HttpClientWasm {
         T: Serialize + 'a,
     {
         Box::pin(async move {
-            let request = Self::request_builder(method.as_str(), path_and_query, params)
-                .map_err(proxmox_client::Error::Anyhow)?;
+            let request = Self::request_builder(method.as_str(), path_and_query, params)?;
 
-            let abort = pwt::WebSysAbortGuard::new().map_err(proxmox_client::Error::Anyhow)?;
+            let abort = pwt::WebSysAbortGuard::new().map_err(Error::Anyhow)?;
             let mut init = web_sys::RequestInit::new();
             init.signal(Some(&abort.signal()));
 
-            let response = self
-                .fetch_request(request, Some(init))
-                .await
-                .map_err(proxmox_client::Error::Anyhow)?;
-            web_sys_response_to_http_api_response(response)
-                .await
-                .map_err(proxmox_client::Error::Anyhow)
+            let response = self.fetch_request(request, Some(init)).await?;
+            web_sys_response_to_http_api_response(response).await
         })
     }
 
@@ -396,20 +396,14 @@ impl HttpApiClient for HttpClientWasm {
         T: Serialize + 'a,
     {
         Box::pin(async move {
-            let request = Self::request_builder(method.as_str(), path_and_query, params)
-                .map_err(proxmox_client::Error::Anyhow)?;
+            let request = Self::request_builder(method.as_str(), path_and_query, params)?;
 
-            let abort = pwt::WebSysAbortGuard::new().map_err(proxmox_client::Error::Anyhow)?;
+            let abort = pwt::WebSysAbortGuard::new().map_err(Error::Anyhow)?;
             let mut init = web_sys::RequestInit::new();
             init.signal(Some(&abort.signal()));
 
-            let response = self
-                .fetch_request(request, Some(init))
-                .await
-                .map_err(proxmox_client::Error::Anyhow)?;
-            web_sys_response_to_http_api_stream_response(response)
-                .await
-                .map_err(proxmox_client::Error::Anyhow)
+            let response = self.fetch_request(request, Some(init)).await?;
+            web_sys_response_to_http_api_stream_response(response).await
         })
     }
 }

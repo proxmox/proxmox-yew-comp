@@ -145,7 +145,7 @@ pub async fn http_login(
     username: impl Into<String>,
     password: impl Into<String>,
     realm: impl Into<String>,
-) -> Result<TicketResult, Error> {
+) -> Result<TicketResult, proxmox_client::Error> {
     let username = username.into();
     let password = password.into();
     let realm = realm.into();
@@ -169,7 +169,7 @@ pub async fn http_login(
 pub async fn http_login_tfa(
     challenge: Rc<proxmox_login::SecondFactorChallenge>,
     request: proxmox_login::Request,
-) -> Result<Authentication, Error> {
+) -> Result<Authentication, proxmox_client::Error> {
     let product = CLIENT.with(|c| c.borrow().product());
     let client = HttpClientWasm::new(product, notify_auth_listeners);
     let auth = client.login_tfa(challenge, request).await?;
