@@ -16,7 +16,7 @@ use crate::ProjectInfo;
 
 fn convert_js_error(js_err: ::wasm_bindgen::JsValue) -> Error {
     let err = pwt::convert_js_error(js_err);
-    Error::Client(err.into())
+    Error::Anyhow(err)
 }
 
 pub fn authentication_from_cookie(project: &dyn ProjectInfo) -> Option<Authentication> {
@@ -247,7 +247,8 @@ impl HttpClientWasm {
 
         let js_resp = wasm_bindgen_futures::JsFuture::from(promise)
             .await
-            .map_err(convert_js_error)?;
+            .map_err(pwt::convert_js_error)
+            .map_err(|err| Error::Client(err.into()))?;
 
         let resp: web_sys::Response = js_resp.into();
 
