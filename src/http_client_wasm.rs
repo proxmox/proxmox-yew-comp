@@ -209,7 +209,13 @@ impl HttpClientWasm {
         if !(response.status >= 200 && response.status < 300) {
             let status = http::StatusCode::from_u16(response.status)
                 .map_err(|err| Error::Anyhow(err.into()))?;
-            return Err(Error::Api(status, status.to_string()));
+            return Err(Error::Api(
+                status,
+                status
+                    .canonical_reason()
+                    .unwrap_or("invalid status code")
+                    .to_string(),
+            ));
         }
 
         let text = String::from_utf8(response.body)
