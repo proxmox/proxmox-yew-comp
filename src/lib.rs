@@ -45,6 +45,8 @@ pub use confirm_button::{ConfirmButton, ProxmoxConfirmButton};
 mod data_view_window;
 pub use data_view_window::{DataViewWindow, ProxmoxDataViewWindow};
 
+pub mod form;
+
 pub mod gauge;
 pub use gauge::{Gauge, ProxmoxGauge};
 
