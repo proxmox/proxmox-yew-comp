@@ -61,7 +61,7 @@ async fn create_item(
         }
     }
 
-    data["type"] = serde_json::to_value(&interface_type).unwrap();
+    data["type"] = serde_json::to_value(interface_type).unwrap();
 
     crate::http_post("/nodes/localhost/network", Some(data)).await
 }

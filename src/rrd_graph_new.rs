@@ -488,7 +488,7 @@ impl PwtRRDGraph {
                 &serie1_data[serie1_start..serie1_end],
             )
         } else {
-            (&time_data, &serie0_data, &serie1_data)
+            (time_data, serie0_data, serie1_data)
         }
     }
 

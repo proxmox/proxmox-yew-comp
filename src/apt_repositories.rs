@@ -213,7 +213,7 @@ fn update_status_store(
                 if check_mixed_suites
                     && repo.enabled
                     && repo.types.contains(&APTRepositoryPackageType::Deb)
-                    && controlled_origin.contains(&(&path, index))
+                    && controlled_origin.contains(&(path, index))
                 {
                     mixed_suites = true;
                 }
@@ -474,7 +474,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
                     update_status_store(
                         props.product,
                         &self.status_store,
-                        &config,
+                        config,
                         &self.standard_repos,
                         active_subscription,
                     );
@@ -503,7 +503,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
                 self.standard_repos = standard_repos.clone();
 
                 self.validate_standard_repo = ValidateFn::new(move |(repo, _): &(String, _)| {
-                    let (_, _, enabled) = standard_repo_info(&standard_repos, &repo);
+                    let (_, _, enabled) = standard_repo_info(&standard_repos, repo);
                     if enabled {
                         Err(Error::msg(tr!("Already configured")))
                     } else {

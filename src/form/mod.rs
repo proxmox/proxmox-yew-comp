@@ -16,7 +16,7 @@ fn format_property(name: &str, part: &str) -> String {
 /// to expose a property to the UI, simply add a hidden field to the form.
 pub fn flatten_property_string(data: &mut Value, name: &str, schema: &'static Schema) {
     if let Some(prop_str) = data[name].as_str() {
-        if let Ok(Value::Object(map)) = schema.parse_property_string(&prop_str) {
+        if let Ok(Value::Object(map)) = schema.parse_property_string(prop_str) {
             for (part, v) in map {
                 data[format_property(name, &part)] = v;
             }

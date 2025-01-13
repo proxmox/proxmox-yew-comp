@@ -36,7 +36,7 @@ async fn load_interfaces() -> Result<(Vec<Interface>, String), Error> {
 async fn delete_interface(key: Key) -> Result<(), Error> {
     let url = format!(
         "/nodes/localhost/network/{}",
-        percent_encode_component(&*key)
+        percent_encode_component(&key)
     );
     crate::http_delete(&url, None).await?;
     Ok(())

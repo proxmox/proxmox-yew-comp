@@ -237,7 +237,7 @@ impl LoadableComponent for ProxmoxAptPackageManager {
     ) -> Option<Html> {
         match view_state {
             ViewState::ShowChangelog(package) => {
-                Some(self.create_show_changelog_dialog(ctx, &package))
+                Some(self.create_show_changelog_dialog(ctx, package))
             }
         }
     }
