@@ -326,7 +326,7 @@ impl ExtractPrimaryKey for TreeEntry {
 fn apt_configuration_to_tree(config: &APTRepositoriesResult) -> SlabTree<TreeEntry> {
     let mut tree = SlabTree::new();
 
-    let mut root = tree.set_root(TreeEntry::Root(Key::from(format!("root"))));
+    let mut root = tree.set_root(TreeEntry::Root(Key::from("root")));
     root.set_expanded(true);
 
     let mut info_map: HashMap<String, HashMap<usize, Vec<APTRepositoryInfo>>> = HashMap::new();

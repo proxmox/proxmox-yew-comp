@@ -85,7 +85,7 @@ fn tree_entry_ordering(a: &TreeEntry, b: &TreeEntry) -> Ordering {
 fn update_list_to_tree(updates: &[APTUpdateInfo]) -> SlabTree<TreeEntry> {
     let mut tree = SlabTree::new();
 
-    let mut root = tree.set_root(TreeEntry::Root(Key::from(format!("root"))));
+    let mut root = tree.set_root(TreeEntry::Root(Key::from("root")));
     root.set_expanded(true);
 
     let mut origin_map = HashMap::new();
