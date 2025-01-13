@@ -182,8 +182,7 @@ fn render_bond_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
     let mode = form_ctx
         .read()
         .get_field_value("bond_mode")
-        .map(|v| v.as_str().map(String::from))
-        .flatten()
+        .and_then(|v| v.as_str().map(String::from))
         .unwrap_or_default();
 
     let allow_xmit_hash_policy = mode == "balance-xor" || mode == "802.3ad";

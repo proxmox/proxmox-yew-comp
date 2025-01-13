@@ -27,8 +27,7 @@ async fn load_interfaces() -> Result<(Vec<Interface>, String), Error> {
     let changes = resp
         .attribs
         .get("changes")
-        .map(|c| c.as_str())
-        .flatten()
+        .and_then(|c| c.as_str())
         .unwrap_or("");
     Ok((data, changes.to_string()))
 }
