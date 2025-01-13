@@ -276,7 +276,7 @@ fn update_status_store(
         )));
     }
 
-    if list.iter().find(|l| l.status != Status::Ok).is_none() {
+    if !list.iter().any(|l| l.status != Status::Ok) {
         list.push(StatusLine::ok(tr!(
             "All OK, you have production-ready repositories configured!"
         )));

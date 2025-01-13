@@ -97,7 +97,7 @@ impl ProxmoxNetworkView {
 fn find_next_free_interface_id(prefix: &str, list: &[Interface]) -> Option<String> {
     for next in 0..9999 {
         let id = format!("{prefix}{next}");
-        if list.iter().find(|item| item.name == id).is_none() {
+        if !list.iter().any(|item| item.name == id) {
             return Some(id);
         }
     }
