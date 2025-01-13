@@ -640,9 +640,7 @@ impl PwtRRDGraph {
                     let mut end_x = compute_x(*end_data);
 
                     if start_x > end_x {
-                        let t = start_x;
-                        start_x = end_x;
-                        end_x = t;
+                        std::mem::swap(&mut start_x, &mut end_x);
                     }
 
                     let start_y = compute_y(min_data);
