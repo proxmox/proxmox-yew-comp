@@ -113,7 +113,10 @@ impl RRDTimeframe {
     pub fn store(&self) {
         if let Some(store) = local_storage() {
             let timeframe_str = self.serialize();
-            if let Err(_) = store.set_item("ProxmoxRRDTimeframe", &timeframe_str) {
+            if store
+                .set_item("ProxmoxRRDTimeframe", &timeframe_str)
+                .is_err()
+            {
                 log::error!("RRDTimeframe::store - set_item failed");
             } else {
                 emit_rrd_timeframe_changed_event();
