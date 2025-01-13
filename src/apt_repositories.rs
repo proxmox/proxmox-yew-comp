@@ -515,30 +515,28 @@ impl LoadableComponent for ProxmoxAptRepositories {
                     Some(record) => record,
                     None => return false,
                 };
-                match selected_record {
-                    TreeEntry::Repository {
-                        path, index, repo, ..
-                    } => {
-                        let param = json!({
-                            "path": path,
-                            "index": index,
-                            "enabled": !repo.enabled,
-                        });
-                        // fixme: add digest to protect against concurrent changes
-                        let url = format!("{}/repositories", props.base_url);
-                        let link = ctx.link();
-                        link.clone().spawn(async move {
-                            match crate::http_post(url, Some(param)).await {
-                                Ok(()) => {
-                                    link.send_reload();
-                                }
-                                Err(err) => {
-                                    link.show_error(tr!("API call failed"), err, true);
-                                }
+                if let TreeEntry::Repository {
+                    path, index, repo, ..
+                } = selected_record
+                {
+                    let param = json!({
+                        "path": path,
+                        "index": index,
+                        "enabled": !repo.enabled,
+                    });
+                    // fixme: add digest to protect against concurrent changes
+                    let url = format!("{}/repositories", props.base_url);
+                    let link = ctx.link();
+                    link.clone().spawn(async move {
+                        match crate::http_post(url, Some(param)).await {
+                            Ok(()) => {
+                                link.send_reload();
                             }
-                        });
-                    }
-                    _ => {}
+                            Err(err) => {
+                                link.show_error(tr!("API call failed"), err, true);
+                            }
+                        }
+                    });
                 }
                 false
             }
