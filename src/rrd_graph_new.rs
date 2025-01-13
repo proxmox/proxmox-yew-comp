@@ -188,9 +188,9 @@ fn get_grid_unit_base10(min: f64, max: f64) -> f64 {
     let count = range / res;
 
     if count > 15.0 {
-        res = res * 5.0;
+        res *= 5.0;
     } else if count > 10.0 {
-        res = res * 2.0;
+        res *= 2.0;
     }
 
     res
@@ -214,7 +214,7 @@ fn get_grid_unit_base2(min: f64, max: f64) -> f64 {
     let count = range / res;
 
     if count > 15.0 {
-        res = res * 2.0;
+        res *= 2.0;
     }
 
     res
@@ -258,7 +258,7 @@ fn get_time_grid_unit(min: i64, max: i64) -> i64 {
     }
 
     while (l >= *units.first().unwrap()) && (range / l) > 10 {
-        l = l * 2;
+        l *= 2;
     }
 
     //log::info!("TIMERANG {l}");
