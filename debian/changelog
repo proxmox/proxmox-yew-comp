@@ -1,3 +1,17 @@
+rust-proxmox-yew-comp (0.3.8) unstable; urgency=medium
+
+  * form: add helpers for property strings
+
+  * wasm http client: use and return proxmox_client::Error
+
+  * login panel: improve layout
+
+  * login panel: improve message on login error
+
+  * code cleanups (clippy fixes)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 13 Jan 2025 13:49:50 +0100
+
 rust-proxmox-yew-comp (0.3.7) bookworm; urgency=medium
 
   * depend on pwt 0.4.7
