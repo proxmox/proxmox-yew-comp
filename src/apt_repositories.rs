@@ -329,8 +329,8 @@ fn apt_configuration_to_tree(config: &APTRepositoriesResult) -> SlabTree<TreeEnt
     let mut info_map: HashMap<String, HashMap<usize, Vec<APTRepositoryInfo>>> = HashMap::new();
 
     for info in &config.infos {
-        let inner = info_map.entry(info.path.clone()).or_insert(HashMap::new());
-        let entry = inner.entry(info.index).or_insert(Vec::new());
+        let inner = info_map.entry(info.path.clone()).or_default();
+        let entry = inner.entry(info.index).or_default();
         entry.push(info.clone());
     }
 

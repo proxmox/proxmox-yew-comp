@@ -333,12 +333,12 @@ fn format_ports_slaves(interface: &Interface) -> String {
             .bridge_ports
             .as_ref()
             .map(|ports| ports.join(" "))
-            .unwrap_or(String::new()),
+            .unwrap_or_default(),
         NetworkInterfaceType::Bond => interface
             .slaves
             .as_ref()
             .map(|ports| ports.join(" "))
-            .unwrap_or(String::new()),
+            .unwrap_or_default(),
         NetworkInterfaceType::Alias
         | NetworkInterfaceType::Vlan
         | NetworkInterfaceType::Eth
@@ -500,7 +500,7 @@ fn columns() -> Rc<Vec<DataTableHeader<Interface>>> {
         DataTableColumn::new("Comment")
             .flex(1)
             .render(|item: &Interface| html!{
-                item.comments.clone().unwrap_or(String::new())
+                item.comments.clone().unwrap_or_default()
             })
             .into()
 
