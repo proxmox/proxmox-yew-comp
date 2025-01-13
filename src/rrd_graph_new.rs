@@ -179,11 +179,11 @@ fn get_grid_unit_base10(min: f64, max: f64) -> f64 {
 
     let mut l = range.log10() as i32;
 
-    while (range / (10.0 as f64).powi(l)) < 2.0 {
+    while (range / 10.0_f64.powi(l)) < 2.0 {
         l -= 1;
     }
 
-    let mut res = (10.0 as f64).powi(l);
+    let mut res = 10.0_f64.powi(l);
 
     let count = range / res;
 
@@ -205,11 +205,11 @@ fn get_grid_unit_base2(min: f64, max: f64) -> f64 {
 
     let mut l = range.log2() as i32;
 
-    while (range / (2.0 as f64).powi(l)) < 4.0 {
+    while (range / 2.0_f64.powi(l)) < 4.0 {
         l -= 1;
     }
 
-    let mut res = (2.0 as f64).powi(l);
+    let mut res = 2.0_f64.powi(l);
 
     let count = range / res;
 
@@ -511,7 +511,7 @@ impl PwtRRDGraph {
             let width = (layout.width - layout.left_offset - layout.grid_border * 2) as f64;
             move |t: i64| -> f64 {
                 (layout.left_offset + layout.grid_border) as f64
-                    + (((t - start_time) as f64 * width) as f64) / time_span
+                    + ((t - start_time) as f64 * width) / time_span
             }
         };
 

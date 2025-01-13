@@ -45,11 +45,11 @@ impl Component for ProxmoxRRDGrid {
                 let cw = 800;
                 let width = width.max(cw);
                 let padding = 6;
-                let mut cols = (width / cw) as usize;
+                let mut cols = width / cw;
                 if cols == 0 {
                     cols = 1;
                 }
-                let col_width = (width as usize - 2 * padding) / cols;
+                let col_width = (width - 2 * padding) / cols;
                 self.cols = cols;
                 self.col_width = col_width - padding;
                 true
