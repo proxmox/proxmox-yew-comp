@@ -947,7 +947,7 @@ impl Component for PwtRRDGraph {
             .node_ref(self.tooltip_ref.clone())
         .attribute("role", "tooltip")
         .attribute("aria-live", "polite")
-        .attribute("data-show", (self.draw_cross && data_time.is_some()).then(|| ""))
+        .attribute("data-show", (self.draw_cross && data_time.is_some()).then_some(""))
         .class("pwt-tooltip")
         .class("pwt-tooltip-rich")
         .with_optional_child(match (self.serie0_visible, &props.serie0) {
@@ -981,7 +981,7 @@ impl Component for PwtRRDGraph {
                     "pwt-rrd-legend-marker0",
                     "fa",
                     "fa-circle",
-                    (!self.serie0_visible).then(|| "disabled")
+                    (!self.serie0_visible).then_some("disabled")
                 );
                 panel.add_tool(
                     Button::new(serie0.label.clone())
@@ -993,7 +993,7 @@ impl Component for PwtRRDGraph {
                     "pwt-rrd-legend-marker1",
                     "fa",
                     "fa-circle",
-                    (!self.serie1_visible).then(|| "disabled")
+                    (!self.serie1_visible).then_some("disabled")
                 );
                 panel.add_tool(
                     Button::new(serie1.label.clone())
