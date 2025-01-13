@@ -385,10 +385,9 @@ fn compute_outline_path(
 ) -> String {
     let mut path = String::new();
     let mut last_undefined = true;
-    for i in 0..time_data.len() {
-        let t = time_data[i];
+    for (i, t) in time_data.iter().enumerate() {
         let value = *values.get(i).unwrap_or(&f64::NAN);
-        let x = compute_x(t);
+        let x = compute_x(*t);
 
         if last_undefined {
             if value.is_nan() {
