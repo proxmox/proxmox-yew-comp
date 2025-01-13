@@ -654,7 +654,7 @@ impl PwtRRDGraph {
                             .into(),
                     );
                 }
-                _ if data0.len() == 0 => {}
+                _ if data0.is_empty() => {}
                 _ => log::debug!("out of bound selection start {start}, end {end} for {data0:?}"),
             }
         }
