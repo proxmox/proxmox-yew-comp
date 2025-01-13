@@ -148,20 +148,18 @@ fn update_status_store(
             "No {0} repository is enabled, you do not get any updates!",
             product.project_text()
         )));
-    } else {
-        if config.errors.is_empty() {
-            // just avoid that we show "get updates"
-            if has_test || has_no_subscription {
-                list.push(StatusLine::ok(tr!(
-                    "You get updates for {0}",
-                    product.project_text()
-                )));
-            } else if has_enterprise && active_subscription {
-                list.push(StatusLine::ok(tr!(
-                    "You get supported updates for {0}",
-                    product.project_text()
-                )));
-            }
+    } else if config.errors.is_empty() {
+        // just avoid that we show "get updates"
+        if has_test || has_no_subscription {
+            list.push(StatusLine::ok(tr!(
+                "You get updates for {0}",
+                product.project_text()
+            )));
+        } else if has_enterprise && active_subscription {
+            list.push(StatusLine::ok(tr!(
+                "You get supported updates for {0}",
+                product.project_text()
+            )));
         }
     }
 
@@ -186,20 +184,19 @@ fn update_status_store(
             ignore_pre_upgrade_warning.insert((&info.path, info.index));
             check_mixed_suites = true;
         }
-        if info.kind == "origin" {
-            if info.message == "Debian" || info.message == "Proxmox" {
-                controlled_origin.insert((&info.path, info.index));
-            }
+        if info.kind == "origin" && (info.message == "Debian" || info.message == "Proxmox") {
+            controlled_origin.insert((&info.path, info.index));
         }
     }
 
     let mut suites_warning = false;
     for info in &config.infos {
-        if info.kind == "warning" && info.property.as_deref() == Some("Suites") {
-            if enabled_repos.contains(&(&info.path, info.index)) {
-                suites_warning = true;
-                break;
-            }
+        if info.kind == "warning"
+            && info.property.as_deref() == Some("Suites")
+            && enabled_repos.contains(&(&info.path, info.index))
+        {
+            suites_warning = true;
+            break;
         }
     }
 
