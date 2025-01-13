@@ -274,14 +274,8 @@ impl LoadableComponent for ProxmoxTasks {
     ) -> Option<Html> {
         let props = ctx.props();
 
-        let selected_key = match self.selection.selected_key() {
-            Some(key) => key, // upid
-            None => return None,
-        };
-        let selected_item = match self.store.read().lookup_record(&selected_key) {
-            Some(item) => item.clone(),
-            None => return None,
-        };
+        let selected_key = self.selection.selected_key()?;
+        let selected_item = self.store.read().lookup_record(&selected_key)?.clone();
 
         match view_state {
             ViewDialog::TaskViewer => {

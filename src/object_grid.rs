@@ -303,25 +303,15 @@ impl PwtObjectGrid {
     fn edit_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
         let props = ctx.props();
 
-        let name = match self.selection.as_ref() {
-            Some(name) => name.to_string(),
-            None => return None,
-        };
-
-        let row = match self.rows.iter().find(|row| row.name == name) {
-            Some(row) => row,
-            None => return None,
-        };
+        let name = self.selection.as_ref()?.to_string();
+        let row = self.rows.iter().find(|row| row.name == name)?;
 
         let title = &row.header;
 
         let data = self.data.clone();
         let value = data[&name].clone();
 
-        let editor = match self.editors.get(&name) {
-            Some(editor) => editor.clone(),
-            None => return None,
-        };
+        let editor = self.editors.get(&name)?.clone();
 
         Some(
             EditWindow::new(format!("Edit: {}", title))
