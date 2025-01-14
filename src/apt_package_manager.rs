@@ -68,7 +68,7 @@ struct OriginInfo {
 enum TreeEntry {
     Root(Key),
     Origin(OriginInfo),
-    Package(Key, APTUpdateInfo),
+    Package(Key, Box<APTUpdateInfo>),
 }
 
 impl ExtractPrimaryKey for TreeEntry {
@@ -119,7 +119,7 @@ fn update_list_to_tree(updates: &[APTUpdateInfo]) -> SlabTree<TreeEntry> {
         for package in package_list.into_iter() {
             origin_node.append(TreeEntry::Package(
                 Key::from(package.package.clone()),
-                package,
+                Box::new(package),
             ));
         }
     }
