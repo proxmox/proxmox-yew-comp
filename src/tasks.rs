@@ -39,7 +39,7 @@ pub struct Tasks {
     #[prop_or_default]
     pub extra_filter: Option<(AttrValue, Html)>,
 
-    /// The base url, default is '/nodes/<nodename>/tasks'
+    /// The base url, default is `/nodes/<nodename>/tasks`.
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
     pub base_url: Option<AttrValue>,
