@@ -29,7 +29,7 @@ use super::{IntoSubmitValueCallback, SubmitValueCallback};
 
 use pwt_macros::builder;
 
-/// Infos passed to the [SelectionView] render function.
+/// Infos passed to the [pwt::widget::SelectionView] render function.
 #[derive(Clone, PartialEq)]
 pub struct WizardPageRenderInfo {
     /// The key of the item to render
@@ -105,7 +105,8 @@ pub struct Wizard {
     #[prop_or_default]
     pub html_title: Option<Html>,
 
-    /// Use [MiniScroll] for [TabBar] to allow scrolling.
+    /// Use [pwt::widget::MiniScroll] for [pwt::widget::TabBar] to allow
+    /// scrolling.
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
     pub scroll_mode: Option<MiniScrollMode>,
