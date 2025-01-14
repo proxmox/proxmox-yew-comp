@@ -369,9 +369,9 @@ impl Component for ProxmoxNetworkEdit {
     }
 }
 
-impl Into<VNode> for NetworkEdit {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<ProxmoxNetworkEdit>(Rc::new(self), None);
+impl From<NetworkEdit> for VNode {
+    fn from(val: NetworkEdit) -> Self {
+        let comp = VComp::new::<ProxmoxNetworkEdit>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

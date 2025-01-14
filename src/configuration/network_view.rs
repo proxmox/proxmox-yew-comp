@@ -319,9 +319,9 @@ impl LoadableComponent for ProxmoxNetworkView {
     }
 }
 
-impl Into<VNode> for NetworkView {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<LoadableComponentMaster<ProxmoxNetworkView>>(Rc::new(self), None);
+impl From<NetworkView> for VNode {
+    fn from(val: NetworkView) -> Self {
+        let comp = VComp::new::<LoadableComponentMaster<ProxmoxNetworkView>>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

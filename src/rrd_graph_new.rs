@@ -1030,9 +1030,9 @@ impl Component for PwtRRDGraph {
     }
 }
 
-impl Into<VNode> for RRDGraph {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<PwtRRDGraph>(Rc::new(self), None);
+impl From<RRDGraph> for VNode {
+    fn from(val: RRDGraph) -> Self {
+        let comp = VComp::new::<PwtRRDGraph>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

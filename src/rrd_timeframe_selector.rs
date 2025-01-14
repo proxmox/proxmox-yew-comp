@@ -233,9 +233,9 @@ impl Component for PwtRRDTimeframeSelector {
     }
 }
 
-impl Into<VNode> for RRDTimeframeSelector {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<PwtRRDTimeframeSelector>(Rc::new(self), None);
+impl From<RRDTimeframeSelector> for VNode {
+    fn from(val: RRDTimeframeSelector) -> Self {
+        let comp = VComp::new::<PwtRRDTimeframeSelector>(Rc::new(val), None);
         VNode::from(comp)
     }
 }
