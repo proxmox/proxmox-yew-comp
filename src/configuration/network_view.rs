@@ -52,6 +52,12 @@ async fn apply_changes() -> Result<String, Error> {
 #[derive(PartialEq, Properties)]
 pub struct NetworkView {}
 
+impl Default for NetworkView {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NetworkView {
     pub fn new() -> Self {
         Self {}

@@ -28,6 +28,12 @@ pub struct RRDTimeframeSelector {
     on_change: Option<Callback<RRDTimeframe>>,
 }
 
+impl Default for RRDTimeframeSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RRDTimeframeSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -46,6 +46,12 @@ pub struct AptPackageManager {
     pub enable_upgrade: bool,
 }
 
+impl Default for AptPackageManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AptPackageManager {
     pub fn new() -> Self {
         yew::props!(Self {})

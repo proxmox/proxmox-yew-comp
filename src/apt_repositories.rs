@@ -49,6 +49,12 @@ pub struct AptRepositories {
     pub product: Option<ExistingProduct>,
 }
 
+impl Default for AptRepositories {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AptRepositories {
     pub fn new() -> Self {
         yew::props!(Self {})
