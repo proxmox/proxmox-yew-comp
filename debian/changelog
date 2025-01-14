@@ -1,4 +1,4 @@
-rust-proxmox-yew-comp (0.3.8) unstable; urgency=medium
+rust-proxmox-yew-comp (0.3.8) bookwork; urgency=medium
 
   * form: add helpers for property strings
 
