@@ -1,3 +1,13 @@
+rust-proxmox-yew-comp (0.3.9) bookworm; urgency=medium
+
+  * rebuild with proxmox-schema 4.0
+
+  * clippy fixes
+
+  * doc improvements
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 15 Jan 2025 12:57:44 +0100
+
 rust-proxmox-yew-comp (0.3.8) bookworm; urgency=medium
 
   * form: add helpers for property strings
