@@ -7,6 +7,7 @@ use anyhow::Error;
 use pwt::widget::form::{Field, Form, FormContext, InputType};
 
 use gloo_timers::callback::Timeout;
+use html::IntoEventCallback;
 use serde_json::Map;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
@@ -50,6 +51,11 @@ pub struct Tasks {
     #[builder(IntoPropValue, into_prop_value)]
     pub base_url: Option<AttrValue>,
 
+    #[builder_cb(IntoEventCallback, into_event_callback, (String, Option<i64>))]
+    #[prop_or_default]
+    /// Called when the task is opened
+    pub on_show_task: Option<Callback<(String, Option<i64>)>>,
+
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     /// An optional column configuration that overwrites the default one.
@@ -88,6 +94,7 @@ pub enum Msg {
     ToggleFilter,
     LoadBatch(u64), // start
     UpdateFilter,
+    ShowTask,
 }
 pub struct ProxmoxTasks {
     selection: Selection,
@@ -270,6 +277,22 @@ impl LoadableComponent for ProxmoxTasks {
                 }));
                 false
             }
+            Msg::ShowTask => {
+                if let Some(on_show_task) = &ctx.props().on_show_task {
+                    let selected_item = self
+                        .selection
+                        .selected_key()
+                        .and_then(|key| self.store.read().lookup_record(&key).cloned());
+                    let selected_item = match selected_item {
+                        Some(item) => item,
+                        None => return false,
+                    };
+                    on_show_task.emit((selected_item.upid, selected_item.endtime));
+                } else {
+                    ctx.link().change_view(Some(ViewDialog::TaskViewer));
+                }
+                false
+            }
         }
     }
 
@@ -292,10 +315,9 @@ impl LoadableComponent for ProxmoxTasks {
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
             .with_child(
-                Button::new(tr!("View")).disabled(disabled).onclick(
-                    ctx.link()
-                        .change_view_callback(|_| Some(ViewDialog::TaskViewer)),
-                ),
+                Button::new(tr!("View"))
+                    .disabled(disabled)
+                    .onclick(ctx.link().callback(|_| Msg::ShowTask)),
             )
             .with_flex_spacer()
             .with_child({
@@ -373,7 +395,7 @@ impl LoadableComponent for ProxmoxTasks {
             .class("pwt-flex-fit")
             .selection(self.selection.clone())
             .on_row_dblclick(move |_: &mut _| {
-                link.change_view(Some(ViewDialog::TaskViewer));
+                link.send_message(Msg::ShowTask);
             })
             .row_render_callback(self.row_render_callback.clone())
             .into()
