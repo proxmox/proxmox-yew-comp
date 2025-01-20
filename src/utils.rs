@@ -227,20 +227,22 @@ pub fn init_task_descr_table_base() {
     register_task_description("srvreload", (tr!("Service"), tr!("Reload")));
 }
 
+/// Uses information from the given [`UPID`] to render the task description with [`format_task_description`]
 pub fn format_upid(upid: &str) -> String {
     match upid.parse::<UPID>() {
         Err(_) => upid.to_string(),
-        Ok(upid) => {
-            if let Some(text) =
-                lookup_task_description(upid.worker_type.as_str(), upid.worker_id.as_deref())
-            {
-                text
-            } else {
-                match (upid.worker_type.as_str(), upid.worker_id) {
-                    (worker_type, Some(id)) => format!("{} {}", worker_type, id),
-                    (worker_type, None) => worker_type.to_string(),
-                }
-            }
+        Ok(upid) => format_task_description(&upid.worker_type, upid.worker_id.as_deref()),
+    }
+}
+
+/// Formats the given worker type and id to a Human readable task description
+pub fn format_task_description(worker_type: &str, worker_id: Option<&str>) -> String {
+    if let Some(text) = lookup_task_description(worker_type, worker_id) {
+        text
+    } else {
+        match worker_id {
+            Some(id) => format!("{} {}", worker_type, id),
+            None => worker_type.to_string(),
         }
     }
 }
