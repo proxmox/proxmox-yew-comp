@@ -3,7 +3,7 @@ use std::rc::Rc;
 use gloo_timers::callback::Timeout;
 use pwt::css::ColorScheme;
 use wasm_bindgen::JsCast;
-use yew::html::IntoEventCallback;
+use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::dom::align::{align_to, AlignOptions, GrowDirection, Point};
@@ -30,6 +30,11 @@ pub struct RunningTasksButton {
     #[prop_or_default]
     /// Render function for the [`TaskListItem`]
     pub render: Option<RenderFn<TaskListItem>>,
+
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    /// Custom Buttons instead of the default 'Show all' one.
+    pub buttons: Option<Vec<Button>>,
 }
 
 impl RunningTasksButton {
@@ -156,6 +161,7 @@ impl Component for ProxmoxRunningTasksButton {
                 .node_ref(self.submenu_ref.clone())
                 .with_child(
                     RunningTasks::new(props.running_tasks.clone())
+                        .buttons(props.buttons.clone())
                         .as_dropdown(true)
                         .on_show_task(props.on_show_task.clone())
                         .render(props.render.clone())

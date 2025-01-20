@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use yew::html::IntoEventCallback;
+use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
@@ -35,6 +35,11 @@ pub struct RunningTasks {
     #[builder]
     #[prop_or_default]
     pub as_dropdown: bool,
+
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    /// Custom Buttons instead of the default 'Show all' one.
+    pub buttons: Option<Vec<Button>>,
 }
 
 impl RunningTasks {
@@ -167,17 +172,25 @@ impl Component for ProxmoxRunningTasks {
         });
 
         let toolbar = props.as_dropdown.then(|| {
-            Toolbar::new().with_flex_spacer().with_child({
-                let on_close = props.on_close.clone();
-                Button::new(tr!("Show All Tasks"))
-                    .class("pwt-scheme-primary")
-                    .onclick(move |_| {
-                        crate::utils::set_location_href("#/administration/tasks");
-                        if let Some(on_close) = &on_close {
-                            on_close.emit(());
-                        }
-                    })
-            })
+            if let Some(buttons) = props.buttons.clone() {
+                let mut tb = Toolbar::new().with_flex_spacer();
+                for button in buttons {
+                    tb.add_child(button);
+                }
+                tb
+            } else {
+                Toolbar::new().with_flex_spacer().with_child({
+                    let on_close = props.on_close.clone();
+                    Button::new(tr!("Show All Tasks"))
+                        .class("pwt-scheme-primary")
+                        .onclick(move |_| {
+                            crate::utils::set_location_href("#/administration/tasks");
+                            if let Some(on_close) = &on_close {
+                                on_close.emit(());
+                            }
+                        })
+                })
+            }
         });
 
         Panel::new()
