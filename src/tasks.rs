@@ -6,6 +6,8 @@ use anyhow::Error;
 
 use pwt::widget::form::{Field, Form, FormContext, InputType};
 
+use gloo_timers::callback::Timeout;
+use serde_json::Map;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
@@ -25,6 +27,10 @@ use pwt_macros::builder;
 use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, TaskViewer};
 
 use super::{TaskStatusSelector, TaskTypeSelector};
+
+const FILTER_UPDATE_BUFFER_MS: u32 = 150;
+const BATCH_LIMIT: u64 = 500;
+const LOAD_BUFFER_ROWS: usize = 20;
 
 #[derive(PartialEq, Properties)]
 #[builder]
@@ -75,6 +81,7 @@ pub enum ViewDialog {
 pub enum Msg {
     Redraw,
     ToggleFilter,
+    LoadBatch(u64), // start
     UpdateFilter,
 }
 pub struct ProxmoxTasks {
@@ -83,6 +90,9 @@ pub struct ProxmoxTasks {
     show_filter: PersistentState<bool>,
     filter_form_context: FormContext,
     row_render_callback: DataTableRowRenderCallback<TaskListItem>,
+    start: u64,
+    last_filter: serde_json::Value,
+    load_timeout: Option<Timeout>,
 }
 
 impl LoadableComponent for ProxmoxTasks {
@@ -98,14 +108,21 @@ impl LoadableComponent for ProxmoxTasks {
         let filter_form_context =
             FormContext::new().on_change(ctx.link().callback(|_| Msg::UpdateFilter));
 
-        let row_render_callback = DataTableRowRenderCallback::new(|args: &mut _| {
-            let record: &TaskListItem = args.record();
-            if let Some(status) = &record.status {
-                if status != "OK" {
-                    if status.starts_with("WARNINGS:") {
-                        args.add_class("pwt-color-warning");
-                    } else {
-                        args.add_class("pwt-color-error");
+        let row_render_callback = DataTableRowRenderCallback::new({
+            let store = store.clone();
+            let link = link.clone();
+            move |args: &mut _| {
+                if args.row_index() > store.data_len().saturating_sub(LOAD_BUFFER_ROWS) {
+                    link.send_message(Msg::LoadBatch(store.data_len() as u64));
+                }
+                let record: &TaskListItem = args.record();
+                if let Some(status) = &record.status {
+                    if status != "OK" {
+                        if status.starts_with("WARNINGS:") {
+                            args.add_class("pwt-color-warning");
+                        } else {
+                            args.add_class("pwt-color-error");
+                        }
                     }
                 }
             }
@@ -117,6 +134,9 @@ impl LoadableComponent for ProxmoxTasks {
             show_filter: PersistentState::new("ProxmoxTasksShowFilter"),
             filter_form_context,
             row_render_callback,
+            last_filter: serde_json::Value::Object(Map::new()),
+            start: 0,
+            load_timeout: None,
         }
     }
 
@@ -155,9 +175,17 @@ impl LoadableComponent for ProxmoxTasks {
             filter["until"] = until.into();
         }
 
+        let start = self.start;
+        filter["start"] = start.into();
+        filter["limit"] = BATCH_LIMIT.into();
+
         Box::pin(async move {
-            let data = crate::http_get(&path, Some(filter)).await?;
-            store.write().set_data(data);
+            let mut data: Vec<_> = crate::http_get(&path, Some(filter)).await?;
+            if start == 0 {
+                store.write().set_data(data);
+            } else {
+                store.write().append(&mut data);
+            }
             Ok(())
         })
     }
@@ -170,13 +198,31 @@ impl LoadableComponent for ProxmoxTasks {
                 true
             }
             Msg::UpdateFilter => {
-                // fixme: delay load
                 let form_context = self.filter_form_context.read();
                 if !form_context.is_valid() {
                     return false;
                 }
-                ctx.link().send_reload();
+                let filter_params = form_context.get_submit_data();
+                if ctx.loading() && self.last_filter == filter_params {
+                    return false;
+                }
+
+                self.last_filter = filter_params;
+                self.start = 0;
+
+                let link = ctx.link().clone();
+                self.load_timeout = Some(Timeout::new(FILTER_UPDATE_BUFFER_MS, move || {
+                    link.send_reload();
+                }));
                 true
+            }
+            Msg::LoadBatch(start) => {
+                self.start = start;
+                let link = ctx.link().clone();
+                self.load_timeout = Some(Timeout::new(FILTER_UPDATE_BUFFER_MS, move || {
+                    link.send_reload();
+                }));
+                false
             }
         }
     }
@@ -220,7 +266,7 @@ impl LoadableComponent for ProxmoxTasks {
             .with_child({
                 let loading = ctx.loading();
                 let link = ctx.link();
-                Button::refresh(loading).onclick(move |_| link.send_reload())
+                Button::refresh(loading).onclick(move |_| link.send_message(Msg::LoadBatch(0)))
             });
 
         let filter_classes = classes!(
