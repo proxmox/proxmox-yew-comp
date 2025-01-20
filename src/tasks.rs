@@ -49,6 +49,11 @@ pub struct Tasks {
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
     pub base_url: Option<AttrValue>,
+
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    /// An optional column configuration that overwrites the default one.
+    pub columns: Option<Rc<Vec<DataTableHeader<TaskListItem>>>>,
 }
 
 impl Default for Tasks {
@@ -93,6 +98,46 @@ pub struct ProxmoxTasks {
     start: u64,
     last_filter: serde_json::Value,
     load_timeout: Option<Timeout>,
+    columns: Rc<Vec<DataTableHeader<TaskListItem>>>,
+}
+
+impl ProxmoxTasks {
+    fn columns(ctx: &LoadableComponentContext<Self>) -> Rc<Vec<DataTableHeader<TaskListItem>>> {
+        if let Some(columns) = ctx.props().columns.clone() {
+            columns
+        } else {
+            Rc::new(vec![
+                DataTableColumn::new(tr!("Start Time"))
+                    .width("130px")
+                    .render(|item: &TaskListItem| render_epoch_short(item.starttime).into())
+                    .into(),
+                DataTableColumn::new(tr!("End Time"))
+                    .width("130px")
+                    .render(|item: &TaskListItem| match item.endtime {
+                        Some(endtime) => render_epoch_short(endtime).into(),
+                        None => html! {},
+                    })
+                    .into(),
+                DataTableColumn::new(tr!("User name"))
+                    .width("150px")
+                    .render(|item: &TaskListItem| {
+                        html! {&item.user}
+                    })
+                    .into(),
+                DataTableColumn::new(tr!("Description"))
+                    .flex(1)
+                    .render(move |item: &TaskListItem| html! {format_upid(&item.upid)})
+                    .into(),
+                DataTableColumn::new(tr!("Status"))
+                    .width("200px")
+                    .render(|item: &TaskListItem| {
+                        let text = item.status.as_deref().unwrap_or("");
+                        html! {text}
+                    })
+                    .into(),
+            ])
+        }
+    }
 }
 
 impl LoadableComponent for ProxmoxTasks {
@@ -137,6 +182,7 @@ impl LoadableComponent for ProxmoxTasks {
             last_filter: serde_json::Value::Object(Map::new()),
             start: 0,
             load_timeout: None,
+            columns: Self::columns(ctx),
         }
     }
 
@@ -320,7 +366,7 @@ impl LoadableComponent for ProxmoxTasks {
     }
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
-        let columns = COLUMNS.with(Rc::clone);
+        let columns = self.columns.clone();
         let link = ctx.link();
 
         DataTable::new(columns, self.store.clone())
@@ -355,44 +401,17 @@ impl LoadableComponent for ProxmoxTasks {
             }
         }
     }
-}
 
-thread_local! {
-    static COLUMNS: Rc<Vec<DataTableHeader<TaskListItem>>> = Rc::new(vec![
-        DataTableColumn::new(tr!("Start Time"))
-            .width("130px")
-            .render(|item: &TaskListItem| {
-                render_epoch_short(item.starttime).into()
-            })
-            .into(),
-        DataTableColumn::new(tr!("End Time"))
-            .width("130px")
-            .render(|item: &TaskListItem| {
-                match item.endtime {
-                    Some(endtime) => render_epoch_short(endtime).into(),
-                    None => html!{},
-            }})
-            .into(),
-        DataTableColumn::new(tr!("User name"))
-            .width("150px")
-            .render(|item: &TaskListItem| {
-                html!{&item.user}
-            })
-            .into(),
-        DataTableColumn::new(tr!("Description"))
-            .flex(1)
-            .render(|item: &TaskListItem| {
-                html!{format_upid(&item.upid)}
-            })
-            .into(),
-        DataTableColumn::new(tr!("Status"))
-            .width("200px")
-            .render(|item: &TaskListItem| {
-                let text = item.status.as_deref().unwrap_or("");
-                html!{text}
-            })
-            .into(),
-        ]);
+    fn changed(
+        &mut self,
+        ctx: &LoadableComponentContext<Self>,
+        old_props: &Self::Properties,
+    ) -> bool {
+        if old_props.columns != ctx.props().columns {
+            self.columns = Self::columns(ctx);
+        }
+        true
+    }
 }
 
 impl From<Tasks> for VNode {
