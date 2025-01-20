@@ -215,7 +215,7 @@ impl LoadableComponent for ProxmoxTasks {
             since.set_hours(0);
             since.set_minutes(0);
             since.set_seconds(0);
-            let since = (since.get_time() / 1000.0).round() as u64;
+            let since = (since.get_time() / 1000.0) as u64;
             filter["since"] = since.into();
         }
 
@@ -224,7 +224,7 @@ impl LoadableComponent for ProxmoxTasks {
             until.set_hours(23);
             until.set_minutes(59);
             until.set_seconds(59);
-            let until = (until.get_time() / 1000.0).round() as u64;
+            let until = (until.get_time() / 1000.0) as u64;
             filter["until"] = until.into();
         }
 
