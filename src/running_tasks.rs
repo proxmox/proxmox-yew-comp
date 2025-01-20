@@ -4,6 +4,7 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
+use pwt::props::{IntoOptionalRenderFn, RenderFn};
 use pwt::state::{Loader, LoaderState, SharedStateObserver, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::{ActionIcon, Button, Container, Panel, Toolbar, Tooltip};
@@ -21,6 +22,11 @@ pub struct RunningTasks {
     #[builder_cb(IntoEventCallback, into_event_callback, (String, Option<i64>))]
     #[prop_or_default]
     pub on_show_task: Option<Callback<(String, Option<i64>)>>,
+
+    #[builder_cb(IntoOptionalRenderFn, into_optional_render_fn, TaskListItem)]
+    #[prop_or_default]
+    /// Render function for the [`TaskListItem`]
+    pub render: Option<RenderFn<TaskListItem>>,
 
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     #[prop_or_default]
@@ -71,7 +77,16 @@ impl ProxmoxRunningTasks {
         Rc::new(vec![
             DataTableColumn::new(tr!("Task"))
                 .flex(1)
-                .render(|item: &TaskListItem| html! {format_upid(&item.upid)})
+                .render({
+                    let render = props.render.clone();
+                    move |item: &TaskListItem| {
+                        if let Some(render) = &render {
+                            render.apply(item)
+                        } else {
+                            html! {format_upid(&item.upid)}
+                        }
+                    }
+                })
                 .into(),
             DataTableColumn::new(tr!("Start Time"))
                 .width("130px")

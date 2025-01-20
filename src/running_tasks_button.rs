@@ -8,6 +8,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::dom::align::{align_to, AlignOptions, GrowDirection, Point};
 use pwt::prelude::*;
+use pwt::props::{IntoOptionalRenderFn, RenderFn};
 use pwt::state::{Loader, LoaderState, SharedStateObserver};
 use pwt::widget::{Button, Container};
 
@@ -24,6 +25,11 @@ pub struct RunningTasksButton {
     #[builder_cb(IntoEventCallback, into_event_callback, (String, Option<i64>))]
     #[prop_or_default]
     on_show_task: Option<Callback<(String, Option<i64>)>>,
+
+    #[builder_cb(IntoOptionalRenderFn, into_optional_render_fn, TaskListItem)]
+    #[prop_or_default]
+    /// Render function for the [`TaskListItem`]
+    pub render: Option<RenderFn<TaskListItem>>,
 }
 
 impl RunningTasksButton {
@@ -152,6 +158,7 @@ impl Component for ProxmoxRunningTasksButton {
                     RunningTasks::new(props.running_tasks.clone())
                         .as_dropdown(true)
                         .on_show_task(props.on_show_task.clone())
+                        .render(props.render.clone())
                         .on_close(ctx.link().callback(|_| Msg::CloseMenu)),
                 )
         });
