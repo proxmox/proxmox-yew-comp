@@ -134,7 +134,27 @@ impl LoadableComponent for ProxmoxTasks {
         let store = self.store.clone();
 
         let form_context = self.filter_form_context.read();
-        let filter = form_context.get_submit_data();
+        let mut filter = form_context.get_submit_data();
+
+        // Transform Date values
+        if let Some(since) = filter.get("since").and_then(|v| v.as_str()) {
+            let since = js_sys::Date::new(&wasm_bindgen::JsValue::from_str(since));
+            since.set_hours(0);
+            since.set_minutes(0);
+            since.set_seconds(0);
+            let since = (since.get_time() / 1000.0).round() as u64;
+            filter["since"] = since.into();
+        }
+
+        if let Some(until) = filter.get("until").and_then(|v| v.as_str()) {
+            let until = js_sys::Date::new(&wasm_bindgen::JsValue::from_str(until));
+            until.set_hours(23);
+            until.set_minutes(59);
+            until.set_seconds(59);
+            let until = (until.get_time() / 1000.0).round() as u64;
+            filter["until"] = until.into();
+        }
+
         Box::pin(async move {
             let data = crate::http_get(&path, Some(filter)).await?;
             store.write().set_data(data);
