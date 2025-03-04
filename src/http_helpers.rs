@@ -148,11 +148,19 @@ pub fn http_get_auth() -> Option<Authentication> {
     CLIENT.with(move |c| c.borrow().get_auth())
 }
 
+thread_local! {
+    static LOGOUT_GUARD: RefCell<Option<AsyncAbortGuard>> = const { RefCell::new(None) };
+}
+
 pub fn http_clear_auth() {
-    CLIENT.with(move |c| {
-        c.borrow_mut().clear_auth();
-        crate::clear_auth_cookie(c.borrow().product().auth_cookie_name());
+    let abort_guard = AsyncAbortGuard::spawn(async move {
+        let client = CLIENT.with(|c| Rc::clone(&*c.borrow()));
+        let _ = client.logout().await;
+        client.clear_auth();
+        crate::clear_auth_cookie(client.product().auth_cookie_name());
     });
+
+    LOGOUT_GUARD.with_borrow_mut(|v| *v = Some(abort_guard));
 }
 
 pub async fn http_login(
