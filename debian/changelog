@@ -1,3 +1,15 @@
+rust-proxmox-yew-comp (0.4.1) bookworm; urgency=medium
+
+  * update proxmox-login to 0.2
+
+  * add helpers to refresh and remove HttpOnly cookies
+
+  * handle HttpOnly cookies in LoginPanel and http_helpers
+
+  * remove HttpOnly cookies on logout (via an API call)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 04 Mar 2025 16:19:07 +0100
+
 rust-proxmox-yew-comp (0.4.0) bookworm; urgency=medium
 
   * tasks: make the 'show task' action configurable
