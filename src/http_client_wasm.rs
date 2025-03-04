@@ -123,6 +123,25 @@ impl HttpClientWasm {
         Ok(login.response(&resp)?)
     }
 
+    pub async fn refresh(&self, username: impl Into<String>) -> Result<TicketResult, Error> {
+        let username = username.into();
+
+        let login = Login::renew_with_cookie("", username);
+        let request = login.request();
+        let request =
+            Self::post_request_builder(&request.url, request.content_type, &request.body)?;
+        let resp = self.fetch_request_text(request).await?;
+
+        Ok(login.response(&resp)?)
+    }
+
+
+    pub async fn logout(&self) -> Result<(), Error> {
+        self.request::<()>(http::Method::DELETE, "/api2/extjs/access/ticket", None)
+            .await?;
+        Ok(())
+    }
+
     pub async fn login_tfa(
         &self,
         challenge: Rc<proxmox_login::SecondFactorChallenge>,
