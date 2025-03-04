@@ -74,7 +74,10 @@ impl ProxmoxLoginPanel {
         let link = ctx.link().clone();
         self.async_pool.spawn(async move {
             match crate::http_login(username, password, realm).await {
-                Ok(TicketResult::Full(info)) => {
+                // TODO: eventually deprecate support for `TicketResult::Full` and
+                // throw an error. this package should only ever be used in a browser
+                // context where authentication info should be set via HttpOnly cookies.
+                Ok(TicketResult::Full(info)) | Ok(TicketResult::HttpOnly(info)) => {
                     link.send_message(Msg::Login(info));
                 }
                 Ok(TicketResult::TfaRequired(challenge)) => {

@@ -108,11 +108,25 @@ async fn ticket_refresh_loop() {
                 }
                 Validity::Refresh => {
                     let client = CLIENT.with(|c| Rc::clone(&*c.borrow()));
-                    if let Ok(TicketResult::Full(auth)) =
+
+                    // if the ticket is not signed, there is no point in sending it, assume we
+                    // are using a HttpOnly cookie that is properly handled by the
+                    // browser/cookie anyway
+                    let result = if data.ticket.is_info_only() {
+                        client.refresh(&data.userid).await
+                    } else {
                         client.login(&data.userid, &data.ticket.to_string()).await
-                    {
-                        log::info!("ticket_refresh_loop: Got ticket update.");
-                        client.set_auth(auth.clone());
+                    };
+
+                    match result {
+                        // TODO: eventually deprecate support for `TicketResult::Full` and
+                        // throw an error. this package should only ever be used in a browser
+                        // context where authentication info should be set via HttpOnly cookies.
+                        Ok(TicketResult::Full(auth)) | Ok(TicketResult::HttpOnly(auth)) => {
+                            log::info!("ticket_refresh_loop: Got ticket update.");
+                            client.set_auth(auth.clone());
+                        }
+                        _ => { /* do nothing */ }
                     }
                 }
                 Validity::Valid => { /* do nothing  */ }
@@ -157,10 +171,18 @@ pub async fn http_login(
         .await?;
 
     match ticket_result {
+        // TODO: eventually deprecate support for `TicketResult::Full` and
+        // throw an error. this package should only ever be used in a browser
+        // context where authentication info should be set via HttpOnly cookies.
         TicketResult::Full(auth) => {
             client.set_auth(auth.clone());
             update_global_client(client);
             Ok(TicketResult::Full(auth))
+        }
+        TicketResult::HttpOnly(auth) => {
+            client.set_auth(auth.clone());
+            update_global_client(client);
+            Ok(TicketResult::HttpOnly(auth))
         }
         challenge => Ok(challenge),
     }
