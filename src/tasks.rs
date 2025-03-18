@@ -168,14 +168,12 @@ impl LoadableComponent for ProxmoxTasks {
                     link.send_message(Msg::LoadBatch(store.data_len() as u64));
                 }
                 let record: &TaskListItem = args.record();
-                if let Some(status) = &record.status {
-                    if status != "OK" {
-                        if status.starts_with("WARNINGS:") {
-                            args.add_class("pwt-color-warning");
-                        } else {
-                            args.add_class("pwt-color-error");
-                        }
+                match record.status.as_deref() {
+                    Some("RUNNING" | "OK") | None => {}
+                    Some(status) if status.starts_with("WARNINGS:") => {
+                        args.add_class("pwt-color-warning")
                     }
+                    _ => args.add_class("pwt-color-error"),
                 }
             }
         });
