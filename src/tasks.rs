@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use anyhow::Error;
 
+use pwt::css::JustifyContent;
 use pwt::widget::form::{Field, Form, FormContext, InputType};
 
 use gloo_timers::callback::Timeout;
@@ -17,7 +18,7 @@ use pwt::state::{PersistentState, Selection, Store};
 use pwt::widget::data_table::{
     DataTable, DataTableColumn, DataTableHeader, DataTableRowRenderCallback,
 };
-use pwt::widget::{Button, Column, Toolbar};
+use pwt::widget::{Button, Column, Fa, Row, Toolbar};
 
 use crate::utils::{format_upid, render_epoch_short};
 
@@ -122,7 +123,10 @@ impl ProxmoxTasks {
                     .width("130px")
                     .render(|item: &TaskListItem| match item.endtime {
                         Some(endtime) => render_epoch_short(endtime).into(),
-                        None => html! {},
+                        None => Row::new()
+                            .class(JustifyContent::Center)
+                            .with_child(Fa::new("").class("pwt-loading-icon"))
+                            .into(),
                     })
                     .into(),
                 DataTableColumn::new(tr!("User name"))
@@ -137,9 +141,12 @@ impl ProxmoxTasks {
                     .into(),
                 DataTableColumn::new(tr!("Status"))
                     .width("200px")
-                    .render(|item: &TaskListItem| {
-                        let text = item.status.as_deref().unwrap_or("");
-                        html! {text}
+                    .render(|item: &TaskListItem| match item.status.as_deref() {
+                        Some("RUNNING") | None => Row::new()
+                            .class(JustifyContent::Center)
+                            .with_child(Fa::new("").class("pwt-loading-icon"))
+                            .into(),
+                        Some(text) => html! {text},
                     })
                     .into(),
             ])
