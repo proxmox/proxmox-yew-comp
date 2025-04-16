@@ -1,3 +1,13 @@
+rust-proxmox-yew-comp (0.4.2) bookworm; urgency=medium
+
+  * tasks: don't mark running tasks from pve with 'error' color
+
+  * tasks: add loading animation for running tasks
+
+  * derive more standard traits for several types
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 16 Apr 2025 10:50:15 +0200
+
 rust-proxmox-yew-comp (0.4.1) bookworm; urgency=medium
 
   * update proxmox-login to 0.2
