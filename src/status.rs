@@ -7,6 +7,7 @@ use pwt::{
 
 /// Used to represent a Status of some resource or component, e.g.
 /// if a PVE node is online or not.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum Status {
     Success,
     Warning,
@@ -27,6 +28,7 @@ impl Status {
 }
 
 /// Used to represent the state of a Node, being PVE or PBS
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum NodeState {
     Online,
     Offline,
@@ -45,6 +47,7 @@ impl NodeState {
 }
 
 /// Used to represent the state of a PVE guest, such as a VM
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum GuestState {
     Running,
     Paused,
@@ -67,6 +70,7 @@ impl GuestState {
 }
 
 /// Used to represent the state of a Storage or Datastore
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum StorageState {
     Available,
     Unavailable,

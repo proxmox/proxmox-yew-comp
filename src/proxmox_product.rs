@@ -23,7 +23,7 @@ pub trait ProjectInfo {
 }
 
 /// Enumerate the different Proxmox products.
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum ExistingProduct {
     PVE,
     PMG,

@@ -75,7 +75,7 @@ enum JournalRequest {
     Top(usize, String),
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum Position {
     Initial,
     Bottom,
