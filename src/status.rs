@@ -16,13 +16,25 @@ pub enum Status {
 }
 
 impl Status {
+    #[deprecated]
+    /// Deprecated, please use [`Fa::from`] or `.into()` instead.
     pub fn to_fa_icon(&self) -> Fa {
-        let (icon, class): (&str, Classes) = match self {
+        (*self).into()
+    }
+
+    fn get_icon_classes(&self) -> (&str, Classes) {
+        match self {
             Status::Success => ("check", FontColor::Success.into()),
             Status::Warning => ("exclamation-triangle", FontColor::Warning.into()),
             Status::Error => ("times-circle", FontColor::Error.into()),
             Status::Unknown => ("question-circle", Opacity::Quarter.into()),
-        };
+        }
+    }
+}
+
+impl From<Status> for Fa {
+    fn from(value: Status) -> Self {
+        let (icon, class) = value.get_icon_classes();
         Fa::new(icon).class(class)
     }
 }
@@ -36,12 +48,24 @@ pub enum NodeState {
 }
 
 impl NodeState {
+    #[deprecated]
+    /// Deprecated, please use [`Fa::from`] or `.into()` instead.
     pub fn to_fa_icon(&self) -> Fa {
-        let (icon, class) = match self {
+        (*self).into()
+    }
+
+    fn get_icon_classes(&self) -> (&str, FontColor) {
+        match self {
             NodeState::Online => ("check-circle", FontColor::Success),
             NodeState::Offline => ("times-circle", FontColor::Error),
             NodeState::Unknown => ("question-circle", FontColor::Surface),
-        };
+        }
+    }
+}
+
+impl From<NodeState> for Fa {
+    fn from(value: NodeState) -> Self {
+        let (icon, class) = value.get_icon_classes();
         Fa::new(icon).class(class)
     }
 }
@@ -57,14 +81,26 @@ pub enum GuestState {
 }
 
 impl GuestState {
+    #[deprecated]
+    /// Deprecated, please use [`Fa::from`] or `.into()` instead.
     pub fn to_fa_icon(&self) -> Fa {
-        let (icon, class): (&str, Classes) = match self {
+        (*self).into()
+    }
+
+    fn get_icon_classes(&self) -> (&str, Classes) {
+        match self {
             GuestState::Running => ("play", FontColor::Success.into()),
             GuestState::Paused => ("pause", FontColor::Warning.into()),
             GuestState::Stopped => ("stop", Opacity::Quarter.into()),
             GuestState::Template => ("file-o", "".into()),
             GuestState::Unknown => ("question-circle", Opacity::Quarter.into()),
-        };
+        }
+    }
+}
+
+impl From<GuestState> for Fa {
+    fn from(value: GuestState) -> Self {
+        let (icon, class) = value.get_icon_classes();
         Fa::new(icon).class(class)
     }
 }
@@ -78,12 +114,24 @@ pub enum StorageState {
 }
 
 impl StorageState {
+    #[deprecated]
+    /// Deprecated, please use [`Fa::from`] or `.into()` instead.
     pub fn to_fa_icon(&self) -> Fa {
-        let (icon, class) = match self {
+        (*self).into()
+    }
+
+    fn get_icon_classes(&self) -> (&str, FontColor) {
+        match self {
             StorageState::Available => ("check-circle", FontColor::Success),
             StorageState::Unavailable => ("times-circle", FontColor::Error),
             StorageState::Unknown => ("question-circle", FontColor::Warning),
-        };
+        }
+    }
+}
+
+impl From<StorageState> for Fa {
+    fn from(value: StorageState) -> Self {
+        let (icon, class) = value.get_icon_classes();
         Fa::new(icon).class(class)
     }
 }
