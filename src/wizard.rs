@@ -82,6 +82,39 @@ impl WizardPageRenderInfo {
             }
         }
     }
+
+    /// Sets a callback that will be called when a later page wants to be selected
+    /// (e.g. by the next button)
+    ///
+    /// The callback should return true when that's allowed, false otherwise.
+    /// When the callback returns false, the page should handle navigating
+    /// to the next page by itself.
+    ///
+    /// This is useful for panels in a wizard that act like a form that
+    /// has to be submitted before navigating to the next page.
+    pub fn on_next(&self, callback: impl Into<Callback<(), bool>>) {
+        let mut controller = self.controller.write();
+        controller
+            .submit_callbacks
+            .insert(self.key.clone(), callback.into());
+    }
+
+    /// Navigates the wizard to the next page (if possible)
+    ///
+    /// Note that callbacks setup with [`on_next`] will not be called,
+    /// otherwise it could lead to an infinite loop easily.
+    pub fn go_to_next_page(&self) {
+        let controller = self.controller.write();
+        let Some(current_idx) = controller.get_current_index() else {
+            return;
+        };
+        let Some(next_page) = controller.page_list.get(current_idx + 1) else {
+            return;
+        };
+        controller
+            .link
+            .send_message(Msg::SelectPage(next_page.clone(), false));
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -224,6 +257,24 @@ struct WizardState {
     page: Option<Key>,
     page_data: HashMap<Key, FormContext>,
     page_list: Vec<Key>,
+    submit_callbacks: HashMap<Key, Callback<(), bool>>,
+}
+
+impl WizardState {
+    /// Returns the index of the page from the given [`Key`] if that exists
+    pub fn get_index(&self, key: &Key) -> Option<usize> {
+        self.page_list.iter().position(|page_key| *page_key == *key)
+    }
+
+    /// Returns the index of the current page if any.
+    pub fn get_current_index(&self) -> Option<usize> {
+        self.page.as_ref().and_then(|key| self.get_index(key))
+    }
+
+    /// Returns the callback of the page from the given [`Key`] if that exists
+    pub fn get_callback(&self, key: Option<&Key>) -> Option<Callback<(), bool>> {
+        key.and_then(|key| self.submit_callbacks.get(key).cloned())
+    }
 }
 
 impl WizardController {
@@ -233,6 +284,7 @@ impl WizardController {
             page: None,
             page_data: HashMap::new(),
             page_list: Vec::new(),
+            submit_callbacks: HashMap::new(),
         };
         Self {
             state: Rc::new(RefCell::new(state)),
@@ -273,8 +325,8 @@ pub struct PwtWizard {
 }
 
 pub enum Msg {
-    PageLock(Key, bool), // disable/enable next button
-    SelectPage(Key),
+    PageLock(Key, bool),   // disable/enable next button
+    SelectPage(Key, bool), // call optional callback
     ChangeValid(Key, bool),
     SelectionChange(Selection),
     CloseDialog,
@@ -314,8 +366,27 @@ impl Component for PwtWizard {
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
-            Msg::SelectPage(page) => {
+            Msg::SelectPage(page, use_callback) => {
                 let mut state = self.controller.write();
+
+                if use_callback {
+                    let cur_idx = state.get_current_index();
+                    let target_idx = state.get_index(&page);
+
+                    match (cur_idx, target_idx) {
+                        (Some(cur), Some(target)) if target > cur => {
+                            // we selected a later page
+                            if let Some(callback) = state.get_callback(state.page.as_ref()) {
+                                if !callback.emit(()) {
+                                    self.selection.select(state.page.clone().unwrap());
+                                    return true;
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
                 self.selection.select(page.clone());
                 state.page = Some(page.clone());
 
@@ -334,14 +405,10 @@ impl Component for PwtWizard {
             }
             Msg::SelectionChange(selection) => {
                 if let Some(selected_key) = selection.selected_key() {
-                    {
-                        let mut state = self.controller.write();
-                        state.page = Some(selected_key.clone());
-                    }
                     return <Self as yew::Component>::update(
                         self,
                         ctx,
-                        Msg::SelectPage(selected_key),
+                        Msg::SelectPage(selected_key, true),
                     );
                 }
             }
@@ -569,7 +636,7 @@ impl PwtWizard {
                     let prev_page = prev_page.clone();
                     move |_| {
                         if let Some(prev_page) = &prev_page {
-                            link.send_message(Msg::SelectPage(prev_page.clone()));
+                            link.send_message(Msg::SelectPage(prev_page.clone(), false));
                         }
                     }
                 })
@@ -583,7 +650,7 @@ impl PwtWizard {
                         let next_page = next_page.clone();
                         move |_| {
                             if let Some(next_page) = &next_page {
-                                link.send_message(Msg::SelectPage(next_page.clone()));
+                                link.send_message(Msg::SelectPage(next_page.clone(), true));
                             } else {
                                 link.send_message(Msg::Submit);
                             }
