@@ -17,8 +17,8 @@ use pwt::props::{AsCssStylesMut, ContainerBuilder, CssStyles};
 use pwt::state::Selection;
 use pwt::widget::form::{Form, FormContext};
 use pwt::widget::{
-    AlertDialog, Button, Container, Dialog, Mask, MiniScrollMode, Row, TabBarItem, TabBarStyle,
-    TabPanel,
+    AlertDialog, Button, Container, Dialog, Input, Mask, MiniScrollMode, Row, TabBarItem,
+    TabBarStyle, TabPanel,
 };
 
 use yew::html::{IntoEventCallback, IntoPropValue};
@@ -467,7 +467,7 @@ impl Component for PwtWizard {
         let state = self.controller.read();
 
         let mut disabled = false;
-        for (key, page) in props.pages.iter() {
+        for (page_num, (key, page)) in props.pages.iter().enumerate() {
             let active = Some(key) == state.page.as_ref();
             let form_ctx = state.page_data.get(key).unwrap();
 
@@ -479,11 +479,30 @@ impl Component for PwtWizard {
                 controller: self.controller.clone(),
             });
 
+            let next_page = props
+                .pages
+                .get_index(page_num + 1)
+                .map(|(key, _)| key.clone());
+
             let page_content = Form::new()
                 .class(Overflow::Auto)
                 .class(Flex::Fill)
                 .form_context(form_ctx.clone())
-                .with_child(page_content);
+                .onsubmit(ctx.link().batch_callback({
+                    let form_ctx = form_ctx.clone();
+                    move |_| {
+                        if !form_ctx.read().is_valid() {
+                            return None;
+                        }
+                        if let Some(page) = next_page.clone() {
+                            Some(Msg::SelectPage(page, true))
+                        } else {
+                            Some(Msg::Submit)
+                        }
+                    }
+                }))
+                .with_child(page_content)
+                .with_child(Input::new().attribute("type", "submit").class("pwt-d-none"));
 
             let tab_bar_item = page.tab_bar_item.clone().disabled(disabled);
 
