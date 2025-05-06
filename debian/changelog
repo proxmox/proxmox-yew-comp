@@ -1,3 +1,9 @@
+rust-proxmox-yew-comp (0.4.4) bookworm; urgency=medium
+
+  * depend on pwt 0.4.9
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 06 May 2025 13:28:10 +0200
+
 rust-proxmox-yew-comp (0.4.3) bookworm; urgency=medium
 
   * tree wide: use gloo_utils for body/window/document
