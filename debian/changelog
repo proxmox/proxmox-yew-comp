@@ -1,3 +1,15 @@
+rust-proxmox-yew-comp (0.4.3) bookworm; urgency=medium
+
+  * tree wide: use gloo_utils for body/window/document
+
+  * wizard: allow enter to be used for switching to next page
+
+  * wizard: add possibility to intercept the 'next' button press
+
+  * status: replace `to_fa_icon` with From implementation
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 06 May 2025 12:03:47 +0200
+
 rust-proxmox-yew-comp (0.4.2) bookworm; urgency=medium
 
   * tasks: don't mark running tasks from pve with 'error' color
