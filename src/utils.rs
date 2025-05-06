@@ -329,8 +329,8 @@ pub fn json_array_to_flat_string(list: &[Value]) -> String {
 
 pub fn copy_to_clipboard(node_ref: &NodeRef) {
     if let Some(el) = node_ref.cast::<web_sys::HtmlInputElement>() {
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
+        let window = gloo_utils::window();
+        let document = gloo_utils::document();
 
         let selection = window.get_selection().unwrap().unwrap();
         let _ = selection.remove_all_ranges();
@@ -347,7 +347,7 @@ pub fn copy_to_clipboard(node_ref: &NodeRef) {
 
 /// Set the browser window.location.href
 pub fn set_location_href(href: &str) {
-    let window = web_sys::window().unwrap();
+    let window = gloo_utils::window();
     let location = window.location();
     let _ = location.set_href(href);
 }

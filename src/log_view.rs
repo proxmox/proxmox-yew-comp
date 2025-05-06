@@ -552,8 +552,7 @@ impl Component for PwtLogView {
         if self.line_height.is_none() {
             if let Some(el) = self.page_ref.cast::<web_sys::Element>() {
                 // get font size in pixels
-                let window = web_sys::window().unwrap();
-                if let Ok(Some(style)) = window.get_computed_style(&el) {
+                if let Ok(Some(style)) = gloo_utils::window().get_computed_style(&el) {
                     if let Ok(line_height) = style.get_property_value("line-height") {
                         let line_height = line_height.trim_end_matches("px");
                         if let Ok(line_height) = line_height.parse::<f64>() {

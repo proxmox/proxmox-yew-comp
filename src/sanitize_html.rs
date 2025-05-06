@@ -96,8 +96,7 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str) -> Result<(), Err
 /// "bad" node.type and drops "bad" attributes from the remaining nodes.
 /// "bad" means anything which can do XSS or break the layout of the outer page.
 pub fn sanitize_html(text: &str) -> Result<String, Error> {
-    let window = web_sys::window().unwrap();
-    let location = window.location();
+    let location = gloo_utils::window().location();
     let origin = location.origin().unwrap_or_default();
 
     let dom_parser = web_sys::DomParser::new().map_err(convert_js_error)?;

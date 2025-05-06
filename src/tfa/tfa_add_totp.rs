@@ -201,10 +201,9 @@ fn render_qrcode(text: &str) -> Html {
 }
 
 fn randomize_secret() -> String {
-    let window = web_sys::window().unwrap();
     let mut rnd: [u8; 32] = [0u8; 32];
 
-    let crypto = window.crypto().unwrap();
+    let crypto = gloo_utils::window().crypto().unwrap();
     let _ = crypto.get_random_values_with_u8_array(&mut rnd);
 
     let mut data = String::new();

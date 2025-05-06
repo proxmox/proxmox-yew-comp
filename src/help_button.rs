@@ -57,8 +57,7 @@ pub fn pbs_help_button(props: &HelpButton) -> Html {
         .onclick({
             let url = get_help_link(props.section.as_deref());
             move |_| {
-                let window = web_sys::window().unwrap();
-                let _ = window.open_with_url_and_target(&url, "top");
+                let _ = gloo_utils::window().open_with_url_and_target(&url, "top");
             }
         })
         .into()

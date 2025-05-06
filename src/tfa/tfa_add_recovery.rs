@@ -195,12 +195,9 @@ impl Component for ProxmoxTfaAddRecovery {
             }
             Msg::PrintKeys => {
                 if let Some(data) = &self.recovery_keys {
-                    let window = web_sys::window().unwrap();
-                    let document = window.document().unwrap();
-                    let body = document.body().unwrap();
                     let print_page = create_paperkey_page(data, self.print_counter);
                     self.print_counter += 1;
-                    self.print_portal = Some(create_portal(print_page, body.into()));
+                    self.print_portal = Some(create_portal(print_page, gloo_utils::body().into()));
                 }
                 true
             }
@@ -244,8 +241,7 @@ impl From<TfaAddRecovery> for VNode {
 }
 
 fn create_paperkey_page(data: &RecoveryKeyInfo, print_counter: usize) -> Html {
-    let window = web_sys::window().unwrap();
-    let document = window.document().unwrap();
+    let document = gloo_utils::document();
 
     let userid = data.userid.clone();
     let title = document.title();

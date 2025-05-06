@@ -174,7 +174,7 @@ impl ProxmoxWebAuthn {
             .ok()
             .context("failed to set 'signal' property in challenge")?;
 
-        let promise = WasmWindow::from(web_sys::window().unwrap())
+        let promise = WasmWindow::from(gloo_utils::window())
             .navigator()
             .credentials()
             .get_with_options(challenge)

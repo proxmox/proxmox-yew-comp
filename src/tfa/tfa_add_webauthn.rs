@@ -148,7 +148,7 @@ async fn create_item(
 
     let challenge_string = fixup_challenge(&challenge, abort_signal)?;
 
-    let promise = super::webauthn::WasmWindow::from(web_sys::window().unwrap())
+    let promise = super::webauthn::WasmWindow::from(gloo_utils::window())
         .navigator()
         .credentials()
         .create(&challenge)

@@ -46,9 +46,7 @@ impl XTermJs {
         let features =
             "toolbar=no,location=no,status=no,menubar=no,resizable=yes,width=800,height=420";
 
-        let window = web_sys::window().unwrap();
-
-        match window.open_with_url_and_target_and_features(&url, target, features) {
+        match gloo_utils::window().open_with_url_and_target_and_features(&url, target, features) {
             Ok(Some(new_window)) => {
                 let _ = new_window.focus();
             }
