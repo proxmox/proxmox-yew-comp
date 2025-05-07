@@ -523,9 +523,9 @@ impl Component for PwtWizard {
                 .class(Flex::Fill)
                 .form_context(form_ctx.clone())
                 .onsubmit(ctx.link().batch_callback({
-                    let form_ctx = form_ctx.clone();
+                    let state = self.controller.clone();
                     move |_| {
-                        if !form_ctx.read().is_valid() {
+                        if !state.read().can_progress() {
                             return None;
                         }
                         if let Some(page) = next_page.clone() {
