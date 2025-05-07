@@ -635,11 +635,7 @@ impl PwtWizard {
             Some(key) => props.pages.get_index_of(key).unwrap_or(0),
         };
 
-        let mut next_is_enabled = state.can_progress();
-
-        if self.loading {
-            next_is_enabled = false;
-        }
+        let next_is_enabled = !self.loading && state.can_progress();
 
         let next_page = props
             .pages
