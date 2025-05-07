@@ -257,6 +257,8 @@ struct WizardState {
     page: Option<Key>,
     page_data: HashMap<Key, FormContext>,
     page_list: Vec<Key>,
+    pages_valid: HashSet<Key>,
+    pages_lock: HashSet<Key>,
     submit_callbacks: HashMap<Key, Callback<(), bool>>,
 }
 
@@ -275,6 +277,16 @@ impl WizardState {
     pub fn get_callback(&self, key: Option<&Key>) -> Option<Callback<(), bool>> {
         key.and_then(|key| self.submit_callbacks.get(key).cloned())
     }
+
+    /// Returns if the page for the given [`Key`] is valid
+    pub fn page_valid(&self, key: &Key) -> bool {
+        self.pages_valid.contains(key)
+    }
+
+    /// Returns if the page for the given [`Key`] is locked
+    pub fn page_locked(&self, key: &Key) -> bool {
+        self.pages_lock.contains(key)
+    }
 }
 
 impl WizardController {
@@ -284,6 +296,8 @@ impl WizardController {
             page: None,
             page_data: HashMap::new(),
             page_list: Vec::new(),
+            pages_valid: HashSet::new(),
+            pages_lock: HashSet::new(),
             submit_callbacks: HashMap::new(),
         };
         Self {
@@ -316,8 +330,6 @@ pub struct PwtWizard {
     selection: Selection,
     loading: bool, // set during submit
     submit_error: Option<String>,
-    pages_valid: HashSet<Key>,
-    pages_lock: HashSet<Key>,
     valid_data: Rc<Value>,
 
     controller: WizardController,
@@ -354,8 +366,6 @@ impl Component for PwtWizard {
         Self {
             loading: false,
             submit_error: None,
-            pages_valid: HashSet::new(),
-            pages_lock: HashSet::new(),
             selection,
             valid_data: Rc::new(json!({})),
             controller,
@@ -507,10 +517,10 @@ impl Component for PwtWizard {
             let tab_bar_item = page.tab_bar_item.clone().disabled(disabled);
 
             if !disabled {
-                if !self.pages_valid.contains(key) {
+                if !self.controller.read().page_valid(key) {
                     disabled = true;
                 }
-                if self.pages_lock.contains(key) {
+                if self.controller.read().page_locked(key) {
                     disabled = true;
                 }
             }
@@ -541,18 +551,20 @@ impl Component for PwtWizard {
 
 impl PwtWizard {
     fn change_page_valid(&mut self, page: &Key, valid: bool) {
+        let mut state = self.controller.write();
         if valid {
-            self.pages_valid.insert(page.clone());
+            state.pages_valid.insert(page.clone());
         } else {
-            self.pages_valid.remove(page);
+            state.pages_valid.remove(page);
         }
     }
 
     fn change_page_lock(&mut self, page: &Key, lock: bool) {
+        let mut state = self.controller.write();
         if lock {
-            self.pages_lock.insert(page.clone());
+            state.pages_lock.insert(page.clone());
         } else {
-            self.pages_lock.remove(page);
+            state.pages_lock.remove(page);
         }
     }
 
