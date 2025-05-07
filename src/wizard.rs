@@ -287,6 +287,30 @@ impl WizardState {
     pub fn page_locked(&self, key: &Key) -> bool {
         self.pages_lock.contains(key)
     }
+
+    fn can_progress(&self) -> bool {
+        let mut next_enabled = true;
+        let last_page = self.page_list.last().cloned();
+        for i in 0..=self.get_current_index().unwrap_or(0) {
+            match self.page_list.get(i) {
+                None => {
+                    next_enabled = false;
+                    break;
+                }
+                Some(key) => {
+                    if !self.page_valid(key) && Some(key) != last_page.as_ref() {
+                        next_enabled = false;
+                        break;
+                    }
+                    if self.page_locked(key) {
+                        next_enabled = false;
+                        break;
+                    }
+                }
+            }
+        }
+        next_enabled
+    }
 }
 
 impl WizardController {
@@ -611,28 +635,10 @@ impl PwtWizard {
             Some(key) => props.pages.get_index_of(key).unwrap_or(0),
         };
 
-        let mut next_is_disabled = false;
-        for i in 0..=page_num {
-            match props.pages.get_index(i) {
-                None => {
-                    next_is_disabled = true;
-                    break;
-                }
-                Some((key, _)) => {
-                    if !self.pages_valid.contains(key) && Some(key) != last_page.as_ref() {
-                        next_is_disabled = true;
-                        break;
-                    }
-                    if self.pages_lock.contains(key) {
-                        next_is_disabled = true;
-                        break;
-                    }
-                }
-            }
-        }
+        let mut next_is_enabled = state.can_progress();
 
         if self.loading {
-            next_is_disabled = true;
+            next_is_enabled = false;
         }
 
         let next_page = props
@@ -675,7 +681,7 @@ impl PwtWizard {
             .with_child(
                 Button::new(next_button_text)
                     .class(ColorScheme::Primary)
-                    .disabled(next_is_disabled)
+                    .disabled(!next_is_enabled)
                     .onclick({
                         let link = ctx.link().clone();
                         let next_page = next_page.clone();
