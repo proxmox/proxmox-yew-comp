@@ -93,7 +93,8 @@ pub enum ViewDialog {
 pub enum Msg {
     Redraw,
     ToggleFilter,
-    LoadBatch(u64), // start
+    LoadBatch(bool), // fresh load
+    LoadFinished,
     UpdateFilter,
     ShowTask,
 }
@@ -103,7 +104,7 @@ pub struct ProxmoxTasks {
     show_filter: PersistentState<bool>,
     filter_form_context: FormContext,
     row_render_callback: DataTableRowRenderCallback<TaskListItem>,
-    start: u64,
+    fresh_load: bool,
     last_filter: serde_json::Value,
     load_timeout: Option<Timeout>,
     columns: Rc<Vec<DataTableHeader<TaskListItem>>>,
@@ -172,7 +173,7 @@ impl LoadableComponent for ProxmoxTasks {
             let link = link.clone();
             move |args: &mut _| {
                 if args.row_index() > store.data_len().saturating_sub(LOAD_BUFFER_ROWS) {
-                    link.send_message(Msg::LoadBatch(store.data_len() as u64));
+                    link.send_message(Msg::LoadBatch(false));
                 }
                 let record: &TaskListItem = args.record();
                 match record.status.as_deref() {
@@ -192,7 +193,7 @@ impl LoadableComponent for ProxmoxTasks {
             filter_form_context,
             row_render_callback,
             last_filter: serde_json::Value::Object(Map::new()),
-            start: 0,
+            fresh_load: true,
             load_timeout: None,
             columns: Self::columns(ctx),
         }
@@ -233,17 +234,47 @@ impl LoadableComponent for ProxmoxTasks {
             filter["until"] = until.into();
         }
 
-        let start = self.start;
-        filter["start"] = start.into();
+        let until = match (self.fresh_load, self.store.read().last()) {
+            (false, Some(last)) => Some(last.starttime),
+            _ => None,
+        };
+
+        if let Some(until) = until {
+            if filter["until"].as_i64().unwrap_or(i64::MAX) > until {
+                filter["until"] = until.into();
+            }
+        }
+
         filter["limit"] = BATCH_LIMIT.into();
 
+        let link = ctx.link().clone();
         Box::pin(async move {
             let mut data: Vec<_> = crate::http_get(&path, Some(filter)).await?;
-            if start == 0 {
+            if until.is_none() {
                 store.write().set_data(data);
             } else {
-                store.write().append(&mut data);
+                // since we used the starttime from the last existing element,
+                // we know there should be an overlap, so find it
+                let mut store = store.write();
+                if let Some(last) = store.last() {
+                    let mut cutoff = None;
+                    for (idx, new) in data.iter().enumerate() {
+                        if new.upid == last.upid {
+                            cutoff = Some(idx);
+                            break;
+                        }
+                        if new.starttime < last.starttime {
+                            // we did not find the last element, append all
+                            break;
+                        }
+                    }
+                    if let Some(cutoff) = cutoff {
+                        data.drain(0..=cutoff);
+                    }
+                }
+                store.append(&mut data);
             }
+            link.send_message(Msg::LoadFinished);
             Ok(())
         })
     }
@@ -266,7 +297,7 @@ impl LoadableComponent for ProxmoxTasks {
                 }
 
                 self.last_filter = filter_params;
-                self.start = 0;
+                self.fresh_load = true;
 
                 let link = ctx.link().clone();
                 self.load_timeout = Some(Timeout::new(FILTER_UPDATE_BUFFER_MS, move || {
@@ -275,11 +306,15 @@ impl LoadableComponent for ProxmoxTasks {
                 true
             }
             Msg::LoadBatch(start) => {
-                self.start = start;
+                self.fresh_load = start;
                 let link = ctx.link().clone();
                 self.load_timeout = Some(Timeout::new(FILTER_UPDATE_BUFFER_MS, move || {
                     link.send_reload();
                 }));
+                false
+            }
+            Msg::LoadFinished => {
+                self.fresh_load = false;
                 false
             }
             Msg::ShowTask => {
@@ -339,7 +374,7 @@ impl LoadableComponent for ProxmoxTasks {
             .with_child({
                 let loading = ctx.loading();
                 let link = ctx.link();
-                Button::refresh(loading).onclick(move |_| link.send_message(Msg::LoadBatch(0)))
+                Button::refresh(loading).onclick(move |_| link.send_message(Msg::LoadBatch(true)))
             });
 
         let filter_classes = classes!(
