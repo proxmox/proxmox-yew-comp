@@ -1,5 +1,4 @@
-use yew::Classes;
-
+use pwt::prelude::*;
 use pwt::{
     css::{FontColor, Opacity},
     widget::Fa,

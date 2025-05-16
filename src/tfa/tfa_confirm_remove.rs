@@ -47,11 +47,14 @@ fn render_input_form(_form_ctx: FormContext, entry: TfaEntry) -> Html {
         .padding(4)
         .class("pwt-flex-fit")
         .with_large_custom_child(html! { {message} })
-        .with_field(tr!("User"), DisplayField::new(entry.user_id))
-        .with_field(tr!("Type"), DisplayField::new(entry.tfa_type.to_string()))
+        .with_field(tr!("User"), DisplayField::new().value(entry.user_id))
+        .with_field(
+            tr!("Type"),
+            DisplayField::new().value(entry.tfa_type.to_string()),
+        )
         .with_right_field(
             tr!("Created"),
-            DisplayField::new(render_epoch(entry.created)),
+            DisplayField::new().value(render_epoch(entry.created)),
         )
         .with_right_field(
             tr!("Description"),

@@ -385,7 +385,7 @@ impl ProxmoxAcmePluginsPanel {
             .padding(4);
 
         if let Some(id) = id {
-            panel.add_field(tr!("Plugin ID"), DisplayField::new(id.to_string()));
+            panel.add_field(tr!("Plugin ID"), DisplayField::new().value(id.to_string()));
         } else {
             panel.add_field(
                 tr!("Plugin ID"),
@@ -418,7 +418,9 @@ impl ProxmoxAcmePluginsPanel {
         {
             panel.add_field(
                 tr!("Hint"),
-                DisplayField::new(description.to_string()).key("__hint__"),
+                DisplayField::new()
+                    .value(description.to_string())
+                    .key("__hint__"),
             );
         }
 
