@@ -1,3 +1,19 @@
+rust-proxmox-yew-comp (0.4.5) bookworm; urgency=medium
+
+  * depend on pwt 0.5.0
+
+  * fix #6382: tasks: don't add duplicate tasks into the list
+
+  * wizard: fix form progressing when pressing enter
+
+  * wizard: optimize enabled check for next button
+
+  * wizard: factor out 'can progress' logic check to WizardState
+
+  * wizard: move page valid/lock data into WizardState
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 16 May 2025 10:24:47 +0200
+
 rust-proxmox-yew-comp (0.4.4) bookworm; urgency=medium
 
   * depend on pwt 0.4.9
