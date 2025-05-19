@@ -14,12 +14,17 @@ use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
 
 use crate::{tfa::TfaDialog, RealmSelector};
 
+use pwt_macros::builder;
+
 #[derive(Clone, PartialEq, Properties)]
+#[builder]
 pub struct LoginPanel {
     #[prop_or_default]
+    #[builder_cb(IntoEventCallback, into_event_callback, Authentication)]
     pub on_login: Option<Callback<Authentication>>,
 
     #[prop_or(AttrValue::from("pam"))]
+    #[builder]
     pub default_realm: AttrValue,
 }
 
@@ -32,16 +37,6 @@ impl Default for LoginPanel {
 impl LoginPanel {
     pub fn new() -> Self {
         yew::props!(Self {})
-    }
-
-    pub fn default_realm(mut self, realm: impl Into<AttrValue>) -> Self {
-        self.default_realm = realm.into();
-        self
-    }
-
-    pub fn on_login(mut self, cb: impl IntoEventCallback<Authentication>) -> Self {
-        self.on_login = cb.into_event_callback();
-        self
     }
 }
 
