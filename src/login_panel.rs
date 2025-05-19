@@ -1,13 +1,13 @@
 use std::rc::Rc;
 
-use pwt::css::Overflow;
+use pwt::props::PwtSpace;
 use pwt::state::PersistentState;
 use yew::html::IntoEventCallback;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::widget::form::{Checkbox, Field, Form, FormContext, InputType, ResetButton, SubmitButton};
-use pwt::widget::{Column, InputPanel, LanguageSelector, Mask, Row};
+use pwt::widget::{Column, FieldLabel, InputPanel, LanguageSelector, Mask, Row};
 use pwt::{prelude::*, AsyncPool};
 
 use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
@@ -16,16 +16,30 @@ use crate::{tfa::TfaDialog, RealmSelector};
 
 use pwt_macros::builder;
 
+/// Proxmox login panel
+///
+/// Should support all proxmox product and TFA.
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct LoginPanel {
+    /// Login callback (called after successful login)
     #[prop_or_default]
     #[builder_cb(IntoEventCallback, into_event_callback, Authentication)]
     pub on_login: Option<Callback<Authentication>>,
 
+    /// Default realm.
     #[prop_or(AttrValue::from("pam"))]
     #[builder]
     pub default_realm: AttrValue,
+
+    /// Mobile Layout
+    ///
+    /// Use special layout for mobile apps.
+    ///
+    /// Note: Always use saved userid to avoid additional checkbox.
+    #[prop_or(false)]
+    #[builder]
+    pub mobile: bool,
 }
 
 impl Default for LoginPanel {
@@ -102,6 +116,207 @@ impl ProxmoxLoginPanel {
                 }
             }
         });
+    }
+
+    fn get_defaults(&self, props: &LoginPanel) -> (String, String) {
+        let mut default_username = String::from("root");
+        let mut default_realm = props.default_realm.to_string();
+
+        if props.mobile || *self.save_username {
+            let last_userid: String = (*self.last_username).to_string();
+            if !last_userid.is_empty() {
+                if let Some((user, realm)) = last_userid.rsplit_once('@') {
+                    default_username = user.to_owned();
+                    default_realm = realm.to_owned().into();
+                }
+            }
+        }
+        (default_username, default_realm)
+    }
+
+    fn mobile_view(&self, ctx: &Context<Self>) -> Html {
+        let props = ctx.props();
+        let link = ctx.link().clone();
+
+        let (default_username, default_realm) = self.get_defaults(props);
+
+        let username_label_id = pwt::widget::get_unique_element_id();
+        let password_label_id = pwt::widget::get_unique_element_id();
+        let realm_label_id = pwt::widget::get_unique_element_id();
+
+        let tfa_dialog = self.challenge.as_ref().map(|challenge| {
+            TfaDialog::new(challenge.clone())
+                .on_close(ctx.link().callback(|_| Msg::AbortTfa))
+                .on_totp(ctx.link().callback(Msg::Totp))
+                .on_yubico(ctx.link().callback(Msg::Yubico))
+                .on_recovery(ctx.link().callback(Msg::RecoveryKey))
+                .on_webauthn(ctx.link().callback(Msg::WebAuthn))
+        });
+
+        let form_panel = Column::new()
+            .class(pwt::css::FlexFit)
+            .padding(2)
+            .with_flex_spacer()
+            .with_child(
+                FieldLabel::new("User name")
+                    .id(username_label_id.clone())
+                    .padding_bottom(PwtSpace::Em(0.25)),
+            )
+            .with_child(
+                Field::new()
+                    .name("username")
+                    .label_id(username_label_id)
+                    .default(default_username)
+                    .required(true)
+                    .autofocus(true),
+            )
+            .with_child(
+                FieldLabel::new("Password")
+                    .id(password_label_id.clone())
+                    .padding_top(1)
+                    .padding_bottom(PwtSpace::Em(0.25)),
+            )
+            .with_child(
+                Field::new()
+                    .name("password")
+                    .label_id(password_label_id)
+                    .required(true)
+                    .input_type(InputType::Password),
+            )
+            .with_child(
+                FieldLabel::new("Realm")
+                    .id(realm_label_id.clone())
+                    .padding_top(1)
+                    .padding_bottom(PwtSpace::Em(0.25)),
+            )
+            .with_child(
+                RealmSelector::new()
+                    .name("realm")
+                    .label_id(realm_label_id)
+                    .default(default_realm),
+            )
+            .with_child(
+                SubmitButton::new()
+                    .class("pwt-scheme-primary")
+                    .margin_y(4)
+                    .text("Login")
+                    .on_submit(link.callback(move |_| Msg::Submit)),
+            )
+            .with_optional_child(self.login_error.as_ref().map(|msg| {
+                let icon_class = classes!("fa-lg", "fa", "fa-align-center", "fa-exclamation-triangle");
+                let text = tr!("Login failed. Please try again ({0})", msg);
+                Row::new()
+                    .class("pwt-align-items-center")
+                    .with_child(
+                        html! {<span class={"pwt-message-sign"} role="none"><i class={icon_class}/></span>},
+                    )
+                    .with_child(html! {<p style={"overflow-wrap: anywhere;"}>{text}</p>})
+                    .padding_bottom(2)
+            }))
+            .with_flex_spacer()
+            .with_child(Row::new().with_child(LanguageSelector::new()))
+            .with_optional_child(tfa_dialog);
+
+        let form = Form::new()
+            .width(500)
+            .class(pwt::css::FlexFit)
+            .form_context(self.form_ctx.clone())
+            .with_child(form_panel);
+
+        Mask::new(form)
+            .class(pwt::css::FlexFit)
+            .visible(self.loading)
+            .into()
+    }
+
+    fn standard_view(&self, ctx: &Context<Self>) -> Html {
+        let props = ctx.props();
+        let link = ctx.link().clone();
+
+        let (default_username, default_realm) = self.get_defaults(props);
+
+        let input_panel = InputPanel::new()
+            .class(pwt::css::Overflow::Auto)
+            .width("initial") // don't try to minimize size
+            .padding(4)
+            .with_field(
+                "User name",
+                Field::new()
+                    .name("username")
+                    .default(default_username)
+                    .required(true)
+                    .autofocus(true),
+            )
+            .with_field(
+                "Password",
+                Field::new()
+                    .name("password")
+                    .required(true)
+                    .input_type(InputType::Password),
+            )
+            .with_field(
+                "Realm",
+                RealmSelector::new().name("realm").default(default_realm),
+            );
+
+        let tfa_dialog = self.challenge.as_ref().map(|challenge| {
+            TfaDialog::new(challenge.clone())
+                .on_close(ctx.link().callback(|_| Msg::AbortTfa))
+                .on_totp(ctx.link().callback(Msg::Totp))
+                .on_yubico(ctx.link().callback(Msg::Yubico))
+                .on_recovery(ctx.link().callback(Msg::RecoveryKey))
+                .on_webauthn(ctx.link().callback(Msg::WebAuthn))
+        });
+
+        let save_username_label_id = pwt::widget::get_unique_element_id();
+        let save_username_field = Checkbox::new()
+            .margin_start(1)
+            .label_id(save_username_label_id.clone())
+            .checked(*self.save_username)
+            .on_change(ctx.link().callback(Msg::SaveUsername));
+
+        let save_username = Row::new()
+            .class(pwt::css::AlignItems::Center)
+            .with_child(html! {<label id={save_username_label_id} style="user-select:none;">{tr!("Save User name")}</label>})
+            .with_child(save_username_field);
+
+        let toolbar = Row::new()
+            .padding(2)
+            .gap(2)
+            .class("pwt-bg-color-surface")
+            .class(pwt::css::AlignItems::Baseline)
+            .with_child(LanguageSelector::new())
+            .with_flex_spacer()
+            .with_child(save_username)
+            .with_child(ResetButton::new())
+            .with_child(
+                SubmitButton::new()
+                    .class("pwt-scheme-primary")
+                    .text("Login")
+                    .on_submit(link.callback(move |_| Msg::Submit)),
+            );
+
+        let form_panel = Column::new()
+            .class(pwt::css::FlexFit)
+            .with_child(input_panel)
+            .with_optional_child(tfa_dialog)
+            .with_optional_child(self.login_error.as_ref().map(|msg| {
+                pwt::widget::error_message(&tr!("Login failed. Please try again ({0})", msg))
+                    .padding(2)
+            }))
+            .with_flex_spacer()
+            .with_child(toolbar);
+
+        let form = Form::new()
+            .width(500)
+            .class(pwt::css::Overflow::Auto)
+            .form_context(self.form_ctx.clone())
+            .with_child(form_panel);
+
+        Mask::new(form)
+            .class(pwt::css::Flex::Fill)
+            .visible(self.loading)
+            .into()
     }
 }
 
@@ -250,103 +465,11 @@ impl Component for ProxmoxLoginPanel {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let link = ctx.link().clone();
-
-        let mut default_username = String::from("root");
-        let mut default_realm = ctx.props().default_realm.to_owned();
-
-        if *self.save_username {
-            let last_userid: String = (*self.last_username).to_string();
-            if !last_userid.is_empty() {
-                if let Some((user, realm)) = last_userid.rsplit_once('@') {
-                    default_username = user.to_owned();
-                    default_realm = realm.to_owned().into();
-                }
-            }
+        if ctx.props().mobile {
+            self.mobile_view(ctx)
+        } else {
+            self.standard_view(ctx)
         }
-
-        let input_panel = InputPanel::new()
-            .class(Overflow::Auto)
-            .width("initial") // don't try to minimize size
-            .padding(4)
-            .with_field(
-                "User name",
-                Field::new()
-                    .name("username")
-                    .default(default_username)
-                    .required(true)
-                    .autofocus(true),
-            )
-            .with_field(
-                "Password",
-                Field::new()
-                    .name("password")
-                    .required(true)
-                    .input_type(InputType::Password),
-            )
-            .with_field(
-                "Realm",
-                RealmSelector::new().name("realm").default(default_realm),
-            );
-
-        let tfa_dialog = self.challenge.as_ref().map(|challenge| {
-            TfaDialog::new(challenge.clone())
-                .on_close(ctx.link().callback(|_| Msg::AbortTfa))
-                .on_totp(ctx.link().callback(Msg::Totp))
-                .on_yubico(ctx.link().callback(Msg::Yubico))
-                .on_recovery(ctx.link().callback(Msg::RecoveryKey))
-                .on_webauthn(ctx.link().callback(Msg::WebAuthn))
-        });
-
-        let save_username_label_id = pwt::widget::get_unique_element_id();
-        let save_username_field = Checkbox::new()
-            .margin_start(1)
-            .label_id(save_username_label_id.clone())
-            .checked(*self.save_username)
-            .on_change(ctx.link().callback(Msg::SaveUsername));
-
-        let save_username = Row::new()
-            .class("pwt-align-items-center")
-            .with_child(html! {<label id={save_username_label_id} style="user-select:none;">{tr!("Save User name")}</label>})
-            .with_child(save_username_field);
-
-        let toolbar = Row::new()
-            .padding(2)
-            .gap(2)
-            .class("pwt-bg-color-surface")
-            .class("pwt-align-items-baseline")
-            .with_child(LanguageSelector::new())
-            .with_flex_spacer()
-            .with_child(save_username)
-            .with_child(ResetButton::new())
-            .with_child(
-                SubmitButton::new()
-                    .class("pwt-scheme-primary")
-                    .text("Login")
-                    .on_submit(link.callback(move |_| Msg::Submit)),
-            );
-
-        let form_panel = Column::new()
-            .class("pwt-flex-fill pwt-overflow-auto")
-            .with_child(input_panel)
-            .with_optional_child(tfa_dialog)
-            .with_optional_child(self.login_error.as_ref().map(|msg| {
-                pwt::widget::error_message(&tr!("Login failed. Please try again ({0})", msg))
-                    .padding(2)
-            }))
-            .with_flex_spacer()
-            .with_child(toolbar);
-
-        let form = Form::new()
-            .width(500)
-            .class("pwt-overflow-auto")
-            .form_context(self.form_ctx.clone())
-            .with_child(form_panel);
-
-        Mask::new(form)
-            .class("pwt-flex-fill")
-            .visible(self.loading)
-            .into()
     }
 }
 
