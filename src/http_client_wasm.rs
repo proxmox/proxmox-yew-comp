@@ -68,13 +68,13 @@ fn extract_auth_from_cookie(project: &dyn ProjectInfo) -> Option<(String, String
 pub struct HttpClientWasm {
     project: &'static dyn ProjectInfo,
     auth: Mutex<Option<Authentication>>,
-    on_auth_failure: Option<Callback<()>>,
+    on_auth_failure: Option<Callback<bool>>,
 }
 
 impl HttpClientWasm {
     pub fn new(
         project: &'static dyn ProjectInfo,
-        on_auth_failure: impl IntoEventCallback<()>,
+        on_auth_failure: impl IntoEventCallback<bool>,
     ) -> Self {
         Self {
             project,
@@ -102,8 +102,12 @@ impl HttpClientWasm {
         self.auth.lock().unwrap().clone()
     }
 
+    /// Clear auth cookie and call emit "on_auth_failure(true)"
     pub fn clear_auth(&self) {
         *self.auth.lock().unwrap() = None;
+        if let Some(on_auth_failure) = &self.on_auth_failure {
+            on_auth_failure.emit(true);
+        }
     }
 
     pub async fn login(
@@ -273,11 +277,11 @@ impl HttpClientWasm {
 
         if resp.status() == 401 {
             log::info!("Got UNAUTHORIZED status - clearing AUTH cookie");
-            self.clear_auth();
+            *self.auth.lock().unwrap() = None;
             let auth_cookie_name = self.project.auth_cookie_name();
             crate::clear_auth_cookie(auth_cookie_name);
             if let Some(on_auth_failure) = &self.on_auth_failure {
-                on_auth_failure.emit(());
+                on_auth_failure.emit(false);
             }
         }
 

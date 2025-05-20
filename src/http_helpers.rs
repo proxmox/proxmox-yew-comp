@@ -36,10 +36,10 @@ fn update_global_client(client: HttpClientWasm) {
 }
 
 thread_local! {
-    static AUTH_OBSERVER: RefCell<Slab<Callback<()>>> = const { RefCell::new(Slab::new()) };
+    static AUTH_OBSERVER: RefCell<Slab<Callback<bool>>> = const { RefCell::new(Slab::new()) };
 }
 
-fn notify_auth_listeners(_: ()) {
+fn notify_auth_listeners(logout: bool) {
     let last_epoch = LAST_NOTIFY_EPOCH.load(Ordering::SeqCst);
     let client_epoch = CLIENT_NOTIFY_EPOCH.load(Ordering::SeqCst);
 
@@ -52,10 +52,10 @@ fn notify_auth_listeners(_: ()) {
     LAST_NOTIFY_EPOCH.store(client_epoch, Ordering::SeqCst);
 
     // Note: short borrow, just clone callbacks
-    let list: Vec<Callback<()>> =
+    let list: Vec<Callback<bool>> =
         AUTH_OBSERVER.with(|slab| slab.borrow().iter().map(|(_key, cb)| cb.clone()).collect());
     for callback in list {
-        callback.emit(());
+        callback.emit(logout);
     }
 }
 
@@ -72,7 +72,7 @@ impl Drop for AuthObserver {
     }
 }
 
-pub fn register_auth_observer(callback: impl Into<Callback<()>>) -> AuthObserver {
+pub fn register_auth_observer(callback: impl Into<Callback<bool>>) -> AuthObserver {
     let callback = callback.into();
     AUTH_OBSERVER.with(|slab| {
         let mut slab = slab.borrow_mut();
