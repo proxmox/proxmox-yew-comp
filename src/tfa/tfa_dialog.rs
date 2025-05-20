@@ -45,6 +45,13 @@ pub struct TfaDialog {
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
     #[prop_or_default]
     pub on_webauthn: Option<Callback<String>>,
+
+    /// Mobile Layout
+    ///
+    /// - do not set dialog min-width and min-height
+    #[prop_or(false)]
+    #[builder]
+    pub mobile: bool,
 }
 
 impl TfaDialog {
@@ -232,13 +239,17 @@ impl Component for ProxmoxTfaDialog {
             });
         }
 
-        Dialog::new("Second login factor required")
-            .min_width(600)
-            .min_height(300)
+        let mut dialog = Dialog::new("Second login factor required")
             .resizable(true)
             .with_child(panel)
-            .on_close(props.on_close.clone())
-            .into()
+            .on_close(props.on_close.clone());
+
+        if !props.mobile {
+            dialog.set_min_width(600);
+            dialog.set_min_height(300);
+        }
+
+        dialog.into()
     }
 }
 

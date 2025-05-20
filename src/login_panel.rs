@@ -146,6 +146,7 @@ impl ProxmoxLoginPanel {
 
         let tfa_dialog = self.challenge.as_ref().map(|challenge| {
             TfaDialog::new(challenge.clone())
+                .mobile(true)
                 .on_close(ctx.link().callback(|_| Msg::AbortTfa))
                 .on_totp(ctx.link().callback(Msg::Totp))
                 .on_yubico(ctx.link().callback(Msg::Yubico))
