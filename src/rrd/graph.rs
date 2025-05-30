@@ -153,7 +153,7 @@ impl Default for LayoutProps {
 use pwt::widget::canvas::{Canvas, Circle, Group, Path, Rect, SvgLength, Text};
 
 use super::series::{compute_fill_path, compute_outline_path};
-use super::units::{get_grid_unit_base10, get_grid_unit_base2, get_time_grid_unit};
+use super::units::GraphKeyData;
 use super::Series;
 
 fn format_date_time(t: i64) -> String {
@@ -200,58 +200,6 @@ fn render_value(props: &RRDGraph, v: f64) -> String {
     }
 }
 
-fn compute_min_max(props: &RRDGraph, data1: &[f64], data2: &[f64]) -> (f64, f64, f64) {
-    let mut min_data: f64 = f64::INFINITY;
-    let mut max_data: f64 = -f64::INFINITY;
-
-    for v in data1.iter().chain(data2).filter(|v| v.is_finite()) {
-        min_data = min_data.min(*v);
-        max_data = max_data.max(*v);
-    }
-
-    // if one is infinite, the other must be too
-    if min_data.is_infinite() || max_data.is_infinite() {
-        min_data = 0.0;
-        max_data = 1.0;
-    }
-
-    if props.include_zero {
-        max_data = max_data.max(0.0);
-        min_data = min_data.min(0.0);
-    }
-
-    if (max_data - min_data) < 0.0005 {
-        if min_data > 0.0003 {
-            max_data += 0.0002;
-            min_data -= 0.0003;
-        } else {
-            max_data += 0.0005;
-        }
-    }
-
-    let grid_unit = if props.binary {
-        get_grid_unit_base2(min_data, max_data)
-    } else {
-        get_grid_unit_base10(min_data, max_data)
-    };
-
-    let snapped = (((min_data / grid_unit) as i64) as f64) * grid_unit;
-    if snapped > min_data {
-        min_data = snapped - grid_unit;
-    } else {
-        min_data = snapped;
-    }
-
-    let snapped = (((max_data / grid_unit) as i64) as f64) * grid_unit;
-    if snapped < max_data {
-        max_data = snapped + grid_unit;
-    } else {
-        max_data = snapped;
-    }
-
-    (min_data, max_data, grid_unit)
-}
-
 impl PwtRRDGraph {
     fn get_view_data<'a>(&self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64], &'a [f64]) {
         let props = ctx.props();
@@ -288,19 +236,23 @@ impl PwtRRDGraph {
 
         let (data0, data1, data2) = self.get_view_data(ctx);
 
-        let start_time = data0.first().unwrap_or(&0);
-        let end_time = data0.last().unwrap_or(&0);
-
-        let (min_data, max_data, grid_unit) = compute_min_max(props, data1, data2);
-
-        let time_span = (end_time - start_time) as f64;
-        let data_range = max_data - min_data;
+        let GraphKeyData {
+            data_min,
+            data_max,
+            data_interval,
+            data_range,
+            time_min,
+            time_max,
+            time_interval,
+            start_time,
+            time_range,
+        } = GraphKeyData::new(data0, &[data1, data2], props.include_zero, props.binary);
 
         let compute_x = {
             let width = (layout.width - layout.left_offset - layout.grid_border * 2) as f64;
             move |t: i64| -> f64 {
                 (layout.left_offset + layout.grid_border) as f64
-                    + ((t - start_time) as f64 * width) / time_span
+                    + ((t - time_min) as f64 * width) / time_range as f64
             }
         };
 
@@ -308,7 +260,7 @@ impl PwtRRDGraph {
             let height = (layout.height - layout.bottom_offset - layout.grid_border * 2) as f64;
             move |value: f64| -> f64 {
                 (layout.height - layout.grid_border - layout.bottom_offset) as f64
-                    - ((value - min_data) * height) / data_range
+                    - ((value - data_min) * height) / data_range
             }
         };
 
@@ -317,67 +269,64 @@ impl PwtRRDGraph {
         let mut value_labels: Vec<Html> = Vec::new();
         let mut time_labels: Vec<Html> = Vec::new();
 
-        if let Some(start) = data0.first() {
-            if let Some(end) = data0.last() {
-                let x0 = compute_x(*start) - (layout.grid_border as f64);
-                let x1 = compute_x(*end) + (layout.grid_border as f64);
+        if !data0.is_empty() {
+            let x0 = compute_x(time_min) - (layout.grid_border as f64);
+            let x1 = compute_x(time_max) + (layout.grid_border as f64);
 
-                let mut v = min_data;
-                while v <= max_data {
-                    let y = compute_y(v);
-                    grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x0, y, x1, y));
+            let mut v = data_min;
+            while v <= data_max {
+                let y = compute_y(v);
+                grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x0, y, x1, y));
 
-                    let label = render_value(props, v);
-                    value_labels.push(
-                        Text::new(label)
-                            .class("pwt-rrd-label-text")
-                            .position(x0 as f32, y as f32)
-                            .dy(SvgLength::Px(4.0))
-                            .dx(SvgLength::Px(-4.0))
-                            .attribute("text-anchor", "end")
-                            .into(),
-                    );
+                let label = render_value(props, v);
+                value_labels.push(
+                    Text::new(label)
+                        .class("pwt-rrd-label-text")
+                        .position(x0 as f32, y as f32)
+                        .dy(SvgLength::Px(4.0))
+                        .dx(SvgLength::Px(-4.0))
+                        .attribute("text-anchor", "end")
+                        .into(),
+                );
 
-                    v += grid_unit;
-                }
+                v += data_interval;
+            }
 
-                let time_grid_unit = get_time_grid_unit(*start, *end);
-                let mut t = ((*start + time_grid_unit - 1) / time_grid_unit) * time_grid_unit;
-                let ymax = compute_y(max_data) - (layout.grid_border as f64);
-                let ymin = compute_y(min_data) + (layout.grid_border as f64);
+            let mut t = start_time;
+            let ymax = compute_y(data_max) - (layout.grid_border as f64);
+            let ymin = compute_y(data_min) + (layout.grid_border as f64);
 
-                let mut last_date = String::new();
+            let mut last_date = String::new();
 
-                while t <= *end {
-                    let x = compute_x(t);
-                    grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x, ymin, x, ymax));
+            while t <= time_max {
+                let x = compute_x(t);
+                grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x, ymin, x, ymax));
 
-                    let (time, date) = format_time(t);
+                let (time, date) = format_time(t);
 
+                time_labels.push(
+                    Text::new(time)
+                        .class("pwt-rrd-label-text")
+                        .position(x as f32, ymin as f32)
+                        .dy(SvgLength::Px(10.0))
+                        .attribute("text-anchor", "middle")
+                        .into(),
+                );
+
+                if date != last_date {
                     time_labels.push(
-                        Text::new(time)
+                        Text::new(date.clone())
                             .class("pwt-rrd-label-text")
                             .position(x as f32, ymin as f32)
-                            .dy(SvgLength::Px(10.0))
+                            .dy(SvgLength::Px(10.0 + 16.0))
                             .attribute("text-anchor", "middle")
                             .into(),
                     );
 
-                    if date != last_date {
-                        time_labels.push(
-                            Text::new(date.clone())
-                                .class("pwt-rrd-label-text")
-                                .position(x as f32, ymin as f32)
-                                .dy(SvgLength::Px(10.0 + 16.0))
-                                .attribute("text-anchor", "middle")
-                                .into(),
-                        );
-
-                        last_date = date;
-                    }
-
-                    t += time_grid_unit;
+                    last_date = date;
                 }
+
+                t += time_interval;
             }
         }
         let mut children: Vec<Html> = Vec::new();
@@ -402,7 +351,7 @@ impl PwtRRDGraph {
         if self.serie0_visible && props.serie0.is_some() {
             let path = compute_outline_path(data0, data1, compute_x, compute_y);
             let pos_fill_path =
-                compute_fill_path(data0, data1, min_data, max_data, compute_x, compute_y);
+                compute_fill_path(data0, data1, data_min, data_max, compute_x, compute_y);
 
             children.extend(vec![
                 Path::new()
@@ -421,7 +370,7 @@ impl PwtRRDGraph {
         if self.serie1_visible && props.serie1.is_some() {
             let path = compute_outline_path(data0, data2, compute_x, compute_y);
             let pos_fill_path =
-                compute_fill_path(data0, data2, min_data, max_data, compute_x, compute_y);
+                compute_fill_path(data0, data2, data_min, data_max, compute_x, compute_y);
 
             children.extend(vec![
                 Path::new()
@@ -450,8 +399,8 @@ impl PwtRRDGraph {
                         std::mem::swap(&mut start_x, &mut end_x);
                     }
 
-                    let start_y = compute_y(min_data);
-                    let end_y = compute_y(max_data);
+                    let start_y = compute_y(data_min);
+                    let end_y = compute_y(data_max);
 
                     children.push(
                         Rect::new()
@@ -502,7 +451,7 @@ impl PwtRRDGraph {
                 }
             }
 
-            let max_y = compute_y(min_data);
+            let max_y = compute_y(data_min);
             let min_x = self.layout.left_offset + self.layout.grid_border;
             let max_x = self.layout.width - self.layout.grid_border;
 

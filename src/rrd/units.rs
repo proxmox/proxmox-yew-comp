@@ -1,6 +1,6 @@
 // calculates the distance of the x axis labels + grid for base10 units
 // The distance calculated is always between 1/2 and 1/10 of the range
-pub(crate) fn get_grid_unit_base10(min: f64, max: f64) -> f64 {
+fn get_grid_unit_base10(min: f64, max: f64) -> f64 {
     let range = max - min;
 
     if range <= 0.0 {
@@ -32,7 +32,7 @@ pub(crate) fn get_grid_unit_base10(min: f64, max: f64) -> f64 {
 
 // calculates the distance of the x axis labels + grid for base2 units
 // The distance calculated is always smaller than 1/4 of the range
-pub(crate) fn get_grid_unit_base2(min: f64, max: f64) -> f64 {
+fn get_grid_unit_base2(min: f64, max: f64) -> f64 {
     let range = max - min;
 
     if range <= 0.0 {
@@ -92,6 +92,104 @@ pub(crate) fn get_time_grid_unit(min: i64, max: i64) -> i64 {
     //log::info!("TIMERANG {l}");
 
     l
+}
+
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct GraphKeyData {
+    pub data_min: f64,
+    pub data_max: f64,
+    pub data_interval: f64,
+    pub data_range: f64,
+
+    pub time_min: i64,
+    pub time_max: i64,
+    pub time_interval: i64,
+    pub start_time: i64,
+    pub time_range: i64,
+}
+
+impl GraphKeyData {
+    pub fn new(time_data: &[i64], data: &[&[f64]], include_zero: bool, binary: bool) -> Self {
+        let (data_min, data_max, data_interval) = Self::data_parameters(data, include_zero, binary);
+        let (time_min, time_max, time_interval, start_time) = Self::time_parameters(time_data);
+
+        Self {
+            data_min,
+            data_max,
+            data_interval,
+            data_range: data_max - data_min,
+            time_min,
+            time_max,
+            time_interval,
+            start_time,
+            time_range: time_max - time_min,
+        }
+    }
+
+    fn data_parameters(data: &[&[f64]], include_zero: bool, binary: bool) -> (f64, f64, f64) {
+        let mut min_data: f64 = f64::INFINITY;
+        let mut max_data: f64 = -f64::INFINITY;
+
+        for v in data.iter().flat_map(|d| d.iter()).filter(|v| v.is_finite()) {
+            min_data = min_data.min(*v);
+            max_data = max_data.max(*v);
+        }
+
+        // if one is infinite, the other must be too
+        if min_data.is_infinite() || max_data.is_infinite() {
+            min_data = 0.0;
+            max_data = 1.0;
+        }
+
+        if include_zero {
+            max_data = max_data.max(0.0);
+            min_data = min_data.min(0.0);
+        }
+
+        // stretch to at least 0.0005 difference
+        if (max_data - min_data) < 0.0005 {
+            if min_data > 0.0003 {
+                max_data += 0.0002;
+                min_data -= 0.0003;
+            } else {
+                max_data += 0.0005;
+            }
+        }
+
+        let interval = if binary {
+            get_grid_unit_base2(min_data, max_data)
+        } else {
+            get_grid_unit_base10(min_data, max_data)
+        };
+
+        let snapped = (((min_data / interval) as i64) as f64) * interval;
+        if snapped > min_data {
+            min_data = snapped - interval;
+        } else {
+            min_data = snapped;
+        }
+
+        let snapped = (((max_data / interval) as i64) as f64) * interval;
+        if snapped < max_data {
+            max_data = snapped + interval;
+        } else {
+            max_data = snapped;
+        }
+
+        (min_data, max_data, interval)
+    }
+
+    fn time_parameters(time_data: &[i64]) -> (i64, i64, i64, i64) {
+        let min_time = *time_data.first().unwrap_or(&0);
+        let max_time = *time_data.last().unwrap_or(&0);
+
+        let interval = get_time_grid_unit(min_time, max_time);
+
+        // snap the start time point to the interval
+        let start_time = ((min_time + interval - 1) / interval) * interval;
+
+        (min_time, max_time, interval, start_time)
+    }
 }
 
 #[cfg(test)]
