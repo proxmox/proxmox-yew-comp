@@ -350,7 +350,7 @@ fn compute_fill_path(
 }
 
 impl PwtRRDGraph {
-    fn get_view_data<'a>(&'a self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64], &'a [f64]) {
+    fn get_view_data<'a>(&self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64], &'a [f64]) {
         let props = ctx.props();
 
         let time_data = &props.time_data;
