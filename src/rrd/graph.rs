@@ -480,14 +480,22 @@ impl PwtRRDGraph {
         }
         let mut children: Vec<Html> = Vec::new();
 
-        children.push(Path::new().class("pwt-rrd-grid").d(grid_path).into());
-        children.extend(time_labels);
+        children.push(
+            Path::new()
+                .key("grid")
+                .class("pwt-rrd-grid")
+                .d(grid_path)
+                .into(),
+        );
+        children.push(Group::new().key("time-labels").children(time_labels).into());
 
-        let y_label_group = Group::new()
-            .node_ref(self.y_label_ref.clone())
-            .children(value_labels);
-
-        children.push(y_label_group.into());
+        children.push(
+            Group::new()
+                .key("value-labels")
+                .node_ref(self.y_label_ref.clone())
+                .children(value_labels)
+                .into(),
+        );
 
         if self.serie0_visible && props.serie0.is_some() {
             let path = compute_outline_path(data0, data1, compute_x, compute_y);
@@ -495,8 +503,13 @@ impl PwtRRDGraph {
                 compute_fill_path(data0, data1, min_data, max_data, compute_x, compute_y);
 
             children.extend(vec![
-                Path::new().class("pwt-rrd-outline-path1").d(path).into(),
                 Path::new()
+                    .key("series0-path")
+                    .class("pwt-rrd-outline-path1")
+                    .d(path)
+                    .into(),
+                Path::new()
+                    .key("series0-fill")
                     .class("pwt-rrd-fill-path1")
                     .d(pos_fill_path)
                     .into(),
@@ -509,8 +522,13 @@ impl PwtRRDGraph {
                 compute_fill_path(data0, data2, min_data, max_data, compute_x, compute_y);
 
             children.extend(vec![
-                Path::new().class("pwt-rrd-outline-path2").d(path).into(),
                 Path::new()
+                    .key("series1-path")
+                    .class("pwt-rrd-outline-path2")
+                    .d(path)
+                    .into(),
+                Path::new()
+                    .key("series1-fill")
                     .class("pwt-rrd-fill-path2")
                     .d(pos_fill_path)
                     .into(),
@@ -535,6 +553,7 @@ impl PwtRRDGraph {
 
                     children.push(
                         Rect::new()
+                            .key("selection-rect")
                             .class("pwt-rrd-selection")
                             .position(start_x as f32, end_y as f32)
                             .width((end_x - start_x) as f32)
@@ -557,6 +576,7 @@ impl PwtRRDGraph {
                         let py = compute_y(*v) as f32;
                         children.push(
                             Circle::new()
+                                .key("selection-circle1")
                                 .class("pwt-rrd-selected-datapoint")
                                 .position(px, py)
                                 .r(5)
@@ -570,6 +590,7 @@ impl PwtRRDGraph {
                         let py = compute_y(*v) as f32;
                         children.push(
                             Circle::new()
+                                .key("selection-circle2")
                                 .class("pwt-rrd-selected-datapoint")
                                 .position(px, py)
                                 .r(5)
@@ -588,6 +609,7 @@ impl PwtRRDGraph {
 
             children.push(
                 Path::new()
+                    .key("cross")
                     .class("pwt-rrd-cross")
                     .d(format!("M {x} 0 L {x} {max_y} M {min_x} {y} L {max_x} {y}"))
                     .into(),
