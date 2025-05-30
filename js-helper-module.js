@@ -17,27 +17,9 @@ function get_cookie() {
     return document.cookie;
 }
 
-function uplot(opts, data, node) {
-    return new uPlot(opts, data, node);
-}
-
-function uplot_set_data(uplot, data) {
-    uplot.setData(data);
-}
-
-function uplot_set_size(uplot, width, height) {
-    uplot.setSize({
-	width: width,
-	height: height,
-    });
-}
-
 export {
     async_sleep,
     get_cookie,
     set_cookie,
     clear_auth_cookie,
-    uplot,
-    uplot_set_data,
-    uplot_set_size,
 };

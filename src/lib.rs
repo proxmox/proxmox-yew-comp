@@ -217,11 +217,6 @@ extern "C" {
     pub fn get_cookie() -> String;
     pub fn set_cookie(value: &str);
     pub fn clear_auth_cookie(name: &str);
-
-    // uPlot binding
-    pub fn uplot(opts: &JsValue, data: &JsValue, node: web_sys::Node) -> JsValue;
-    pub fn uplot_set_data(uplot: &JsValue, data: &JsValue);
-    pub fn uplot_set_size(uplot: &JsValue, width: usize, height: usize);
 }
 
 // Create wrapper which panics if called from target_arch!=wasm32
@@ -230,7 +225,6 @@ extern "C" {
 pub use panic_wrapper::*;
 #[cfg(not(target_arch = "wasm32"))]
 mod panic_wrapper {
-    use wasm_bindgen::JsValue;
     pub fn async_sleep(_ms: i32) -> js_sys::Promise {
         unreachable!()
     }
@@ -241,15 +235,6 @@ mod panic_wrapper {
         unreachable!()
     }
     pub fn clear_auth_cookie(_name: &str) {
-        unreachable!()
-    }
-    pub fn uplot(_opts: &JsValue, _data: &JsValue, _node: web_sys::Node) -> JsValue {
-        unreachable!()
-    }
-    pub fn uplot_set_data(_uplot: &JsValue, _data: &JsValue) {
-        unreachable!()
-    }
-    pub fn uplot_set_size(_uplot: &JsValue, _width: usize, _height: usize) {
         unreachable!()
     }
 }
