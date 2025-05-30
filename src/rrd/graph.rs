@@ -137,7 +137,6 @@ pub struct PwtRRDGraph {
     selection: Option<(usize, usize)>,
     view_range: Option<(usize, usize)>,
     captured_pointer_id: Option<i32>,
-    draw_cross: bool,
     cross_pos: Option<(i32, i32)>,
     tooltip_pos: Option<(f64, f64)>,
     tooltip_ref: NodeRef,
@@ -548,53 +547,51 @@ impl PwtRRDGraph {
             }
         }
 
-        if self.draw_cross {
-            if let Some((x, y)) = self.cross_pos {
-                let idx = self.offset_to_time_index(x, data0);
+        if let Some((x, y)) = self.cross_pos {
+            let idx = self.offset_to_time_index(x, data0);
 
-                if let Some(t) = data0.get(idx) {
-                    if let Some(v) = data1.get(idx) {
-                        if v.is_finite() {
-                            let px = compute_x(*t) as f32;
-                            let py = compute_y(*v) as f32;
-                            children.push(
-                                Circle::new()
-                                    .class("pwt-rrd-selected-datapoint")
-                                    .position(px, py)
-                                    .r(5)
-                                    .into(),
-                            );
-                        }
-                    }
-                    if let Some(v) = data2.get(idx) {
-                        if v.is_finite() {
-                            let px = compute_x(*t) as f32;
-                            let py = compute_y(*v) as f32;
-                            children.push(
-                                Circle::new()
-                                    .class("pwt-rrd-selected-datapoint")
-                                    .position(px, py)
-                                    .r(5)
-                                    .into(),
-                            );
-                        }
+            if let Some(t) = data0.get(idx) {
+                if let Some(v) = data1.get(idx) {
+                    if v.is_finite() {
+                        let px = compute_x(*t) as f32;
+                        let py = compute_y(*v) as f32;
+                        children.push(
+                            Circle::new()
+                                .class("pwt-rrd-selected-datapoint")
+                                .position(px, py)
+                                .r(5)
+                                .into(),
+                        );
                     }
                 }
-
-                let max_y = compute_y(min_data);
-                let min_x = self.layout.left_offset + self.layout.grid_border;
-                let max_x = self.layout.width - self.layout.grid_border;
-
-                let x = x.max(min_x as i32).min(max_x as i32);
-                let y = y.min(max_y as i32);
-
-                children.push(
-                    Path::new()
-                        .class("pwt-rrd-cross")
-                        .d(format!("M {x} 0 L {x} {max_y} M {min_x} {y} L {max_x} {y}"))
-                        .into(),
-                );
+                if let Some(v) = data2.get(idx) {
+                    if v.is_finite() {
+                        let px = compute_x(*t) as f32;
+                        let py = compute_y(*v) as f32;
+                        children.push(
+                            Circle::new()
+                                .class("pwt-rrd-selected-datapoint")
+                                .position(px, py)
+                                .r(5)
+                                .into(),
+                        );
+                    }
+                }
             }
+
+            let max_y = compute_y(min_data);
+            let min_x = self.layout.left_offset + self.layout.grid_border;
+            let max_x = self.layout.width - self.layout.grid_border;
+
+            let x = x.max(min_x as i32).min(max_x as i32);
+            let y = y.min(max_y as i32);
+
+            children.push(
+                Path::new()
+                    .class("pwt-rrd-cross")
+                    .d(format!("M {x} 0 L {x} {max_y} M {min_x} {y} L {max_x} {y}"))
+                    .into(),
+            );
         }
 
         Canvas::new()
@@ -681,7 +678,6 @@ impl Component for PwtRRDGraph {
             selection: None,
             view_range: None,
             captured_pointer_id: None,
-            draw_cross: false,
             cross_pos: None,
             tooltip_pos: None,
             tooltip_ref: NodeRef::default(),
@@ -724,11 +720,11 @@ impl Component for PwtRRDGraph {
                 true
             }
             Msg::PointerEnter => {
-                self.draw_cross = true;
+                self.cross_pos = None;
                 true
             }
             Msg::PointerLeave => {
-                self.draw_cross = false;
+                self.cross_pos = None;
                 true
             }
             Msg::StartSelection(x, pointer_id) => {
@@ -800,21 +796,19 @@ impl Component for PwtRRDGraph {
         let mut serie0_value = None;
         let mut serie1_value = None;
 
-        if self.draw_cross {
-            if let Some((x, _)) = self.cross_pos {
-                let (data0, data1, data2) = self.get_view_data(ctx);
-                let idx = self.offset_to_time_index(x, data0);
-                if let Some(t) = data0.get(idx) {
-                    data_time = Some(format_date_time(*t));
-                    if let Some(v) = data1.get(idx) {
-                        if v.is_finite() {
-                            serie0_value = Some(render_value(props, *v));
-                        }
+        if let Some((x, _)) = self.cross_pos {
+            let (data0, data1, data2) = self.get_view_data(ctx);
+            let idx = self.offset_to_time_index(x, data0);
+            if let Some(t) = data0.get(idx) {
+                data_time = Some(format_date_time(*t));
+                if let Some(v) = data1.get(idx) {
+                    if v.is_finite() {
+                        serie0_value = Some(render_value(props, *v));
                     }
-                    if let Some(v) = data2.get(idx) {
-                        if v.is_finite() {
-                            serie1_value = Some(render_value(props, *v));
-                        }
+                }
+                if let Some(v) = data2.get(idx) {
+                    if v.is_finite() {
+                        serie1_value = Some(render_value(props, *v));
                     }
                 }
             }
@@ -824,7 +818,7 @@ impl Component for PwtRRDGraph {
             .node_ref(self.tooltip_ref.clone())
         .attribute("role", "tooltip")
         .attribute("aria-live", "polite")
-        .attribute("data-show", (self.draw_cross && data_time.is_some()).then_some(""))
+        .attribute("data-show", (self.cross_pos.is_some() && data_time.is_some()).then_some(""))
         .class("pwt-tooltip")
         .class("pwt-tooltip-rich")
         .with_optional_child(match (self.serie0_visible, &props.serie0) {
