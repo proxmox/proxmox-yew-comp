@@ -6,7 +6,7 @@ use yew::html::IntoPropValue;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
-use pwt::dom::align::{align_to, AlignOptions};
+use pwt::dom::align::align_to_xy;
 use pwt::dom::DomSizeObserver;
 use pwt::prelude::*;
 use pwt::props::{IntoOptionalTextRenderFn, TextRenderFn};
@@ -121,7 +121,7 @@ pub enum Msg {
     AdjustLeftOffset(usize),
     StartSelection(i32, i32),
     EndSelection(i32),
-    PointerMove(i32, i32),
+    PointerMove(i32, i32, i32, i32),
     PointerEnter,
     PointerLeave,
     ClearViewRange,
@@ -139,9 +139,8 @@ pub struct PwtRRDGraph {
     captured_pointer_id: Option<i32>,
     draw_cross: bool,
     cross_pos: Option<(i32, i32)>,
+    tooltip_pos: Option<(f64, f64)>,
     tooltip_ref: NodeRef,
-    datapoint_ref: NodeRef,
-    align_options: AlignOptions,
     y_label_ref: NodeRef,
     serie0_visible: bool,
     serie1_visible: bool,
@@ -595,17 +594,6 @@ impl PwtRRDGraph {
                         .d(format!("M {x} 0 L {x} {max_y} M {min_x} {y} L {max_x} {y}"))
                         .into(),
                 );
-
-                // Add invisible circle to position the tooltip
-                children.push(
-                    Circle::new()
-                        .node_ref(self.datapoint_ref.clone())
-                        .fill("none")
-                        .stroke("none")
-                        .position(x, y)
-                        .r(1)
-                        .into(),
-                );
             }
         }
 
@@ -634,7 +622,12 @@ impl PwtRRDGraph {
                     .callback(|event: PointerEvent| Msg::EndSelection(event.offset_x())),
             )
             .onpointermove(ctx.link().callback(|event: PointerEvent| {
-                Msg::PointerMove(event.offset_x(), event.offset_y())
+                Msg::PointerMove(
+                    event.offset_x(),
+                    event.offset_y(),
+                    event.client_x(),
+                    event.client_y(),
+                )
             }))
             .into()
     }
@@ -680,8 +673,6 @@ impl Component for PwtRRDGraph {
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link().send_message(Msg::Reload);
 
-        let align_options = AlignOptions::default().offset(20.0, 20.0);
-
         Self {
             node_ref: NodeRef::default(),
             size_observer: None,
@@ -692,9 +683,8 @@ impl Component for PwtRRDGraph {
             captured_pointer_id: None,
             draw_cross: false,
             cross_pos: None,
+            tooltip_pos: None,
             tooltip_ref: NodeRef::default(),
-            datapoint_ref: NodeRef::default(),
-            align_options,
             y_label_ref: NodeRef::default(),
             serie0_visible: true,
             serie1_visible: true,
@@ -751,8 +741,9 @@ impl Component for PwtRRDGraph {
                 self.selection = Some((start_index, start_index));
                 true
             }
-            Msg::PointerMove(x, y) => {
+            Msg::PointerMove(x, y, client_x, client_y) => {
                 self.cross_pos = Some((x, y));
+                self.tooltip_pos = Some(((client_x + 20) as f64, (client_y + 20) as f64));
                 self.selection = match self.selection {
                     Some((start, _)) => {
                         let (data0, _, _) = self.get_view_data(ctx);
@@ -903,9 +894,9 @@ impl Component for PwtRRDGraph {
                 self.size_observer = Some(size_observer);
             }
         }
-        if let Some(content_node) = self.datapoint_ref.get() {
+        if let Some(pos) = self.tooltip_pos {
             if let Some(tooltip_node) = self.tooltip_ref.get() {
-                let _ = align_to(content_node, tooltip_node, Some(self.align_options.clone()));
+                let _ = align_to_xy(tooltip_node, pos, pwt::dom::align::Point::TopStart);
             }
         }
         if let Some(el) = self.y_label_ref.cast::<web_sys::SvgsvgElement>() {
