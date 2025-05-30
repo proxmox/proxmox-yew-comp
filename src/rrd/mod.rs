@@ -3,6 +3,8 @@ pub use graph::*;
 
 pub(crate) mod graph_space;
 
+pub(crate) mod grid;
+
 pub(crate) mod series;
 pub use series::Series;
 

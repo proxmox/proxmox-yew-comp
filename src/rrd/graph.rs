@@ -128,13 +128,14 @@ pub struct PwtRRDGraph {
     y_label_ref: NodeRef,
     serie0_visible: bool,
     serie1_visible: bool,
+    grid: RrdGrid,
 }
 
-use pwt::widget::canvas::{Canvas, Circle, Group, Path, Rect, SvgLength, Text};
+use pwt::widget::canvas::{Canvas, Circle, Group, Path, Rect};
 
 use super::graph_space::{CoordinateRange, GraphSpace};
+use super::grid::RrdGrid;
 use super::series::{compute_fill_path, compute_outline_path};
-use super::units::GraphKeyData;
 use super::Series;
 
 fn format_date_time(t: i64) -> String {
@@ -187,6 +188,7 @@ impl PwtRRDGraph {
         let (time_data, data1, data2) = self.get_view_data(ctx);
         self.graph_space
             .update(time_data, &[data1, data2], props.include_zero, props.binary);
+        self.grid = RrdGrid::new(&self.graph_space);
     }
 
     fn get_view_data<'a>(&self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64], &'a [f64]) {
@@ -222,88 +224,14 @@ impl PwtRRDGraph {
 
         let (data0, data1, data2) = self.get_view_data(ctx);
 
-        let GraphKeyData {
-            data_min,
-            data_max,
-            data_interval,
-            time_max,
-            time_interval,
-            start_time,
-            ..
-        } = self.graph_space.graph_data;
-
-        let mut grid_path = String::new();
-
-        let mut value_labels: Vec<Html> = Vec::new();
-        let mut time_labels: Vec<Html> = Vec::new();
-
-        if !data0.is_empty() {
-            let (x0, x1) = self.graph_space.get_x_range(CoordinateRange::OutsideBorder);
-
-            let mut v = data_min;
-            while v <= data_max {
-                let y = self.graph_space.compute_y(v);
-                grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x0, y, x1, y));
-
-                let label = render_value(props, v);
-                value_labels.push(
-                    Text::new(label)
-                        .class("pwt-rrd-label-text")
-                        .position(x0 as f32, y as f32)
-                        .dy(SvgLength::Px(4.0))
-                        .dx(SvgLength::Px(-4.0))
-                        .attribute("text-anchor", "end")
-                        .into(),
-                );
-
-                v += data_interval;
-            }
-
-            let mut t = start_time;
-            let (ymin, ymax) = self.graph_space.get_y_range(CoordinateRange::OutsideBorder);
-
-            let mut last_date = String::new();
-
-            while t <= time_max {
-                let x = self.graph_space.compute_x(t);
-                grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x, ymin, x, ymax));
-
-                let (time, date) = format_time(t);
-
-                time_labels.push(
-                    Text::new(time)
-                        .class("pwt-rrd-label-text")
-                        .position(x as f32, ymin as f32)
-                        .dy(SvgLength::Px(10.0))
-                        .attribute("text-anchor", "middle")
-                        .into(),
-                );
-
-                if date != last_date {
-                    time_labels.push(
-                        Text::new(date.clone())
-                            .class("pwt-rrd-label-text")
-                            .position(x as f32, ymin as f32)
-                            .dy(SvgLength::Px(10.0 + 16.0))
-                            .attribute("text-anchor", "middle")
-                            .into(),
-                    );
-
-                    last_date = date;
-                }
-
-                t += time_interval;
-            }
-        }
         let mut children: Vec<Html> = Vec::new();
 
-        children.push(
-            Path::new()
-                .key("grid")
-                .class("pwt-rrd-grid")
-                .d(grid_path)
-                .into(),
-        );
+        // draw grid and labels
+        let (value_labels, time_labels) = self
+            .grid
+            .to_label_list(|x| render_value(props, x), format_time);
+
+        children.push(self.grid.to_path().key("grid").into());
         children.push(Group::new().key("time-labels").children(time_labels).into());
 
         children.push(
@@ -497,11 +425,14 @@ impl Component for PwtRRDGraph {
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link().send_message(Msg::Reload);
 
+        let graph_space = GraphSpace::default();
+        let grid = RrdGrid::new(&graph_space);
+
         let mut this = Self {
             node_ref: NodeRef::default(),
             size_observer: None,
             canvas_ref: NodeRef::default(),
-            graph_space: GraphSpace::default(),
+            graph_space,
             selection: None,
             view_range: None,
             captured_pointer_id: None,
@@ -511,6 +442,7 @@ impl Component for PwtRRDGraph {
             y_label_ref: NodeRef::default(),
             serie0_visible: true,
             serie1_visible: true,
+            grid,
         };
 
         this.update_grid_content(ctx);
