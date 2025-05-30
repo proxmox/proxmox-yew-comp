@@ -282,29 +282,18 @@ impl PwtRRDGraph {
             ]);
         }
 
+        // draw selection rectangle
         if let Some((start, end)) = &self.selection {
-            let start = (*start).min(data0.len() - 1);
-            let end = (*end).min(data0.len() - 1);
-
-            match (data0.get(start), data0.get(end)) {
+            match (data0.get(*start), data0.get(*end)) {
                 (Some(start_data), Some(end_data)) => {
-                    let mut start_x = self.graph_space.compute_x(*start_data);
-                    let mut end_x = self.graph_space.compute_x(*end_data);
-
-                    if start_x > end_x {
-                        std::mem::swap(&mut start_x, &mut end_x);
-                    }
-
-                    let (start_y, end_y) =
-                        self.graph_space.get_y_range(CoordinateRange::InsideBorder);
-
+                    let (x, y, width, height) = self.get_selection_rect(*start_data, *end_data);
                     children.push(
                         Rect::new()
                             .key("selection-rect")
                             .class("pwt-rrd-selection")
-                            .position(start_x as f32, end_y as f32)
-                            .width((end_x - start_x) as f32)
-                            .height((start_y - end_y) as f32)
+                            .position(x, y)
+                            .width(width)
+                            .height(height)
                             .into(),
                     );
                 }
@@ -395,6 +384,25 @@ impl PwtRRDGraph {
                 )
             }))
             .into()
+    }
+
+    // returns x, y, width, height
+    fn get_selection_rect(&self, start: i64, end: i64) -> (f32, f32, f32, f32) {
+        let mut start_x = self.graph_space.compute_x(start);
+        let mut end_x = self.graph_space.compute_x(end);
+
+        if start_x > end_x {
+            std::mem::swap(&mut start_x, &mut end_x);
+        }
+
+        let (start_y, end_y) = self.graph_space.get_y_range(CoordinateRange::InsideBorder);
+
+        (
+            start_x as f32,
+            end_y as f32,
+            (end_x - start_x) as f32,
+            (start_y - end_y) as f32,
+        )
     }
 
     fn offset_to_time_index(&self, x: i32, data0: &[i64]) -> usize {
