@@ -129,6 +129,7 @@ pub struct PwtRRDGraph {
     serie0_visible: bool,
     serie1_visible: bool,
     grid: RrdGrid,
+    series_paths: Vec<Option<(String, String)>>, //outline path, fill path
 }
 
 use pwt::widget::canvas::{Canvas, Circle, Group, Path, Rect};
@@ -189,6 +190,24 @@ impl PwtRRDGraph {
         self.graph_space
             .update(time_data, &[data1, data2], props.include_zero, props.binary);
         self.grid = RrdGrid::new(&self.graph_space);
+
+        let mut paths = Vec::new();
+        if self.serie0_visible {
+            let outline_path = compute_outline_path(time_data, data1, &self.graph_space);
+            let fill_path = compute_fill_path(time_data, data1, &self.graph_space);
+            paths.push(Some((outline_path, fill_path)));
+        } else {
+            paths.push(None);
+        }
+        if self.serie1_visible {
+            let outline_path = compute_outline_path(time_data, data2, &self.graph_space);
+            let fill_path = compute_fill_path(time_data, data2, &self.graph_space);
+            paths.push(Some((outline_path, fill_path)));
+        } else {
+            paths.push(None);
+        }
+
+        self.series_paths = paths;
     }
 
     fn get_view_data<'a>(&self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64], &'a [f64]) {
@@ -242,38 +261,23 @@ impl PwtRRDGraph {
                 .into(),
         );
 
-        if self.serie0_visible && props.serie0.is_some() {
-            let path = compute_outline_path(data0, data1, &self.graph_space);
-            let pos_fill_path = compute_fill_path(data0, data1, &self.graph_space);
-
+        // draw series
+        for (idx, series) in self.series_paths.iter().enumerate() {
+            let idx = idx + 1;
+            let (outline_path, fill_path) = match series {
+                Some(res) => res,
+                None => continue,
+            };
             children.extend(vec![
                 Path::new()
-                    .key("series0-path")
-                    .class("pwt-rrd-outline-path1")
-                    .d(path)
+                    .key(format!("series{idx}-path"))
+                    .class(format!("pwt-rrd-outline-path{idx}"))
+                    .d(outline_path.to_string())
                     .into(),
                 Path::new()
-                    .key("series0-fill")
-                    .class("pwt-rrd-fill-path1")
-                    .d(pos_fill_path)
-                    .into(),
-            ]);
-        }
-
-        if self.serie1_visible && props.serie1.is_some() {
-            let path = compute_outline_path(data0, data2, &self.graph_space);
-            let pos_fill_path = compute_fill_path(data0, data2, &self.graph_space);
-
-            children.extend(vec![
-                Path::new()
-                    .key("series1-path")
-                    .class("pwt-rrd-outline-path2")
-                    .d(path)
-                    .into(),
-                Path::new()
-                    .key("series1-fill")
-                    .class("pwt-rrd-fill-path2")
-                    .d(pos_fill_path)
+                    .key(format!("series{idx}-fill"))
+                    .class(format!("pwt-rrd-fill-path{idx}"))
+                    .d(fill_path.to_string())
                     .into(),
             ]);
         }
@@ -443,6 +447,7 @@ impl Component for PwtRRDGraph {
             serie0_visible: true,
             serie1_visible: true,
             grid,
+            series_paths: Vec::new(),
         };
 
         this.update_grid_content(ctx);
