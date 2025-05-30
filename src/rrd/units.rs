@@ -10,7 +10,7 @@ pub(crate) fn get_grid_unit_base10(min: f64, max: f64) -> f64 {
     let mut l = range.log10() as i32;
 
     // the count can be between 1 and 10
-    while (range / 10.0_f64.powi(l)) < 2.0 {
+    if (range / 10.0_f64.powi(l)) < 2.0 {
         l -= 1;
     }
 
@@ -39,21 +39,13 @@ pub(crate) fn get_grid_unit_base2(min: f64, max: f64) -> f64 {
         panic!("get_grid_unit_base2: got zero or negative range - internal error");
     }
 
-    let mut l = range.log2() as i32;
+    let mut l = range.log2() as i32 - 2;
 
-    while (range / 2.0_f64.powi(l)) < 4.0 {
+    if range / 2.0_f64.powi(l) < 4.0 {
         l -= 1;
     }
 
-    let mut res = 2.0_f64.powi(l);
-
-    let count = range / res;
-
-    if count > 15.0 {
-        res *= 2.0;
-    }
-
-    res
+    2.0_f64.powi(l)
 }
 
 pub(crate) fn get_time_grid_unit(min: i64, max: i64) -> i64 {
