@@ -311,34 +311,19 @@ fn render_value(props: &RRDGraph, v: f64) -> String {
 }
 
 fn compute_min_max(props: &RRDGraph, data1: &[f64], data2: &[f64]) -> (f64, f64, f64) {
-    let mut min_data: Option<f64> = None;
-    let mut max_data: Option<f64> = None;
+    let mut min_data: f64 = f64::INFINITY;
+    let mut max_data: f64 = -f64::INFINITY;
 
-    for data in [data1, data2] {
-        for v in data.iter() {
-            if !v.is_finite() {
-                continue; // NaN, INFINITY
-            }
-            if let Some(min) = min_data {
-                if *v < min {
-                    min_data = Some(*v);
-                }
-            } else {
-                min_data = Some(*v);
-            }
-
-            if let Some(max) = max_data {
-                if *v > max {
-                    max_data = Some(*v);
-                }
-            } else {
-                max_data = Some(*v);
-            }
-        }
+    for v in data1.iter().chain(data2).filter(|v| v.is_finite()) {
+        min_data = min_data.min(*v);
+        max_data = max_data.max(*v);
     }
 
-    let mut max_data = max_data.unwrap_or(1.0);
-    let mut min_data = min_data.unwrap_or(0.0);
+    // if one is infinite, the other must be too
+    if min_data.is_infinite() || max_data.is_infinite() {
+        min_data = 0.0;
+        max_data = 1.0;
+    }
 
     if props.include_zero {
         max_data = max_data.max(0.0);
