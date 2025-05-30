@@ -125,8 +125,7 @@ pub enum Msg {
     PointerEnter,
     PointerLeave,
     ClearViewRange,
-    ToogleSerie0,
-    ToogleSerie1,
+    ToggleSeries(u32), // index
 }
 
 pub struct PwtRRDGraph {
@@ -719,17 +718,17 @@ impl Component for PwtRRDGraph {
                 }
                 true
             }
-            Msg::ToogleSerie0 => {
-                self.serie0_visible = !self.serie0_visible;
-                if !(self.serie0_visible || self.serie1_visible) {
-                    self.serie1_visible = true;
-                }
-                true
-            }
-            Msg::ToogleSerie1 => {
-                self.serie1_visible = !self.serie1_visible;
-                if !(self.serie0_visible || self.serie1_visible) {
-                    self.serie0_visible = true;
+            Msg::ToggleSeries(idx) => {
+                if idx == 0 {
+                    self.serie0_visible = !self.serie0_visible;
+                    if !(self.serie0_visible || self.serie1_visible) {
+                        self.serie1_visible = true;
+                    }
+                } else if idx == 1 {
+                    self.serie1_visible = !self.serie1_visible;
+                    if !(self.serie0_visible || self.serie1_visible) {
+                        self.serie0_visible = true;
+                    }
                 }
                 true
             }
@@ -880,7 +879,7 @@ impl Component for PwtRRDGraph {
                     Button::new(serie0.label.clone())
                         .class("pwt-button-elevated")
                         .icon_class(icon_class0)
-                        .onclick(ctx.link().callback(|_| Msg::ToogleSerie0)),
+                        .onclick(ctx.link().callback(|_| Msg::ToggleSeries(0))),
                 );
                 let icon_class1 = classes!(
                     "pwt-rrd-legend-marker1",
@@ -892,7 +891,7 @@ impl Component for PwtRRDGraph {
                     Button::new(serie1.label.clone())
                         .class("pwt-button-elevated")
                         .icon_class(icon_class1)
-                        .onclick(ctx.link().callback(|_| Msg::ToogleSerie1)),
+                        .onclick(ctx.link().callback(|_| Msg::ToggleSeries(1))),
                 );
             }
         }
