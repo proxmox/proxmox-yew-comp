@@ -802,6 +802,23 @@ impl Component for PwtRRDGraph {
         panel.into()
     }
 
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        let props = ctx.props();
+
+        // clamp view range to the new time data range
+        if let Some((start, end)) = self.view_range {
+            if props.time_data.len() < 10 {
+                self.view_range = None;
+            } else {
+                let end = end.min(props.time_data.len() - 1);
+                let start = start.min(end - 10);
+                self.view_range = Some((start, end));
+            }
+        }
+
+        true
+    }
+
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if first_render {
             if let Some(el) = self.node_ref.cast::<web_sys::Element>() {
