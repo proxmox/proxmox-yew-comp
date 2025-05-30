@@ -118,7 +118,7 @@ pub struct PwtRRDGraph {
     node_ref: NodeRef,
     size_observer: Option<DomSizeObserver>,
     canvas_ref: NodeRef,
-    layout: LayoutProps,
+    graph_space: GraphSpace,
     selection: Option<(usize, usize)>,
     view_range: Option<(usize, usize)>,
     captured_pointer_id: Option<i32>,
@@ -130,28 +130,9 @@ pub struct PwtRRDGraph {
     serie1_visible: bool,
 }
 
-pub struct LayoutProps {
-    width: usize,
-    height: usize,
-    grid_border: usize,
-    left_offset: usize,
-    bottom_offset: usize,
-}
-
-impl Default for LayoutProps {
-    fn default() -> Self {
-        Self {
-            width: 800,
-            height: 250,
-            grid_border: 10,
-            left_offset: 50,
-            bottom_offset: 30,
-        }
-    }
-}
-
 use pwt::widget::canvas::{Canvas, Circle, Group, Path, Rect, SvgLength, Text};
 
+use super::graph_space::{CoordinateRange, GraphSpace};
 use super::series::{compute_fill_path, compute_outline_path};
 use super::units::GraphKeyData;
 use super::Series;
@@ -201,6 +182,13 @@ fn render_value(props: &RRDGraph, v: f64) -> String {
 }
 
 impl PwtRRDGraph {
+    fn update_grid_content(&mut self, ctx: &Context<Self>) {
+        let props = ctx.props();
+        let (time_data, data1, data2) = self.get_view_data(ctx);
+        self.graph_space
+            .update(time_data, &[data1, data2], props.include_zero, props.binary);
+    }
+
     fn get_view_data<'a>(&self, ctx: &'a Context<Self>) -> (&'a [i64], &'a [f64], &'a [f64]) {
         let props = ctx.props();
 
@@ -232,37 +220,17 @@ impl PwtRRDGraph {
     fn create_graph(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let layout = &self.layout;
-
         let (data0, data1, data2) = self.get_view_data(ctx);
 
         let GraphKeyData {
             data_min,
             data_max,
             data_interval,
-            data_range,
-            time_min,
             time_max,
             time_interval,
             start_time,
-            time_range,
-        } = GraphKeyData::new(data0, &[data1, data2], props.include_zero, props.binary);
-
-        let compute_x = {
-            let width = (layout.width - layout.left_offset - layout.grid_border * 2) as f64;
-            move |t: i64| -> f64 {
-                (layout.left_offset + layout.grid_border) as f64
-                    + ((t - time_min) as f64 * width) / time_range as f64
-            }
-        };
-
-        let compute_y = {
-            let height = (layout.height - layout.bottom_offset - layout.grid_border * 2) as f64;
-            move |value: f64| -> f64 {
-                (layout.height - layout.grid_border - layout.bottom_offset) as f64
-                    - ((value - data_min) * height) / data_range
-            }
-        };
+            ..
+        } = self.graph_space.graph_data;
 
         let mut grid_path = String::new();
 
@@ -270,12 +238,11 @@ impl PwtRRDGraph {
         let mut time_labels: Vec<Html> = Vec::new();
 
         if !data0.is_empty() {
-            let x0 = compute_x(time_min) - (layout.grid_border as f64);
-            let x1 = compute_x(time_max) + (layout.grid_border as f64);
+            let (x0, x1) = self.graph_space.get_x_range(CoordinateRange::OutsideBorder);
 
             let mut v = data_min;
             while v <= data_max {
-                let y = compute_y(v);
+                let y = self.graph_space.compute_y(v);
                 grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x0, y, x1, y));
 
                 let label = render_value(props, v);
@@ -293,13 +260,12 @@ impl PwtRRDGraph {
             }
 
             let mut t = start_time;
-            let ymax = compute_y(data_max) - (layout.grid_border as f64);
-            let ymin = compute_y(data_min) + (layout.grid_border as f64);
+            let (ymin, ymax) = self.graph_space.get_y_range(CoordinateRange::OutsideBorder);
 
             let mut last_date = String::new();
 
             while t <= time_max {
-                let x = compute_x(t);
+                let x = self.graph_space.compute_x(t);
                 grid_path.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1}", x, ymin, x, ymax));
 
                 let (time, date) = format_time(t);
@@ -349,9 +315,8 @@ impl PwtRRDGraph {
         );
 
         if self.serie0_visible && props.serie0.is_some() {
-            let path = compute_outline_path(data0, data1, compute_x, compute_y);
-            let pos_fill_path =
-                compute_fill_path(data0, data1, data_min, data_max, compute_x, compute_y);
+            let path = compute_outline_path(data0, data1, &self.graph_space);
+            let pos_fill_path = compute_fill_path(data0, data1, &self.graph_space);
 
             children.extend(vec![
                 Path::new()
@@ -368,9 +333,8 @@ impl PwtRRDGraph {
         }
 
         if self.serie1_visible && props.serie1.is_some() {
-            let path = compute_outline_path(data0, data2, compute_x, compute_y);
-            let pos_fill_path =
-                compute_fill_path(data0, data2, data_min, data_max, compute_x, compute_y);
+            let path = compute_outline_path(data0, data2, &self.graph_space);
+            let pos_fill_path = compute_fill_path(data0, data2, &self.graph_space);
 
             children.extend(vec![
                 Path::new()
@@ -392,15 +356,15 @@ impl PwtRRDGraph {
 
             match (data0.get(start), data0.get(end)) {
                 (Some(start_data), Some(end_data)) => {
-                    let mut start_x = compute_x(*start_data);
-                    let mut end_x = compute_x(*end_data);
+                    let mut start_x = self.graph_space.compute_x(*start_data);
+                    let mut end_x = self.graph_space.compute_x(*end_data);
 
                     if start_x > end_x {
                         std::mem::swap(&mut start_x, &mut end_x);
                     }
 
-                    let start_y = compute_y(data_min);
-                    let end_y = compute_y(data_max);
+                    let (start_y, end_y) =
+                        self.graph_space.get_y_range(CoordinateRange::InsideBorder);
 
                     children.push(
                         Rect::new()
@@ -423,8 +387,8 @@ impl PwtRRDGraph {
             if let Some(t) = data0.get(idx) {
                 if let Some(v) = data1.get(idx) {
                     if v.is_finite() {
-                        let px = compute_x(*t) as f32;
-                        let py = compute_y(*v) as f32;
+                        let px = self.graph_space.compute_x(*t) as f32;
+                        let py = self.graph_space.compute_y(*v) as f32;
                         children.push(
                             Circle::new()
                                 .key("selection-circle1")
@@ -437,8 +401,8 @@ impl PwtRRDGraph {
                 }
                 if let Some(v) = data2.get(idx) {
                     if v.is_finite() {
-                        let px = compute_x(*t) as f32;
-                        let py = compute_y(*v) as f32;
+                        let px = self.graph_space.compute_x(*t) as f32;
+                        let py = self.graph_space.compute_y(*v) as f32;
                         children.push(
                             Circle::new()
                                 .key("selection-circle2")
@@ -451,18 +415,17 @@ impl PwtRRDGraph {
                 }
             }
 
-            let max_y = compute_y(data_min);
-            let min_x = self.layout.left_offset + self.layout.grid_border;
-            let max_x = self.layout.width - self.layout.grid_border;
+            let (min_y, _) = self.graph_space.get_y_range(CoordinateRange::InsideBorder);
+            let (min_x, max_x) = self.graph_space.get_x_range(CoordinateRange::InsideBorder);
 
             let x = x.max(min_x as i32).min(max_x as i32);
-            let y = y.min(max_y as i32);
+            let y = y.min(min_y as i32);
 
             children.push(
                 Path::new()
                     .key("cross")
                     .class("pwt-rrd-cross")
-                    .d(format!("M {x} 0 L {x} {max_y} M {min_x} {y} L {max_x} {y}"))
+                    .d(format!("M {x} 0 L {x} {min_y} M {min_x} {y} L {max_x} {y}"))
                     .into(),
             );
         }
@@ -470,8 +433,8 @@ impl PwtRRDGraph {
         Canvas::new()
             .node_ref(self.canvas_ref.clone())
             .class("pwt-rrd-svg")
-            .width(layout.width)
-            .height(layout.height)
+            .width(self.graph_space.get_width())
+            .height(self.graph_space.get_height())
             .children(children)
             .ondblclick(ctx.link().callback(|_| Msg::ClearViewRange))
             .onpointerenter(ctx.link().callback(|_| Msg::PointerEnter))
@@ -503,16 +466,7 @@ impl PwtRRDGraph {
     }
 
     fn offset_to_time_index(&self, x: i32, data0: &[i64]) -> usize {
-        let layout = &self.layout;
-        let width = (layout.width - layout.left_offset - layout.grid_border * 2) as f64;
-
-        let start_time: i64 = *data0.first().unwrap_or(&0);
-        let end_time: i64 = *data0.last().unwrap_or(&0);
-        let time_span: i64 = end_time - start_time;
-
-        let fraction: f64 = ((x - (layout.left_offset + layout.grid_border) as i32) as f64) / width;
-
-        let t: i64 = ((fraction * (time_span as f64)) as i64) + start_time;
+        let t = self.graph_space.original_x(x as f64);
         let start_index = data0.partition_point(|&x| x < t);
 
         // Select nearest point
@@ -543,11 +497,11 @@ impl Component for PwtRRDGraph {
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link().send_message(Msg::Reload);
 
-        Self {
+        let mut this = Self {
             node_ref: NodeRef::default(),
             size_observer: None,
             canvas_ref: NodeRef::default(),
-            layout: LayoutProps::default(),
+            graph_space: GraphSpace::default(),
             selection: None,
             view_range: None,
             captured_pointer_id: None,
@@ -557,7 +511,10 @@ impl Component for PwtRRDGraph {
             y_label_ref: NodeRef::default(),
             serie0_visible: true,
             serie1_visible: true,
-        }
+        };
+
+        this.update_grid_content(ctx);
+        this
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -566,7 +523,8 @@ impl Component for PwtRRDGraph {
             Msg::Reload => true,
             Msg::ViewportResize(width, _height) => {
                 if width > 0.0 {
-                    self.layout.width = width as usize;
+                    self.graph_space.set_width(width as usize);
+                    self.update_grid_content(ctx);
                 }
                 true
             }
@@ -582,14 +540,17 @@ impl Component for PwtRRDGraph {
                         self.serie0_visible = true;
                     }
                 }
+                self.update_grid_content(ctx);
                 true
             }
             Msg::ClearViewRange => {
                 self.view_range = None;
+                self.update_grid_content(ctx);
                 true
             }
             Msg::AdjustLeftOffset(offset) => {
-                self.layout.left_offset = offset;
+                self.graph_space.set_left_offset(offset);
+                self.update_grid_content(ctx);
                 true
             }
             Msg::PointerEnter => {
@@ -656,6 +617,7 @@ impl Component for PwtRRDGraph {
                     }
                     None => None,
                 };
+                self.update_grid_content(ctx);
 
                 true
             }
@@ -751,7 +713,7 @@ impl Component for PwtRRDGraph {
         panel.into()
     }
 
-    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+    fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
 
         // clamp view range to the new time data range
@@ -763,6 +725,14 @@ impl Component for PwtRRDGraph {
                 let start = start.min(end - 10);
                 self.view_range = Some((start, end));
             }
+        }
+
+        // we need to recalculate the grid content when the series or time data changes
+        if props.serie0 != old_props.serie0
+            || props.serie1 != old_props.serie1
+            || props.time_data != old_props.time_data
+        {
+            self.update_grid_content(ctx);
         }
 
         true
@@ -786,7 +756,7 @@ impl Component for PwtRRDGraph {
         if let Some(el) = self.y_label_ref.cast::<web_sys::SvgsvgElement>() {
             if let Ok(bbox) = el.get_b_box() {
                 let offset = (bbox.width() + 10.0) as usize;
-                if self.layout.left_offset != offset {
+                if self.graph_space.get_left_offset() != offset {
                     ctx.link().send_message(Msg::AdjustLeftOffset(offset));
                 }
             }
