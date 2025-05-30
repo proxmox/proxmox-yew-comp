@@ -143,7 +143,6 @@ pub struct PwtRRDGraph {
     datapoint_ref: NodeRef,
     align_options: AlignOptions,
     y_label_ref: NodeRef,
-    no_data: Vec<f64>,
     serie0_visible: bool,
     serie1_visible: bool,
 }
@@ -359,12 +358,12 @@ impl PwtRRDGraph {
 
         let time_data = &props.time_data;
         let serie0_data = match (self.serie0_visible, &props.serie0) {
-            (true, Some(serie)) => &serie.data,
-            _ => &self.no_data,
+            (true, Some(serie)) => &serie.data[..],
+            _ => &[],
         };
         let serie1_data = match (self.serie1_visible, &props.serie1) {
-            (true, Some(serie)) => &serie.data,
-            _ => &self.no_data,
+            (true, Some(serie)) => &serie.data[..],
+            _ => &[],
         };
 
         if let Some((start, end)) = self.view_range {
@@ -697,7 +696,6 @@ impl Component for PwtRRDGraph {
             datapoint_ref: NodeRef::default(),
             align_options,
             y_label_ref: NodeRef::default(),
-            no_data: Vec::new(),
             serie0_visible: true,
             serie1_visible: true,
         }
