@@ -302,51 +302,25 @@ impl PwtRRDGraph {
             }
         }
 
+        // draw cross and data circles
         if let Some((x, y)) = self.cross_pos {
-            let idx = self.offset_to_time_index(x, data0);
-
-            if let Some(t) = data0.get(idx) {
-                if let Some(v) = data1.get(idx) {
-                    if v.is_finite() {
-                        let px = self.graph_space.compute_x(*t) as f32;
-                        let py = self.graph_space.compute_y(*v) as f32;
-                        children.push(
-                            Circle::new()
-                                .key("selection-circle1")
-                                .class("pwt-rrd-selected-datapoint")
-                                .position(px, py)
-                                .r(5)
-                                .into(),
-                        );
-                    }
-                }
-                if let Some(v) = data2.get(idx) {
-                    if v.is_finite() {
-                        let px = self.graph_space.compute_x(*t) as f32;
-                        let py = self.graph_space.compute_y(*v) as f32;
-                        children.push(
-                            Circle::new()
-                                .key("selection-circle2")
-                                .class("pwt-rrd-selected-datapoint")
-                                .position(px, py)
-                                .r(5)
-                                .into(),
-                        );
-                    }
-                }
+            let (path, circles) = self.get_cross_positions(data0, &[data1, data2], x, y);
+            for (idx, (px, py)) in circles.into_iter().enumerate() {
+                children.push(
+                    Circle::new()
+                        .key(format!("selection-circle{idx}"))
+                        .class("pwt-rrd-selected-datapoint")
+                        .position(px, py)
+                        .r(5)
+                        .into(),
+                );
             }
-
-            let (min_y, _) = self.graph_space.get_y_range(CoordinateRange::InsideBorder);
-            let (min_x, max_x) = self.graph_space.get_x_range(CoordinateRange::InsideBorder);
-
-            let x = x.max(min_x as i32).min(max_x as i32);
-            let y = y.min(min_y as i32);
 
             children.push(
                 Path::new()
                     .key("cross")
                     .class("pwt-rrd-cross")
-                    .d(format!("M {x} 0 L {x} {min_y} M {min_x} {y} L {max_x} {y}"))
+                    .d(path)
                     .into(),
             );
         }
@@ -403,6 +377,41 @@ impl PwtRRDGraph {
             (end_x - start_x) as f32,
             (start_y - end_y) as f32,
         )
+    }
+
+    // returns the path for the cross and the positions of the circles for the series data points
+    fn get_cross_positions(
+        &self,
+        data0: &[i64],
+        series: &[&[f64]],
+        x: i32,
+        y: i32,
+    ) -> (String, Vec<(f32, f32)>) {
+        let idx = self.offset_to_time_index(x, data0);
+
+        let mut children = Vec::new();
+
+        if let Some(t) = data0.get(idx) {
+            for data in series {
+                if let Some(v) = data.get(idx) {
+                    if v.is_finite() {
+                        let px = self.graph_space.compute_x(*t) as f32;
+                        let py = self.graph_space.compute_y(*v) as f32;
+                        children.push((px, py));
+                    }
+                }
+            }
+        }
+
+        let (min_y, _) = self.graph_space.get_y_range(CoordinateRange::InsideBorder);
+        let (min_x, max_x) = self.graph_space.get_x_range(CoordinateRange::InsideBorder);
+
+        let x = x.max(min_x as i32).min(max_x as i32);
+        let y = y.min(min_y as i32);
+
+        let path = format!("M {x} 0 L {x} {min_y} M {min_x} {y} L {max_x} {y}");
+
+        (path, children)
     }
 
     fn offset_to_time_index(&self, x: i32, data0: &[i64]) -> usize {
