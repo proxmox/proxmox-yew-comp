@@ -95,9 +95,9 @@ mod role_selector;
 pub use role_selector::RoleSelector;
 
 #[cfg(feature = "rrd")]
-mod rrd_graph_new;
+mod rrd;
 #[cfg(feature = "rrd")]
-pub use rrd_graph_new::{RRDGraph, Series};
+pub use rrd::{RRDGraph, Series};
 
 #[cfg(feature = "rrd")]
 mod rrd_grid;
