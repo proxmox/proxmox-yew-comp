@@ -451,3 +451,90 @@ pub fn register_pve_tasks() {
     register_task_description("zfscreate", (tr!("ZFS Storage"), tr!("Create")));
     register_task_description("zfsremove", ("ZFS Pool", tr!("Remove")));
 }
+
+// Register Proxmox Backup Server task descriptions
+pub fn register_pbs_tasks() {
+    register_task_description("acme-deactivate", |_, id: Option<String>| {
+        tr!("Deactivate {0} Account", "ACME") + " " + id.as_deref().unwrap_or("default")
+    });
+    register_task_description("acme-register", |_, id: Option<String>| {
+        tr!("Register {0} Account", "ACME") + " " + id.as_deref().unwrap_or("default")
+    });
+    register_task_description("acme-update", |_, id: Option<String>| {
+        tr!("Update {0} Account", "ACME") + " " + id.as_deref().unwrap_or("default")
+    });
+    register_task_description("acme-new-cert", tr!("Order Certificate"));
+    register_task_description("acme-renew-cert", tr!("Renew Certificate"));
+    register_task_description("acme-revoke-cert", tr!("Revoke Certificate"));
+
+    register_task_description("backup", |_, id| {
+        render_datastore_worker_id(id, tr!("Backup"))
+    });
+    register_task_description(
+        "barcode-label-media",
+        (tr!("Drive"), tr!("Barcode-Label Media")),
+    );
+    register_task_description("catalog-media", (tr!("Drive"), tr!("Catalog Media")));
+    register_task_description(
+        "delete-datastore",
+        (tr!("Datastore"), tr!("Remove Datastore")),
+    );
+    register_task_description(
+        "delete-namespace",
+        (tr!("Namespace"), tr!("Remove Namespace")),
+    );
+
+    register_task_description("dircreate", (tr!("Directory Storage"), tr!("Create")));
+    register_task_description("dirremove", (tr!("Directory Storage"), tr!("Remove")));
+
+    register_task_description("eject-media", (tr!("Drive"), tr!("Eject Media")));
+    register_task_description("format-media", (tr!("Drive"), tr!("Format Media")));
+
+    register_task_description("forget-group", (tr!("Group"), tr!("Remove Group")));
+
+    register_task_description(
+        "garbage_collection",
+        (tr!("Datastore"), tr!("Garbage Collect")),
+    );
+
+    register_task_description("realm-sync", (tr!("Realm"), tr!("User Sync")));
+    register_task_description("inventory-update", (tr!("Drive"), tr!("Inventory Update")));
+    register_task_description("label-media", (tr!("Drive"), tr!("Label Media")));
+
+    register_task_description("load-media", |_, id| {
+        render_drive_load_media_id(id, tr!("Load Media"))
+    });
+    register_task_description("logrotate", tr!("Log Rotation"));
+
+    register_task_description("prune", |_, id| {
+        render_datastore_worker_id(id, tr!("Prune"))
+    });
+    register_task_description("prunejob", |_, id| {
+        render_prune_job_worker_id(id, tr!("Prune Job"))
+    });
+    register_task_description("reader", |_, id| {
+        render_datastore_worker_id(id, tr!("Read Objects"))
+    });
+
+    register_task_description("rewind-media", (tr!("Drive"), tr!("Rewind Media")));
+    register_task_description("sync", (tr!("Datastore"), tr!("Remote Sync")));
+    register_task_description("syncjob", (tr!("Sync Job"), tr!("Remote Sync")));
+
+    register_task_description("tape-backup", |_, id| {
+        render_tape_backup_id(id, tr!("Tape Backup"))
+    });
+    register_task_description("tape-backup-job", |_, id| {
+        render_tape_backup_id(id, tr!("Tape Backup Job"))
+    });
+    register_task_description("unload-media", (tr!("Drive"), tr!("Unload Media")));
+
+    register_task_description(
+        "verificationjob",
+        (tr!("Verify Job"), tr!("Scheduled Verification")),
+    );
+    register_task_description("verify", (tr!("Datastore"), tr!("Verification")));
+    register_task_description("verify_group", (tr!("Group"), tr!("Verification")));
+    register_task_description("verify_snapshot", (tr!("Snapshot"), tr!("Verification")));
+
+    register_task_description("zfscreate", (tr!("ZFS Sorage"), tr!("Create")));
+}
