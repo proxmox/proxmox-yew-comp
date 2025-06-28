@@ -1,8 +1,8 @@
 //! API types shared by different Proxmox products
 
-use anyhow::Error;
+use anyhow::{bail, Error};
 
-use proxmox_schema::{api, ApiStringFormat, ApiType, Schema, StringSchema};
+use proxmox_schema::{api, const_regex, ApiStringFormat, ApiType, Schema, StringSchema};
 
 use serde::{Deserialize, Serialize};
 use yew::virtual_dom::Key;
@@ -30,6 +30,65 @@ pub struct RoleInfo {
     pub privs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
+}
+
+/// Upid covering different products (PVE, PBS and PDM)
+///
+/// Different products use different UPID formats. This type can parse
+/// all of them and provides enough information to nicely display task list/info.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProxmoxUpid {
+    /// The task start time (Epoch)
+    pub starttime: i64,
+    /// Worker type (arbitrary ASCII string)
+    pub worker_type: String,
+    /// Worker ID (arbitrary ASCII string)
+    pub worker_id: Option<String>,
+    /// The authenticated entity who started the task
+    pub auth_id: String,
+    /// The node name.
+    pub node: String,
+    /// Remote name for PDM RemoteUpid
+    pub remote: Option<String>,
+}
+
+impl std::str::FromStr for ProxmoxUpid {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (remote, upid_part) = match s.split_once('!') {
+            Some((p1, p2)) => (Some(p1.to_string()), p2),
+            None => (None, s),
+        };
+
+        let colon_count = upid_part.chars().filter(|c| *c == ':').count();
+
+        if colon_count == 9 {
+            // assume PBS
+            let upid = proxmox_schema::upid::UPID::from_str(upid_part)?;
+            Ok(Self {
+                starttime: upid.starttime,
+                worker_id: upid.worker_id,
+                worker_type: upid.worker_type,
+                auth_id: upid.auth_id,
+                node: upid.node,
+                remote,
+            })
+        } else if colon_count == 8 {
+            // assume PVE
+            let upid = PveUpid::from_str(upid_part)?;
+            Ok(Self {
+                starttime: upid.starttime,
+                worker_id: upid.worker_id,
+                worker_type: upid.worker_type,
+                auth_id: upid.auth_id,
+                node: upid.node,
+                remote,
+            })
+        } else {
+            bail!("unable to parse UPID '{}'", s);
+        }
+    }
 }
 
 // copied from pbs_api_types::TaskListItem;
@@ -237,4 +296,103 @@ pub fn parse_acme_config_string(value_str: &str) -> Result<AcmeConfig, Error> {
 
 pub fn create_acme_config_string(config: &AcmeConfig) -> String {
     proxmox_schema::property_string::print::<AcmeConfig>(config).unwrap()
+}
+
+// Copied from pve-api-type
+/// A PVE Upid, contrary to a PBS Upid, contains no 'task-id' number.
+pub struct PveUpid {
+    /// The Unix PID
+    pub pid: i32, // really libc::pid_t, but we don't want this as a dependency for proxmox-schema
+    /// The Unix process start time from `/proc/pid/stat`
+    pub pstart: u64,
+    /// The task start time (Epoch)
+    pub starttime: i64,
+    /// Worker type (arbitrary ASCII string)
+    pub worker_type: String,
+    /// Worker ID (arbitrary ASCII string)
+    pub worker_id: Option<String>,
+    /// The authenticated entity who started the task
+    pub auth_id: String,
+    /// The node name.
+    pub node: String,
+}
+
+const_regex! {
+    pub PVE_UPID_REGEX = concat!(
+        r"^UPID:(?P<node>[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?):(?P<pid>[0-9A-Fa-f]{8}):",
+        r"(?P<pstart>[0-9A-Fa-f]{8,9}):(?P<starttime>[0-9A-Fa-f]{8}):",
+        r"(?P<wtype>[^:\s]+):(?P<wid>[^:\s]*):(?P<authid>[^:\s]+):$"
+    );
+}
+
+impl std::str::FromStr for PveUpid {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(cap) = PVE_UPID_REGEX.captures(s) {
+            let worker_id = if cap["wid"].is_empty() {
+                None
+            } else {
+                let wid = unescape_id(&cap["wid"])?;
+                Some(wid)
+            };
+
+            Ok(PveUpid {
+                pid: i32::from_str_radix(&cap["pid"], 16).unwrap(),
+                pstart: u64::from_str_radix(&cap["pstart"], 16).unwrap(),
+                starttime: i64::from_str_radix(&cap["starttime"], 16).unwrap(),
+                worker_type: cap["wtype"].to_string(),
+                worker_id,
+                auth_id: cap["authid"].to_string(),
+                node: cap["node"].to_string(),
+            })
+        } else {
+            bail!("unable to parse UPID '{}'", s);
+        }
+    }
+}
+
+// Copied from pve-api-type for use in PveUpid
+fn hex_digit(d: u8) -> Result<u8, Error> {
+    match d {
+        b'0'..=b'9' => Ok(d - b'0'),
+        b'A'..=b'F' => Ok(d - b'A' + 10),
+        b'a'..=b'f' => Ok(d - b'a' + 10),
+        _ => bail!("got invalid hex digit"),
+    }
+}
+
+// Copied from pve-api-type for use in PveUpid
+// FIXME: This is in `proxmox_schema::upid` and should be `pub` there instead.
+/// systemd-unit compatible escaping
+fn unescape_id(text: &str) -> Result<String, Error> {
+    let mut i = text.as_bytes();
+
+    let mut data: Vec<u8> = Vec::new();
+
+    loop {
+        if i.is_empty() {
+            break;
+        }
+        let next = i[0];
+        if next == b'\\' {
+            if i.len() < 4 || i[1] != b'x' {
+                bail!("error in escape sequence");
+            }
+            let h1 = hex_digit(i[2])?;
+            let h0 = hex_digit(i[3])?;
+            data.push(h1 << 4 | h0);
+            i = &i[4..]
+        } else if next == b'-' {
+            data.push(b'/');
+            i = &i[1..]
+        } else {
+            data.push(next);
+            i = &i[1..]
+        }
+    }
+
+    let text = String::from_utf8(data)?;
+
+    Ok(text)
 }

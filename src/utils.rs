@@ -7,7 +7,7 @@ use wasm_bindgen::JsCast;
 use yew::prelude::*;
 use yew::NodeRef;
 
-use proxmox_schema::upid::UPID;
+use crate::common_api_types::ProxmoxUpid;
 
 use pwt::tr;
 
@@ -229,7 +229,7 @@ pub fn init_task_descr_table_base() {
 
 /// Uses information from the given [`UPID`] to render the task description with [`format_task_description`]
 pub fn format_upid(upid: &str) -> String {
-    match upid.parse::<UPID>() {
+    match upid.parse::<ProxmoxUpid>() {
         Err(_) => upid.to_string(),
         Ok(upid) => format_task_description(&upid.worker_type, upid.worker_id.as_deref()),
     }

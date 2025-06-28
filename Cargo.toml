@@ -56,6 +56,7 @@ pulldown-cmark = { version = "0.11", features = [] }
 qrcode = { version = "0.12", default-features = false, features = ["svg"] }
 base64 = "0.13"
 slab = "0.4"
+regex = "1.7"
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
