@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use pwt::props::PwtSpace;
 use pwt::state::PersistentState;
+use pwt::touch::{SnackBar, SnackBarContextExt};
 use yew::html::IntoEventCallback;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
@@ -34,7 +35,8 @@ pub struct LoginPanel {
 
     /// Mobile Layout
     ///
-    /// Use special layout for mobile apps.
+    /// Use special layout for mobile apps. For example shows error in a [SnackBar]
+    /// if a [SnackBarController] context is available.
     ///
     /// Note: Always use saved userid to avoid additional checkbox.
     #[prop_or(false)]
@@ -450,6 +452,9 @@ impl Component for ProxmoxLoginPanel {
                 let realm = self.form_ctx.read().get_field_text("realm");
 
                 self.send_login(ctx, username, password, realm);
+                if let (true, Some(controller)) = (props.mobile, ctx.link().snackbar_controller()) {
+                    controller.dismiss_all()
+                }
                 true
             }
             Msg::Login(info) => {
@@ -465,7 +470,14 @@ impl Component for ProxmoxLoginPanel {
             Msg::LoginError(msg) => {
                 self.loading = false;
                 self.challenge = None;
-                self.login_error = Some(msg);
+                match (props.mobile, ctx.link().snackbar_controller()) {
+                    (true, Some(controller)) => {
+                        controller.show_snackbar(SnackBar::new().message(msg));
+                    }
+                    _ => {
+                        self.login_error = Some(msg);
+                    }
+                }
                 true
             }
         }
