@@ -42,6 +42,11 @@ pub struct RealmSelector {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     pub default: Option<AttrValue>,
+
+    /// The path for getting the realm list
+    #[builder]
+    #[prop_or(Some("/access/domains".into()))]
+    pub path: Option<AttrValue>,
 }
 
 impl Default for RealmSelector {
@@ -104,7 +109,7 @@ impl Component for ProxmoxRealmSelector {
             .with_input_props(&props.input_props)
             .required(true)
             .default(props.default.as_deref().unwrap_or("pam").to_string())
-            .loader("/access/domains")
+            .loader(props.path.clone())
             .validate(self.validate.clone())
             .into()
     }

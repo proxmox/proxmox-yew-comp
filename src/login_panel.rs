@@ -40,6 +40,11 @@ pub struct LoginPanel {
     #[prop_or(false)]
     #[builder]
     pub mobile: bool,
+
+    /// The path to the domain api call, default is defined in the [RealmSelector]
+    #[prop_or_default]
+    #[builder]
+    pub domain_path: Option<AttrValue>,
 }
 
 impl Default for LoginPanel {
@@ -194,6 +199,7 @@ impl ProxmoxLoginPanel {
                 RealmSelector::new()
                     .name("realm")
                     .label_id(realm_label_id)
+                    .path(props.domain_path.clone())
                     .default(default_realm),
             )
             .with_child(
