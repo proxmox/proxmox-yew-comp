@@ -85,11 +85,15 @@ thread_local! {
     static TICKET_REFRESH_LOOP_GUARD: RefCell<Option<AsyncAbortGuard>> = const { RefCell::new(None) };
 }
 
-fn start_ticket_refresh_loop() {
+pub fn start_ticket_refresh_loop() {
     let abort_guard = AsyncAbortGuard::spawn(ticket_refresh_loop());
 
     // Make sure there is a single loop running.
     TICKET_REFRESH_LOOP_GUARD.with_borrow_mut(|v| *v = Some(abort_guard));
+}
+
+pub fn stop_ticket_refresh_loop() {
+    TICKET_REFRESH_LOOP_GUARD.with_borrow_mut(|v| *v = None);
 }
 
 async fn ticket_refresh_loop() {
