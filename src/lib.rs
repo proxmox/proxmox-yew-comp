@@ -158,7 +158,7 @@ mod subscription_panel;
 pub use subscription_panel::{ProxmoxSubscriptionPanel, SubscriptionPanel};
 
 mod subscription_info;
-pub use subscription_info::{ProxmoxSubscriptionInfo, SubscriptionInfo};
+pub use subscription_info::{subscription_note, ProxmoxSubscriptionInfo, SubscriptionInfo};
 
 mod syslog;
 pub use syslog::{ProxmoxSyslog, Syslog};
