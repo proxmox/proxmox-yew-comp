@@ -1,3 +1,29 @@
+rust-proxmox-yew-comp (0.5.0) trixie; urgency=medium
+
+  * LoginPanel: use builder macro
+
+  * LoginPanel: add mobile view
+
+  * TfaDialog: add mobile property
+
+  * client: trigger auth observer on logout
+
+  * ProxmoxUpid: new type to parse all different types of UPIDs
+
+  * add method to register PVE task descriptions
+
+  * expose subscription_note publicly
+
+  * http helpers: expose ticket refresh loop controls
+
+  * login panel/realm selector: make realm path configurable
+
+  * login panel: use snackbar for errors when on mobile
+
+  * update to trixie versions and switch to proxmox_base64
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 08 Jul 2025 13:58:17 +0200
+
 rust-proxmox-yew-comp (0.4.5) bookworm; urgency=medium
 
   * depend on pwt 0.5.0
