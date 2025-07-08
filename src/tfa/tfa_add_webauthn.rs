@@ -190,7 +190,7 @@ fn handle_hw_rsp(hw_rsp: JsValue) -> Result<String, Error> {
             .ok()
             .with_context(|| format!("missing '{name}' property in hardware response"))?;
         let bytes = js_sys::Uint8Array::new(&value).to_vec();
-        Ok(base64::encode_config(&bytes, base64::URL_SAFE_NO_PAD))
+        Ok(proxmox_base64::url::encode_no_pad(&bytes))
     }
 
     let id = get_string(&hw_rsp, "id")?;

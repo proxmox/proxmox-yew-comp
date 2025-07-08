@@ -304,7 +304,7 @@ pub(super) fn turn_b64u_member_into_buffer(
         .with_context(|| format!("failed to get '{member_str}' in object"))?
         .as_string()
         .with_context(|| format!("'{member_str}' in object was not a string"))?;
-    let buffer: js_sys::Uint8Array = base64::decode_config(&mem_string, base64::URL_SAFE_NO_PAD)
+    let buffer: js_sys::Uint8Array = proxmox_base64::url::decode_no_pad(&mem_string)
         .with_context(|| format!("failed to decode '{member_str}'"))?[..]
         .into();
 

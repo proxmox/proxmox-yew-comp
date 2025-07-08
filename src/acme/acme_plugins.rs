@@ -518,7 +518,7 @@ impl ProxmoxAcmePluginsPanel {
                     let url = url.clone();
 
                     Self::update_api_data(&form_ctx, challenge_schema.as_ref(), None);
-                    data["data"] = base64::encode(form_ctx.read().get_field_text("data")).into();
+                    data["data"] = proxmox_base64::encode(form_ctx.read().get_field_text("data")).into();
 
                     let data = delete_empty_values(&data, &["validation-delay"], true);
 
@@ -559,7 +559,7 @@ impl ProxmoxAcmePluginsPanel {
                         .remove("plugin")
                         .unwrap_or(Value::Null);
 
-                    data["data"] = base64::encode(form_ctx.read().get_field_text("data")).into();
+                    data["data"] = proxmox_base64::encode(form_ctx.read().get_field_text("data")).into();
 
                     async move { crate::http_post("/config/acme/plugins", Some(data)).await }
                 }

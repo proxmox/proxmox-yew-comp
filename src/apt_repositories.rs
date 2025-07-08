@@ -136,13 +136,13 @@ fn update_status_store(
         }
         use APTRepositoryHandle::*;
         match repo.handle {
-            CephSquidEnterprise | CephQuincyEnterprise | CephReefEnterprise => {
+            CephSquidEnterprise => {
                 has_ceph_enterprise = true
             }
-            CephSquidNoSubscription | CephQuincyNoSubscription | CephReefNoSubscription => {
+            CephSquidNoSubscription => {
                 has_ceph_no_subscription = true
             }
-            CephSquidTest | CephQuincyTest | CephReefTest => has_ceph_test = true,
+            CephSquidTest => has_ceph_test = true,
             Enterprise => has_enterprise = true,
             NoSubscription => has_no_subscription = true,
             Test => has_test = true,

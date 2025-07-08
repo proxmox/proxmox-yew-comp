@@ -11,7 +11,7 @@ exclude = ["debian"]
 anyhow = "1.0"
 derivative = "2.2.0"
 futures = "0.3"
-http = "0.2"
+http = "1"
 yew = { version = "0.21", features = ["csr"] }
 yew-router = { version = "0.18" }
 web-sys = { version = "0.3", features = [
@@ -53,34 +53,34 @@ url = "2.1"
 percent-encoding = "2.1"
 html-escape = "0.2"
 pulldown-cmark = { version = "0.11", features = [] }
-qrcode = { version = "0.12", default-features = false, features = ["svg"] }
-base64 = "0.13"
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 slab = "0.4"
 regex = "1.7"
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
-pwt = "0.5.0"
-pwt-macros = "0.3"
+pwt = "0.6.0"
+pwt-macros = "0.4"
 
+proxmox-base64 = "1"
 proxmox-schema = { version = "4", features = ["api-macro"] }
-proxmox-human-byte = "0.1"
+proxmox-human-byte = "1"
 proxmox-rrd-api-types = { version = "1", optional = true }
 
 proxmox-time = "2"
 
-proxmox-login = "0.2"
-proxmox-client = "0.5"
-proxmox-tfa = { version = "5.0.1", default-features = false, features = [
+proxmox-login = "1"
+proxmox-client = "1"
+proxmox-tfa = { version = "6", default-features = false, features = [
   "api-types",
 ] }
-proxmox-auth-api = { version = "0.4", default-features = false, features = [
+proxmox-auth-api = { version = "1", default-features = false, features = [
   "api-types",
 ] }
-proxmox-apt-api-types = { version = "1.0", optional = true }
-proxmox-access-control = "0.2.3"
-proxmox-dns-api = { version = "0.1", optional = true }
-proxmox-network-api = { version = "0.1", optional = true }
+proxmox-apt-api-types = { version = "2.0", optional = true }
+proxmox-access-control = "1"
+proxmox-dns-api = { version = "1", optional = true }
+proxmox-network-api = { version = "1", optional = true }
 
 [features]
 default = []

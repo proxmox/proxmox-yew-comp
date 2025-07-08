@@ -278,7 +278,7 @@ fn create_paperkey_page(data: &RecoveryKeyInfo, print_counter: usize) -> Html {
 "###
     );
 
-    let data_url = format!("data:text/html;base64,{}", base64::encode(html));
+    let data_url = format!("data:text/html;base64,{}", proxmox_base64::encode(html));
 
     html! {<iframe key={print_counter} src={data_url}/>}
 }
