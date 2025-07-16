@@ -1,3 +1,11 @@
+rust-proxmox-yew-comp (0.5.1) trixie; urgency=medium
+
+  * make APTUpdateInfo::old_version optional
+
+  * fix version in debian control file
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 16 Jul 2025 13:42:46 +0200
+
 rust-proxmox-yew-comp (0.5.0) trixie; urgency=medium
 
   * LoginPanel: use builder macro
