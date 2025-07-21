@@ -88,7 +88,7 @@ fn xtermjs_url(console_type: ConsoleType, node_name: &str, vnc: bool) -> String 
 
     if vnc {
         param["novnc"] = 1.into();
-        //param["resize"] = "off".into();
+        //param["resize"] = "scale".into();
     } else {
         param["xtermjs"] = 1.into();
     }
