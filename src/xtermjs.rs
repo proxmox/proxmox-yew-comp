@@ -25,6 +25,11 @@ pub struct XTermJs {
     #[prop_or(ConsoleType::LoginShell)]
     #[builder(IntoPropValue, into_prop_value)]
     pub console_type: ConsoleType,
+
+    /// Use NoVNC instead of XtermJS
+    #[prop_or_default]
+    #[builder]
+    pub vnc: bool,
 }
 
 impl Default for XTermJs {
@@ -40,8 +45,8 @@ impl XTermJs {
     }
 
     /// Open a new terminal window.
-    pub fn open_xterm_js_viewer(console_type: ConsoleType, node_name: &str) {
-        let url = xtermjs_url(console_type, node_name);
+    pub fn open_xterm_js_viewer(console_type: ConsoleType, node_name: &str, vnc: bool) {
+        let url = xtermjs_url(console_type, node_name, vnc);
         let target = "_blank";
         let features =
             "toolbar=no,location=no,status=no,menubar=no,resizable=yes,width=800,height=420";
@@ -68,7 +73,7 @@ pub enum ConsoleType {
     LoginShell,
 }
 
-fn xtermjs_url(console_type: ConsoleType, node_name: &str) -> String {
+fn xtermjs_url(console_type: ConsoleType, node_name: &str, vnc: bool) -> String {
     let console = match console_type {
         ConsoleType::KVM(_vmid) => "kvm",
         ConsoleType::LXC(_vmid) => "lxc",
@@ -78,9 +83,15 @@ fn xtermjs_url(console_type: ConsoleType, node_name: &str) -> String {
 
     let mut param = json!({
         "console": console,
-        "xtermjs": 1,
         "node": node_name,
     });
+
+    if vnc {
+        param["novnc"] = 1.into();
+        //param["resize"] = "off".into();
+    } else {
+        param["xtermjs"] = 1.into();
+    }
 
     match console_type {
         ConsoleType::KVM(vmid) => {
@@ -110,7 +121,7 @@ impl Component for ProxmoxXTermJs {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
-        let url = xtermjs_url(props.console_type, &props.node_name);
+        let url = xtermjs_url(props.console_type, &props.node_name, props.vnc);
         html! {<iframe class="pwt-flex-fit" src={format!("/{url}")}/>}
     }
 }
