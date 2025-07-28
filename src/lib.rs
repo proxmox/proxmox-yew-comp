@@ -274,7 +274,9 @@ pub fn load_csrf_token() -> Option<String> {
 pub fn available_language_list() -> Vec<LanguageInfo> {
     vec![
         LanguageInfo::new("ar", "العربية", gettext_noop("Arabic")),
+        LanguageInfo::new("bg", "Български", gettext_noop("Bulgarian")),
         LanguageInfo::new("ca", "Català", gettext_noop("Catalan")),
+        LanguageInfo::new("cs", "Czech", gettext_noop("Czech")),
         LanguageInfo::new("da", "Dansk", gettext_noop("Danish")),
         LanguageInfo::new("de", "Deutsch", gettext_noop("German")),
         LanguageInfo::new("en", "English", gettext_noop("English")),
@@ -283,8 +285,10 @@ pub fn available_language_list() -> Vec<LanguageInfo> {
         LanguageInfo::new("fa", "فارسی", gettext_noop("Persian (Farsi)")),
         LanguageInfo::new("fr", "Français", gettext_noop("French")),
         LanguageInfo::new("he", "עברית", gettext_noop("Hebrew")),
+	LanguageInfo::new("hr", "Hrvatski", gettext_noop("Croatian")),
         LanguageInfo::new("it", "Italiano", gettext_noop("Italian")),
         LanguageInfo::new("ja", "日本語", gettext_noop("Japanese")),
+	LanguageInfo::new("ka", "ქართული", gettext_noop("Georgian")),
         LanguageInfo::new("ko", "한국어", gettext_noop("Korean")),
         LanguageInfo::new("nb", "Bokmål", gettext_noop("Norwegian (Bokmal)")),
         LanguageInfo::new("nl", "Nederlands", gettext_noop("Dutch")),
@@ -299,6 +303,7 @@ pub fn available_language_list() -> Vec<LanguageInfo> {
         LanguageInfo::new("sl", "Slovenščina", gettext_noop("Slovenian")),
         LanguageInfo::new("sv", "Svenska", gettext_noop("Swedish")),
         LanguageInfo::new("tr", "Türkçe", gettext_noop("Turkish")),
+	LanguageInfo::new("ukr", "Українська", gettext_noop("Ukrainian")),
         LanguageInfo::new(
             "zh_CN",
             "中文（简体）",
