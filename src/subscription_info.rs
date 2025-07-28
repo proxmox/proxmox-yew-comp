@@ -22,7 +22,9 @@ pub fn subscription_status_text(status: &str) -> String {
         "invalid" => tr!("Subscription set but invalid for this server."),
         "expired" => tr!("Subscription set but expired for this server."),
         "suspended" => tr!("Subscription got (recently) suspended"),
-        _ => tr!("Unable to get the subscription status (API problems)."),
+	"notsame" => tr!("Warning: Your subscription levels are not the same."), // pve cluster
+	"notall" => tr!("You have at least one node without subscription."), // pve cluster
+       _ => tr!("Unable to get the subscription status (API problems)."),
     }
 }
 
