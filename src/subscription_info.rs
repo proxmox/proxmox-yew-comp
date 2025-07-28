@@ -22,18 +22,18 @@ pub fn subscription_status_text(status: &str) -> String {
         "invalid" => tr!("Subscription set but invalid for this server."),
         "expired" => tr!("Subscription set but expired for this server."),
         "suspended" => tr!("Subscription got (recently) suspended"),
-	"notsame" => tr!("Warning: Your subscription levels are not the same."), // pve cluster
-	"notall" => tr!("You have at least one node without subscription."), // pve cluster
-       _ => tr!("Unable to get the subscription status (API problems)."),
+        "notsame" => tr!("Warning: Your subscription levels are not the same."), // pve cluster
+        "notall" => tr!("You have at least one node without subscription."),     // pve cluster
+        _ => tr!("Unable to get the subscription status (API problems)."),
     }
 }
 
 pub fn subscription_note(url: Option<&str>) -> Html {
-    let msg = tr!(
-        "You do not have a valid subscription for this server. Please visit <a target=\"_blank\" href=\"{}\">www.proxmox.com</a> to get
-a list of available options. ",
+    let dest = format!(
+        "<a target=\"_blank\" href=\"{}\">www.proxmox.com</a>",
         url.unwrap_or("https://www.proxmox.com")
     );
+    let msg = tr!("You do not have a valid subscription for this server. Please visit {0} to get a list of available options.", dest);
 
     let msg = Html::from_html_unchecked(msg.into());
 
