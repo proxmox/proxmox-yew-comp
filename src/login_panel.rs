@@ -166,7 +166,7 @@ impl ProxmoxLoginPanel {
             .padding(2)
             .with_flex_spacer()
             .with_child(
-                FieldLabel::new("User name")
+                FieldLabel::new(tr!("User name"))
                     .id(username_label_id.clone())
                     .padding_bottom(PwtSpace::Em(0.25)),
             )
@@ -179,7 +179,7 @@ impl ProxmoxLoginPanel {
                     .autofocus(true),
             )
             .with_child(
-                FieldLabel::new("Password")
+                FieldLabel::new(tr!("Password"))
                     .id(password_label_id.clone())
                     .padding_top(1)
                     .padding_bottom(PwtSpace::Em(0.25)),
@@ -192,7 +192,7 @@ impl ProxmoxLoginPanel {
                     .input_type(InputType::Password),
             )
             .with_child(
-                FieldLabel::new("Realm")
+                FieldLabel::new(tr!("Realm"))
                     .id(realm_label_id.clone())
                     .padding_top(1)
                     .padding_bottom(PwtSpace::Em(0.25)),
@@ -208,7 +208,7 @@ impl ProxmoxLoginPanel {
                 SubmitButton::new()
                     .class("pwt-scheme-primary")
                     .margin_y(4)
-                    .text("Login")
+                    .text(tr!("Login"))
                     .on_submit(link.callback(move |_| Msg::Submit)),
             )
             .with_optional_child(self.login_error.as_ref().map(|msg| {
@@ -249,7 +249,7 @@ impl ProxmoxLoginPanel {
             .width("initial") // don't try to minimize size
             .padding(4)
             .with_field(
-                "User name",
+                tr!("User name"),
                 Field::new()
                     .name("username")
                     .default(default_username)
@@ -257,14 +257,14 @@ impl ProxmoxLoginPanel {
                     .autofocus(true),
             )
             .with_field(
-                "Password",
+                tr!("Password"),
                 Field::new()
                     .name("password")
                     .required(true)
                     .input_type(InputType::Password),
             )
             .with_field(
-                "Realm",
+                tr!("Realm"),
                 RealmSelector::new().name("realm").default(default_realm),
             );
 
@@ -301,7 +301,7 @@ impl ProxmoxLoginPanel {
             .with_child(
                 SubmitButton::new()
                     .class("pwt-scheme-primary")
-                    .text("Login")
+                    .text(tr!("Login"))
                     .on_submit(link.callback(move |_| Msg::Submit)),
             );
 
