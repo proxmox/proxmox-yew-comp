@@ -214,7 +214,7 @@ impl Component for ProxmoxTfaDialog {
         /*
         // FIXME: switch to decoded value when we have a wasm-compatible webauthn-rs crate.
         if props.challenge.challenge.webauthn.is_some() {
-            panel.add_item_builder(TabBarItem::new().key("webauthn").label("WebAuthN"), {
+            panel.add_item_builder(TabBarItem::new().key("webauthn").label("WebAuthn"), {
                 let on_webauthn = props.on_webauthn.clone();
                 move |info: &SelectionViewRenderInfo| {
                     WebAuthn::new()
@@ -226,7 +226,7 @@ impl Component for ProxmoxTfaDialog {
         }
         */
         if let Some((challenge, challenge_string)) = self.webauthn_challenge.clone() {
-            panel.add_item_builder(TabBarItem::new().key("webauthn").label("WebAuthN"), {
+            panel.add_item_builder(TabBarItem::new().key("webauthn").label("WebAuthn"), {
                 let on_webauthn = props.on_webauthn.clone();
                 move |info: &SelectionViewRenderInfo| {
                     WebAuthn::new()
