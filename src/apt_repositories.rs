@@ -873,10 +873,8 @@ fn render_text_with_warnings(text: &str, warnings: &[String]) -> Html {
                 <i class="fa fa-fw fa-exclamation-circle"/>
             </span>
         };
-        // fixme: when plural support works, use
-	// let title = tr!("Warning" | "Warnings" % warnings.len());
-        let title = tr!("Warning");
-	let mut tip = Container::new().with_child(html! {<h4>{title}</h4>});
+        let title = tr!("Warning" | "Warnings" % warnings.len());
+        let mut tip = Container::new().with_child(html! {<h4>{title}</h4>});
         for message in warnings {
             tip.add_child(html! {<p>{message}</p>});
         }
