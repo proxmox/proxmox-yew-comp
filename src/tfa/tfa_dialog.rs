@@ -187,7 +187,9 @@ impl Component for ProxmoxTfaDialog {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let mut panel = TabPanel::new().class("pwt-flex-fill");
+        let mut panel = TabPanel::new()
+            .state_id("ProxmoxTfaDialogState")
+            .class("pwt-flex-fill");
 
         if props.challenge.challenge.totp {
             panel.add_item_builder(TabBarItem::new().key("totp").label("TOTP App"), {
