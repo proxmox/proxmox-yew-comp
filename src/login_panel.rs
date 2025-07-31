@@ -265,7 +265,10 @@ impl ProxmoxLoginPanel {
             )
             .with_field(
                 tr!("Realm"),
-                RealmSelector::new().name("realm").default(default_realm),
+                RealmSelector::new()
+                    .name("realm")
+                    .path(props.domain_path.clone())
+                    .default(default_realm),
             );
 
         let tfa_dialog = self.challenge.as_ref().map(|challenge| {
