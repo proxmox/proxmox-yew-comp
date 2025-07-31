@@ -462,7 +462,7 @@ impl Component for ProxmoxLoginPanel {
             }
             Msg::Login(info) => {
                 self.loading = false;
-                if *self.save_username {
+                if props.mobile || *self.save_username {
                     self.last_username.update(info.userid.clone());
                 }
                 if let Some(on_login) = &props.on_login {
