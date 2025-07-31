@@ -44,9 +44,9 @@ pub struct RealmSelector {
     pub default: Option<AttrValue>,
 
     /// The path for getting the realm list
-    #[builder]
-    #[prop_or(Some("/access/domains".into()))]
-    pub path: Option<AttrValue>,
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or("/access/domains".into())]
+    pub path: AttrValue,
 }
 
 impl Default for RealmSelector {

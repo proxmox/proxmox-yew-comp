@@ -3,7 +3,7 @@ use std::rc::Rc;
 use pwt::props::PwtSpace;
 use pwt::state::PersistentState;
 use pwt::touch::{SnackBar, SnackBarContextExt};
-use yew::html::IntoEventCallback;
+use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
@@ -43,10 +43,10 @@ pub struct LoginPanel {
     #[builder]
     pub mobile: bool,
 
-    /// The path to the domain api call, default is defined in the [RealmSelector]
-    #[prop_or_default]
-    #[builder]
-    pub domain_path: Option<AttrValue>,
+    /// The path to the domain api call
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or("/access/domains".into())]
+    pub domain_path: AttrValue,
 }
 
 impl Default for LoginPanel {
