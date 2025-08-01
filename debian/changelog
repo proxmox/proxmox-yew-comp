@@ -1,3 +1,17 @@
+rust-proxmox-yew-comp (0.5.4) trixie; urgency=medium
+
+  * store tfa dialog state
+
+  * login panel: mobile: correctly store last username
+
+  * login panel: pass domain_path property to realm selector (desktop view)
+
+  * fix realm selector mobile view
+
+  * tfa: fix WebAuthn label spelling
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 01 Aug 2025 13:11:14 +0200
+
 rust-proxmox-yew-comp (0.5.3) trixie; urgency=medium
 
   * subscription info: add status text for pve clusters
