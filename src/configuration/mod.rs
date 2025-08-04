@@ -24,7 +24,7 @@ use pwt::tr;
 #[cfg(feature = "network")]
 pub fn format_network_interface_type(interface_type: NetworkInterfaceType) -> String {
     match interface_type {
-        NetworkInterfaceType::Loopback => tr!("Lookback"),
+        NetworkInterfaceType::Loopback => tr!("Loopback"),
         NetworkInterfaceType::Eth => tr!("Network Device"),
         NetworkInterfaceType::Bridge => tr!("Linux Bridge"),
         NetworkInterfaceType::Bond => tr!("Linux Bond"),
