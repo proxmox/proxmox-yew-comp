@@ -222,7 +222,7 @@ pub fn init_task_descr_table_base() {
 
     register_task_description("diskinit", (tr!("Disk"), tr!("Initialize Disk with GPT")));
     register_task_description("srvstart", (tr!("Service"), tr!("Start")));
-    register_task_description("srvstop", (tr!("Setrvice"), tr!("Stop")));
+    register_task_description("srvstop", (tr!("Service"), tr!("Stop")));
     register_task_description("srvrestart", (tr!("Service"), tr!("Restart")));
     register_task_description("srvreload", (tr!("Service"), tr!("Reload")));
 }
