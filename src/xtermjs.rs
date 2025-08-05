@@ -44,6 +44,7 @@ impl XTermJs {
         yew::props!(Self {})
     }
 
+    // FIXME: separate noVNC and xterm.js, this is not a nice interface!
     /// Open a new terminal window.
     pub fn open_xterm_js_viewer(console_type: ConsoleType, node_name: &str, vnc: bool) {
         let url = xtermjs_url(console_type, node_name, vnc);

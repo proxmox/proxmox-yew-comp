@@ -203,6 +203,7 @@ impl LoadableComponent for ProxmoxAptPackageManager {
                         XTermJs::open_xterm_js_viewer(
                             crate::ConsoleType::UpgradeShell,
                             "localhost",
+                            false,
                         );
                     }),
             )
