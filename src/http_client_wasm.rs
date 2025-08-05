@@ -139,7 +139,6 @@ impl HttpClientWasm {
         Ok(login.response(&resp)?)
     }
 
-
     pub async fn logout(&self) -> Result<(), Error> {
         self.request::<()>(http::Method::DELETE, "/api2/extjs/access/ticket", None)
             .await?;
