@@ -1,3 +1,14 @@
+rust-proxmox-yew-comp (0.5.5) trixie; urgency=medium
+
+  * fix #6605 and #6606: correct typos in gettext strings.
+
+  * apt package manager: fix compile error due to Xtermjs signature mismatch.
+
+  * apt package manager: fix compile error due to old_version Option in html
+    macro.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 05 Aug 2025 21:27:48 +0200
+
 rust-proxmox-yew-comp (0.5.4) trixie; urgency=medium
 
   * store tfa dialog state
