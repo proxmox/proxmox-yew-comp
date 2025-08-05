@@ -36,7 +36,7 @@ upload: $(BUILD_DEBS)
 
 .PHONY: check
 check:
-	cargo test
+	cargo test --all-features --all-targets
 
 .PHONY: clean
 clean:
