@@ -35,7 +35,10 @@ pub fn property_string_from_parts<T: ApiType + Serialize + DeserializeOwned>(
 ) {
     let props = match T::API_SCHEMA {
         Schema::Object(object_schema) => object_schema.properties(),
-        _ => return, // not supported
+        _ => {
+            log::error!("property_string_from_parts: internal error - got unsupported schema type");
+            return;
+        }
     };
 
     if let Value::Object(map) = data {
@@ -59,15 +62,19 @@ pub fn property_string_from_parts<T: ApiType + Serialize + DeserializeOwned>(
             return;
         }
 
-        let parsed: Option<T> = serde_json::from_value(value).ok();
-
-        if let Some(parsed) = parsed {
-            match proxmox_schema::property_string::print(&parsed) {
-                Ok(prop_string) => data[name] = prop_string.into(),
-                Err(err) => log::error!("error during property string print for {name}: {err}"),
+        data[name] = match serde_json::from_value(value) {
+            Ok(Some(parsed)) => match proxmox_schema::property_string::print::<T>(&parsed) {
+                Ok(prop_string) => prop_string.into(),
+                Err(err) => {
+                    log::error!("error during property string print for {name}: {err}");
+                    return;
+                }
+            },
+            Ok(None) => "".into(),
+            Err(err) => {
+                log::error!("property_string_from_parts: {err}");
+                return;
             }
-        } else {
-            data[name] = "".into();
-        }
+        };
     }
 }
