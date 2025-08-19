@@ -59,6 +59,7 @@ pub fn property_string_from_parts<T: ApiType + Serialize + DeserializeOwned>(
         }
 
         if !has_parts {
+            data[name] = "".into();
             return;
         }
 
