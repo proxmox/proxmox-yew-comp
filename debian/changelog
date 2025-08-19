@@ -1,3 +1,13 @@
+rust-proxmox-yew-comp (0.5.6) trixie; urgency=medium
+
+  * property_string_from_parts: correctly set empty value
+
+  * cleanup: log all errors in property_string_from_parts
+
+  * rrd: refactor rrd graphs, fix some panics/bugs
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 19 Aug 2025 09:36:29 +0200
+
 rust-proxmox-yew-comp (0.5.5) trixie; urgency=medium
 
   * fix #6605 and #6606: correct typos in gettext strings.
