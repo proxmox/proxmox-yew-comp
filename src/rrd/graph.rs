@@ -6,7 +6,7 @@ use yew::html::IntoPropValue;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
-use pwt::dom::align::align_to_xy;
+use pwt::dom::align::{align_to, AlignOptions};
 use pwt::dom::DomSizeObserver;
 use pwt::prelude::*;
 use pwt::props::{IntoOptionalTextRenderFn, TextRenderFn};
@@ -107,7 +107,7 @@ pub enum Msg {
     AdjustLeftOffset(usize),
     StartSelection(i32, i32),
     EndSelection(i32),
-    PointerMove(i32, i32, i32, i32),
+    PointerMove(i32, i32),
     PointerEnter,
     PointerLeave,
     ClearViewRange,
@@ -123,7 +123,7 @@ pub struct PwtRRDGraph {
     view_range: Option<(usize, usize)>,
     captured_pointer_id: Option<i32>,
     cross_pos: Option<(i32, i32)>,
-    tooltip_pos: Option<(f64, f64)>,
+    tooltip_align_ref: NodeRef,
     tooltip_ref: NodeRef,
     y_label_ref: NodeRef,
     serie0_visible: bool,
@@ -323,6 +323,16 @@ impl PwtRRDGraph {
                     .d(path)
                     .into(),
             );
+
+            children.push(
+                Circle::new()
+                    .node_ref(self.tooltip_align_ref.clone())
+                    .fill("none")
+                    .stroke("none")
+                    .position(x, y)
+                    .r(1)
+                    .into(),
+            )
         }
 
         Canvas::new()
@@ -350,12 +360,7 @@ impl PwtRRDGraph {
                     .callback(|event: PointerEvent| Msg::EndSelection(event.offset_x())),
             )
             .onpointermove(ctx.link().callback(|event: PointerEvent| {
-                Msg::PointerMove(
-                    event.offset_x(),
-                    event.offset_y(),
-                    event.client_x(),
-                    event.client_y(),
-                )
+                Msg::PointerMove(event.offset_x(), event.offset_y())
             }))
             .into()
     }
@@ -458,7 +463,7 @@ impl Component for PwtRRDGraph {
             view_range: None,
             captured_pointer_id: None,
             cross_pos: None,
-            tooltip_pos: None,
+            tooltip_align_ref: NodeRef::default(),
             tooltip_ref: NodeRef::default(),
             y_label_ref: NodeRef::default(),
             serie0_visible: true,
@@ -525,9 +530,8 @@ impl Component for PwtRRDGraph {
                 self.selection = Some((start_index, start_index));
                 true
             }
-            Msg::PointerMove(x, y, client_x, client_y) => {
+            Msg::PointerMove(x, y) => {
                 self.cross_pos = Some((x, y));
-                self.tooltip_pos = Some(((client_x + 20) as f64, (client_y + 20) as f64));
                 self.selection = match self.selection {
                     Some((start, _)) => {
                         let (data0, _, _) = self.get_view_data(ctx);
@@ -702,9 +706,13 @@ impl Component for PwtRRDGraph {
                 self.size_observer = Some(size_observer);
             }
         }
-        if let Some(pos) = self.tooltip_pos {
+        if let Some(align_node) = self.tooltip_align_ref.get() {
             if let Some(tooltip_node) = self.tooltip_ref.get() {
-                let _ = align_to_xy(tooltip_node, pos, pwt::dom::align::Point::TopStart);
+                let _ = align_to(
+                    align_node,
+                    tooltip_node,
+                    Some(AlignOptions::default().offset(20.0, 20.0)),
+                );
             }
         }
         if let Some(el) = self.y_label_ref.cast::<web_sys::SvgsvgElement>() {
