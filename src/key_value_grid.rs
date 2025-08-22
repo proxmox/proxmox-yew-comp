@@ -31,6 +31,11 @@ impl RenderKVGridRecordFn {
     pub fn new(renderer: impl 'static + Fn(&str, &Value, &Value) -> Html) -> Self {
         Self(Rc::new(renderer))
     }
+
+    /// Apply the render function
+    pub fn apply(&self, name: &str, value: &Value, data: &Value) -> Html {
+        (self.0)(name, value, data)
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -205,7 +210,7 @@ thread_local! {
             .show_menu(false)
             .render(|record: &KVGridRecord|  {
                 match &record.row.renderer {
-                    Some(renderer) => (renderer.0)(&record.row.name, &record.value, &record.store),
+                    Some(renderer) => renderer.apply(&record.row.name, &record.value, &record.store),
                     None => render_value(&record.value),
                 }
             })
