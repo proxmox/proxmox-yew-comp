@@ -1,5 +1,6 @@
 use anyhow::format_err;
 use std::rc::Rc;
+use yew::html::IntoPropValue;
 
 use yew::virtual_dom::Key;
 
@@ -37,11 +38,22 @@ thread_local! {
 }
 
 use pwt::props::{FieldBuilder, WidgetBuilder};
-use pwt_macros::widget;
+use pwt_macros::{builder, widget};
 
 #[widget(comp=ProxmoxRoleSelector, @input)]
 #[derive(Clone, Properties, PartialEq)]
-pub struct RoleSelector {}
+#[builder]
+pub struct RoleSelector {
+    /// The default role.
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or(Some(AttrValue::from("NoAccess")))]
+    default_role: Option<AttrValue>,
+
+    /// The API endpoint from which to fetch the existing roles from.
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or(String::from("/access/roles"))]
+    role_api_endpoint: String,
+}
 
 impl Default for RoleSelector {
     fn default() -> Self {
@@ -104,8 +116,8 @@ impl Component for ProxmoxRoleSelector {
             .with_std_props(&props.std_props)
             .with_input_props(&props.input_props)
             .required(true)
-            .default("NoAccess")
-            .loader("/access/roles")
+            .default(ctx.props().default_role.clone())
+            .loader(ctx.props().role_api_endpoint.clone())
             .validate(self.validate.clone())
             .into()
     }

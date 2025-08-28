@@ -24,6 +24,16 @@ pub struct AclEdit {
     #[builder(IntoPropValue, into_prop_value)]
     acl_api_endpoint: String,
 
+    /// The endpoint which will be used to create new ACL entries via a PUT request.
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    role_api_endpoint: Option<String>,
+
+    /// The role that will be pre-selected in the role selector, `NoAccess` by default.
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    default_role: Option<AttrValue>,
+
     #[prop_or_default]
     input_panel: InputPanel,
 }
@@ -59,12 +69,22 @@ impl From<AclEdit> for EditWindow {
             )
         };
 
+        let mut role_selector = RoleSelector::new().name("role").required(true);
+
+        if let Some(role_api_endpoint) = value.role_api_endpoint {
+            role_selector.set_role_api_endpoint(role_api_endpoint);
+        }
+
+        if let Some(default_role) = value.default_role {
+            role_selector.set_default_role(default_role.clone());
+        }
+
         let input_panel = value
             .input_panel
             .clone()
             .padding(4)
             .with_field(authid_label, authid_field)
-            .with_field(tr!("Role"), RoleSelector::new().name("role").required(true))
+            .with_field(tr!("Role"), role_selector)
             .with_field(
                 tr!("Propagate"),
                 Checkbox::new().name("propagate").required(true),
