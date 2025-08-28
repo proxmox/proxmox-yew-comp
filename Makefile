@@ -16,18 +16,26 @@ all:
 
 $(BUILD_DEBS): deb
 
-.PHONY: deb
-deb:
-	rm -rf $(BUILDDIR)
-	mkdir $(BUILDDIR)
-	echo system >$(BUILDDIR)/rust-toolchain
+$(BUILDDIR):
+	rm -rf $@ $@.tmp
+	mkdir $@.tmp
+	echo system >$@.tmp/rust-toolchain
 	rm -f debian/control
 	debcargo package \
 	  --config "$(PWD)/debian/debcargo.toml" \
 	  --changelog-ready --no-overlay-write-back \
-	  --directory "$(PWD)/$(BUILDDIR)/proxmox-yew-comp" \
+	  --directory "$(PWD)/$@.tmp/proxmox-yew-comp" \
 	  "proxmox-yew-comp" "$(DEB_VERSION_UPSTREAM)"
+	mv $@.tmp $@
+
+.PHONY: deb
+deb: $(BUILDDIR)
 	cd $(BUILDDIR)/proxmox-yew-comp; dpkg-buildpackage -b -uc -us
+	cp $(BUILDDIR)/proxmox-yew-comp/debian/control -f debian/control
+
+.PHONY: dsc
+dsc: $(BUILDDIR)
+	cd $(BUILDDIR)/proxmox-yew-comp; dpkg-buildpackage -S -uc -us -d
 	cp $(BUILDDIR)/proxmox-yew-comp/debian/control -f debian/control
 
 upload: UPLOAD_DIST ?= $(DEB_DISTRIBUTION)
