@@ -10,7 +10,7 @@ use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::form::{Selector, SelectorRenderArgs, ValidateFn};
 use pwt::widget::GridPicker;
 
-use crate::common_api_types::RoleInfo;
+use proxmox_access_control::types::RoleInfo;
 
 thread_local! {
     static COLUMNS: Rc<Vec<DataTableHeader<RoleInfo>>> = Rc::new(vec![

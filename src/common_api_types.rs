@@ -24,14 +24,6 @@ impl ExtractPrimaryKey for BasicRealmInfo {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Clone)]
-pub struct RoleInfo {
-    pub roleid: String,
-    pub privs: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub comment: Option<String>,
-}
-
 /// Upid covering different products (PVE, PBS and PDM)
 ///
 /// Different products use different UPID formats. This type can parse
