@@ -6,10 +6,12 @@ use yew::html::IntoEventCallback;
 use yew::prelude::*;
 use yew::virtual_dom::{VComp, VNode};
 
-use proxmox_rrd_api_types as rrd_types;
+use proxmox_rrd_api_types::{self as rrd_types, RrdMode, RrdTimeframe};
+use pwt::css::{AlignItems, ColorScheme};
 use pwt::prelude::*;
 use pwt::state::local_storage;
 use pwt::widget::form::Combobox;
+use pwt::widget::{Button, Row, SegmentedButton};
 use pwt_macros::builder;
 
 /// Combobox for selecting the theme density.
@@ -145,24 +147,20 @@ pub struct PwtRRDTimeframeSelector {
 
 pub enum Msg {
     SetRRDTimeframe(String),
+    SetRRDMode(RrdMode),
 }
 
-fn display_value(v: &AttrValue) -> &str {
+fn display_value(v: &AttrValue) -> Html {
     match v.as_str() {
-        "hour-AVERAGE" => "Hour (average)",
-        "hour-MAX" => "Hour (maximum)",
-        "day-AVERAGE" => "Day (average)",
-        "day-MAX" => "Day (maximum)",
-        "week-AVERAGE" => "Week (average)",
-        "week-MAX" => "Week (maximum)",
-        "month-AVERAGE" => "Month (average)",
-        "month-MAX" => "Month (maximum)",
-        "year-AVERAGE" => "Year (average)",
-        "year-MAX" => "Year (maximum)",
-        "decade-AVERAGE" => "Decade (average)",
-        "decade-MAX" => "Decade (maximum)",
-        _ => v,
+        "hour" => tr!("Hour"),
+        "day" => tr!("Day"),
+        "week" => tr!("Week"),
+        "month" => tr!("Month"),
+        "year" => tr!("Year"),
+        "decade" => tr!("Decade"),
+        _ => v.to_string(),
     }
+    .into()
 }
 
 impl Component for PwtRRDTimeframeSelector {
@@ -170,31 +168,13 @@ impl Component for PwtRRDTimeframeSelector {
     type Properties = RRDTimeframeSelector;
 
     fn create(_ctx: &Context<Self>) -> Self {
-        use rrd_types::RrdMode::*;
-        use rrd_types::RrdTimeframe::*;
-
-        let timeframe = RRDTimeframe::load();
-
-        let values = [
-            RRDTimeframe::new(Hour, Average),
-            RRDTimeframe::new(Hour, Max),
-            RRDTimeframe::new(Day, Average),
-            RRDTimeframe::new(Day, Max),
-            RRDTimeframe::new(Week, Average),
-            RRDTimeframe::new(Week, Max),
-            RRDTimeframe::new(Month, Average),
-            RRDTimeframe::new(Month, Max),
-            RRDTimeframe::new(Year, Average),
-            RRDTimeframe::new(Year, Max),
-            RRDTimeframe::new(Decade, Average),
-            RRDTimeframe::new(Decade, Max),
-        ]
-        .iter()
-        .map(|v| AttrValue::from(v.serialize()))
-        .collect();
+        let values = ["hour", "day", "week", "month", "year", "decade"]
+            .into_iter()
+            .map(|v| v.into())
+            .collect();
 
         Self {
-            timeframe,
+            timeframe: RRDTimeframe::load(),
             items: Rc::new(values),
         }
     }
@@ -203,38 +183,55 @@ impl Component for PwtRRDTimeframeSelector {
         let props = ctx.props();
         match msg {
             Msg::SetRRDTimeframe(timeframe_str) => {
-                if let Ok(timeframe) = timeframe_str.as_str().parse::<RRDTimeframe>() {
-                    timeframe.store();
-                    self.timeframe = timeframe;
-                    if let Some(on_change) = &props.on_change {
-                        on_change.emit(timeframe);
-                    }
+                if let Ok(timeframe) = timeframe_str.as_str().parse::<RrdTimeframe>() {
+                    self.timeframe.timeframe = timeframe;
+                    self.timeframe.store();
                 }
-                true
+            }
+            Msg::SetRRDMode(mode) => {
+                self.timeframe.mode = mode;
+                self.timeframe.store();
             }
         }
+        if let Some(on_change) = &props.on_change {
+            on_change.emit(self.timeframe);
+        }
+        true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
+        let average = self.timeframe.mode == RrdMode::Average;
+        let max = self.timeframe.mode == RrdMode::Max;
 
-        Combobox::new()
-            .required(true)
-            .min_width(150)
-            .class(props.class.clone())
-            .default(self.timeframe.serialize())
-            .items(self.items.clone())
-            .on_change(ctx.link().callback(Msg::SetRRDTimeframe))
-            .render_value(|v: &AttrValue| {
-                html! {display_value(v)}
-            })
-            .show_filter(false)
-            // Note: This is just for completeness. Not used because we do not show the filter...
-            .filter(|item: &AttrValue, query: &str| {
-                display_value(item)
-                    .to_lowercase()
-                    .contains(&query.to_lowercase())
-            })
+        Row::new()
+            .class(AlignItems::Center)
+            .gap(2)
+            .with_child(
+                Combobox::new()
+                    .required(true)
+                    .min_width(100)
+                    .class(props.class.clone())
+                    .default(self.timeframe.timeframe.to_string())
+                    .items(self.items.clone())
+                    .on_change(ctx.link().callback(Msg::SetRRDTimeframe))
+                    .render_value(display_value),
+            )
+            .with_child(
+                SegmentedButton::new()
+                    .with_button(
+                        Button::new(tr!("Maximum"))
+                            .on_activate(ctx.link().callback(|_| Msg::SetRRDMode(RrdMode::Max)))
+                            .class(max.then_some(ColorScheme::Primary))
+                            .pressed(max),
+                    )
+                    .with_button(
+                        Button::new(tr!("Average"))
+                            .on_activate(ctx.link().callback(|_| Msg::SetRRDMode(RrdMode::Average)))
+                            .class(average.then_some(ColorScheme::Primary))
+                            .pressed(average),
+                    ),
+            )
             .into()
     }
 }
