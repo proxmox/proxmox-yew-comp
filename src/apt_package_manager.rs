@@ -40,6 +40,11 @@ pub struct AptPackageManager {
     /// The base url for
     pub base_url: AttrValue,
 
+    #[prop_or("/nodes/localhost/tasks".into())]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The base url for tasks
+    pub task_base_url: AttrValue,
+
     /// Enable the upgrade button
     #[prop_or_default]
     #[builder]
@@ -193,6 +198,9 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             .class("pwt-border-bottom")
             .with_child(Button::new(tr!("Refresh")).onclick({
                 let link = ctx.link();
+
+                link.task_base_url(props.task_base_url.clone());
+
                 let command = format!("{}/update", props.base_url);
                 move |_| link.start_task(&command, None, false)
             }))
