@@ -256,6 +256,21 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             }
         }
     }
+
+    fn changed(
+        &mut self,
+        ctx: &LoadableComponentContext<Self>,
+        old_props: &Self::Properties,
+    ) -> bool {
+        let props = ctx.props();
+
+        if props.base_url != old_props.base_url || props.task_base_url != old_props.task_base_url {
+            ctx.link().send_reload();
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl From<AptPackageManager> for VNode {
