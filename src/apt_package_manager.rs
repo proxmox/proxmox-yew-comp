@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use anyhow::Error;
 
+use yew::html::IntoEventCallback;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
 
@@ -49,6 +50,12 @@ pub struct AptPackageManager {
     #[prop_or_default]
     #[builder]
     pub enable_upgrade: bool,
+
+    /// What happens when the 'Upgrade' button is clicked, by default opens the XTermJs upgrade
+    /// console for 'localhost'
+    #[prop_or_default]
+    #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    pub on_upgrade: Option<Callback<()>>,
 }
 
 impl Default for AptPackageManager {
@@ -192,6 +199,14 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             _ => None,
         };
 
+        let on_upgrade = props.on_upgrade.clone();
+        let on_upgrade = move |_| match &on_upgrade {
+            Some(on_upgrade) => on_upgrade.emit(()),
+            None => {
+                XTermJs::open_xterm_js_viewer(crate::ConsoleType::UpgradeShell, "localhost", false)
+            }
+        };
+
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
             .class("pwt-overflow-hidden")
@@ -207,13 +222,7 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             .with_child(
                 Button::new(tr!("Upgrade"))
                     .disabled(!props.enable_upgrade)
-                    .onclick(|_| {
-                        XTermJs::open_xterm_js_viewer(
-                            crate::ConsoleType::UpgradeShell,
-                            "localhost",
-                            false,
-                        );
-                    }),
+                    .onclick(on_upgrade),
             )
             .with_child(
                 Button::new(tr!("Changelog"))
