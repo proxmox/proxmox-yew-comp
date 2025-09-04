@@ -1,6 +1,6 @@
 [package]
 name = "proxmox-yew-comp"
-version = "0.5.8"
+version = "0.5.9"
 authors = ["Dietmar Maurer <dietmar@proxmox.com>"]
 license = "AGPLv3"
 edition = "2021"
@@ -59,11 +59,11 @@ regex = "1.7"
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
-pwt = "0.6.0"
+pwt = "0.6.6"
 pwt-macros = "0.4"
 
 proxmox-base64 = "1"
-proxmox-schema = { version = "4", features = ["api-macro"] }
+proxmox-schema = { version = "5", features = ["api-macro"] }
 proxmox-human-byte = "1"
 proxmox-rrd-api-types = { version = "1", optional = true }
 

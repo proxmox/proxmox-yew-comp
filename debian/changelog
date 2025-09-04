@@ -1,3 +1,17 @@
+rust-proxmox-yew-comp (0.5.9) trixie; urgency=medium
+
+  * apt view: add 'on_upgrade' callback
+
+  * apt view: reload if base urls have changed
+
+  * apt view: allow to set task_base_url
+
+  * rrd time frame selector: seperate time frame from mode
+
+  * flatten_property_string: log errors
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 04 Sep 2025 15:26:18 +0200
+
 rust-proxmox-yew-comp (0.5.8) trixie; urgency=medium
 
   * acl: add a view and semi-generic `EditWindow` for acl entries
