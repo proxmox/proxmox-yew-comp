@@ -528,13 +528,12 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
         }
 
         Column::new()
-            .node_ref(self.node_ref.clone())
             .class("pwt-flex-fill pwt-overflow-auto")
             .with_optional_child(toolbar)
             .with_child(main_view)
             .with_optional_child(alert_msg)
             .with_optional_child(dialog)
-            .into()
+            .into_html_with_ref(self.node_ref.clone())
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {

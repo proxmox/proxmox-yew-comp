@@ -22,8 +22,6 @@ use pwt_macros::builder;
 #[builder]
 pub struct TaskViewer {
     #[prop_or_default]
-    node_ref: NodeRef,
-    #[prop_or_default]
     pub key: Option<Key>,
 
     pub task_id: String,
@@ -50,17 +48,7 @@ impl TaskViewer {
         })
     }
 
-    /// Builder style method to set the yew `node_ref`
-    pub fn node_ref(mut self, node_ref: ::yew::html::NodeRef) -> Self {
-        self.node_ref = node_ref;
-        self
-    }
-
-    /// Builder style method to set the yew `key` property
-    pub fn key(mut self, key: impl IntoOptionalKey) -> Self {
-        self.key = key.into_optional_key();
-        self
-    }
+    pwt::impl_yew_std_props_builder!();
 }
 
 pub enum Msg {
@@ -172,7 +160,6 @@ impl Component for PwtTaskViewer {
             .resizable(true)
             .width(840)
             .height(600)
-            .node_ref(props.node_ref.clone())
             .on_close(props.on_close.clone())
             .with_child(panel)
             .into()

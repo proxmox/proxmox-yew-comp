@@ -24,10 +24,6 @@ use crate::{ApiLoadCallback, IntoApiLoadCallback};
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct EditWindow {
-    /// Yew node ref
-    #[prop_or_default]
-    node_ref: NodeRef,
-
     /// Yew component key
     #[prop_or_default]
     pub key: Option<Key>,
@@ -128,17 +124,7 @@ impl EditWindow {
         })
     }
 
-    /// Builder style method to set the yew `node_ref`
-    pub fn node_ref(mut self, node_ref: ::yew::html::NodeRef) -> Self {
-        self.node_ref = node_ref;
-        self
-    }
-
-    /// Builder style method to set the yew `key` property
-    pub fn key(mut self, key: impl IntoOptionalKey) -> Self {
-        self.key = key.into_optional_key();
-        self
-    }
+    pwt::impl_yew_std_props_builder!();
 
     pub fn renderer(mut self, renderer: impl 'static + Fn(&FormContext) -> Html) -> Self {
         self.renderer = Some(RenderFn::new(renderer));
@@ -382,7 +368,6 @@ impl Component for PwtEditWindow {
             .map(|msg| AlertDialog::new(msg).on_close(on_close.clone()));
 
         Dialog::new(props.title.clone())
-            .node_ref(props.node_ref.clone())
             .on_close(on_close)
             .draggable(props.draggable)
             .resizable(props.resizable)

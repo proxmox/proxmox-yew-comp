@@ -20,8 +20,6 @@ use crate::TaskViewer;
 #[derive(Properties, PartialEq, Clone)]
 pub struct TaskProgress {
     #[prop_or_default]
-    node_ref: NodeRef,
-    #[prop_or_default]
     pub key: Option<Key>,
 
     pub task_id: String,
@@ -42,17 +40,7 @@ impl TaskProgress {
         })
     }
 
-    /// Builder style method to set the yew `node_ref`
-    pub fn node_ref(mut self, node_ref: ::yew::html::NodeRef) -> Self {
-        self.node_ref = node_ref;
-        self
-    }
-
-    /// Builder style method to set the yew `key` property
-    pub fn key(mut self, key: impl Into<Key>) -> Self {
-        self.key = Some(key.into());
-        self
-    }
+    pwt::impl_yew_std_props_builder!();
 
     pub fn on_close(mut self, cb: impl IntoEventCallback<()>) -> Self {
         self.on_close = cb.into_event_callback();
@@ -177,7 +165,6 @@ impl Component for PwtTaskProgress {
         Dialog::new("Task Progress")
             .resizable(true)
             .min_width(300)
-            .node_ref(props.node_ref.clone())
             .on_close(props.on_close.clone())
             .with_child(panel)
             .with_child(Row::new().padding(2).with_flex_spacer().with_child(

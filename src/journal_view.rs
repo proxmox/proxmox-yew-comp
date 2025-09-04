@@ -60,6 +60,9 @@ impl JournalView {
     pub fn new(url: impl Into<AttrValue>) -> Self {
         yew::props!(Self { url: url.into() })
     }
+
+    pwt::impl_yew_std_props_builder!();
+    pwt::impl_class_prop_builder!();
 }
 
 pub enum Msg {
@@ -283,7 +286,6 @@ impl Component for ProxmoxJournalView {
 
         let log_ref = self.log_ref.clone();
         let mut log = Container::new()
-            .node_ref(self.log_ref.clone())
             .padding(2)
             .onscroll(ctx.link().batch_callback(move |_| {
                 if let Some(el) = log_ref.clone().into_html_element() {
@@ -311,7 +313,7 @@ impl Component for ProxmoxJournalView {
             .class("pwt-flex-fit")
             .class(props.class.clone())
             .styles(props.style.clone())
-            .with_child(log)
+            .with_child(log.into_html_with_ref(self.log_ref.clone()))
             .with_optional_child(error)
             .into()
     }

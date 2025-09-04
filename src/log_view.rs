@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use anyhow::Error;
 
+use pwt::prelude::*;
 use pwt::props::{
     AsClassesMut, AsCssStylesMut, ContainerBuilder, CssMarginBuilder, CssPaddingBuilder, CssStyles,
     WidgetBuilder, WidgetStyleBuilder,
@@ -15,7 +16,6 @@ use serde_json::json;
 use gloo_timers::callback::{Interval, Timeout};
 
 use yew::html::{IntoEventCallback, IntoPropValue};
-use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::dom::DomSizeObserver;
@@ -105,9 +105,8 @@ async fn load_log_page(props: &LogView, page: u64) -> Result<LogPage, Error> {
 #[builder]
 pub struct LogView {
     #[prop_or_default]
-    node_ref: NodeRef,
-    #[prop_or_default]
     pub key: Option<Key>,
+
     pub url: AttrValue,
 
     /// Determines if the log should auto refresh on the tail end of the log,
@@ -164,16 +163,8 @@ impl LogView {
         yew::props!(Self { url: url.into() })
     }
 
-    /// Builder style method to add a html class
-    pub fn class(mut self, class: impl Into<Classes>) -> Self {
-        self.add_class(class);
-        self
-    }
-
-    /// Method to add a html class
-    pub fn add_class(&mut self, class: impl Into<Classes>) {
-        self.class.push(class);
-    }
+    pwt::impl_yew_std_props_builder!();
+    pwt::impl_class_prop_builder!();
 }
 
 pub enum Msg {
@@ -487,15 +478,13 @@ impl Component for PwtLogView {
                             tag.set_style("line-height", format!("{line_height}px"));
                         }
 
-                        if let Some(page_ref) = page_ref.take() {
-                            tag.set_node_ref(page_ref);
-                        }
+                        let page_ref = page_ref.take().unwrap_or_else(|| NodeRef::default());
 
                         for item in page.lines.iter() {
                             tag.add_child(format!("{}\n", item.t));
                         }
 
-                        let html: Html = tag.into();
+                        let html: Html = tag.into_html_with_ref(page_ref);
                         Some(html)
                     }
                     None => None,

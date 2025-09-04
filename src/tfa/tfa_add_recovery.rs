@@ -125,11 +125,11 @@ impl ProxmoxTfaAddRecovery {
                             .padding(2)
                             .with_child(
                                 Container::from_tag("pre")
-                                    .node_ref(self.container_ref.clone())
                                     .class("pwt-font-monospace")
                                     .padding(2)
                                     .border(true)
-                                    .with_child(text),
+                                    .with_child(text)
+                                    .into_html_with_ref(self.container_ref.clone()),
                             )
                             .with_child(
                                 Container::new()

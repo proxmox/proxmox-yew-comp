@@ -158,7 +158,6 @@ impl Component for ProxmoxRunningTasksButton {
             Container::new()
                 .attribute("role", "none")
                 .class("pwt-submenu")
-                .node_ref(self.submenu_ref.clone())
                 .with_child(
                     RunningTasks::new(props.running_tasks.clone())
                         .buttons(props.buttons.clone())
@@ -167,6 +166,7 @@ impl Component for ProxmoxRunningTasksButton {
                         .render(props.render.clone())
                         .on_close(ctx.link().callback(|_| Msg::CloseMenu)),
                 )
+                .into_html_with_ref(self.submenu_ref.clone())
         });
 
         let button = Button::new(tr!("Tasks") + &format!(": {}", count))
