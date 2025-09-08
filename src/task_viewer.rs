@@ -147,9 +147,12 @@ impl Component for PwtTaskViewer {
         let panel = self.loader.render(|data| {
             TabPanel::new()
                 .class("pwt-flex-fit")
-                .with_item(TabBarItem::new().label("Output"), self.view_output(ctx))
                 .with_item(
-                    TabBarItem::new().label("Status"),
+                    TabBarItem::new().label(tr!("Output")),
+                    self.view_output(ctx),
+                )
+                .with_item(
+                    TabBarItem::new().label(tr!("Status")),
                     self.view_status(ctx, data.clone()),
                 )
         });
@@ -190,7 +193,7 @@ impl PwtTaskViewer {
         let link = ctx.link();
 
         let toolbar = Toolbar::new().with_child(
-            Button::new("Stop")
+            Button::new(tr!("Stop"))
                 .disabled(!active)
                 .onclick(link.callback(|_| Msg::StopTask)),
         );
@@ -199,7 +202,7 @@ impl PwtTaskViewer {
             .class("pwt-flex-fit")
             .data(data)
             .rows(Rc::new(vec![
-                KVGridRow::new("status", "Status")
+                KVGridRow::new("status", tr!("Status"))
                     .renderer(|_name, value, record| {
                         let value = match value.as_str() {
                             Some(s) => s,
@@ -212,8 +215,8 @@ impl PwtTaskViewer {
                         html! {{format!("{}: {}", value, status)}}
                     })
                     .placeholder("unknown"),
-                KVGridRow::new("type", "Task type").required(true),
-                KVGridRow::new("user", "User name")
+                KVGridRow::new("type", tr!("Task type")).required(true),
+                KVGridRow::new("user", tr!("User name"))
                     .renderer(|_name, value, record| {
                         let mut user = match value.as_str() {
                             Some(s) => s.to_owned(),
@@ -225,22 +228,22 @@ impl PwtTaskViewer {
                         html! {{user}}
                     })
                     .required(true),
-                KVGridRow::new("node", "Node").required(true),
-                KVGridRow::new("pid", "Process ID").required(true),
-                KVGridRow::new("task_id", "Task ID"),
-                KVGridRow::new("starttime", "Start Time")
+                KVGridRow::new("node", tr!("Node")).required(true),
+                KVGridRow::new("pid", tr!("Process ID")).required(true),
+                KVGridRow::new("task_id", tr!("Task ID")),
+                KVGridRow::new("starttime", tr!("Start Time"))
                     .renderer(|_name, value, _record| match value.as_i64() {
                         None => html! {"unknown (wrong format)"},
                         Some(epoch) => html! { {render_epoch(epoch)} },
                     })
                     .required(true),
-                KVGridRow::new("endtime", "End Time").renderer(|_name, value, _record| match value
-                    .as_i64()
-                {
-                    None => html! {"unknown (wrong format)"},
-                    Some(epoch) => html! { {render_epoch(epoch)} },
+                KVGridRow::new("endtime", tr!("End Time")).renderer(|_name, value, _record| {
+                    match value.as_i64() {
+                        None => html! {"unknown (wrong format)"},
+                        Some(epoch) => html! { {render_epoch(epoch)} },
+                    }
                 }),
-                KVGridRow::new("duration", "Duration")
+                KVGridRow::new("duration", tr!("Duration"))
                     .renderer(move |_name, _value, record| {
                         if let Some(starttime) = record["starttime"].as_i64() {
                             let duration = if let Some(endtime) = record["endtime"].as_i64() {
@@ -254,7 +257,7 @@ impl PwtTaskViewer {
                         html! {"-"}
                     })
                     .required(true),
-                KVGridRow::new("upid", "Unique task ID"),
+                KVGridRow::new("upid", tr!("Unique task ID")),
             ]));
 
         Column::new()
@@ -271,7 +274,7 @@ impl PwtTaskViewer {
         let link = ctx.link();
 
         let toolbar = Toolbar::new().class("pwt-border-bottom").with_child(
-            Button::new("Stop")
+            Button::new(tr!("Stop"))
                 .disabled(!active)
                 .onclick(link.callback(|_| Msg::StopTask)),
         );
