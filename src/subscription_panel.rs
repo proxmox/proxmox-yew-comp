@@ -200,7 +200,7 @@ fn rows() -> Vec<KVGridRow> {
                 None => html! {"-"},
             }
         }),
-        KVGridRow::new("nextduedata", tr!("Next due data")),
+        KVGridRow::new("nextduedata", tr!("Next due date")),
         KVGridRow::new("signature", tr!("Signed/Offline")).renderer(
             move |_name, value, _record| match value.as_str() {
                 Some(_) => html! {&yes_text},
