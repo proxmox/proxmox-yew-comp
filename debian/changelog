@@ -1,3 +1,13 @@
+rust-proxmox-yew-comp (0.6.0) trixie; urgency=medium
+
+  * update to pwt 0.7 dropping node_ref from widget standard properties
+
+  * make various strings translatable
+
+  * tasks: add optional fixed filter
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 10 Sep 2025 15:08:38 +0200
+
 rust-proxmox-yew-comp (0.5.9) trixie; urgency=medium
 
   * apt view: add 'on_upgrade' callback
