@@ -47,6 +47,13 @@ pub struct Tasks {
     #[prop_or_default]
     pub extra_filter: Option<(AttrValue, Html)>,
 
+    /// Additional fixed filter that cannot be changed or cleared
+    ///
+    /// this can be useful when filtering for e.g. node/remote/etc.
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    pub fixed_filter: Option<(String, String)>,
+
     /// The base url, default is `/nodes/<nodename>/tasks`.
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
@@ -246,6 +253,11 @@ impl LoadableComponent for ProxmoxTasks {
         }
 
         filter["limit"] = BATCH_LIMIT.into();
+
+        // add fixed filter
+        if let Some((key, value)) = props.fixed_filter.clone() {
+            filter[key] = value.into();
+        }
 
         let link = ctx.link().clone();
         Box::pin(async move {
