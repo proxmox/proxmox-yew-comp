@@ -24,6 +24,7 @@ pub struct ProxmoxRRDGrid {
     size_observer: Option<DomSizeObserver>,
     cols: usize,
     col_width: usize,
+    node_ref: NodeRef,
 }
 
 impl Component for ProxmoxRRDGrid {
@@ -35,6 +36,7 @@ impl Component for ProxmoxRRDGrid {
             size_observer: None,
             cols: 1,
             col_width: 800,
+            node_ref: NodeRef::default(),
         }
     }
 
@@ -79,9 +81,8 @@ impl Component for ProxmoxRRDGrid {
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-        let props = ctx.props();
         if first_render {
-            if let Some(el) = props.std_props.node_ref.cast::<web_sys::Element>() {
+            if let Some(el) = self.node_ref.cast::<web_sys::Element>() {
                 let link = ctx.link().clone();
                 let size_observer = DomSizeObserver::new(&el, move |(width, height)| {
                     link.send_message(Msg::ViewportResize(width, height));

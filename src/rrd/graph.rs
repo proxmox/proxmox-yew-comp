@@ -256,9 +256,8 @@ impl PwtRRDGraph {
         children.push(
             Group::new()
                 .key("value-labels")
-                .node_ref(self.y_label_ref.clone())
                 .children(value_labels)
-                .into(),
+                .into_html_with_ref(self.y_label_ref.clone()),
         );
 
         // draw series
@@ -326,17 +325,15 @@ impl PwtRRDGraph {
 
             children.push(
                 Circle::new()
-                    .node_ref(self.tooltip_align_ref.clone())
                     .fill("none")
                     .stroke("none")
                     .position(x, y)
                     .r(1)
-                    .into(),
+                    .into_html_with_ref(self.tooltip_align_ref.clone()),
             )
         }
 
         Canvas::new()
-            .node_ref(self.canvas_ref.clone())
             .class("pwt-rrd-svg")
             .width(self.graph_space.get_width())
             .height(self.graph_space.get_height())
@@ -362,7 +359,7 @@ impl PwtRRDGraph {
             .onpointermove(ctx.link().callback(|event: PointerEvent| {
                 Msg::PointerMove(event.offset_x(), event.offset_y())
             }))
-            .into()
+            .into_html_with_ref(self.canvas_ref.clone())
     }
 
     // returns x, y, width, height
@@ -608,7 +605,6 @@ impl Component for PwtRRDGraph {
         }
 
         let tip = Container::new()
-            .node_ref(self.tooltip_ref.clone())
         .attribute("role", "tooltip")
         .attribute("aria-live", "polite")
         .attribute("data-show", (self.cross_pos.is_some() && data_time.is_some()).then_some(""))
@@ -623,7 +619,8 @@ impl Component for PwtRRDGraph {
             _ => None,
         })
         .with_child(html!{<hr/>})
-        .with_child(html!{<div>{data_time.as_deref().unwrap_or("-")}</div>});
+        .with_child(html!{<div>{data_time.as_deref().unwrap_or("-")}</div>})
+        .into_html_with_ref(self.tooltip_ref.clone());
 
         let mut panel = Panel::new()
             .title(props.title.clone())
@@ -632,11 +629,11 @@ impl Component for PwtRRDGraph {
             .class("pwt-overflow-auto")
             .with_child(
                 Container::new()
-                    .node_ref(self.node_ref.clone())
                     .class("pwt-rrd-container")
                     .class("pwt-flex-fill pwt-overflow-auto")
                     .with_child(self.create_graph(ctx))
-                    .with_child(tip),
+                    .with_child(tip)
+                    .into_html_with_ref(self.node_ref.clone()),
             );
 
         if let Some(serie0) = &props.serie0 {
