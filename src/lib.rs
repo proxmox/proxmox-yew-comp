@@ -206,7 +206,7 @@ mod xtermjs;
 pub use xtermjs::{ConsoleType, ProxmoxXTermJs, XTermJs};
 
 use pwt::gettext_noop;
-use pwt::state::LanguageInfo;
+use pwt::state::{LanguageInfo, TextDirection};
 
 // Bindgen javascript code from js-helper-module.js
 
@@ -261,7 +261,7 @@ pub fn load_csrf_token() -> Option<String> {
 /// All Proxmox products should support those languages.
 pub fn available_language_list() -> Vec<LanguageInfo> {
     vec![
-        LanguageInfo::new("ar", "العربية", gettext_noop("Arabic")),
+        LanguageInfo::new("ar", "العربية", gettext_noop("Arabic")).direction(TextDirection::Rtl),
         LanguageInfo::new("bg", "Български", gettext_noop("Bulgarian")),
         LanguageInfo::new("ca", "Català", gettext_noop("Catalan")),
         LanguageInfo::new("cs", "Czech", gettext_noop("Czech")),
@@ -270,9 +270,10 @@ pub fn available_language_list() -> Vec<LanguageInfo> {
         LanguageInfo::new("en", "English", gettext_noop("English")),
         LanguageInfo::new("es", "Español", gettext_noop("Spanish")),
         LanguageInfo::new("eu", "Euskera (Basque)", gettext_noop("Euskera (Basque)")),
-        LanguageInfo::new("fa", "فارسی", gettext_noop("Persian (Farsi)")),
+        LanguageInfo::new("fa", "فارسی", gettext_noop("Persian (Farsi)"))
+            .direction(TextDirection::Rtl),
         LanguageInfo::new("fr", "Français", gettext_noop("French")),
-        LanguageInfo::new("he", "עברית", gettext_noop("Hebrew")),
+        LanguageInfo::new("he", "עברית", gettext_noop("Hebrew")).direction(TextDirection::Rtl),
         LanguageInfo::new("hr", "Hrvatski", gettext_noop("Croatian")),
         LanguageInfo::new("it", "Italiano", gettext_noop("Italian")),
         LanguageInfo::new("ja", "日本語", gettext_noop("Japanese")),
