@@ -694,7 +694,7 @@ impl ProxmoxAptRepositories {
 
         let url = format!("{}/repositories", props.base_url);
 
-        EditWindow::new(tr!("Add") + ": " + &tr!("Respository"))
+        EditWindow::new(tr!("Add") + ": " + &tr!("Repository"))
             .on_done(ctx.link().change_view_callback(|_| None))
             .renderer(move |form_ctx: &FormContext| {
                 let repo = form_ctx.read().get_field_text("handle");
