@@ -69,13 +69,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
         let value: Vec<String> = vec![];
         let default = value.clone();
 
-        ManagedFieldState {
-            value: value.into(),
-            valid: Ok(()),
-            default: default.into(),
-            radio_group: false,
-            unique: false,
-        }
+        ManagedFieldState::new(value.into(), default.into())
     }
 
     fn create(_ctx: &ManagedFieldContext<Self>) -> Self {

@@ -247,7 +247,7 @@ fn check_confirm_password(form_ctx: FormContext) {
     let confirm = form_ctx.read().get_field_text("confirm_password");
     if !confirm.is_empty() {
         let valid = if pw == confirm {
-            Ok(())
+            Ok(confirm.into())
         } else {
             Err(tr!("Passwords do not match!"))
         };

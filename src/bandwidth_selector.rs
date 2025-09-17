@@ -128,13 +128,7 @@ impl ManagedField for ProxmoxBandwidthField {
 
         let value: Value = default.clone();
 
-        ManagedFieldState {
-            value,
-            valid: Ok(()),
-            default,
-            radio_group: false,
-            unique: false,
-        }
+        ManagedFieldState::new(value, default)
     }
 
     fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
