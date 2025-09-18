@@ -1,4 +1,4 @@
-rust-proxmox-yew-comp (0.6.1) unstable; urgency=medium
+rust-proxmox-yew-comp (0.6.1) trixie; urgency=medium
 
   * updates for latest pwt FormContext/ManagedField changes
 
