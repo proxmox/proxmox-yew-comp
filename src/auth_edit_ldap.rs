@@ -236,17 +236,23 @@ fn render_sync_form(_form_ctx: FormContext, _props: AuthEditLDAP) -> Html {
                 .padding_top(2)
                 .with_child(tr!("Remove Vanished Options")),
         )
-        .with_field(
-            tr!("Remove ACLs of vanished users"),
-            Checkbox::new().name("remove-vanished-acl"),
+        .with_large_field(
+            tr!("ACLs"),
+            Checkbox::new()
+                .name("remove-vanished-acl")
+                .box_label(tr!("Remove ACLs of vanished users.")),
         )
-        .with_field(
-            tr!("Remove vanished user"),
-            Checkbox::new().name("remove-vanished-entry"),
+        .with_large_field(
+            tr!("Entries"),
+            Checkbox::new()
+                .name("remove-vanished-entry")
+                .box_label(tr!("Remove vanished user")),
         )
-        .with_field(
-            tr!("Remove vanished properties"),
-            Checkbox::new().name("remove-vanished-properties"),
+        .with_large_field(
+            tr!("Properties"),
+            Checkbox::new()
+                .name("remove-vanished-properties")
+                .box_label(tr!("Remove vanished properties")),
         )
         .into()
 }
@@ -281,16 +287,23 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
                 .submit(!is_edit),
         )
         .with_right_field(tr!("Server"), Field::new().name("server1").required(true))
-        .with_field(tr!("Default Realm"), Checkbox::new().name("default"));
+        .with_field(
+            tr!("Port"),
+            Number::<u16>::new()
+                .name("port")
+                .placeholder(tr!("Default"))
+                .min(1),
+        )
+        .with_right_field(tr!("Fallback Server"), Field::new().name("server2"));
 
     if !props.ad_realm.unwrap_or_default() {
         input_panel = input_panel
-            .with_field(
+            .with_large_field(
                 tr!("Base Domain Name"),
                 Field::new()
                     .name("base-dn")
                     .required(true)
-                    .placeholder("cn=Users,dc=company,dc=net"),
+                    .placeholder("cn=Users,dc=example,dc=com"),
             )
             .with_field(
                 tr!("User Attribute Name"),
@@ -302,21 +315,6 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
     }
 
     input_panel
-        .with_right_field(tr!("Fallback Server"), Field::new().name("server2"))
-        .with_right_field(
-            tr!("Port"),
-            Number::<u16>::new()
-                .name("port")
-                .placeholder(tr!("Default"))
-                .min(1),
-        )
-        .with_field(
-            tr!("Anonymous Search"),
-            Checkbox::new()
-                .name("anonymous_search")
-                .submit(false)
-                .default(true),
-        )
         .with_right_field(
             tr!("Mode"),
             Combobox::new()
@@ -334,24 +332,32 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
                     html! {text}
                 }),
         )
+        .with_right_field(
+            tr!("Verify Certificate"),
+            Checkbox::new().name("verify").disabled(!tls_enabled),
+        )
+        .with_field(tr!("Default Realm"), Checkbox::new().name("default"))
         .with_field(
+            tr!("Anonymous Search"),
+            Checkbox::new()
+                .name("anonymous_search")
+                .submit(false)
+                .default(true),
+        )
+        .with_large_field(
             tr!("Bind Domain Name"),
             Field::new()
                 .name("bind-dn")
                 .required(!anonymous_search)
                 .disabled(anonymous_search)
-                .placeholder(
+                .placeholder((!anonymous_search).then(|| {
                     props
                         .ad_realm
-                        .map(|_| "user@company.net")
-                        .unwrap_or("cn=user,dc=company,dc=net"),
-                ),
+                        .map(|_| "user@example.com")
+                        .unwrap_or("cn=user,dc=example,dc=com")
+                })),
         )
-        .with_right_field(
-            tr!("Verify Certificate"),
-            Checkbox::new().name("verify").disabled(!tls_enabled),
-        )
-        .with_field(
+        .with_large_field(
             tr!("Bind Password"),
             Field::new()
                 .name("password")
