@@ -182,6 +182,7 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
                 .required(true)
                 .placeholder("cn=Users,dc=company,dc=net"),
         )
+        .with_field(tr!("Default Realm"), Checkbox::new().name("default"));
         .with_right_field(tr!("Fallback Server"), Field::new().name("server2"))
         .with_field(
             tr!("User Attribute Name"),

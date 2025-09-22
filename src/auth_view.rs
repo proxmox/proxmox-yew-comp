@@ -12,7 +12,7 @@ use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 
-use pwt::widget::{Button, Toolbar};
+use pwt::widget::{Button, Fa, Toolbar};
 
 use pwt_macros::builder;
 
@@ -296,6 +296,20 @@ thread_local! {
             })
             .sorter(|a: &BasicRealmInfo, b: &BasicRealmInfo| {
                 a.ty.cmp(&b.ty)
+            })
+            .into(),
+        DataTableColumn::new(tr!("Default"))
+            .width("100px")
+            .render(|item: &BasicRealmInfo| {
+                if item.default.unwrap_or_default() {
+                    Fa::new("check").into()
+                } else {
+                    Fa::new("times").into()
+                }
+            })
+            .justify("center")
+            .sorter(|a: &BasicRealmInfo, b: &BasicRealmInfo| {
+                a.default.unwrap_or_default().cmp(&b.default.unwrap_or_default())
             })
             .into(),
         DataTableColumn::new("Comment")
