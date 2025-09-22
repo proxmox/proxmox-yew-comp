@@ -1,3 +1,18 @@
+rust-proxmox-yew-comp (0.6.2) trixie; urgency=medium
+
+  * auth view: add default column and allow setting ldap realms as
+    default.
+
+  * utils: add pdm built-in realm to `get_auth_domain_info`.
+
+  * auth view, edit: add support for active directory realms.
+
+  * implement syncing ldap and ad realms
+
+  * auth ldap edit: improve form layout and placeholders
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 22 Sep 2025 20:36:26 +0200
+
 rust-proxmox-yew-comp (0.6.1) trixie; urgency=medium
 
   * updates for latest pwt FormContext/ManagedField changes
