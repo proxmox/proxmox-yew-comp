@@ -1,9 +1,11 @@
 use std::rc::Rc;
 
 use anyhow::Error;
+use proxmox_client::ApiResponseData;
 use pwt::css::{Flex, Overflow};
 
 use pwt::widget::form::{Checkbox, Combobox, FormContext, InputType, Number};
+use serde_json::Value;
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
@@ -53,13 +55,109 @@ impl AuthEditLDAP {
     }
 }
 
+async fn load_realm(url: impl Into<String>) -> Result<ApiResponseData<Value>, Error> {
+    let mut response: ApiResponseData<Value> = crate::http_get_full(url, None).await?;
+
+    response.data["anonymous_search"] = Value::Bool(!response.data["bind-dn"].is_string());
+
+    if let Value::String(sync_default_options) = response.data["sync-defaults-options"].take() {
+        let split = sync_default_options.split(",");
+
+        for part in split {
+            let mut part = part.split("=");
+
+            match part.next() {
+                Some("enable-new") => {
+                    response.data["enable-new"] = Value::Bool(part.next() == Some("true"))
+                }
+                Some("remove-vanished") => {
+                    if let Some(part) = part.next() {
+                        for vanished_opt in part.split(";") {
+                            response.data[&format!("remove-vanished-{vanished_opt}")] =
+                                Value::Bool(true)
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    if let Value::String(sync_attributes) = response.data["sync-attributes"].take() {
+        let split = sync_attributes.split(",");
+
+        for opt in split {
+            let mut opt = opt.split("=");
+            if let (Some(name), Some(val)) = (opt.next(), opt.next()) {
+                response.data[name] = Value::String(val.to_string());
+            }
+        }
+    }
+
+    Ok(response)
+}
+
+fn format_sync_and_default_options(data: &mut Value) -> Value {
+    let mut sync_default_options: Option<String> = None;
+
+    if let Value::Bool(val) = data["enable-new"].take() {
+        sync_default_options = Some(format!("enable-new={val}"))
+    }
+
+    let mut remove_vanished: Vec<&str> = Vec::new();
+
+    for prop in ["acl", "entry", "properties"] {
+        let prop_name = format!("remove-vanished-{prop}");
+        if data[&prop_name].take() == Value::Bool(true) {
+            remove_vanished.push(prop);
+        }
+    }
+
+    if !remove_vanished.is_empty() {
+        let vanished = format!("remove-vanished={}", remove_vanished.join(";"));
+
+        sync_default_options = sync_default_options
+            .map(|f| format!("{f},{vanished}"))
+            .or(Some(vanished));
+    }
+
+    if let Some(defaults) = sync_default_options {
+        data["sync-defaults-options"] = Value::String(defaults);
+    }
+
+    let mut sync_attributes = Vec::new();
+
+    for attribute in ["firstname", "lastname", "email"] {
+        if let Value::String(val) = &data[attribute].take() {
+            sync_attributes.push(format!("{attribute}={val}"));
+        }
+    }
+
+    if !sync_attributes.is_empty() {
+        data["sync-attributes"] = Value::String(sync_attributes.join(","));
+    }
+
+    let mut new = serde_json::json!({});
+
+    for (param, v) in data.as_object().unwrap().iter() {
+        if !v.is_null() {
+            new[param] = v.clone();
+        }
+    }
+
+    new
+}
+
 async fn create_item(form_ctx: FormContext, base_url: String) -> Result<(), Error> {
-    let data = form_ctx.get_submit_data();
+    let mut data = form_ctx.get_submit_data();
+    let data = format_sync_and_default_options(&mut data);
     crate::http_post(base_url, Some(data)).await
 }
 
 async fn update_item(form_ctx: FormContext, base_url: String) -> Result<(), Error> {
-    let data = form_ctx.get_submit_data();
+    let mut data = form_ctx.get_submit_data();
+
+    let data = format_sync_and_default_options(&mut data);
 
     let data = delete_empty_values(
         &data,
@@ -71,6 +169,8 @@ async fn update_item(form_ctx: FormContext, base_url: String) -> Result<(), Erro
             "comment",
             "user-classes",
             "filter",
+            "sync-attributes",
+            "sync-defaults-options",
         ],
         true,
     );
@@ -96,6 +196,7 @@ fn render_panel(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
             TabBarItem::new().key("sync").label(tr!("Sync Options")),
             render_sync_form(form_ctx.clone(), props.clone()),
         )
+        .force_render_all(true)
         .into()
 }
 
@@ -301,7 +402,8 @@ impl Component for ProxmoxAuthEditLDAP {
                 props
                     .realm
                     .as_ref()
-                    .map(|realm| format!("{}/{}", props.base_url, percent_encode_component(realm))),
+                    .map(|realm| format!("{}/{}", props.base_url, percent_encode_component(realm)))
+                    .map(|url| move || load_realm(url.clone())),
             )
             .renderer({
                 let props = props.clone();
