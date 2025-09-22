@@ -42,6 +42,11 @@ pub struct AuthView {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     ldap_base_url: Option<AttrValue>,
+
+    /// Allow to add/edit LDAP entries
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    ad_base_url: Option<AttrValue>,
 }
 
 impl Default for AuthView {
@@ -58,10 +63,12 @@ impl AuthView {
 
 #[derive(PartialEq)]
 pub enum ViewState {
+    AddAd,
     AddLDAP,
     AddOpenID,
     EditOpenID(AttrValue),
     EditLDAP(AttrValue),
+    EditAd(AttrValue),
 }
 
 pub enum Msg {
@@ -146,14 +153,21 @@ impl LoadableComponent for ProxmoxAuthView {
                     Some(info) => info,
                     None => return true,
                 };
-                if props.openid_base_url.is_some() && info.ty == "openid" {
-                    ctx.link()
-                        .change_view(Some(ViewState::EditOpenID(info.realm.clone().into())));
-                }
-                if props.ldap_base_url.is_some() && info.ty == "ldap" {
-                    ctx.link()
-                        .change_view(Some(ViewState::EditLDAP(info.realm.into())));
-                }
+
+                let view = match info.ty.as_str() {
+                    "openid" if props.openid_base_url.is_some() => {
+                        Some(ViewState::EditOpenID(info.realm.into()))
+                    }
+                    "ldap" if props.ldap_base_url.is_some() => {
+                        Some(ViewState::EditLDAP(info.realm.into()))
+                    }
+                    "ad" if props.ad_base_url.is_some() => {
+                        Some(ViewState::EditAd(info.realm.into()))
+                    }
+                    _ => return true,
+                };
+
+                ctx.link().change_view(view);
                 true
             }
             Msg::Sync => {
@@ -181,6 +195,14 @@ impl LoadableComponent for ProxmoxAuthView {
         }
 
         let mut add_menu = Menu::new();
+
+        if props.ad_base_url.is_some() {
+            add_menu.add_item(
+                MenuItem::new(tr!("Active Directory Server"))
+                    .icon_class("fa fa-fw fa-address-book-o")
+                    .on_select(ctx.link().change_view_callback(|_| Some(ViewState::AddAd))),
+            );
+        }
 
         if props.ldap_base_url.is_some() {
             add_menu.add_item(
@@ -248,6 +270,22 @@ impl LoadableComponent for ProxmoxAuthView {
         let props = ctx.props();
 
         match view_state {
+            ViewState::AddAd => Some(
+                AuthEditLDAP::new()
+                    .base_url(props.ad_base_url.clone().unwrap())
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .ad_realm(true)
+                    .into(),
+            ),
+            ViewState::EditAd(realm) => Some(
+                AuthEditLDAP::new()
+                    .base_url(props.ad_base_url.clone().unwrap())
+                    .realm(realm.clone())
+                    .on_close(ctx.link().change_view_callback(|_| None))
+                    .ad_realm(true)
+                    .into(),
+            ),
+
             ViewState::AddLDAP => Some(
                 AuthEditLDAP::new()
                     .base_url(props.ldap_base_url.clone().unwrap())

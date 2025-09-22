@@ -293,7 +293,8 @@ pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
             sync: false,
         });
     }
-    if ty == "ldap" {
+
+    if ty == "ldap" || ty == "ad" {
         return Some(AuthDomainInfo {
             ty: ty.to_string(),
             //description: tr!("LDAP Server"),

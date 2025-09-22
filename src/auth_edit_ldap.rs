@@ -34,6 +34,11 @@ pub struct AuthEditLDAP {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     pub realm: Option<AttrValue>,
+
+    /// Whether this panel is for an Active Directory realm
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub ad_realm: Option<bool>,
 }
 
 impl Default for AuthEditLDAP {
@@ -162,7 +167,7 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
         .map(|v| matches!(v.as_str(), Some("ldap+starttls") | Some("ldaps")))
         .unwrap_or(false);
 
-    InputPanel::new()
+    let mut input_panel = InputPanel::new()
         .class(Flex::Fill)
         .class(Overflow::Auto)
         .padding(4)
@@ -175,22 +180,28 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
                 .submit(!is_edit),
         )
         .with_right_field(tr!("Server"), Field::new().name("server1").required(true))
-        .with_field(
-            tr!("Base Domain Name"),
-            Field::new()
-                .name("base-dn")
-                .required(true)
-                .placeholder("cn=Users,dc=company,dc=net"),
-        )
         .with_field(tr!("Default Realm"), Checkbox::new().name("default"));
+
+    if !props.ad_realm.unwrap_or_default() {
+        input_panel = input_panel
+            .with_field(
+                tr!("Base Domain Name"),
+                Field::new()
+                    .name("base-dn")
+                    .required(true)
+                    .placeholder("cn=Users,dc=company,dc=net"),
+            )
+            .with_field(
+                tr!("User Attribute Name"),
+                Field::new()
+                    .name("user-attr")
+                    .required(true)
+                    .placeholder("uid / sAMAccountName"),
+            )
+    }
+
+    input_panel
         .with_right_field(tr!("Fallback Server"), Field::new().name("server2"))
-        .with_field(
-            tr!("User Attribute Name"),
-            Field::new()
-                .name("user-attr")
-                .required(true)
-                .placeholder("uid / sAMAccountName"),
-        )
         .with_right_field(
             tr!("Port"),
             Number::<u16>::new()
@@ -228,7 +239,12 @@ fn render_general_form(form_ctx: FormContext, props: AuthEditLDAP) -> Html {
                 .name("bind-dn")
                 .required(!anonymous_search)
                 .disabled(anonymous_search)
-                .placeholder("cn=user,dc=company,dc=net"),
+                .placeholder(
+                    props
+                        .ad_realm
+                        .map(|_| "user@company.net")
+                        .unwrap_or("cn=user,dc=company,dc=net"),
+                ),
         )
         .with_right_field(
             tr!("Verify Certificate"),
@@ -274,7 +290,13 @@ impl Component for ProxmoxAuthEditLDAP {
             }
         };
 
-        EditWindow::new(action + ": " + &tr!("LDAP Server"))
+        let title = if props.ad_realm.unwrap_or_default() {
+            tr!("Active Directory Server")
+        } else {
+            tr!("LDAP Server")
+        };
+
+        EditWindow::new(action + ": " + &title)
             .loader(
                 props
                     .realm
