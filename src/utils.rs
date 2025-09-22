@@ -269,7 +269,8 @@ pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
             sync: false,
         });
     }
-    if ty == "pve" {
+
+    if matches!(ty, "pve" | "pbs" | "pdm") {
         return Some(AuthDomainInfo {
             ty: ty.to_string(),
             //description: tr!("Proxmox VE authentication server"),
@@ -280,17 +281,7 @@ pub fn get_auth_domain_info(ty: &str) -> Option<AuthDomainInfo> {
             sync: false,
         });
     }
-    if ty == "pbs" {
-        return Some(AuthDomainInfo {
-            ty: ty.to_string(),
-            //description: tr!("Proxmox Backup authentication server"),
-            add: false,
-            edit: false,
-            tfa: true,
-            pwchange: true,
-            sync: false,
-        });
-    }
+
     if ty == "openid" {
         return Some(AuthDomainInfo {
             ty: ty.to_string(),
