@@ -4,6 +4,9 @@ use std::rc::Rc;
 
 use anyhow::Error;
 
+use proxmox_client::ApiResponseData;
+use pwt::widget::form::{Checkbox, FormContext, TristateBoolean};
+use serde_json::Value;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
@@ -12,13 +15,13 @@ use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 
-use pwt::widget::{Button, Fa, Toolbar};
+use pwt::widget::{Button, Container, Fa, InputPanel, Toolbar};
 
 use pwt_macros::builder;
 
 use crate::{
-    AuthEditLDAP, AuthEditOpenID, LoadableComponent, LoadableComponentContext,
-    LoadableComponentMaster,
+    AuthEditLDAP, AuthEditOpenID, EditWindow, LoadableComponent, LoadableComponentContext,
+    LoadableComponentLink, LoadableComponentMaster,
 };
 
 use crate::common_api_types::BasicRealmInfo;
@@ -69,6 +72,7 @@ pub enum ViewState {
     EditOpenID(AttrValue),
     EditLDAP(AttrValue),
     EditAd(AttrValue),
+    Sync(BasicRealmInfo),
 }
 
 pub enum Msg {
@@ -87,6 +91,73 @@ async fn delete_item(base_url: AttrValue, realm: AttrValue) -> Result<(), Error>
     let url = format!("{base_url}/{}", percent_encode_component(&realm));
     crate::http_delete(&url, None).await?;
     Ok(())
+}
+
+async fn sync_realm(
+    form_ctx: FormContext,
+    link: LoadableComponentLink<ProxmoxAuthView>,
+    url: impl Into<String>,
+) -> Result<(), Error> {
+    let mut data = form_ctx.get_submit_data();
+
+    let mut remove_vanished = Vec::new();
+
+    for prop in ["acl", "entry", "properties"] {
+        let prop_name = format!("remove-vanished-{prop}");
+        if data[&prop_name] == Value::Bool(true) {
+            remove_vanished.push(prop);
+        }
+
+        data[&prop_name] = Value::Null;
+    }
+
+    if !remove_vanished.is_empty() {
+        data["remove-vanished"] = Value::String(remove_vanished.join(";"));
+    }
+
+    let mut new = serde_json::json!({});
+
+    for (param, v) in data.as_object().unwrap().iter() {
+        if !v.is_null() {
+            new[param] = v.clone();
+        }
+    }
+
+    match crate::http_post::<String>(url, Some(new)).await {
+        Ok(upid) => link.show_task_log(upid, None),
+        Err(err) => link.show_error(tr!("Sync Failed"), err, true),
+    };
+
+    Ok(())
+}
+
+async fn load_realm(url: impl Into<String>) -> Result<ApiResponseData<Value>, Error> {
+    let mut response: ApiResponseData<Value> = crate::http_get_full(url, None).await?;
+
+    if let Value::String(sync_default_options) = response.data["sync-defaults-options"].take() {
+        let split = sync_default_options.split(",");
+
+        for part in split {
+            let mut part = part.split("=");
+
+            match part.next() {
+                Some("enable-new") => {
+                    response.data["enable-new"] = Value::Bool(part.next() == Some("true"))
+                }
+                Some("remove-vanished") => {
+                    if let Some(part) = part.next() {
+                        for vanished_opt in part.split(";") {
+                            response.data[&format!("remove-vanished-{vanished_opt}")] =
+                                Value::Bool(true)
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Ok(response)
 }
 
 impl ProxmoxAuthView {
@@ -171,7 +242,12 @@ impl LoadableComponent for ProxmoxAuthView {
                 true
             }
             Msg::Sync => {
-                // fixme: do something
+                let info = match self.get_selected_record() {
+                    Some(info) => info,
+                    None => return true,
+                };
+
+                ctx.link().change_view(Some(ViewState::Sync(info)));
                 true
             }
         }
@@ -312,6 +388,77 @@ impl LoadableComponent for ProxmoxAuthView {
                     .on_close(ctx.link().change_view_callback(|_| None))
                     .into(),
             ),
+            ViewState::Sync(realm) => {
+                let link = ctx.link();
+                let url = format!(
+                    "{}/{}/sync",
+                    ctx.props().base_url,
+                    percent_encode_component(&realm.realm)
+                );
+
+                let base_url = match realm.ty.as_str() {
+                    // unwraps here are safe as the guards ensure the Option is a Some
+                    "ldap" if props.ldap_base_url.is_some() => {
+                        props.ldap_base_url.as_ref().unwrap()
+                    }
+                    "ad" if props.ad_base_url.is_some() => props.ad_base_url.as_ref().unwrap(),
+                    _ => return None,
+                };
+
+                Some(
+                    EditWindow::new(tr!("Realm Sync"))
+                        .renderer(|_form_ctx| {
+                            InputPanel::new()
+                                .padding(4)
+                                .with_field(tr!("Preview Only"), Checkbox::new().name("dry-run"))
+                                .with_field(
+                                    tr!("Enable new users"),
+                                    TristateBoolean::new()
+                                        .name("enable-new")
+                                        .null_text(tr!("Default") + " (" + &tr!("Yes") + ")"),
+                                )
+                                .with_large_custom_child(
+                                    Container::new()
+                                        .key("remove-vanished-options")
+                                        .class("pwt-font-title-medium")
+                                        .padding_top(2)
+                                        .with_child(tr!("Remove Vanished Options")),
+                                )
+                                .with_large_field(
+                                    tr!("ACLs"),
+                                    Checkbox::new()
+                                        .name("remove-vanished-acl")
+                                        .box_label(tr!("Remove ACLs of vanished users.")),
+                                )
+                                .with_large_field(
+                                    tr!("Entries"),
+                                    Checkbox::new()
+                                        .name("remove-vanished-entry")
+                                        .box_label(tr!("Remove vanished user")),
+                                )
+                                .with_large_field(
+                                    tr!("Properties"),
+                                    Checkbox::new()
+                                        .name("remove-vanished-properties")
+                                        .box_label(tr!("Remove vanished properties")),
+                                )
+                                .into()
+                        })
+                        .loader({
+                            let url =
+                                format!("{base_url}/{}", percent_encode_component(&realm.realm));
+                            move || load_realm(url.clone())
+                        })
+                        .submit_digest(false)
+                        .on_close(link.change_view_callback(|_| None))
+                        .on_submit(move |form_context| {
+                            let link = link.clone();
+                            let url = url.clone();
+                            sync_realm(form_context, link, url)
+                        })
+                        .into(),
+                )
+            }
         }
     }
 }
