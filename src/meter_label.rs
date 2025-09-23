@@ -1,3 +1,4 @@
+use pwt::css::AlignItems;
 use yew::html::IntoPropValue;
 
 use pwt::prelude::*;
@@ -119,6 +120,7 @@ impl Component for ProxmoxMeterLabel {
         };
 
         let text_row = StatusRow::new(props.title.clone())
+            .class(AlignItems::Baseline)
             .status(status)
             .icon_class(props.icon_class.clone());
 
