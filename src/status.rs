@@ -31,6 +31,14 @@ impl Status {
     }
 }
 
+impl From<Status> for Classes {
+    fn from(value: Status) -> Self {
+        let (icon, mut classes) = value.get_icon_classes();
+        classes.push(format!("fa-{icon}"));
+        classes
+    }
+}
+
 impl From<Status> for Fa {
     fn from(value: Status) -> Self {
         let (icon, class) = value.get_icon_classes();
