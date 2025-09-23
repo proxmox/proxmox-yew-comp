@@ -56,9 +56,9 @@ pub struct MeterLabel {
     /// specified, but not within the range given by the min attribute
     /// and max attribute, the value is equal to the nearest end of
     /// the range.
-    #[prop_or(0f32)]
-    #[builder]
-    pub value: f32,
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    pub value: Option<f32>,
 
     #[prop_or_default]
     pub status: Option<Html>,
@@ -116,7 +116,10 @@ impl Component for ProxmoxMeterLabel {
 
         let status = match &props.status {
             Some(text) => text.clone(),
-            None => html! {format!("{:.2} %", props.value * 100.0)},
+            None => match props.value {
+                Some(value) => html! {format!("{:.2} %", value * 100.0)},
+                None => html! {},
+            },
         };
 
         let text_row = Row::new()
@@ -131,16 +134,16 @@ impl Component for ProxmoxMeterLabel {
             .with_std_props(&props.std_props)
             .listeners(&props.listeners)
             .with_child(text_row)
-            .with_child(
+            .with_optional_child(props.value.map(|value| {
                 Meter::new()
                     .margin_top(1)
-                    .value(props.value)
+                    .value(value)
                     .min(props.min)
                     .max(props.max)
                     .low(props.low)
                     .high(props.high)
-                    .optimum(props.optimum),
-            )
+                    .optimum(props.optimum)
+            }))
             .into()
     }
 }
