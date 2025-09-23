@@ -70,6 +70,11 @@ pub struct MeterLabel {
     #[prop_or_default]
     #[builder]
     pub animated: bool,
+
+    /// If set to `true`, places the icon on the right side instead of the left
+    #[prop_or_default]
+    #[builder]
+    pub icon_right: bool,
 }
 
 impl MeterLabel {
@@ -127,7 +132,8 @@ impl Component for ProxmoxMeterLabel {
         let text_row = StatusRow::new(props.title.clone())
             .class(AlignItems::Baseline)
             .status(status)
-            .icon_class(props.icon_class.clone());
+            .icon_class(props.icon_class.clone())
+            .icon_right(props.icon_right);
 
         Container::new()
             .with_std_props(&props.std_props)
