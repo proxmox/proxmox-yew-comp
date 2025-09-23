@@ -80,6 +80,9 @@ pub use loadable_component::{
     LoadableComponent, LoadableComponentContext, LoadableComponentLink, LoadableComponentMaster,
 };
 
+mod node_info;
+pub use node_info::{node_info, NodeStatus};
+
 mod notes_view;
 pub use notes_view::{NotesView, NotesWithDigest, ProxmoxNotesView};
 
