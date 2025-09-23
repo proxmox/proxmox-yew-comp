@@ -1,9 +1,11 @@
 use yew::html::IntoPropValue;
 
 use pwt::prelude::*;
-use pwt::widget::{Container, Meter, Row};
+use pwt::widget::{Container, Meter};
 
 use pwt_macros::{builder, widget};
+
+use crate::StatusRow;
 
 #[widget(comp=ProxmoxMeterLabel, @element)]
 #[derive(Properties, Clone, PartialEq)]
@@ -108,12 +110,6 @@ impl Component for ProxmoxMeterLabel {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let icon = props.icon_class.as_ref().map(|icon_class| {
-            Container::from_tag("i")
-                .class(icon_class.clone())
-                .padding_end(2)
-        });
-
         let status = match &props.status {
             Some(text) => text.clone(),
             None => match props.value {
@@ -122,13 +118,9 @@ impl Component for ProxmoxMeterLabel {
             },
         };
 
-        let text_row = Row::new()
-            .gap(2)
-            .with_child(
-                html! {<div class="pwt-white-space-nowrap">{icon}{props.title.clone()}</div>},
-            )
-            .with_flex_spacer()
-            .with_child(html! {<div class="pwt-white-space-nowrap">{status}</div>});
+        let text_row = StatusRow::new(props.title.clone())
+            .status(status)
+            .icon_class(props.icon_class.clone());
 
         Container::new()
             .with_std_props(&props.std_props)
