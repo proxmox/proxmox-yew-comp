@@ -65,6 +65,11 @@ pub struct MeterLabel {
 
     #[prop_or_default]
     pub status: Option<Html>,
+
+    /// If the underlying Meter should be animated
+    #[prop_or_default]
+    #[builder]
+    pub animated: bool,
 }
 
 impl MeterLabel {
@@ -137,6 +142,7 @@ impl Component for ProxmoxMeterLabel {
                     .low(props.low)
                     .high(props.high)
                     .optimum(props.optimum)
+                    .animated(props.animated)
             }))
             .into()
     }
