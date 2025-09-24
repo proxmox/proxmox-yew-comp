@@ -132,6 +132,25 @@ pub fn render_url(url: &str) -> Html {
     }
 }
 
+pub fn epoch_to_input_value(epoch: i64) -> String {
+    let date = js_sys::Date::new_0();
+    date.set_time((epoch * 1000) as f64);
+
+    if date.get_date() == 0 {
+        // invalid data (clear field creates this)
+        String::new()
+    } else {
+        format!(
+            "{:04}-{:02}-{:02}T{:02}:{:02}",
+            date.get_full_year(),
+            date.get_month() + 1,
+            date.get_date(),
+            date.get_hours(),
+            date.get_minutes(),
+        )
+    }
+}
+
 // todo: we want to use Fn(&str, Option<&str>),
 #[allow(clippy::type_complexity)]
 static TASK_DESCR_TABLE: Mutex<

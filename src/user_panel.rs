@@ -20,7 +20,7 @@ use pwt::widget::form::{delete_empty_values, Checkbox, Field, FormContext, Input
 use pwt::widget::{Button, Dialog, InputPanel, Toolbar};
 
 use crate::percent_encoding::percent_encode_component;
-use crate::utils::render_epoch_short;
+use crate::utils::{epoch_to_input_value, render_epoch_short};
 use crate::{
     EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
     PermissionPanel, RealmSelector, SchemaValidation,
@@ -536,23 +536,4 @@ fn edit_user_input_panel(_form_ctx: &FormContext) -> Html {
         .with_right_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
         .with_large_field(tr!("Comment"), Field::new().name("comment").autofocus(true))
         .into()
-}
-
-fn epoch_to_input_value(epoch: i64) -> String {
-    let date = js_sys::Date::new_0();
-    date.set_time((epoch * 1000) as f64);
-
-    if date.get_date() == 0 {
-        // invalid data (clear field creates this)
-        String::new()
-    } else {
-        format!(
-            "{:04}-{:02}-{:02}T{:02}:{:02}",
-            date.get_full_year(),
-            date.get_month() + 1,
-            date.get_date(),
-            date.get_hours(),
-            date.get_minutes(),
-        )
-    }
 }
