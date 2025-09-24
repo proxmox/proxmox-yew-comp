@@ -203,6 +203,9 @@ pub use wizard::{PwtWizard, Wizard, WizardPageRenderInfo};
 mod user_panel;
 pub use user_panel::UserPanel;
 
+mod token_panel;
+pub use token_panel::TokenPanel;
+
 pub mod utils;
 
 mod xtermjs;
