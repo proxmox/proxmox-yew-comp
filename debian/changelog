@@ -1,3 +1,15 @@
+rust-proxmox-yew-comp (0.6.3) trixie; urgency=medium
+
+  * improve meter label and make it more flexible:
+    - make value optional
+    - align the status row with baseline
+    - add option to align the icon on the right
+    - add `animated` property
+
+  * add `node_info` helper to render a consistent view of the node status.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 25 Sep 2025 17:43:32 +0200
+
 rust-proxmox-yew-comp (0.6.2) trixie; urgency=medium
 
   * auth view: add default column and allow setting ldap realms as
