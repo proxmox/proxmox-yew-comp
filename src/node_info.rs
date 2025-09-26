@@ -147,6 +147,8 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
         .with_child({
             let fraction = ((memory_used as f64) / (memory_total as f64)) as f32;
             MeterLabel::with_zero_optimum(tr!("RAM Usage"))
+                .low(0.9) // memory is there to be used!
+                .high(0.975)
                 .animated(true)
                 .icon_class("fa fa-fw fa-memory")
                 .value(fraction)
