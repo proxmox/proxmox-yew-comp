@@ -86,7 +86,7 @@ impl MeterLabel {
     }
 
     pub fn with_zero_optimum(title: impl Into<AttrValue>) -> Self {
-        Self::new(title).low(0.75).high(0.9).optimum(0.0)
+        Self::new(title).low(0.8).high(0.9).optimum(0.0)
     }
 
     /// Builder style method to set the icon class.
