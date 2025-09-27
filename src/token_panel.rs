@@ -26,13 +26,8 @@ use crate::{
 async fn load_api_tokens() -> Result<Vec<ApiToken>, Error> {
     let url = "/access/users/?include_tokens=1";
     let users: Vec<UserWithTokens> = crate::http_get(url, None).await?;
-    let mut list: Vec<ApiToken> = Vec::new();
 
-    for user in users.into_iter() {
-        list.extend(user.tokens)
-    }
-
-    Ok(list)
+    Ok(users.into_iter().flat_map(|user| user.tokens).collect())
 }
 
 async fn create_token(
