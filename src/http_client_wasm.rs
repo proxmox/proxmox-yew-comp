@@ -162,8 +162,8 @@ impl HttpClientWasm {
         content_type: &'static str,
         data: &str,
     ) -> Result<web_sys::Request, Error> {
-        let mut init = web_sys::RequestInit::new();
-        init.method("POST");
+        let init = web_sys::RequestInit::new();
+        init.set_method("POST");
 
         let js_headers = web_sys::Headers::new().map_err(convert_js_error)?;
 
@@ -175,8 +175,8 @@ impl HttpClientWasm {
             .append("content-type", content_type)
             .map_err(convert_js_error)?;
 
-        init.body(Some(&wasm_bindgen::JsValue::from_str(data)));
-        init.headers(&js_headers);
+        init.set_body(&wasm_bindgen::JsValue::from_str(data));
+        init.set_headers(&js_headers);
 
         web_sys::Request::new_with_str_and_init(url, &init).map_err(convert_js_error)
     }
@@ -186,8 +186,8 @@ impl HttpClientWasm {
         url: &str,
         data: Option<P>,
     ) -> Result<web_sys::Request, Error> {
-        let mut init = web_sys::RequestInit::new();
-        init.method(method);
+        let init = web_sys::RequestInit::new();
+        init.set_method(method);
 
         let js_headers = web_sys::Headers::new().map_err(convert_js_error)?;
 
@@ -204,9 +204,9 @@ impl HttpClientWasm {
                     .map_err(|err| Error::Internal("failed to serialize data", Box::new(err)))?;
                 let js_body = js_sys::Uint8Array::new_with_length(body.len() as u32);
                 js_body.copy_from(&body);
-                init.body(Some(&js_body));
+                init.set_body(&js_body);
             }
-            init.headers(&js_headers);
+            init.set_headers(&js_headers);
             web_sys::Request::new_with_str_and_init(url, &init).map_err(convert_js_error)
         } else if let Some(data) = data {
             js_headers
@@ -216,10 +216,10 @@ impl HttpClientWasm {
                 .map_err(|err| Error::Internal("failed to serialize data", Box::new(err)))?;
             let query = json_object_to_query(data)?;
             let url = format!("{}?{}", url, query);
-            init.headers(&js_headers);
+            init.set_headers(&js_headers);
             web_sys::Request::new_with_str_and_init(&url, &init).map_err(convert_js_error)
         } else {
-            init.headers(&js_headers);
+            init.set_headers(&js_headers);
             web_sys::Request::new_with_str_and_init(url, &init).map_err(convert_js_error)
         }
     }
@@ -407,8 +407,8 @@ impl HttpApiClient for HttpClientWasm {
             let request = Self::request_builder(method.as_str(), path_and_query, params)?;
 
             let abort = pwt::WebSysAbortGuard::new().map_err(Error::Anyhow)?;
-            let mut init = web_sys::RequestInit::new();
-            init.signal(Some(&abort.signal()));
+            let init = web_sys::RequestInit::new();
+            init.set_signal(Some(&abort.signal()));
 
             let response = self.fetch_request(request, Some(init)).await?;
             web_sys_response_to_http_api_response(response).await
@@ -428,8 +428,8 @@ impl HttpApiClient for HttpClientWasm {
             let request = Self::request_builder(method.as_str(), path_and_query, params)?;
 
             let abort = pwt::WebSysAbortGuard::new().map_err(Error::Anyhow)?;
-            let mut init = web_sys::RequestInit::new();
-            init.signal(Some(&abort.signal()));
+            let init = web_sys::RequestInit::new();
+            init.set_signal(Some(&abort.signal()));
 
             let response = self.fetch_request(request, Some(init)).await?;
             web_sys_response_to_http_api_stream_response(response).await
