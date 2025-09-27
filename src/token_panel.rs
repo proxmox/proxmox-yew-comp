@@ -84,11 +84,7 @@ async fn update_token(form_ctx: FormContext) -> Result<(), Error> {
     let url = token_api_url(&userid, &tokenname);
 
     let expire = form_ctx.read().get_field_text("expire");
-    if let Ok(epoch) = proxmox_time::parse_rfc3339(&expire) {
-        data["expire"] = epoch.into();
-    } else {
-        data["expire"] = 0.into();
-    }
+    data["expire"] = proxmox_time::parse_rfc3339(&expire).unwrap_or(0).into();
 
     crate::http_put(url, Some(data)).await
 }
