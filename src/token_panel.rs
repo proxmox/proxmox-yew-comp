@@ -215,69 +215,52 @@ impl LoadableComponent for ProxmoxTokenView {
         match msg {
             Msg::Refresh => true,
             Msg::Remove => {
-                let record = match self.selection.selected_key() {
-                    Some(selected_key) => self.store.read().lookup_record(&selected_key).cloned(),
-                    None => None,
+                let Some(record) = self.get_selected_record() else {
+                    return false;
                 };
-                if let Some(record) = record {
-                    let user = record.tokenid.user().to_string();
-                    let tokenname = match record.tokenid.tokenname() {
-                        Some(name) => name.as_str().to_owned(),
-                        None => {
-                            log::error!(
-                                "ApiToken '{}' has no name - internal error",
-                                record.tokenid
-                            );
-                            return true;
-                        }
-                    };
 
-                    let url = token_api_url(&user, &tokenname);
-                    let link = ctx.link();
-                    link.clone().spawn(async move {
-                        match crate::http_delete(url, None).await {
-                            Ok(()) => {
-                                link.send_reload();
-                            }
-                            Err(err) => {
-                                link.show_error("Removing API token failed", err, true);
-                            }
+                let user = record.tokenid.user().to_string();
+                let Some(tokenname) = record.tokenid.tokenname() else {
+                    log::error!("internal error: API token '{}' has no name", record.tokenid);
+                    return true;
+                };
+
+                let url = token_api_url(&user, tokenname.as_str());
+                let link = ctx.link();
+                link.clone().spawn(async move {
+                    match crate::http_delete(url, None).await {
+                        Ok(()) => {
+                            link.send_reload();
                         }
-                    });
-                }
+                        Err(err) => {
+                            link.show_error("Removing API token failed", err, true);
+                        }
+                    }
+                });
                 false
             }
             Msg::Regenerate => {
-                let record = match self.selection.selected_key() {
-                    Some(selected_key) => self.store.read().lookup_record(&selected_key).cloned(),
-                    None => None,
+                let Some(record) = self.get_selected_record() else {
+                    return false;
                 };
-                if let Some(record) = record {
-                    let user = record.tokenid.user().to_string();
-                    let tokenname = match record.tokenid.tokenname() {
-                        Some(name) => name.as_str().to_owned(),
-                        None => {
-                            log::error!(
-                                "ApiToken '{}' has no name - internal error",
-                                record.tokenid
-                            );
-                            return true;
-                        }
-                    };
+                let user = record.tokenid.user().to_string();
+                let Some(tokenname) = record.tokenid.tokenname() else {
+                    log::error!("internal error: API token '{}' has no name", record.tokenid);
+                    return true;
+                };
 
-                    let url = token_api_url(&user, &tokenname);
-                    let link = ctx.link().clone();
-                    ctx.link().spawn(async move {
-                        match crate::http_put(url, Some(json!({"regenerate": true}))).await {
-                            Ok(secret) => {
-                                link.change_view(Some(ViewState::DisplayTokenSecret(secret)));
-                            }
-                            Err(err) => {
-                                link.show_error("Regenerating API token failed", err, true);
-                            }
+                let url = token_api_url(&user, tokenname.as_str());
+                let link = ctx.link().clone();
+                ctx.link().spawn(async move {
+                    match crate::http_put(url, Some(json!({"regenerate": true}))).await {
+                        Ok(secret) => {
+                            link.change_view(Some(ViewState::DisplayTokenSecret(secret)));
                         }
-                    });
-                }
+                        Err(err) => {
+                            link.show_error("Regenerating API token failed", err, true);
+                        }
+                    }
+                });
                 false
             }
         }
@@ -316,6 +299,13 @@ impl LoadableComponent for ProxmoxTokenView {
 }
 
 impl ProxmoxTokenView {
+    fn get_selected_record(&self) -> Option<ApiToken> {
+        self.selection
+            .selected_key()
+            .map(|key| self.store.read().lookup_record(&key).cloned())
+            .flatten()
+    }
+
     fn create_show_permissions_dialog(
         &self,
         ctx: &LoadableComponentContext<Self>,
