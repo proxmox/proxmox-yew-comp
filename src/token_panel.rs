@@ -194,11 +194,12 @@ impl LoadableComponent for ProxmoxTokenView {
             .with_spacer()
             .with_child(
                 ConfirmButton::new(tr!("Regenerate Secret"))
-                    .confirm_message(tr!("
-                        Regenerate the secret of the selected API token? All current use-sites will loose access!"
+                    .confirm_message(tr!(
+                        "Do you want to regenerate the secret of the selected API token? \
+                        All current usage sites will lose access!"
                     ))
                     .disabled(disabled)
-                    .on_activate(link.callback(|_| Msg::Regenerate))
+                    .on_activate(link.callback(|_| Msg::Regenerate)),
             )
             .with_spacer()
             .with_child(
