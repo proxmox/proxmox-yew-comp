@@ -32,17 +32,20 @@ pub struct SafeConfirmDialog {
     #[prop_or_default]
     pub renderer: Option<RenderFn<FormContext>>,
 
-    /// Close window callback.
-    ///
-    /// Parameter is set to true if the user confirmed the action.
+    /// Close/Abort callback.
     #[prop_or_default]
-    #[builder_cb(IntoEventCallback, into_event_callback, bool)]
-    pub on_close: Option<Callback<bool>>,
+    #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    pub on_close: Option<Callback<()>>,
 
     /// Confirm callback.
     #[prop_or_default]
     #[builder_cb(IntoEventCallback, into_event_callback, FormContext)]
     pub on_confirm: Option<Callback<FormContext>>,
+
+    /// Done callback, called after Close or Confirm.
+    #[builder_cb(IntoEventCallback, into_event_callback, ())]
+    #[prop_or_default]
+    pub on_done: Option<Callback<()>>,
 
     /// The message.
     #[prop_or_default]
@@ -127,12 +130,16 @@ impl Component for ProxmoxSafeConfirmDialog {
                 .text(props.submit_text.clone())
                 .on_submit({
                     let on_confirm = props.on_confirm.clone();
+                    let on_done = props.on_done.clone();
                     move |form_ctx: FormContext| {
                         if let Some(on_confirm) = &on_confirm {
                             let confirm = form_ctx.read().get_field_text("verify-id") == verify_id;
                             if confirm {
                                 on_confirm.emit(form_ctx.clone());
                             }
+                        }
+                        if let Some(on_done) = &on_done {
+                            on_done.emit(());
                         }
                     }
                 }),
@@ -158,9 +165,13 @@ impl Component for ProxmoxSafeConfirmDialog {
         Dialog::new(title)
             .on_close({
                 let on_close = props.on_close.clone();
-                move |_| {
+                let on_done = props.on_done.clone();
+                move |()| {
                     if let Some(on_close) = &on_close {
-                        on_close.emit(false);
+                        on_close.emit(());
+                    }
+                    if let Some(on_done) = &on_done {
+                        on_done.emit(());
                     }
                 }
             })
