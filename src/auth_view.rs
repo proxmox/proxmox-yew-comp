@@ -203,13 +203,22 @@ impl LoadableComponent for ProxmoxAuthView {
         match msg {
             Msg::Redraw => true,
             Msg::Remove => {
-                let info = match self.get_selected_record() {
-                    Some(info) => info,
-                    None => return true,
+                let Some(info) = self.get_selected_record() else {
+                    return true;
+                };
+
+                let base_url = match info.ty.as_str() {
+                    "openid" => &props.openid_base_url,
+                    "ldap" => &props.ldap_base_url,
+                    "ad" => &props.ad_base_url,
+                    _ => return true,
+                };
+
+                let Some(base_url) = base_url.clone() else {
+                    return true;
                 };
 
                 let link = ctx.link();
-                let base_url = props.base_url.clone();
                 link.clone().spawn(async move {
                     if let Err(err) = delete_item(base_url, info.realm.into()).await {
                         link.show_error(tr!("Unable to delete item"), err, true);
