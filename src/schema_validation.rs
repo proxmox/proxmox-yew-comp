@@ -2,7 +2,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use proxmox_schema::Schema;
-use pwt::widget::form::{InputType, ValidateFn};
+use serde_json::Value;
+
+use pwt::props::FieldBuilder;
+use pwt::widget::form::{InputType, NumberTypeInfo, ValidateFn};
 
 pub trait SchemaValidation {
     fn schema(mut self, schema: &'static Schema) -> Self
@@ -33,12 +36,23 @@ impl SchemaValidation for pwt::widget::form::Field {
                 self.max = s.maximum.map(|v| v as f64);
                 self.step = Some(1.0);
                 self.input_type = InputType::Number;
+                if let Some(default) = s.default {
+                    self.set_placeholder(default.to_string());
+                }
             }
             Schema::Number(s) => {
                 self.min = s.minimum;
                 self.max = s.maximum;
                 self.step = Some(1.0);
                 self.input_type = InputType::Number;
+                if let Some(default) = s.default {
+                    self.set_placeholder(default.to_string());
+                }
+            }
+            Schema::String(s) => {
+                if let Some(default) = s.default {
+                    self.set_placeholder(default.to_string());
+                }
             }
             _ => {}
         }
@@ -58,5 +72,47 @@ impl SchemaValidation for pwt::widget::form::Field {
         });
 
         self.set_validate(validate);
+    }
+}
+
+// Generic implementation for Number<T>
+impl<T> SchemaValidation for pwt::widget::form::Number<T>
+where
+    T: NumberTypeInfo,
+{
+    fn set_schema(&mut self, schema: &'static Schema) {
+        match schema {
+            Schema::Integer(s) => {
+                if let Some(minimum) = s.minimum {
+                    if let Ok(min_value) = T::value_to_number(&Value::Number(minimum.into())) {
+                        self.min = Some(min_value);
+                    }
+                }
+                if let Some(maximum) = s.maximum {
+                    if let Ok(max_value) = T::value_to_number(&Value::Number(maximum.into())) {
+                        self.max = Some(max_value);
+                    }
+                }
+                if let Some(default) = s.default {
+                    self.set_placeholder(default.to_string());
+                }
+            }
+            Schema::Number(s) => {
+                if let Some(minimum) = s.minimum {
+                    if let Ok(min_value) = T::value_to_number(&Value::from(minimum)) {
+                        self.min = Some(min_value);
+                    }
+                }
+                if let Some(maximum) = s.maximum {
+                    if let Ok(max_value) = T::value_to_number(&Value::from(maximum)) {
+                        self.max = Some(max_value);
+                    }
+                }
+                if let Some(default) = s.default {
+                    self.set_placeholder(default.to_string());
+                }
+            }
+            _ => {}
+        }
     }
 }
