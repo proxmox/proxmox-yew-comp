@@ -18,8 +18,8 @@ use crate::{ApiLoadCallback, IntoApiLoadCallback};
 
 use pwt_macros::builder;
 
-use crate::common_api_types::QemuPendingConfigValue;
 use crate::layout::list_tile::title_subtitle_column;
+use crate::pve_api_types::QemuPendingConfigValue;
 use crate::{EditDialog, EditableProperty, PropertyList};
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
@@ -48,6 +48,36 @@ pub struct PendingPropertyList {
 impl PendingPropertyList {
     pub fn new(properties: Rc<Vec<EditableProperty>>) -> Self {
         yew::props!(Self { properties })
+    }
+
+    /// Parse PVE pending configuration array
+    ///
+    /// Returns 2 Objects, containing current and pending configuration,
+    /// and the set of contained configuration  keys.
+    pub fn pve_pending_config_array_to_objects(
+        data: Vec<QemuPendingConfigValue>,
+    ) -> Result<(Value, Value, HashSet<String>), Error> {
+        let mut current = Map::new();
+        let mut pending = Map::new();
+        let mut keys = HashSet::new();
+
+        for item in data.iter() {
+            keys.insert(item.key.clone());
+
+            if let Some(value) = item.value.clone() {
+                current.insert(item.key.clone(), value);
+            }
+            if matches!(item.delete, Some(1) | Some(2)) {
+                continue;
+            }
+            if let Some(value) = item.pending.clone() {
+                pending.insert(item.key.clone(), value);
+            } else if let Some(value) = item.value.clone() {
+                pending.insert(item.key.clone(), value);
+            }
+        }
+
+        Ok((Value::Object(current), Value::Object(pending), keys))
     }
 
     pub fn render_property_value(
@@ -144,36 +174,6 @@ impl PendingPropertyList {
                 .with_child(content)
         }
     }
-}
-
-/// Parse PVE pending configuration array
-///
-/// Returns 2 Objects, containing current and pending configuration,
-/// and the set of contained configuration  keys.
-pub fn pve_pending_config_array_to_objects(
-    data: Vec<QemuPendingConfigValue>,
-) -> Result<(Value, Value, HashSet<String>), Error> {
-    let mut current = Map::new();
-    let mut pending = Map::new();
-    let mut keys = HashSet::new();
-
-    for item in data.iter() {
-        keys.insert(item.key.clone());
-
-        if let Some(value) = item.value.clone() {
-            current.insert(item.key.clone(), value);
-        }
-        if matches!(item.delete, Some(1) | Some(2)) {
-            continue;
-        }
-        if let Some(value) = item.pending.clone() {
-            pending.insert(item.key.clone(), value);
-        } else if let Some(value) = item.value.clone() {
-            pending.insert(item.key.clone(), value);
-        }
-    }
-
-    Ok((Value::Object(current), Value::Object(pending), keys))
 }
 
 pub enum Msg {
@@ -337,7 +337,8 @@ impl Component for PvePendingPropertyList {
             Msg::LoadResult(result) => {
                 self.data = match result {
                     Ok(data) => Some(
-                        pve_pending_config_array_to_objects(data).map_err(|err| err.to_string()),
+                        PendingPropertyList::pve_pending_config_array_to_objects(data)
+                            .map_err(|err| err.to_string()),
                     ),
                     Err(err) => Some(Err(err.to_string())),
                 };

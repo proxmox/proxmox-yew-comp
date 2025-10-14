@@ -1,22 +1,88 @@
+use pwt::prelude::*;
+
+mod boot_device_list;
 use anyhow::{bail, Error};
+pub use boot_device_list::{BootDeviceList, PveBootDeviceList};
+
+mod qemu_ostype_selector;
+pub use qemu_ostype_selector::{format_qemu_ostype, QemuOstypeSelector};
+
+mod qemu_cache_type_selector;
+pub use qemu_cache_type_selector::QemuCacheTypeSelector;
+
+mod qemu_controller_selector;
+pub use qemu_controller_selector::{parse_qemu_controller_name, QemuControllerSelector};
+
+mod qemu_cpu_flags_list;
+pub use qemu_cpu_flags_list::QemuCpuFlags;
+
+mod qemu_cpu_model_selector;
+pub use qemu_cpu_model_selector::QemuCpuModelSelector;
+
+mod qemu_disk_size_format_selector;
+pub use qemu_disk_size_format_selector::QemuDiskSizeFormatSelector;
+
+mod qemu_display_type_selector;
+pub use qemu_display_type_selector::{format_qemu_display_type, QemuDisplayTypeSelector};
+
+mod pve_guest_selector;
+pub use pve_guest_selector::{PveGuestSelector, PveGuestType};
+
+mod qemu_machine_version_selector;
+pub use qemu_machine_version_selector::QemuMachineVersionSelector;
+
+mod pve_network_selector;
+pub use pve_network_selector::PveNetworkSelector;
+
+mod pve_storage_content_selector;
+
+mod pve_vlan_field;
+pub use pve_vlan_field::PveVlanField;
+
+mod hotplug_feature_selector;
+pub use hotplug_feature_selector::{
+    format_hotplug_feature, normalize_hotplug_value, HotplugFeatureSelector,
+    PveHotplugFeatureSelector,
+};
+
+mod qemu_property;
+pub use qemu_property::{
+    extract_used_devices, qemu_acpi_property, qemu_agent_property, qemu_amd_sev_property,
+    qemu_bios_property, qemu_boot_property, qemu_cdrom_property, qemu_cpu_flags_property,
+    qemu_disk_property, qemu_display_property, qemu_efidisk_property, qemu_freeze_property,
+    qemu_hotplug_property, qemu_kernel_scheduler_property, qemu_kvm_property,
+    qemu_localtime_property, qemu_machine_property, qemu_memory_property, qemu_name_property,
+    qemu_network_mtu_property, qemu_network_property, qemu_onboot_property, qemu_ostype_property,
+    qemu_protection_property, qemu_scsihw_property, qemu_smbios_property,
+    qemu_sockets_cores_property, qemu_spice_enhancement_property, qemu_startdate_property,
+    qemu_startup_property, qemu_tablet_property, qemu_tpmstate_property, qemu_unused_disk_property,
+    qemu_vmstate_property, qemu_vmstatestorage_property,
+};
+
+mod pve_storage_selector;
+pub use pve_storage_selector::PveStorageSelector;
+
+use proxmox_schema::{property_string::PropertyString, ApiType, Schema};
+use pwt::widget::form::{delete_empty_values, Combobox, FormContext};
+
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
 
 use proxmox_client::ApiResponseData;
-use proxmox_schema::{property_string::PropertyString, ApiType, ObjectSchemaType, Schema};
-
-use yew::Callback;
-
-use pwt::widget::form::{delete_empty_values, FormContext};
-
-pub mod pve;
+use proxmox_schema::ObjectSchemaType;
 
 use crate::{ApiLoadCallback, PropertyEditorState};
 
-/// Load data from API endpoint into a defined Rust type, then serialize it back into Value.
-///
-/// This is useful for Edit windows/dialogs, making sure returend values have correct type
-/// (avoid bool as integer 0/1, or numbers as string).
+pub fn qemu_image_format_selector() -> Combobox {
+    Combobox::from_key_value_pairs([
+        ("raw", tr!("Raw disk image") + " (raw)"),
+        ("qcow2", tr!("QEMU image format") + " (qcow2)"),
+        ("vmdk", tr!("VMware image format") + " (vmdk)"),
+    ])
+    .placeholder("raw")
+}
+
+// fixme: move to proxmox-yew-comp::form
 pub fn typed_load<T: DeserializeOwned + Serialize>(
     url: impl Into<String>,
 ) -> ApiLoadCallback<Value> {
@@ -37,9 +103,37 @@ pub fn typed_load<T: DeserializeOwned + Serialize>(
     .url(url_cloned)
 }
 
+pub fn property_string_load_hook<P: ApiType + Serialize + DeserializeOwned>(
+    name: impl Into<String>,
+) -> Callback<Value, Result<Value, Error>> {
+    let name = name.into();
+    Callback::from(move |mut record: Value| {
+        flatten_property_string::<P>(&mut record, &name)?;
+        Ok(record)
+    })
+}
+
+pub fn property_string_submit_hook<P: ApiType + Serialize + DeserializeOwned>(
+    name: impl Into<String>,
+    delete_empty: bool,
+) -> Callback<PropertyEditorState, Result<Value, Error>> {
+    let name = name.into();
+    Callback::from(move |state: PropertyEditorState| {
+        let mut data = state.get_submit_data();
+        // fixme: add defaults
+        property_string_from_parts::<P>(&mut data, &name, true)?;
+        if delete_empty {
+            data = delete_empty_values(&data, &[&name], false);
+        }
+        Ok(data)
+    })
+}
+
+// Copied from proxmox-yew-com, added proper error handling
+
 /// Convert a property string to separate properties
 ///
-/// This is useful for use in an [`crate::EditDialog`] when editing parts of a property string.
+/// This is useful for use in an [`crate::widgets::EditDialog`] when editing parts of a property string.
 /// Takes the `name` property from `data`, parses it as property string, and sets it back to
 /// `data` as `_{key}`, so that this can be used as a field. If it's not desired
 /// to expose a property to the UI, simply add a hidden field to the form, or use
@@ -99,9 +193,10 @@ pub fn property_string_add_missing_data<T: ApiType + Serialize + DeserializeOwne
     Ok(())
 }
 
+// Copied from proxmox-yew-com and added proper error handling
 /// Uses an [`proxmox_schema::ObjectSchema`] to generate a property string from separate properties.
 ///
-/// This is useful for use in an [`crate::EditDialog`] when editing parts of a property string.
+/// This is useful for use in an [`crate::widgets::EditDialog`] when editing parts of a property string.
 /// Takes the single properties from `data` and assembles a property string.
 ///
 /// Property string data is removed from the original data, and re-added as assembled
@@ -154,36 +249,4 @@ pub fn property_string_from_parts<T: ApiType + Serialize + DeserializeOwned>(
     } else {
         bail!("property_string_from_parts: data is no Object");
     }
-}
-
-/// Standard load hook for property strings
-///
-/// Splits the property into separate values using [flatten_property_string].
-pub fn property_string_load_hook<P: ApiType + Serialize + DeserializeOwned>(
-    name: impl Into<String>,
-) -> Callback<Value, Result<Value, Error>> {
-    let name = name.into();
-    Callback::from(move |mut record: Value| {
-        flatten_property_string::<P>(&mut record, &name)?;
-        Ok(record)
-    })
-}
-
-/// Standard submit hook for property strings
-///
-/// Assembles the property from separate values using [property_string_from_parts].
-pub fn property_string_submit_hook<P: ApiType + Serialize + DeserializeOwned>(
-    name: impl Into<String>,
-    delete_empty: bool,
-) -> Callback<PropertyEditorState, Result<Value, Error>> {
-    let name = name.into();
-    Callback::from(move |state: PropertyEditorState| {
-        let mut data = state.get_submit_data();
-        // fixme: add defaults
-        property_string_from_parts::<P>(&mut data, &name, true)?;
-        if delete_empty {
-            data = delete_empty_values(&data, &[&name], false);
-        }
-        Ok(data)
-    })
 }

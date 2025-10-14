@@ -1,4 +1,5 @@
 pub mod list_tile;
+pub mod mobile_form;
 
 use pwt::prelude::*;
 
