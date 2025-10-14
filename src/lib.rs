@@ -72,6 +72,12 @@ pub mod configuration;
 mod edit_window;
 pub use edit_window::{EditWindow, PwtEditWindow};
 
+mod edit_dialog;
+pub use edit_dialog::EditDialog;
+
+mod editable_property;
+pub use editable_property::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
+
 mod key_value_grid;
 pub use key_value_grid::{KVGrid, KVGridRow, PwtKVGrid, RenderKVGridRecordFn};
 
