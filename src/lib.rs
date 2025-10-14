@@ -81,6 +81,8 @@ pub use editable_property::{EditableProperty, PropertyEditorState, RenderPropert
 mod key_value_grid;
 pub use key_value_grid::{KVGrid, KVGridRow, PwtKVGrid, RenderKVGridRecordFn};
 
+pub mod layout;
+
 mod loadable_component;
 pub use loadable_component::{
     LoadableComponent, LoadableComponentContext, LoadableComponentLink, LoadableComponentMaster,
@@ -99,6 +101,12 @@ pub use object_grid::{
 
 mod permission_panel;
 pub use permission_panel::{PermissionPanel, ProxmoxPermissionPanel};
+
+mod property_list;
+pub use property_list::PropertyList;
+
+mod pending_property_list;
+pub use pending_property_list::PendingPropertyList;
 
 mod realm_selector;
 pub use realm_selector::RealmSelector;

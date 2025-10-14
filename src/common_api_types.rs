@@ -1,6 +1,7 @@
 //! API types shared by different Proxmox products
 
 use anyhow::{bail, Error};
+use serde_json::Value;
 
 use proxmox_schema::{api, const_regex, ApiStringFormat, ApiType, Schema, StringSchema};
 
@@ -391,4 +392,22 @@ fn unescape_id(text: &str) -> Result<String, Error> {
     let text = String::from_utf8(data)?;
 
     Ok(text)
+}
+
+// Todo: should be defined in pve-api-types
+/// Get the virtual machine configuration with both current and pending values.
+///
+/// (`GET /api2/json/nodes/{node}/qemu/{vmid}/pending) -> Vec<QemuPendingConfigValue>`
+#[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
+pub struct QemuPendingConfigValue {
+    /// Configuration option name.
+    pub key: String,
+    /// Indicates a pending delete request if present and not 0. The value 2 indicates a force-delete request.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delete: Option<u8>,
+    /// Current value.
+    pub value: Option<Value>,
+    /// Pending value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pending: Option<Value>,
 }
