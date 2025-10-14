@@ -246,7 +246,7 @@ pub fn init_task_descr_table_base() {
     register_task_description("srvreload", (tr!("Service"), tr!("Reload")));
 }
 
-/// Uses information from the given [`UPID`] to render the task description with [`format_task_description`]
+/// Uses information from the given `UPID` to render the task description with [`format_task_description`]
 pub fn format_upid(upid: &str) -> String {
     match upid.parse::<ProxmoxUpid>() {
         Err(_) => upid.to_string(),

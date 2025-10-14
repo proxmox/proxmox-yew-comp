@@ -36,7 +36,7 @@ pub struct LoginPanel {
     /// Mobile Layout
     ///
     /// Use special layout for mobile apps. For example shows error in a [SnackBar]
-    /// if a [SnackBarController] context is available.
+    /// if a [SnackBarController](pwt::touch::SnackBarController) context is available.
     ///
     /// Note: Always use saved userid to avoid additional checkbox.
     #[prop_or(false)]

@@ -101,7 +101,7 @@ impl WizardPageRenderInfo {
 
     /// Navigates the wizard to the next page (if possible)
     ///
-    /// Note that callbacks setup with [`on_next`] will not be called,
+    /// Note that callbacks setup with `on_next` will not be called,
     /// otherwise it could lead to an infinite loop easily.
     pub fn go_to_next_page(&self) {
         let controller = self.controller.write();
