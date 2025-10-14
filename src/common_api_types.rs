@@ -86,39 +86,6 @@ impl std::str::FromStr for ProxmoxUpid {
     }
 }
 
-// copied from pbs_api_types::TaskListItem;
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
-/// Task properties.
-pub struct TaskListItem {
-    pub upid: String,
-    /// The node name where the task is running on.
-    pub node: String,
-    /// The Unix PID
-    pub pid: i64,
-    /// The task start time (Epoch)
-    pub pstart: u64,
-    /// The task start time (Epoch)
-    pub starttime: i64,
-    /// Worker type (arbitrary ASCII string)
-    pub worker_type: String,
-    /// Worker ID (arbitrary ASCII string)
-    pub worker_id: Option<String>,
-    /// The authenticated entity who started the task
-    pub user: String,
-    /// The task end time (Epoch)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub endtime: Option<i64>,
-    /// Task end status
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
-}
-
-impl ExtractPrimaryKey for TaskListItem {
-    fn extract_key(&self) -> Key {
-        Key::from(self.upid.clone())
-    }
-}
-
 /// Clasify task status.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum TaskStatusClass {
@@ -138,35 +105,6 @@ impl<T: AsRef<str>> From<T> for TaskStatusClass {
             TaskStatusClass::Error
         }
     }
-}
-
-// Copied from pbs-api-types
-#[derive(Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "PascalCase")]
-/// Describes a package for which an update is available.
-pub struct APTUpdateInfo {
-    /// Package name
-    pub package: String,
-    /// Package title
-    pub title: String,
-    /// Package architecture
-    pub arch: String,
-    /// Human readable package description
-    pub description: String,
-    /// New version to be updated to
-    pub version: String,
-    /// Old version currently installed
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub old_version: Option<String>,
-    /// Package origin
-    pub origin: String,
-    /// Package priority in human-readable form
-    pub priority: String,
-    /// Package section
-    pub section: String,
-    /// Custom extra field for additional package information
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub extra_info: Option<String>,
 }
 
 /// Certificate information.

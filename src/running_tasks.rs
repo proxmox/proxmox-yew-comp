@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use yew::html::{IntoEventCallback, IntoPropValue};
-use yew::virtual_dom::{VComp, VNode};
+use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{IntoOptionalRenderFn, RenderFn};
@@ -9,8 +9,8 @@ use pwt::state::{Loader, LoaderState, SharedStateObserver, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::{ActionIcon, Button, Container, Panel, Toolbar, Tooltip};
 
-use crate::common_api_types::TaskListItem;
 use crate::utils::{format_duration_human, format_upid, render_epoch_short};
+use pbs_api_types::TaskListItem;
 
 use pwt_macros::builder;
 
@@ -133,7 +133,7 @@ impl Component for ProxmoxRunningTasks {
 
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
-        let store = Store::new();
+        let store = Store::with_extract_key(|item: &TaskListItem| Key::from(item.upid.clone()));
 
         let _listener = props
             .loader

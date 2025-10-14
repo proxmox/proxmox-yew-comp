@@ -11,7 +11,7 @@ use gloo_timers::callback::Timeout;
 use html::IntoEventCallback;
 use serde_json::Map;
 use yew::html::IntoPropValue;
-use yew::virtual_dom::{VComp, VNode};
+use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::state::{PersistentState, Selection, Store};
@@ -22,7 +22,7 @@ use pwt::widget::{Button, Column, Fa, Row, Toolbar};
 
 use crate::utils::{format_upid, render_epoch_short};
 
-use crate::common_api_types::TaskListItem;
+use pbs_api_types::TaskListItem;
 
 use pwt_macros::builder;
 
@@ -170,7 +170,7 @@ impl LoadableComponent for ProxmoxTasks {
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let link = ctx.link();
         let selection = Selection::new().on_select(link.callback(|_| Msg::Redraw));
-        let store = Store::new();
+        let store = Store::with_extract_key(|item: &TaskListItem| Key::from(item.upid.clone()));
 
         let filter_form_context =
             FormContext::new().on_change(ctx.link().callback(|_| Msg::UpdateFilter));

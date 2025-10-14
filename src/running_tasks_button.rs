@@ -12,8 +12,8 @@ use pwt::props::{IntoOptionalRenderFn, RenderFn};
 use pwt::state::{Loader, LoaderState, SharedStateObserver};
 use pwt::widget::{Button, Container};
 
-use crate::common_api_types::TaskListItem;
 use crate::RunningTasks;
+use pbs_api_types::TaskListItem;
 
 use pwt_macros::builder;
 
