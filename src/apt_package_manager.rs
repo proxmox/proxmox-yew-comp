@@ -18,11 +18,11 @@ use pwt::widget::data_table::{
 };
 use pwt::widget::{Button, Container, Toolbar, Tooltip};
 
-use crate::common_api_types::APTUpdateInfo;
 use crate::percent_encoding::percent_encode_component;
 use crate::{
     DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster, XTermJs,
 };
+use proxmox_apt_api_types::APTUpdateInfo;
 
 use pwt_macros::builder;
 
@@ -340,10 +340,7 @@ impl ProxmoxAptPackageManager {
             DataTableHeaderGroup::new(tr!("Version"))
                 .with_child(DataTableColumn::new(tr!("current")).width("120px").render(
                     |entry: &_| match entry {
-                        TreeEntry::Package(_, info) => match &info.old_version {
-                            Some(old_version) => html! { old_version },
-                            None => html! {},
-                        },
+                        TreeEntry::Package(_, info) => html! { &info.old_version },
                         _ => html! {},
                     },
                 ))
