@@ -41,6 +41,11 @@ pub struct LoginPanel {
     #[builder]
     pub default_realm: Option<AttrValue>,
 
+    /// Determines if the realm box is shown/used
+    #[prop_or(true)]
+    #[builder]
+    pub realm_selectable: bool,
+
     /// Mobile Layout
     ///
     /// Use special layout for mobile apps. For example shows error in a [SnackBar]
@@ -282,6 +287,19 @@ impl ProxmoxLoginPanel {
                         .label_id(username_label_id)
                         .default(default_username)
                         .required(true)
+                        .validate({
+                            let realm_selectable = props.realm_selectable;
+                            move |value: &String| {
+                                if realm_selectable {
+                                    return Ok(());
+                                } else if let Some((user, realm)) = value.rsplit_once('@') {
+                                    if !user.is_empty() && !realm.is_empty() {
+                                        return Ok(());
+                                    }
+                                }
+                                anyhow::bail!("{}", tr!("invalid username"));
+                            }
+                        })
                         .autofocus(true),
                 )
                 .with_child(
@@ -317,13 +335,13 @@ impl ProxmoxLoginPanel {
         };
 
         let form_panel = form_panel
-            .with_child(
+            .with_optional_child(props.realm_selectable.then_some(
                 FieldLabel::new(tr!("Realm"))
                     .id(realm_label_id.clone())
                     .padding_top(1)
                     .padding_bottom(PwtSpace::Em(0.25)),
-            )
-            .with_child(
+            ))
+            .with_optional_child(props.realm_selectable.then_some(
                 RealmSelector::new()
                     .name("realm")
                     .label_id(realm_label_id)
@@ -333,7 +351,7 @@ impl ProxmoxLoginPanel {
                         move |r: BasicRealmInfo| link.send_message(Msg::UpdateRealm(r))
                     })
                     .default(default_realm),
-            )
+            ))
             .with_child(submit_button)
             .with_optional_child(self.login_error.as_ref().map(|msg| {
                 let icon_class = classes!("fa-lg", "fa", "fa-align-center", "fa-exclamation-triangle");
@@ -397,17 +415,19 @@ impl ProxmoxLoginPanel {
                 );
         }
 
-        let input_panel = input_panel.with_field(
-            tr!("Realm"),
-            RealmSelector::new()
-                .name("realm")
-                .path(props.domain_path.clone())
-                .on_change({
-                    let link = link.clone();
-                    move |r: BasicRealmInfo| link.send_message(Msg::UpdateRealm(r))
-                })
-                .default(default_realm),
-        );
+        if props.realm_selectable {
+            input_panel = input_panel.with_field(
+                tr!("Realm"),
+                RealmSelector::new()
+                    .name("realm")
+                    .path(props.domain_path.clone())
+                    .on_change({
+                        let link = link.clone();
+                        move |r: BasicRealmInfo| link.send_message(Msg::UpdateRealm(r))
+                    })
+                    .default(default_realm),
+            );
+        }
 
         let tfa_dialog = self.challenge.as_ref().map(|challenge| {
             TfaDialog::new(challenge.clone())
@@ -606,9 +626,19 @@ impl Component for ProxmoxLoginPanel {
             Msg::Submit => {
                 self.loading = true;
 
-                let username = self.form_ctx.read().get_field_text("username");
                 let password = self.form_ctx.read().get_field_text("password");
-                let realm = self.form_ctx.read().get_field_text("realm");
+                let (username, realm) = if props.realm_selectable {
+                    let username = self.form_ctx.read().get_field_text("username");
+                    let realm = self.form_ctx.read().get_field_text("realm");
+                    (username, realm)
+                } else {
+                    self.form_ctx
+                        .read()
+                        .get_field_text("username")
+                        .rsplit_once('@')
+                        .map(|(user, realm)| (user.to_string(), realm.to_string()))
+                        .unwrap_or_default()
+                };
 
                 self.send_login(ctx, username, password, realm);
                 if let (true, Some(controller)) = (props.mobile, ctx.link().snackbar_controller()) {
