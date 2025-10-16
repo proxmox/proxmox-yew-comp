@@ -14,7 +14,8 @@ BUILD_DEBS = $(addprefix $(BUILDDIR)/,$(DEBS))
 all:
 	cargo build --target wasm32-unknown-unknown
 
-$(BUILD_DEBS): deb
+.PHONY: deb
+deb: $(BUILD_DEBS)
 
 $(BUILDDIR):
 	rm -rf $@ $@.tmp
@@ -28,8 +29,7 @@ $(BUILDDIR):
 	  "proxmox-yew-comp" "$(DEB_VERSION_UPSTREAM)"
 	mv $@.tmp $@
 
-.PHONY: deb
-deb: $(BUILDDIR)
+$(BUILD_DEBS) &: $(BUILDDIR)
 	cd $(BUILDDIR)/proxmox-yew-comp; dpkg-buildpackage -b -uc -us
 	cp $(BUILDDIR)/proxmox-yew-comp/debian/control -f debian/control
 
