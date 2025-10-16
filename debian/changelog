@@ -1,3 +1,32 @@
+rust-proxmox-yew-comp (0.6.4) trixie; urgency=medium
+
+  * meter: change low-threshold default to 80% for zero optimum
+
+  * node info: avoid overly low warning/critical tresholds for memory usage
+
+  * implement API token panel
+
+  * SafeConfirmDialog: add on_done callback.
+
+  * fix #6885: auth_view: select appropriate base url for removing realms.
+
+  * implement SchemaValidation trait for Number fields.
+
+  * bump pwt dependency to version 0.7.2
+
+  * add correct error handling to property string helper functions.
+
+  * new edit dialog for mobile applications.
+
+  * add widgets to render property lists.
+
+  * add property editors and field definitions from pve-yew-mobile-gui.
+
+  * remove copied types - use types from pbs_api_types instead to avoid
+    duplication.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 17 Oct 2025 00:30:36 +0200
+
 rust-proxmox-yew-comp (0.6.3) trixie; urgency=medium
 
   * improve meter label and make it more flexible:
