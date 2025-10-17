@@ -6,6 +6,7 @@ use anyhow::Error;
 use proxmox_access_control::types::{ApiToken, UserWithTokens};
 use proxmox_auth_api::types::Authid;
 use proxmox_client::ApiResponseData;
+use pwt::css::ColorScheme;
 use serde_json::{json, Value};
 
 use yew::virtual_dom::{Key, VComp, VNode};
@@ -14,7 +15,9 @@ use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::form::{Checkbox, DisplayField, Field, FormContext, InputType};
-use pwt::widget::{Button, Column, Container, Dialog, InputPanel, Toolbar};
+use pwt::widget::{
+    Button, Column, Container, Dialog, FieldLabel, InputPanel, Row, Toolbar, Tooltip,
+};
 
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::{
@@ -321,65 +324,60 @@ impl ProxmoxTokenView {
     }
 
     fn show_secret_dialog(&self, ctx: &LoadableComponentContext<Self>, secret: &Value) -> Html {
-        let secret = secret.clone();
+        let tokenid = AttrValue::from(secret["tokenid"].as_str().unwrap_or("").to_owned());
+        let secret = AttrValue::from(secret["value"].as_str().unwrap_or("").to_owned());
 
         Dialog::new(tr!("Token Secret"))
             .with_child(
-                Column::new()
-                    .with_child(
-                        InputPanel::new()
-                            .padding(4)
-                            .with_large_field(
-                                tr!("Token ID"),
-                                DisplayField::new()
-                                    .value(AttrValue::from(
-                                        secret["tokenid"].as_str().unwrap_or("").to_owned(),
-                                    ))
-                                    .border(true),
-                            )
-                            .with_large_field(
-                                tr!("Secret"),
-                                DisplayField::new()
-                                    .value(AttrValue::from(
-                                        secret["value"].as_str().unwrap_or("").to_owned(),
-                                    ))
-                                    .border(true),
-                            ),
-                    )
-                    .with_child(
-                        Container::new()
-                            .style("opacity", "0")
-                            .with_child(AttrValue::from(
-                                secret["value"].as_str().unwrap_or("").to_owned(),
-                            )),
-                    )
-                    .with_child(
-                        Container::new()
-                            .padding(4)
-                            .class(pwt::css::FlexFit)
-                            .class("pwt-bg-color-warning-container")
-                            .class("pwt-color-on-warning-container")
-                            .with_child(tr!(
-                                "Please record the API token secret - it will only be displayed now"
-                            )),
-                    )
-                    .with_child(
-                        Toolbar::new()
-                            .class("pwt-bg-color-surface")
-                            .with_flex_spacer()
-                            .with_child(
-                                Button::new(tr!("Copy Secret Value"))
-                                    .icon_class("fa fa-clipboard")
-                                    .class("pwt-scheme-primary")
-                                    .on_activate({
-                                        move |_| {
-                                            copy_text_to_clipboard(
-                                                secret["value"].as_str().unwrap_or(""),
+                Column::new().with_child(
+                    InputPanel::new()
+                        .padding(4)
+                        .with_large_field(
+                            tr!("Token ID"),
+                            DisplayField::new()
+                                .value(tokenid)
+                                .name("tokenid")
+                                .border(true),
+                        )
+                        .with_large_custom_child(
+                            Container::new()
+                                .class("pwt-form-grid-col4")
+                                .with_child(FieldLabel::new(tr!("Secret")))
+                                .with_child(
+                                    Row::new()
+                                        .class("pwt-fill-grid-row")
+                                        .gap(2)
+                                        .with_child(
+                                            Field::new()
+                                                .input_type(InputType::Password)
+                                                .class(pwt::css::FlexFit)
+                                                .value(secret.clone())
+                                                .name("secret")
+                                                .read_only(true),
+                                        )
+                                        .with_child(
+                                            Tooltip::new(
+                                                Button::new_icon("fa fa-clipboard")
+                                                    .class(ColorScheme::Primary)
+                                                    .on_activate(move |_| {
+                                                        copy_text_to_clipboard(&secret)
+                                                    }),
                                             )
-                                        }
-                                    }),
-                            ),
-                    ),
+                                            .tip(tr!("Copy token secret to clipboard.")),
+                                        ),
+                                ),
+                        ),
+                ),
+            )
+            .with_child(
+                Container::new()
+                    .padding(4)
+                    .class(pwt::css::FlexFit)
+                    .class(ColorScheme::WarningContainer)
+                    .class("pwt-default-colors")
+                    .with_child(tr!(
+                        "Please record the API token secret - it will only be displayed now."
+                    )),
             )
             .on_close(ctx.link().change_view_callback(|_| None))
             .into()
