@@ -106,10 +106,7 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditOpenID) -> Html {
                 .submit(!is_edit),
         )
         .with_right_field(tr!("Autocreate Users"), Checkbox::new().name("autocreate"))
-        .with_field(
-            tr!("Client ID"),
-            Field::new().name("client-id").required(true),
-        )
+        .with_field(tr!("Default Realm"), Checkbox::new().name("default"))
         .with_right_field(
             tr!("Username Claim"),
             Combobox::new()
@@ -120,13 +117,17 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditOpenID) -> Html {
                 .placeholder(tr!("Default"))
                 .items(username_claim_items),
         )
-        .with_field(tr!("Client Key"), Field::new().name("client-key"))
+        .with_field(
+            tr!("Client ID"),
+            Field::new().name("client-id").required(true),
+        )
         .with_right_field(
             tr!("Scopes"),
             Field::new()
                 .name("scopes")
                 .placeholder(tr!("Default") + " (" + &tr!("email profile") + ")"),
         )
+        .with_field(tr!("Client Key"), Field::new().name("client-key"))
         .with_right_field(
             tr!("Prompt"),
             Combobox::new()
