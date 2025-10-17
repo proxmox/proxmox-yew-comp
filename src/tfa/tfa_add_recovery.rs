@@ -14,7 +14,7 @@ use crate::percent_encoding::percent_encode_component;
 
 use pwt_macros::builder;
 
-use crate::utils::copy_to_clipboard;
+use crate::utils::copy_text_to_clipboard;
 use crate::{AuthidSelector, EditWindow};
 
 #[derive(Debug, Deserialize)]
@@ -81,7 +81,6 @@ pub enum Msg {
 #[doc(hidden)]
 pub struct ProxmoxTfaAddRecovery {
     recovery_keys: Option<RecoveryKeyInfo>,
-    container_ref: NodeRef,
     print_counter: usize,
     print_portal: Option<Html>,
 }
@@ -107,14 +106,15 @@ fn render_input_form(_form_ctx: FormContext) -> Html {
 impl ProxmoxTfaAddRecovery {
     fn recovery_keys_dialog(&self, ctx: &Context<Self>, data: &RecoveryKeyInfo) -> Html {
         use std::fmt::Write;
-        let text: String = data
+        let text: AttrValue = data
             .keys
             .iter()
             .enumerate()
             .fold(String::new(), |mut acc, (i, key)| {
                 let _ = writeln!(acc, "{i}: {key}\n");
                 acc
-            });
+            })
+            .into();
 
         Dialog::new(tr!("Recovery Keys for user '{}'", data.userid))
             .on_close(ctx.props().on_close.clone())
@@ -128,8 +128,7 @@ impl ProxmoxTfaAddRecovery {
                                     .class("pwt-font-monospace")
                                     .padding(2)
                                     .border(true)
-                                    .with_child(text)
-                                    .into_html_with_ref(self.container_ref.clone()),
+                                    .with_child(text.clone()),
                             )
                             .with_child(
                                 Container::new()
@@ -147,10 +146,7 @@ impl ProxmoxTfaAddRecovery {
                                 Button::new(tr!("Copy Recovery Keys"))
                                     .icon_class("fa fa-clipboard")
                                     .class("pwt-scheme-primary")
-                                    .onclick({
-                                        let container_ref = self.container_ref.clone();
-                                        move |_| copy_to_clipboard(&container_ref)
-                                    }),
+                                    .on_activate(move |_| copy_text_to_clipboard(&text)),
                             )
                             .with_child(
                                 Button::new(tr!("Print Recovery Keys"))
@@ -172,7 +168,6 @@ impl Component for ProxmoxTfaAddRecovery {
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
             recovery_keys: None,
-            container_ref: NodeRef::default(),
             print_portal: None,
             print_counter: 0,
         }

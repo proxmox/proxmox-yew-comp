@@ -17,7 +17,9 @@ use pwt::widget::form::{Checkbox, DisplayField, Field, FormContext, InputType};
 use pwt::widget::{Button, Column, Container, Dialog, InputPanel, Toolbar};
 
 use crate::percent_encoding::percent_encode_component;
-use crate::utils::{copy_to_clipboard, epoch_to_input_value, render_boolean, render_epoch_short};
+use crate::utils::{
+    copy_text_to_clipboard, epoch_to_input_value, render_boolean, render_epoch_short,
+};
 use crate::{
     AuthidSelector, ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,
     LoadableComponentLink, LoadableComponentMaster, PermissionPanel,
@@ -121,7 +123,6 @@ enum Msg {
 struct ProxmoxTokenView {
     selection: Selection,
     store: Store<ApiToken>,
-    secret_node_ref: NodeRef,
     columns: Rc<Vec<DataTableHeader<ApiToken>>>,
 }
 
@@ -149,7 +150,6 @@ impl LoadableComponent for ProxmoxTokenView {
         Self {
             selection,
             store,
-            secret_node_ref: NodeRef::default(),
             columns: columns(),
         }
     }
@@ -351,8 +351,7 @@ impl ProxmoxTokenView {
                             .style("opacity", "0")
                             .with_child(AttrValue::from(
                                 secret["value"].as_str().unwrap_or("").to_owned(),
-                            ))
-                            .into_html_with_ref(self.secret_node_ref.clone()),
+                            )),
                     )
                     .with_child(
                         Container::new()
@@ -373,8 +372,11 @@ impl ProxmoxTokenView {
                                     .icon_class("fa fa-clipboard")
                                     .class("pwt-scheme-primary")
                                     .on_activate({
-                                        let copy_ref = self.secret_node_ref.clone();
-                                        move |_| copy_to_clipboard(&copy_ref)
+                                        move |_| {
+                                            copy_text_to_clipboard(
+                                                secret["value"].as_str().unwrap_or(""),
+                                            )
+                                        }
                                     }),
                             ),
                     ),
