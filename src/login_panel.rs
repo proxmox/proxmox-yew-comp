@@ -29,9 +29,9 @@ pub struct LoginPanel {
     pub on_login: Option<Callback<Authentication>>,
 
     /// Default realm.
-    #[prop_or(AttrValue::from("pam"))]
+    #[prop_or_default]
     #[builder]
-    pub default_realm: AttrValue,
+    pub default_realm: Option<AttrValue>,
 
     /// Mobile Layout
     ///
@@ -125,16 +125,16 @@ impl ProxmoxLoginPanel {
         });
     }
 
-    fn get_defaults(&self, props: &LoginPanel) -> (String, String) {
+    fn get_defaults(&self, props: &LoginPanel) -> (String, Option<AttrValue>) {
         let mut default_username = String::from("root");
-        let mut default_realm = props.default_realm.to_string();
+        let mut default_realm = props.default_realm.clone();
 
         if props.mobile || *self.save_username {
             let last_userid: String = (*self.last_username).to_string();
             if !last_userid.is_empty() {
                 if let Some((user, realm)) = last_userid.rsplit_once('@') {
                     default_username = user.to_owned();
-                    default_realm = realm.to_owned().into();
+                    default_realm = Some(AttrValue::from(realm.to_owned()));
                 }
             }
         }
