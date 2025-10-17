@@ -303,7 +303,7 @@ impl LoadableComponent for ProxmoxAuthView {
         if props.openid_base_url.is_some() {
             add_menu.add_item(
                 MenuItem::new(tr!("OpenId Connect Server"))
-                    //.icon_class("fa fa-fw fa-user-o")
+                    .icon_class("fa fa-fw fa-openid")
                     .on_select(
                         ctx.link()
                             .change_view_callback(|_| Some(ViewState::AddOpenID)),
