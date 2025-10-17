@@ -1,5 +1,8 @@
+use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::OnceLock;
 
+use pwt::css::ColorScheme;
 use pwt::props::PwtSpace;
 use pwt::state::PersistentState;
 use pwt::touch::{SnackBar, SnackBarContextExt};
@@ -11,11 +14,15 @@ use pwt::widget::form::{Checkbox, Field, Form, FormContext, InputType, ResetButt
 use pwt::widget::{Column, FieldLabel, InputPanel, LanguageSelector, Mask, Row};
 use pwt::{prelude::*, AsyncPool};
 
-use proxmox_login::{Authentication, SecondFactorChallenge, TicketResult};
+use proxmox_login::api::CreateTicketResponse;
+use proxmox_login::{Authentication, SecondFactorChallenge, Ticket, TicketResult};
 
+use crate::common_api_types::BasicRealmInfo;
 use crate::{tfa::TfaDialog, RealmSelector};
 
 use pwt_macros::builder;
+
+static OPENID_LOGIN: OnceLock<()> = OnceLock::new();
 
 /// Proxmox login panel
 ///
@@ -73,6 +80,9 @@ pub enum Msg {
     Yubico(String),
     RecoveryKey(String),
     WebAuthn(String),
+    UpdateRealm(BasicRealmInfo),
+    OpenIDLogin,
+    OpenIDAuthorization(HashMap<String, String>),
 }
 
 pub struct ProxmoxLoginPanel {
@@ -83,6 +93,7 @@ pub struct ProxmoxLoginPanel {
     save_username: PersistentState<bool>,
     last_username: PersistentState<String>,
     async_pool: AsyncPool,
+    selected_realm: Option<BasicRealmInfo>,
 }
 
 impl ProxmoxLoginPanel {
@@ -125,6 +136,121 @@ impl ProxmoxLoginPanel {
         });
     }
 
+    fn openid_redirect(&self, ctx: &Context<Self>) {
+        let link = ctx.link().clone();
+        let Some(realm) = self.selected_realm.as_ref() else {
+            return;
+        };
+        let Ok(location) = gloo_utils::window().location().origin() else {
+            return;
+        };
+
+        let data = serde_json::json!({
+            "realm": realm.realm,
+            "redirect-url": location,
+        });
+
+        self.async_pool.spawn(async move {
+            match crate::http_post::<String>("/access/openid/auth-url", Some(data)).await {
+                Ok(data) => {
+                    let _ = gloo_utils::window().location().assign(&data);
+                }
+                Err(err) => {
+                    link.send_message(Msg::LoginError(err.to_string()));
+                }
+            }
+        });
+    }
+
+    fn openid_redirection_authorization(ctx: &Context<Self>) {
+        let Ok(query_string) = gloo_utils::window().location().search() else {
+            return;
+        };
+
+        let mut auth = HashMap::new();
+        let query_parameters = query_string.split('&');
+
+        for param in query_parameters {
+            let mut key_value = param.split('=');
+
+            match (key_value.next(), key_value.next()) {
+                (Some("?code") | Some("code"), Some(value)) => {
+                    auth.insert("code".to_string(), value.to_string());
+                }
+                (Some("?state") | Some("state"), Some(value)) => {
+                    if let Ok(decoded) = percent_decode(value.as_bytes()).decode_utf8() {
+                        auth.insert("state".to_string(), decoded.to_string());
+                    }
+                }
+                _ => continue,
+            };
+        }
+
+        if auth.contains_key("code") && auth.contains_key("state") {
+            ctx.link().send_message(Msg::OpenIDAuthorization(auth));
+        }
+    }
+
+    fn openid_login(&self, ctx: &Context<Self>, mut auth: HashMap<String, String>) {
+        let link = ctx.link().clone();
+        let save_username = ctx.props().mobile || *self.save_username;
+        let Ok(origin) = gloo_utils::window().location().origin() else {
+            return;
+        };
+
+        auth.insert("redirect-url".into(), origin.clone());
+
+        let Ok(auth) = serde_json::to_value(auth) else {
+            return;
+        };
+
+        // run this only once, an openid state is only valid for one round trip. so resending it
+        // here will just fail. also use an unabortable future here for the same reason. otherwise
+        // we could be interrupted by, for example, the catalog loader needing to re-render the
+        // app.
+        OPENID_LOGIN.get_or_init(|| {
+            wasm_bindgen_futures::spawn_local(async move {
+                match crate::http_post::<CreateTicketResponse>("/access/openid/login", Some(auth))
+                    .await
+                {
+                    Ok(creds) => {
+                        let Some(ticket) = creds
+                            .ticket
+                            .or(creds.ticket_info)
+                            .and_then(|t| t.parse::<Ticket>().ok())
+                        else {
+                            log::error!("neither ticket nor ticket-info in openid login response!");
+                            return;
+                        };
+
+                        let Some(csrfprevention_token) = creds.csrfprevention_token else {
+                            log::error!("no CSRF prevention token in the openid login response!");
+                            return;
+                        };
+
+                        let auth = Authentication {
+                            api_url: "".to_string(),
+                            userid: creds.username,
+                            ticket,
+                            clustername: None,
+                            csrfprevention_token,
+                        };
+
+                        // update the authentication, set the realm and user for the next login and
+                        // reload without the query parameters.
+                        crate::http_set_auth(auth.clone());
+                        if save_username {
+                            PersistentState::<String>::new("ProxmoxLoginPanelUsername")
+                                .update(auth.userid.clone());
+                        }
+                        let _ = gloo_utils::window().location().assign(&origin);
+                    }
+                    Err(err) => link.send_message(Msg::LoginError(err.to_string())),
+                }
+            });
+        });
+    }
+
     fn get_defaults(&self, props: &LoginPanel) -> (String, Option<AttrValue>) {
         let mut default_username = String::from("root");
         let mut default_realm = props.default_realm.clone();
@@ -161,36 +287,64 @@ impl ProxmoxLoginPanel {
                 .on_webauthn(ctx.link().callback(Msg::WebAuthn))
         });
 
-        let form_panel = Column::new()
+        let mut form_panel = Column::new()
             .class(pwt::css::FlexFit)
             .padding(2)
-            .with_flex_spacer()
-            .with_child(
-                FieldLabel::new(tr!("User name"))
-                    .id(username_label_id.clone())
-                    .padding_bottom(PwtSpace::Em(0.25)),
-            )
-            .with_child(
-                Field::new()
-                    .name("username")
-                    .label_id(username_label_id)
-                    .default(default_username)
-                    .required(true)
-                    .autofocus(true),
-            )
-            .with_child(
-                FieldLabel::new(tr!("Password"))
-                    .id(password_label_id.clone())
-                    .padding_top(1)
-                    .padding_bottom(PwtSpace::Em(0.25)),
-            )
-            .with_child(
-                Field::new()
-                    .name("password")
-                    .label_id(password_label_id)
-                    .required(true)
-                    .input_type(InputType::Password),
-            )
+            .with_flex_spacer();
+
+        if self
+            .selected_realm
+            .as_ref()
+            .map(|r| r.ty != "openid")
+            .unwrap_or(true)
+        {
+            form_panel = form_panel
+                .with_child(
+                    FieldLabel::new(tr!("User name"))
+                        .id(username_label_id.clone())
+                        .padding_bottom(PwtSpace::Em(0.25)),
+                )
+                .with_child(
+                    Field::new()
+                        .name("username")
+                        .label_id(username_label_id)
+                        .default(default_username)
+                        .required(true)
+                        .autofocus(true),
+                )
+                .with_child(
+                    FieldLabel::new(tr!("Password"))
+                        .id(password_label_id.clone())
+                        .padding_top(1)
+                        .padding_bottom(PwtSpace::Em(0.25)),
+                )
+                .with_child(
+                    Field::new()
+                        .name("password")
+                        .label_id(password_label_id)
+                        .input_type(InputType::Password),
+                );
+        }
+
+        let submit_button = SubmitButton::new().class(ColorScheme::Primary).margin_y(4);
+
+        let submit_button = if self
+            .selected_realm
+            .as_ref()
+            .map(|r| r.ty == "openid")
+            .unwrap_or_default()
+        {
+            submit_button
+                .text(tr!("Login (OpenID redirect)"))
+                .check_dirty(false)
+                .on_submit(link.callback(move |_| Msg::OpenIDLogin))
+        } else {
+            submit_button
+                .text(tr!("Login"))
+                .on_submit(link.callback(move |_| Msg::Submit))
+        };
+
+        let form_panel = form_panel
             .with_child(
                 FieldLabel::new(tr!("Realm"))
                     .id(realm_label_id.clone())
@@ -202,15 +356,13 @@ impl ProxmoxLoginPanel {
                     .name("realm")
                     .label_id(realm_label_id)
                     .path(props.domain_path.clone())
+                    .on_change({
+                        let link = link.clone();
+                        move |r: BasicRealmInfo| link.send_message(Msg::UpdateRealm(r))
+                    })
                     .default(default_realm),
             )
-            .with_child(
-                SubmitButton::new()
-                    .class("pwt-scheme-primary")
-                    .margin_y(4)
-                    .text(tr!("Login"))
-                    .on_submit(link.callback(move |_| Msg::Submit)),
-            )
+            .with_child(submit_button)
             .with_optional_child(self.login_error.as_ref().map(|msg| {
                 let icon_class = classes!("fa-lg", "fa", "fa-align-center", "fa-exclamation-triangle");
                 let text = tr!("Login failed. Please try again ({0})", msg);
@@ -244,32 +396,46 @@ impl ProxmoxLoginPanel {
 
         let (default_username, default_realm) = self.get_defaults(props);
 
-        let input_panel = InputPanel::new()
+        let mut input_panel = InputPanel::new()
             .class(pwt::css::Overflow::Auto)
             .width("initial") // don't try to minimize size
-            .padding(4)
-            .with_field(
-                tr!("User name"),
-                Field::new()
-                    .name("username")
-                    .default(default_username)
-                    .required(true)
-                    .autofocus(true),
-            )
-            .with_field(
-                tr!("Password"),
-                Field::new()
-                    .name("password")
-                    .required(true)
-                    .input_type(InputType::Password),
-            )
-            .with_field(
-                tr!("Realm"),
-                RealmSelector::new()
-                    .name("realm")
-                    .path(props.domain_path.clone())
-                    .default(default_realm),
-            );
+            .padding(4);
+
+        if self
+            .selected_realm
+            .as_ref()
+            .map(|r| r.ty != "openid")
+            .unwrap_or(true)
+        {
+            input_panel = input_panel
+                .with_field(
+                    tr!("User name"),
+                    Field::new()
+                        .name("username")
+                        .default(default_username)
+                        .required(true)
+                        .autofocus(true),
+                )
+                .with_field(
+                    tr!("Password"),
+                    Field::new()
+                        .name("password")
+                        .required(true)
+                        .input_type(InputType::Password),
+                );
+        }
+
+        let input_panel = input_panel.with_field(
+            tr!("Realm"),
+            RealmSelector::new()
+                .name("realm")
+                .path(props.domain_path.clone())
+                .on_change({
+                    let link = link.clone();
+                    move |r: BasicRealmInfo| link.send_message(Msg::UpdateRealm(r))
+                })
+                .default(default_realm),
+        );
 
         let tfa_dialog = self.challenge.as_ref().map(|challenge| {
             TfaDialog::new(challenge.clone())
@@ -292,6 +458,24 @@ impl ProxmoxLoginPanel {
             .with_child(html! {<label id={save_username_label_id} style="user-select:none;">{tr!("Save User name")}</label>})
             .with_child(save_username_field);
 
+        let submit_button = SubmitButton::new().class(ColorScheme::Primary);
+
+        let submit_button = if self
+            .selected_realm
+            .as_ref()
+            .map(|r| r.ty == "openid")
+            .unwrap_or_default()
+        {
+            submit_button
+                .text(tr!("Login (OpenID redirect)"))
+                .check_dirty(false)
+                .on_submit(link.callback(move |_| Msg::OpenIDLogin))
+        } else {
+            submit_button
+                .text(tr!("Login"))
+                .on_submit(link.callback(move |_| Msg::Submit))
+        };
+
         let toolbar = Row::new()
             .padding(2)
             .gap(2)
@@ -301,12 +485,7 @@ impl ProxmoxLoginPanel {
             .with_flex_spacer()
             .with_child(save_username)
             .with_child(ResetButton::new())
-            .with_child(
-                SubmitButton::new()
-                    .class("pwt-scheme-primary")
-                    .text(tr!("Login"))
-                    .on_submit(link.callback(move |_| Msg::Submit)),
-            );
+            .with_child(submit_button);
 
         let form_panel = Column::new()
             .class(pwt::css::FlexFit)
@@ -342,6 +521,8 @@ impl Component for ProxmoxLoginPanel {
         let save_username = PersistentState::<bool>::new("ProxmoxLoginPanelSaveUsername");
         let last_username = PersistentState::<String>::new("ProxmoxLoginPanelUsername");
 
+        Self::openid_redirection_authorization(ctx);
+
         Self {
             form_ctx,
             loading: false,
@@ -350,6 +531,7 @@ impl Component for ProxmoxLoginPanel {
             save_username,
             last_username,
             async_pool: AsyncPool::new(),
+            selected_realm: None,
         }
     }
 
@@ -482,6 +664,20 @@ impl Component for ProxmoxLoginPanel {
                     }
                 }
                 true
+            }
+            Msg::UpdateRealm(realm) => {
+                self.selected_realm = Some(realm);
+                true
+            }
+            Msg::OpenIDLogin => {
+                self.loading = true;
+                self.openid_redirect(ctx);
+                false
+            }
+            Msg::OpenIDAuthorization(auth) => {
+                self.loading = true;
+                self.openid_login(ctx, auth);
+                false
             }
         }
     }

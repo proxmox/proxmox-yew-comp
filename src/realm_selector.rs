@@ -1,4 +1,5 @@
 use anyhow::{format_err, Error};
+use html::IntoEventCallback;
 use std::rc::Rc;
 
 use yew::html::IntoPropValue;
@@ -47,6 +48,11 @@ pub struct RealmSelector {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or("/access/domains".into())]
     pub path: AttrValue,
+
+    /// Change callback
+    #[builder_cb(IntoEventCallback, into_event_callback, BasicRealmInfo)]
+    #[prop_or_default]
+    pub on_change: Option<Callback<BasicRealmInfo>>,
 }
 
 impl Default for RealmSelector {
@@ -131,10 +137,15 @@ impl Component for ProxmoxRealmSelector {
                     .as_ref()
                     .and_then(|d| data.iter().find(|r| &r.realm == d))
                     .or_else(|| data.iter().find(|r| r.default.unwrap_or_default()))
-                    .or_else(|| data.iter().find(|r| r.ty == "pam"))
-                    .map(|r| AttrValue::from(r.realm.clone()));
+                    .or_else(|| data.iter().find(|r| r.ty == "pam"));
 
-                self.loaded_default_realm = realm;
+                if let Some(cb) = ctx.props().on_change.as_ref() {
+                    if let Some(realm) = realm {
+                        cb.emit(realm.clone());
+                    }
+                }
+
+                self.loaded_default_realm = realm.map(|r| AttrValue::from(r.realm.clone()));
                 self.store.set_data(data);
                 true
             }
@@ -153,12 +164,21 @@ impl Component for ProxmoxRealmSelector {
             .or_else(|| self.loaded_default_realm.clone())
             .unwrap_or(AttrValue::from("pam"));
 
+        let on_change = props.on_change.clone().map(|c| {
+            Callback::from(move |k| {
+                if let Some(realm) = store.read().lookup_record(&k) {
+                    c.emit(realm.clone());
+                }
+            })
+        });
+
         Selector::new(self.store.clone(), self.picker.clone())
             .with_std_props(&props.std_props)
             .with_input_props(&props.input_props)
             .required(true)
             .default(&default)
             .validate(self.validate.clone())
+            .on_change(on_change)
             // force re-render of the selector after load; returning `true` in update does not
             // re-render the selector by itself
             .key(format!("realm-selector-{default}"))
