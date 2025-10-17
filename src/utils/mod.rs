@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::Mutex;
 
+use percent_encoding::percent_decode;
 use serde_json::Value;
 use yew::prelude::*;
 
@@ -445,4 +446,35 @@ pub fn register_pve_tasks() {
     register_task_description("vzumount", ("CT", tr!("Unmount")));
     register_task_description("zfscreate", (tr!("ZFS Storage"), tr!("Create")));
     register_task_description("zfsremove", ("ZFS Pool", tr!("Remove")));
+}
+
+pub fn openid_redirection_authorization() -> Option<HashMap<String, String>> {
+    let Ok(query_string) = gloo_utils::window().location().search() else {
+        return None;
+    };
+
+    let mut auth = HashMap::new();
+    let query_parameters = query_string.split('&');
+
+    for param in query_parameters {
+        let mut key_value = param.split('=');
+
+        match (key_value.next(), key_value.next()) {
+            (Some("?code") | Some("code"), Some(value)) => {
+                auth.insert("code".to_string(), value.to_string());
+            }
+            (Some("?state") | Some("state"), Some(value)) => {
+                if let Ok(decoded) = percent_decode(value.as_bytes()).decode_utf8() {
+                    auth.insert("state".to_string(), decoded.to_string());
+                }
+            }
+            _ => continue,
+        };
+    }
+
+    if auth.contains_key("code") && auth.contains_key("state") {
+        return Some(auth);
+    }
+
+    None
 }

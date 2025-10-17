@@ -18,6 +18,7 @@ use proxmox_login::api::CreateTicketResponse;
 use proxmox_login::{Authentication, SecondFactorChallenge, Ticket, TicketResult};
 
 use crate::common_api_types::BasicRealmInfo;
+use crate::utils;
 use crate::{tfa::TfaDialog, RealmSelector};
 
 use pwt_macros::builder;
@@ -160,35 +161,6 @@ impl ProxmoxLoginPanel {
                 }
             }
         });
-    }
-
-    fn openid_redirection_authorization(ctx: &Context<Self>) {
-        let Ok(query_string) = gloo_utils::window().location().search() else {
-            return;
-        };
-
-        let mut auth = HashMap::new();
-        let query_parameters = query_string.split('&');
-
-        for param in query_parameters {
-            let mut key_value = param.split('=');
-
-            match (key_value.next(), key_value.next()) {
-                (Some("?code") | Some("code"), Some(value)) => {
-                    auth.insert("code".to_string(), value.to_string());
-                }
-                (Some("?state") | Some("state"), Some(value)) => {
-                    if let Ok(decoded) = percent_decode(value.as_bytes()).decode_utf8() {
-                        auth.insert("state".to_string(), decoded.to_string());
-                    }
-                }
-                _ => continue,
-            };
-        }
-
-        if auth.contains_key("code") && auth.contains_key("state") {
-            ctx.link().send_message(Msg::OpenIDAuthorization(auth));
-        }
     }
 
     fn openid_login(&self, ctx: &Context<Self>, mut auth: HashMap<String, String>) {
@@ -521,7 +493,9 @@ impl Component for ProxmoxLoginPanel {
         let save_username = PersistentState::<bool>::new("ProxmoxLoginPanelSaveUsername");
         let last_username = PersistentState::<String>::new("ProxmoxLoginPanelUsername");
 
-        Self::openid_redirection_authorization(ctx);
+        if let Some(auth) = utils::openid_redirection_authorization() {
+            ctx.link().send_message(Msg::OpenIDAuthorization(auth));
+        }
 
         Self {
             form_ctx,
