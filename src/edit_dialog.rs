@@ -14,7 +14,7 @@ use pwt::impl_yew_std_props_builder;
 use pwt::prelude::*;
 use pwt::props::{IntoSubmitCallback, SubmitCallback, WidgetStyleBuilder};
 use pwt::widget::form::{Checkbox, Form, FormContext, Hidden, ResetButton, SubmitButton};
-use pwt::widget::{AlertDialog, Column, Container, Progress, Row};
+use pwt::widget::{AlertDialog, Column, Container, Dialog, Progress, Row};
 use pwt::AsyncPool;
 
 use pwt_macros::builder;
@@ -23,16 +23,25 @@ use crate::{
     ApiLoadCallback, IntoApiLoadCallback, PropertyEditorState, RenderPropertyInputPanelFn,
 };
 
-/// Edit dialog for mobile applications.
+/// Edit dialog for for property editors.
 ///
-/// Implemented a SideDialog (botttom).
+/// Support mobile and desktop layout (Dialog vs. SideDialog (botttom)).
 ///
-/// Note: Like EditWindow, but for mobile
-///
-/// - no advanced_checkbox (should be set inside Appbar menu)
+/// Similar to [crate::EditWindow], but
+/// - "mobile" flag to swicth layout
 /// - no "draggable" property
 /// - no "resizable" property
 /// - no "autocenter" property
+///
+/// We also split load and submit into two phases:
+/// - loader: load object data
+/// - load_hook:  modify loaded data
+/// - submit_hook: extract and modify data before
+/// - on_submit: submit data from submit hook
+///
+/// Shares many properties with [crate::EditableProperty], any you can
+/// create an [EditDialog] from such property (`Editdialog::from(property)`).
+///
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct EditDialog {
@@ -121,6 +130,11 @@ pub struct EditDialog {
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
     pub edit: Option<bool>,
+
+    /// Layout for mobile devices.
+    #[builder]
+    #[prop_or(false)]
+    pub mobile: bool,
 }
 
 impl EditDialog {
@@ -326,16 +340,16 @@ impl Component for PwtEditDialog {
             None => html! {},
         };
 
-        let title = Container::new()
-            .class("pwt-font-size-title-large")
-            .with_child(props.title.clone());
-
         let input_panel = Column::new()
             .gap(1)
             .class(pwt::css::FlexFit)
             .class(pwt::css::AlignItems::Stretch)
             .class("pwt-font-size-title-medium")
-            .with_child(title)
+            .with_optional_child(props.mobile.then(|| {
+                Container::new()
+                    .class("pwt-font-size-title-large")
+                    .with_child(props.title.clone())
+            }))
             .with_flex_spacer()
             .with_child(
                 Container::new()
@@ -444,13 +458,23 @@ impl Component for PwtEditDialog {
 
         match &self.load_error {
             Some(msg) => AlertDialog::new(msg).on_close(on_close).into(),
-            None => SideDialog::new()
-                .style("max-height", "90dvh")
-                .with_child(form)
-                .with_optional_child(submit_alert)
-                .location(pwt::touch::SideDialogLocation::Bottom)
-                .on_close(on_close)
-                .into(),
+            None => {
+                if props.mobile {
+                    SideDialog::new()
+                        .style("max-height", "90dvh")
+                        .with_child(form)
+                        .with_optional_child(submit_alert)
+                        .location(pwt::touch::SideDialogLocation::Bottom)
+                        .on_close(on_close)
+                        .into()
+                } else {
+                    Dialog::new(props.title.clone())
+                        .with_child(form)
+                        .with_optional_child(submit_alert)
+                        .on_close(on_close)
+                        .into()
+                }
+            }
         }
     }
 }

@@ -314,6 +314,7 @@ impl Component for PvePendingPropertyList {
             }
             Msg::EditProperty(property) => {
                 let dialog = EditDialog::from(property.clone())
+                    .mobile(true)
                     .on_done(ctx.link().callback(|_| Msg::ShowDialog(None)))
                     .loader(props.editor_loader.clone())
                     .on_submit(props.on_submit.clone())

@@ -171,6 +171,7 @@ impl Component for PvePropertyList {
         match msg {
             Msg::EditProperty(property) => {
                 let dialog = EditDialog::from(property.clone())
+                    .mobile(true)
                     .on_done(ctx.link().callback(|_| Msg::ShowDialog(None)))
                     .loader(props.loader.clone())
                     .on_submit(props.on_submit.clone())
