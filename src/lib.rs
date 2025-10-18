@@ -108,6 +108,9 @@ pub use property_list::PropertyList;
 mod pending_property_list;
 pub use pending_property_list::PendingPropertyList;
 
+mod pending_property_grid;
+pub use pending_property_grid::PendingPropertyGrid;
+
 pub mod pve_api_types;
 
 mod realm_selector;
