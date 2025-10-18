@@ -22,6 +22,11 @@ pub type PveBootDeviceList = ManagedFieldMaster<PveBootDeviceField>;
 #[builder]
 pub struct BootDeviceList {
     qemu_config: Rc<Value>,
+
+    /// Layout for mobile devices.
+    #[builder]
+    #[prop_or(false)]
+    pub mobile: bool,
 }
 
 impl BootDeviceList {
@@ -270,6 +275,7 @@ impl ManagedField for PveBootDeviceField {
     }
 
     fn view(&self, ctx: &ManagedFieldContext<Self>) -> Html {
+        let props = ctx.props();
         let tiles: Vec<ListTile> = self
             .devices
             .iter()
@@ -278,7 +284,7 @@ impl ManagedField for PveBootDeviceField {
                 let enabled = item.enabled;
                 let is_last = (index + 1) == self.devices.len();
                 let leading: Html = Checkbox::new()
-                    .switch(true)
+                    .switch(props.mobile)
                     .checked(item.enabled)
                     .on_input(ctx.link().callback(move |_| Msg::Enable(index, !enabled)))
                     .into();

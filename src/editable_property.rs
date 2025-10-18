@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, Field, FormContext};
-use pwt::widget::Row;
+use pwt::widget::{InputPanel, Row};
 
 use pwt_macros::builder;
 use yew::html::{IntoEventCallback, IntoPropValue};
@@ -153,10 +153,12 @@ impl EditableProperty {
         name: impl Into<AttrValue>,
         title: impl Into<AttrValue>,
         default: impl IntoPropValue<Option<bool>>,
+        mobile: bool,
     ) -> Self {
         let name = name.into();
         let default = default.into_prop_value();
-        Self::new(name.clone(), title)
+        let title = title.into();
+        Self::new(name.clone(), title.clone())
             .placeholder(default.map(|default| render_boolean(default)))
             .renderer(move |_name, value, _data| {
                 let text: String = match value {
@@ -173,24 +175,33 @@ impl EditableProperty {
                 text.into()
             })
             .render_input_panel(move |_| {
-                Row::new()
-                    .with_flex_spacer()
-                    .with_child(
-                        Checkbox::new()
-                            .default(default)
-                            .name(name.to_string())
-                            .switch(true),
-                    )
-                    .into()
+                let checkbox = Checkbox::new()
+                    .default(default)
+                    .name(name.to_string())
+                    .switch(mobile);
+                if mobile {
+                    Row::new().with_flex_spacer().with_child(checkbox).into()
+                } else {
+                    checkbox.box_label(title.clone()).into()
+                }
             })
     }
 
-    pub fn new_string(name: impl Into<AttrValue>, title: impl Into<AttrValue>) -> Self {
+    pub fn new_string(
+        name: impl Into<AttrValue>,
+        title: impl Into<AttrValue>,
+        mobile: bool,
+    ) -> Self {
         let name = name.into();
-        Self::new(name.clone(), title).render_input_panel(move |_| {
-            Field::new()
-                .name(name.to_string())
-                .submit_empty(true)
+        let title = title.into();
+        Self::new(name.clone(), title.clone()).render_input_panel(move |_| {
+            let field = Field::new().name(name.to_string()).submit_empty(true);
+            if mobile {
+                return field.into();
+            }
+            InputPanel::new()
+                .class(pwt::css::FlexFit)
+                .with_field(title.clone(), field)
                 .into()
         })
     }

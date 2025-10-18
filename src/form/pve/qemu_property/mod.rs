@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::{delete_empty_values, Field, Number};
-use pwt::widget::Column;
+use pwt::widget::{Column, InputPanel};
 
 use crate::layout::mobile_form::label_field;
 use crate::SchemaValidation;
@@ -96,7 +96,11 @@ fn lookup_object_property_schema(
     None
 }
 
-fn render_string_input_panel(name: &'static str) -> RenderPropertyInputPanelFn {
+fn render_string_input_panel(
+    name: &'static str,
+    title: String,
+    mobile: bool,
+) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |_| {
         let mut input = Field::new().name(name.to_string()).submit_empty(true);
 
@@ -104,50 +108,61 @@ fn render_string_input_panel(name: &'static str) -> RenderPropertyInputPanelFn {
             input.set_schema(schema);
             input.set_required(!optional);
         }
-        input.into()
+        if mobile {
+            input.into()
+        } else {
+            InputPanel::new()
+                .class(pwt::css::FlexFit)
+                .with_field(title.clone(), input)
+                .into()
+        }
     })
 }
 
-pub fn qemu_onboot_property() -> EditableProperty {
-    EditableProperty::new_bool("onboot", tr!("Start on boot"), false).required(true)
+pub fn qemu_onboot_property(mobile: bool) -> EditableProperty {
+    EditableProperty::new_bool("onboot", tr!("Start on boot"), false, mobile).required(true)
 }
 
-pub fn qemu_tablet_property() -> EditableProperty {
-    EditableProperty::new_bool("tablet", tr!("Use tablet for pointer"), true).required(true)
+pub fn qemu_tablet_property(mobile: bool) -> EditableProperty {
+    EditableProperty::new_bool("tablet", tr!("Use tablet for pointer"), true, mobile).required(true)
 }
 
-pub fn qemu_acpi_property() -> EditableProperty {
-    EditableProperty::new_bool("acpi", tr!("ACPI support"), true).required(true)
+pub fn qemu_acpi_property(mobile: bool) -> EditableProperty {
+    EditableProperty::new_bool("acpi", tr!("ACPI support"), true, mobile).required(true)
 }
 
-pub fn qemu_kvm_property() -> EditableProperty {
-    EditableProperty::new_bool("kvm", tr!("KVM hardware virtualization"), true).required(true)
+pub fn qemu_kvm_property(mobile: bool) -> EditableProperty {
+    EditableProperty::new_bool("kvm", tr!("KVM hardware virtualization"), true, mobile)
+        .required(true)
 }
-pub fn qemu_freeze_property() -> EditableProperty {
-    EditableProperty::new_bool("freeze", tr!("Freeze CPU on startup"), false).required(true)
-}
-
-pub fn qemu_localtime_property() -> EditableProperty {
-    EditableProperty::new_bool("localtime", tr!("Use local time for RTC"), false).required(true)
+pub fn qemu_freeze_property(mobile: bool) -> EditableProperty {
+    EditableProperty::new_bool("freeze", tr!("Freeze CPU on startup"), false, mobile).required(true)
 }
 
-pub fn qemu_protection_property() -> EditableProperty {
-    EditableProperty::new_bool("protection", tr!("Protection"), false).required(true)
+pub fn qemu_localtime_property(mobile: bool) -> EditableProperty {
+    EditableProperty::new_bool("localtime", tr!("Use local time for RTC"), false, mobile)
+        .required(true)
 }
 
-pub fn qemu_name_property(vmid: u32) -> EditableProperty {
-    EditableProperty::new("name", tr!("Name"))
+pub fn qemu_protection_property(mobile: bool) -> EditableProperty {
+    EditableProperty::new_bool("protection", tr!("Protection"), false, mobile).required(true)
+}
+
+pub fn qemu_name_property(vmid: u32, mobile: bool) -> EditableProperty {
+    let title = tr!("Name");
+    EditableProperty::new("name", title.clone())
         .required(true)
         .placeholder(format!("VM {}", vmid))
-        .render_input_panel(render_string_input_panel("name"))
+        .render_input_panel(render_string_input_panel("name", title, mobile))
         .submit_hook(|state: PropertyEditorState| {
             let data = state.get_submit_data();
             Ok(delete_empty_values(&data, &["name"], false))
         })
 }
 
-pub fn qemu_ostype_property() -> EditableProperty {
-    EditableProperty::new("ostype", tr!("OS Type"))
+pub fn qemu_ostype_property(mobile: bool) -> EditableProperty {
+    let title = tr!("OS Type");
+    EditableProperty::new("ostype", title.clone())
         .required(true)
         .placeholder("Other")
         .renderer(|_, v, _| match v.as_str() {
@@ -155,11 +170,20 @@ pub fn qemu_ostype_property() -> EditableProperty {
             None => v.into(),
         })
         .render_input_panel(move |_| {
-            QemuOstypeSelector::new()
+            let input = QemuOstypeSelector::new()
                 .style("width", "100%")
                 .name("ostype")
-                .submit_empty(true)
-                .into()
+                .submit_empty(true);
+
+            if mobile {
+                input.into()
+            } else {
+                InputPanel::new()
+                    .style("min-width", "500px")
+                    .class(pwt::css::FlexFit)
+                    .with_field(title.clone(), input)
+                    .into()
+            }
         })
         .submit_hook(|state: PropertyEditorState| {
             let data = state.get_submit_data();
@@ -167,33 +191,38 @@ pub fn qemu_ostype_property() -> EditableProperty {
         })
 }
 
-pub fn qemu_startup_property() -> EditableProperty {
+pub fn qemu_startup_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("startup", tr!("Start/Shutdown order"))
         .required(true)
         .placeholder("order=any")
-        .render_input_panel(|_| {
-            Column::new()
-                .gap(2)
-                .class(pwt::css::Flex::Fill)
-                .class(pwt::css::AlignItems::Stretch)
-                .with_child(label_field(
-                    tr!("Order"),
-                    Number::<u32>::new().name("_order").placeholder(tr!("any")),
-                    true,
-                ))
-                .with_child(label_field(
-                    tr!("Startup delay"),
-                    Number::<u32>::new().name("_up").placeholder(tr!("default")),
-                    true,
-                ))
-                .with_child(label_field(
-                    tr!("Shutdown timeout"),
-                    Number::<u32>::new()
-                        .name("_down")
-                        .placeholder(tr!("default")),
-                    true,
-                ))
-                .into()
+        .render_input_panel(move |_| {
+            let order_field = Number::<u32>::new().name("_order").placeholder(tr!("any"));
+            let order_label = tr!("Order");
+            let up_label = tr!("Startup delay");
+            let up_field = Number::<u32>::new().name("_up").placeholder(tr!("default"));
+            let down_label = tr!("Shutdown timeout");
+            let down_field = Number::<u32>::new()
+                .name("_down")
+                .placeholder(tr!("default"));
+
+            if mobile {
+                Column::new()
+                    .gap(2)
+                    .class(pwt::css::Flex::Fill)
+                    .class(pwt::css::AlignItems::Stretch)
+                    .with_child(label_field(order_label, order_field, true))
+                    .with_child(label_field(up_label, up_field, true))
+                    .with_child(label_field(down_label, down_field, true))
+                    .into()
+            } else {
+                InputPanel::new()
+                    .class(pwt::css::FlexFit)
+                    .style("min-width", "500px")
+                    .with_field(order_label, order_field)
+                    .with_field(up_label, up_field)
+                    .with_field(down_label, down_field)
+                    .into()
+            }
         })
         .load_hook(property_string_load_hook::<QemuConfigStartup>("startup"))
         .submit_hook(property_string_submit_hook::<QemuConfigStartup>(
@@ -201,7 +230,7 @@ pub fn qemu_startup_property() -> EditableProperty {
         ))
 }
 
-pub fn qemu_boot_property() -> EditableProperty {
+pub fn qemu_boot_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("boot", tr!("Boot Order"))
         .revert_keys(Rc::new(
             ["boot", "bootdisk"]
@@ -217,6 +246,7 @@ pub fn qemu_boot_property() -> EditableProperty {
         ))
         .render_input_panel(move |state: PropertyEditorState| {
             BootDeviceList::new(state.record.clone())
+                .mobile(mobile)
                 .name("boot")
                 .submit_empty(true)
                 .into()
