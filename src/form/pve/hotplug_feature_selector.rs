@@ -58,7 +58,7 @@ pub fn format_hotplug_feature(value: &Value) -> String {
                     _ => s.to_string(),
                 })
                 .collect::<Vec<String>>()
-                .join(" "),
+                .join(", "),
         },
         _ => value.to_string(),
     }
