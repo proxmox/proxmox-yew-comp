@@ -11,7 +11,7 @@ use pwt::widget::{Column, Container};
 use crate::form::{flatten_property_string, property_string_from_parts};
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
-fn input_panel() -> RenderPropertyInputPanelFn {
+fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
         let advanced = form_ctx.get_show_advanced();
@@ -23,6 +23,7 @@ fn input_panel() -> RenderPropertyInputPanelFn {
         let sev_enabled = !amd_sev_type.is_empty();
 
         Column::new()
+            .style("min-width", (!mobile).then(|| "500px"))
             .gap(2)
             .padding_bottom(1) // avoid scrollbar ?!
             .with_child(
@@ -84,12 +85,12 @@ fn input_panel() -> RenderPropertyInputPanelFn {
     })
 }
 
-pub fn qemu_amd_sev_property() -> EditableProperty {
+pub fn qemu_amd_sev_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("amd-sev", tr!("AMD SEV"))
         .advanced_checkbox(true)
         .required(true)
         .placeholder(format!("{} ({})", tr!("Default"), tr!("Disabled")))
-        .render_input_panel(input_panel())
+        .render_input_panel(input_panel(mobile))
         .renderer(|_, v, _| {
             match serde_json::from_value::<Option<PropertyString<PveQemuSevFmt>>>(v.clone()) {
                 Ok(Some(data)) => {

@@ -279,16 +279,17 @@ pub fn qemu_hotplug_property() -> EditableProperty {
         })
 }
 
-pub fn qemu_startdate_property() -> EditableProperty {
+pub fn qemu_startdate_property(mobile: bool) -> EditableProperty {
     thread_local! {
         static QEMU_STARTDATE_MATCH: Regex = Regex::new(r#"^(now|\d{4}-\d{1,2}-\d{1,2}(T\d{1,2}:\d{1,2}:\d{1,2})?)$"#).unwrap();
     }
-    EditableProperty::new("startdate", tr!("RTC start date"))
+    let title = tr!("RTC start date");
+    EditableProperty::new("startdate", title.clone())
         .placeholder("now")
         // Note current schema definition does not include the regex, so we
         // need to add a validate function to the field.
         .render_input_panel(move |_| {
-            Field::new()
+            let input = Field::new()
                 .name("startdate")
                 .placeholder("now")
                 .submit_empty(true)
@@ -297,8 +298,15 @@ pub fn qemu_startdate_property() -> EditableProperty {
                         return Ok(());
                     }
                     bail!(tr!("Format") + ": \"now\" or \"2006-06-17T16:01:21\" or \"2006-06-17\"")
-                })
-                .into()
+                });
+            if mobile {
+                input.into()
+            } else {
+                InputPanel::new()
+                    .class(pwt::css::FlexFit)
+                    .with_field(title.clone(), input)
+                    .into()
+            }
         })
         .required(true)
         .submit_hook(|state: PropertyEditorState| {
@@ -307,20 +315,29 @@ pub fn qemu_startdate_property() -> EditableProperty {
         })
 }
 
-pub fn qemu_vmstatestorage_property(node: &str) -> EditableProperty {
-    EditableProperty::new("vmstatestorage", tr!("VM State storage"))
+pub fn qemu_vmstatestorage_property(node: &str, mobile: bool) -> EditableProperty {
+    let title = tr!("VM State storage");
+    EditableProperty::new("vmstatestorage", title.clone())
         .required(true)
         .placeholder(tr!("Automatic"))
         .render_input_panel({
             let node = node.to_owned();
             move |_| {
-                PveStorageSelector::new(node.clone())
+                let selector = PveStorageSelector::new(node.clone())
                     .mobile(true)
                     .name("vmstatestorage")
                     .submit_empty(true)
                     .content_types(vec![StorageContent::Images])
-                    .placeholder(tr!("Automatic (Storage used by the VM, or 'local')"))
-                    .into()
+                    .placeholder(tr!("Automatic (Storage used by the VM, or 'local')"));
+                if mobile {
+                    selector.into()
+                } else {
+                    InputPanel::new()
+                        .style("min-width", "600px")
+                        .class(pwt::css::FlexFit)
+                        .with_field(title.clone(), selector)
+                        .into()
+                }
             }
         })
         .submit_hook(|state: PropertyEditorState| {
