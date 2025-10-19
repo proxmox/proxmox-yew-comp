@@ -469,6 +469,7 @@ impl Component for PwtEditDialog {
                         .into()
                 } else {
                     Dialog::new(props.title.clone())
+                        .style("min-width", "300px")
                         .with_child(form)
                         .with_optional_child(submit_alert)
                         .on_close(on_close)
