@@ -11,13 +11,15 @@ use yew::html::IntoEventCallback;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::{CssLength, ExtractPrimaryKey, IntoSubmitCallback, SubmitCallback};
+use pwt::props::{ExtractPrimaryKey, IntoSubmitCallback, SubmitCallback};
 use pwt::touch::SnackBarContextExt;
-use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
+use pwt::widget::data_table::{
+    DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
+};
 use pwt::widget::{Column, Container};
 use pwt::AsyncAbortGuard;
 
-use crate::{ApiLoadCallback, IntoApiLoadCallback, PendingPropertyList, PropertyList};
+use crate::{ApiLoadCallback, IntoApiLoadCallback, PendingPropertyList};
 
 use pwt_macros::builder;
 
@@ -66,7 +68,7 @@ pub enum Msg {
     Load,
     LoadResult(Result<Vec<QemuPendingConfigValue>, String>),
     ShowDialog(Option<Html>),
-    EditProperty(EditableProperty),
+    EditProperty(Key),
     Revert(EditableProperty),
     RevertResult(Result<(), Error>),
 }
@@ -151,11 +153,15 @@ impl PvePendingPropertyGrid {
             .selection(self.selection.clone())
             .on_row_dblclick({
                 let link = ctx.link().clone();
-                let properties = Rc::clone(&props.properties);
                 move |event: &mut DataTableMouseEvent| {
-                    let key = AttrValue::from(event.record_key.to_string());
-                    if let Some(property) = properties.iter().find(|p| p.get_name() == Some(&key)) {
-                        link.send_message(Msg::EditProperty(property.clone()));
+                    link.send_message(Msg::EditProperty(event.record_key.clone()));
+                }
+            })
+            .on_row_keydown({
+                let link = ctx.link().clone();
+                move |event: &mut DataTableKeyboardEvent| {
+                    if event.key() == " " {
+                        link.send_message(Msg::EditProperty(event.record_key.clone()));
                     }
                 }
             });
@@ -236,7 +242,17 @@ impl Component for PvePendingPropertyGrid {
                     ctx.link().send_message(Msg::Load);
                 }
             }
-            Msg::EditProperty(property) => {
+            Msg::EditProperty(key) => {
+                let property_name: AttrValue = key.to_string().into();
+                let property = match props
+                    .properties
+                    .iter()
+                    .find(|p| p.get_name() == Some(&property_name))
+                {
+                    Some(property) => property,
+                    None => return false,
+                };
+
                 let dialog = EditDialog::from(property.clone())
                     .on_done(ctx.link().callback(|_| Msg::ShowDialog(None)))
                     .loader(props.editor_loader.clone())
