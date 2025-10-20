@@ -105,6 +105,9 @@ pub use permission_panel::{PermissionPanel, ProxmoxPermissionPanel};
 mod property_list;
 pub use property_list::PropertyList;
 
+mod property_grid;
+pub use property_grid::PropertyGrid;
+
 mod pending_property_list;
 pub use pending_property_list::PendingPropertyList;
 
