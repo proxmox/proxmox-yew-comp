@@ -20,12 +20,15 @@ use pwt_macros::builder;
 
 use crate::layout::list_tile::title_subtitle_column;
 use crate::pve_api_types::QemuPendingConfigValue;
-use crate::{PropertyEditDialog, EditableProperty, PropertyList};
+use crate::{EditableProperty, PropertyEditDialog, PropertyList};
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct PendingPropertyList {
+    #[prop_or_default]
+    pub class: Classes,
+
     /// List of property definitions
     pub properties: Rc<Vec<EditableProperty>>,
 
@@ -49,6 +52,8 @@ impl PendingPropertyList {
     pub fn new(properties: Rc<Vec<EditableProperty>>) -> Self {
         yew::props!(Self { properties })
     }
+
+    pwt::impl_class_prop_builder!();
 
     /// Parse PVE pending configuration array
     ///
@@ -247,7 +252,7 @@ impl PvePendingPropertyList {
         }
 
         Column::new()
-            .class(pwt::css::FlexFit)
+            .class(props.class.clone())
             .with_child(
                 List::from_tiles(tiles)
                     .virtual_scroll(Some(false))
