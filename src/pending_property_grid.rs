@@ -30,6 +30,7 @@ use crate::{EditableProperty, PropertyEditDialog};
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct PendingPropertyGrid {
+    /// CSS class
     #[prop_or_default]
     pub class: Classes,
 
@@ -148,7 +149,7 @@ impl PvePendingPropertyGrid {
 
         let table = DataTable::new(self.columns.clone(), self.store.clone())
             .class(pwt::css::FlexFit)
-            //.show_header(false)
+            .show_header(false)
             .virtual_scroll(false)
             .selection(self.selection.clone())
             .on_row_dblclick({
