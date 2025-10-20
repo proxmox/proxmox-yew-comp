@@ -16,7 +16,7 @@ use crate::{ApiLoadCallback, IntoApiLoadCallback};
 use pwt_macros::builder;
 
 use crate::layout::list_tile::form_list_tile;
-use crate::{EditDialog, EditableProperty};
+use crate::{PropertyEditDialog, EditableProperty};
 
 /// Render object properties as [List]
 #[derive(Properties, Clone, PartialEq)]
@@ -170,7 +170,7 @@ impl Component for PvePropertyList {
         let props = ctx.props();
         match msg {
             Msg::EditProperty(property) => {
-                let dialog = EditDialog::from(property.clone())
+                let dialog = PropertyEditDialog::from(property.clone())
                     .mobile(true)
                     .on_done(ctx.link().callback(|_| Msg::ShowDialog(None)))
                     .loader(props.loader.clone())

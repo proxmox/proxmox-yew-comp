@@ -12,7 +12,7 @@ use pwt_macros::builder;
 use yew::html::{IntoEventCallback, IntoPropValue};
 
 use crate::utils::render_boolean;
-use crate::EditDialog;
+use crate::PropertyEditDialog;
 
 /// For use with [EditableProperty]
 #[derive(Derivative)]
@@ -225,14 +225,14 @@ impl EditableProperty {
     }
 }
 
-impl From<EditableProperty> for EditDialog {
+impl From<EditableProperty> for PropertyEditDialog {
     fn from(property: EditableProperty) -> Self {
         let renderer = match property.render_input_panel {
             Some(renderer) => renderer,
             None => RenderPropertyInputPanelFn::new(|_| html! {}),
         };
 
-        EditDialog::new(property.title)
+        PropertyEditDialog::new(property.title)
             .advanced_checkbox(property.advanced_checkbox)
             .submit_hook(property.submit_hook)
             .load_hook(property.load_hook)

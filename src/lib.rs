@@ -72,8 +72,8 @@ pub mod configuration;
 mod edit_window;
 pub use edit_window::{EditWindow, PwtEditWindow};
 
-mod edit_dialog;
-pub use edit_dialog::EditDialog;
+mod property_edit_dialog;
+pub use property_edit_dialog::PropertyEditDialog;
 
 mod editable_property;
 pub use editable_property::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};

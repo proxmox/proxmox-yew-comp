@@ -20,7 +20,7 @@ use pwt_macros::builder;
 
 use crate::layout::list_tile::title_subtitle_column;
 use crate::pve_api_types::QemuPendingConfigValue;
-use crate::{EditDialog, EditableProperty, PropertyList};
+use crate::{PropertyEditDialog, EditableProperty, PropertyList};
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
 #[derive(Properties, Clone, PartialEq)]
@@ -313,7 +313,7 @@ impl Component for PvePendingPropertyList {
                 }
             }
             Msg::EditProperty(property) => {
-                let dialog = EditDialog::from(property.clone())
+                let dialog = PropertyEditDialog::from(property.clone())
                     .mobile(true)
                     .on_done(ctx.link().callback(|_| Msg::ShowDialog(None)))
                     .loader(props.editor_loader.clone())

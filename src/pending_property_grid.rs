@@ -24,7 +24,7 @@ use crate::{ApiLoadCallback, IntoApiLoadCallback, PendingPropertyList};
 use pwt_macros::builder;
 
 use crate::pve_api_types::QemuPendingConfigValue;
-use crate::{EditDialog, EditableProperty};
+use crate::{EditableProperty, PropertyEditDialog};
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
 #[derive(Properties, Clone, PartialEq)]
@@ -253,7 +253,7 @@ impl Component for PvePendingPropertyGrid {
                     None => return false,
                 };
 
-                let dialog = EditDialog::from(property.clone())
+                let dialog = PropertyEditDialog::from(property.clone())
                     .on_done(ctx.link().callback(|_| Msg::ShowDialog(None)))
                     .loader(props.editor_loader.clone())
                     .on_submit(props.on_submit.clone())
