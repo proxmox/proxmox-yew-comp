@@ -16,12 +16,16 @@ use crate::{ApiLoadCallback, IntoApiLoadCallback};
 use pwt_macros::builder;
 
 use crate::layout::list_tile::form_list_tile;
-use crate::{PropertyEditDialog, EditableProperty};
+use crate::{EditableProperty, PropertyEditDialog};
 
 /// Render object properties as [List]
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct PropertyList {
+    /// CSS class
+    #[prop_or_default]
+    pub class: Classes,
+
     /// List of property definitions
     pub properties: Rc<Vec<EditableProperty>>,
 
@@ -40,6 +44,8 @@ impl PropertyList {
     pub fn new(properties: Rc<Vec<EditableProperty>>) -> Self {
         yew::props!(Self { properties })
     }
+
+    pwt::impl_class_prop_builder!();
 
     pub fn render_property_value(record: &Value, property: &EditableProperty) -> Html {
         let (render_name, value);
@@ -139,7 +145,7 @@ impl PvePropertyList {
         }
 
         Column::new()
-            .class(pwt::css::FlexFit)
+            .class(props.class.clone())
             .with_child(
                 List::from_tiles(tiles)
                     .virtual_scroll(Some(false))

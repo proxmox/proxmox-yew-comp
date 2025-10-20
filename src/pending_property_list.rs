@@ -26,6 +26,7 @@ use crate::{EditableProperty, PropertyEditDialog, PropertyList};
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct PendingPropertyList {
+    /// CSS class
     #[prop_or_default]
     pub class: Classes,
 
