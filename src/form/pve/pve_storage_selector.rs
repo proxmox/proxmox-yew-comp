@@ -76,7 +76,7 @@ impl PveStorageSelectorComp {
         content: Option<Vec<StorageContent>>,
     ) -> Result<Vec<StorageInfo>, Error> {
         let url = format!("/nodes/{}/storage", percent_encode_component(&node));
-        let mut param = json!({ "format": true });
+        let mut param = json!({ "format": "1" });
         if let Some(content) = content {
             let content = content
                 .iter()
