@@ -192,11 +192,12 @@ pub enum Msg {
 }
 
 pub struct PvePendingPropertyList {
-    data: Option<Result<(Value, Value, HashSet<String>), String>>,
+    data: Option<(Value, Value, HashSet<String>)>,
+    error: Option<String>,
     reload_timeout: Option<Timeout>,
     load_guard: Option<AsyncAbortGuard>,
     revert_guard: Option<AsyncAbortGuard>,
-    edit_dialog: Option<Html>,
+    dialog: Option<Html>,
 }
 
 impl PvePendingPropertyList {
@@ -227,43 +228,6 @@ impl PvePendingPropertyList {
             list_tile
         }
     }
-
-    fn view_property(
-        &self,
-        ctx: &Context<Self>,
-        (record, pending, keys): &(Value, Value, HashSet<String>),
-    ) -> Html {
-        let props = ctx.props();
-
-        let mut tiles: Vec<ListTile> = Vec::new();
-
-        for item in props.properties.iter() {
-            let name = match item.get_name() {
-                Some(name) => name.to_string(),
-                None::<_> => {
-                    log::error!("pending property list: skiping property without name");
-                    continue;
-                }
-            };
-            if item.required || keys.contains(&name) {
-                let mut tile = self.property_tile(ctx, record, pending, item);
-                tile.set_key(name);
-                tiles.push(tile);
-            }
-        }
-
-        Column::new()
-            .class(props.class.clone())
-            .with_child(
-                List::from_tiles(tiles)
-                    .virtual_scroll(Some(false))
-                    //fixme: .separator(props.separator)
-                    .grid_template_columns("1fr")
-                    .class(pwt::css::FlexFit),
-            )
-            .with_optional_child(self.edit_dialog.clone())
-            .into()
-    }
 }
 
 impl Component for PvePendingPropertyList {
@@ -274,10 +238,11 @@ impl Component for PvePendingPropertyList {
         ctx.link().send_message(Msg::Load);
         Self {
             data: None,
+            error: None,
             reload_timeout: None,
             load_guard: None,
             revert_guard: None,
-            edit_dialog: None,
+            dialog: None,
         }
     }
 
@@ -325,7 +290,7 @@ impl Component for PvePendingPropertyList {
                     .loader(props.editor_loader.clone())
                     .on_submit(props.on_submit.clone())
                     .into();
-                self.edit_dialog = Some(dialog);
+                self.dialog = Some(dialog);
             }
             Msg::Load => {
                 self.reload_timeout = None;
@@ -342,13 +307,17 @@ impl Component for PvePendingPropertyList {
                 }
             }
             Msg::LoadResult(result) => {
-                self.data = match result {
-                    Ok(data) => Some(
-                        PendingPropertyList::pve_pending_config_array_to_objects(data)
-                            .map_err(|err| err.to_string()),
-                    ),
-                    Err(err) => Some(Err(err.to_string())),
-                };
+                let result = result.and_then(|data| {
+                    PendingPropertyList::pve_pending_config_array_to_objects(data)
+                        .map_err(|err| err.to_string())
+                });
+                match result {
+                    Ok(data) => {
+                        self.data = Some(data);
+                        self.error = None;
+                    }
+                    Err(err) => self.error = Some(err),
+                }
                 let link = ctx.link().clone();
                 self.reload_timeout = Some(Timeout::new(3000, move || {
                     link.send_message(Msg::Load);
@@ -358,14 +327,58 @@ impl Component for PvePendingPropertyList {
                 if dialog.is_none() && self.reload_timeout.is_some() {
                     ctx.link().send_message(Msg::Load);
                 }
-                self.edit_dialog = dialog;
+                self.dialog = dialog;
             }
         }
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        crate::layout::render_loaded_data(&self.data, |data| self.view_property(ctx, data))
+        let props = ctx.props();
+
+        let mut tiles: Vec<ListTile> = Vec::new();
+
+        let (current, pending, keys): (Value, Value, HashSet<String>) = match &self.data {
+            Some(data) => data.clone(),
+            _ => (Value::Null, Value::Null, HashSet::new()),
+        };
+
+        for item in props.properties.iter() {
+            let name = match item.get_name() {
+                Some(name) => name.to_string(),
+                None::<_> => {
+                    log::error!("pending property list: skiping property without name");
+                    continue;
+                }
+            };
+            if item.required || keys.contains(&name) {
+                let mut tile = self.property_tile(ctx, &current, &pending, item);
+                tile.set_key(name);
+                tiles.push(tile);
+            }
+        }
+
+        let loading = self.data.is_none() && self.error.is_none();
+
+        Column::new()
+            .class(props.class.clone())
+            .with_optional_child(
+                loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
+            )
+            .with_child(
+                List::from_tiles(tiles)
+                    .virtual_scroll(Some(false))
+                    //fixme: .separator(props.separator)
+                    .grid_template_columns("1fr")
+                    .class(pwt::css::FlexFit),
+            )
+            .with_optional_child(
+                self.error
+                    .as_deref()
+                    .map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
+            )
+            .with_optional_child(self.dialog.clone())
+            .into()
     }
 }
 
