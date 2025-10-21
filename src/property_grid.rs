@@ -86,7 +86,8 @@ pub enum Msg {
 }
 
 pub struct PvePropertyGrid {
-    data: Option<Result<Value, String>>,
+    data: Option<Value>,
+    error: Option<String>,
     reload_timeout: Option<Timeout>,
     load_guard: Option<AsyncAbortGuard>,
     edit_dialog: Option<Html>,
@@ -121,42 +122,11 @@ impl PvePropertyGrid {
         toolbar.into()
     }
 
-    fn view_properties(&self, ctx: &Context<Self>) -> Html {
-        let props = ctx.props();
-
-        let table = DataTable::new(self.columns.clone(), self.store.clone())
-            .class(pwt::css::FlexFit)
-            .show_header(false)
-            .virtual_scroll(false)
-            .selection(self.selection.clone())
-            .on_row_dblclick({
-                let link = ctx.link().clone();
-                move |event: &mut DataTableMouseEvent| {
-                    link.send_message(Msg::EditProperty(event.record_key.clone()));
-                }
-            })
-            .on_row_keydown({
-                let link = ctx.link().clone();
-                move |event: &mut DataTableKeyboardEvent| {
-                    if event.key() == " " {
-                        link.send_message(Msg::EditProperty(event.record_key.clone()));
-                    }
-                }
-            });
-
-        Column::new()
-            .class(props.class.clone())
-            .with_child(self.toolbar(ctx))
-            .with_child(table)
-            .with_optional_child(self.edit_dialog.clone())
-            .into()
-    }
-
     fn update_store(&mut self, ctx: &Context<Self>) {
         let props = ctx.props();
 
         let record = match &self.data {
-            Some(Ok(data)) => data.clone(),
+            Some(data) => data.clone(),
             _ => Value::Null,
         };
 
@@ -213,6 +183,7 @@ impl Component for PvePropertyGrid {
 
         let mut me = Self {
             data: None,
+            error: None,
             reload_timeout: None,
             load_guard: None,
             edit_dialog: None,
@@ -256,7 +227,13 @@ impl Component for PvePropertyGrid {
                 }
             }
             Msg::LoadResult(result) => {
-                self.data = Some(result);
+                match result {
+                    Ok(data) => {
+                        self.data = Some(data);
+                        self.error = None;
+                    }
+                    Err(err) => self.error = Some(err),
+                }
                 self.update_store(ctx);
                 let link = ctx.link().clone();
                 self.reload_timeout = Some(Timeout::new(3000, move || {
@@ -282,7 +259,44 @@ impl Component for PvePropertyGrid {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        crate::layout::render_loaded_data(&self.data, |_data| self.view_properties(ctx))
+        let props = ctx.props();
+
+        let table = DataTable::new(self.columns.clone(), self.store.clone())
+            .class(pwt::css::FlexFit)
+            .show_header(false)
+            .virtual_scroll(false)
+            .selection(self.selection.clone())
+            .on_row_dblclick({
+                let link = ctx.link().clone();
+                move |event: &mut DataTableMouseEvent| {
+                    link.send_message(Msg::EditProperty(event.record_key.clone()));
+                }
+            })
+            .on_row_keydown({
+                let link = ctx.link().clone();
+                move |event: &mut DataTableKeyboardEvent| {
+                    if event.key() == " " {
+                        link.send_message(Msg::EditProperty(event.record_key.clone()));
+                    }
+                }
+            });
+
+        let loading = self.data.is_none() && self.error.is_none();
+
+        Column::new()
+            .class(props.class.clone())
+            .with_optional_child(
+                loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
+            )
+            .with_child(self.toolbar(ctx))
+            .with_child(table)
+            .with_optional_child(
+                self.error
+                    .as_deref()
+                    .map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
+            )
+            .with_optional_child(self.edit_dialog.clone())
+            .into()
     }
 }
 
