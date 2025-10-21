@@ -84,7 +84,8 @@ pub enum Msg {
 }
 
 pub struct PvePendingPropertyGrid {
-    data: Option<Result<(Value, Value, HashSet<String>), String>>,
+    data: Option<(Value, Value, HashSet<String>)>,
+    error: Option<String>,
     reload_timeout: Option<Timeout>,
     load_guard: Option<AsyncAbortGuard>,
     revert_guard: Option<AsyncAbortGuard>,
@@ -99,7 +100,7 @@ impl PvePendingPropertyGrid {
         let props = ctx.props();
 
         let (current, pending, keys): (Value, Value, HashSet<String>) = match &self.data {
-            Some(Ok(data)) => data.clone(),
+            Some(data) => data.clone(),
             _ => (Value::Null, Value::Null, HashSet::new()),
         };
 
@@ -190,37 +191,6 @@ impl PvePendingPropertyGrid {
 
         toolbar.into()
     }
-
-    fn view_properties(&self, ctx: &Context<Self>) -> Html {
-        let props = ctx.props();
-
-        let table = DataTable::new(self.columns.clone(), self.store.clone())
-            .class(pwt::css::FlexFit)
-            .show_header(false)
-            .virtual_scroll(false)
-            .selection(self.selection.clone())
-            .on_row_dblclick({
-                let link = ctx.link().clone();
-                move |event: &mut DataTableMouseEvent| {
-                    link.send_message(Msg::EditProperty(event.record_key.clone()));
-                }
-            })
-            .on_row_keydown({
-                let link = ctx.link().clone();
-                move |event: &mut DataTableKeyboardEvent| {
-                    if event.key() == " " {
-                        link.send_message(Msg::EditProperty(event.record_key.clone()));
-                    }
-                }
-            });
-
-        Column::new()
-            .class(props.class.clone())
-            .with_child(self.toolbar(ctx))
-            .with_child(table)
-            .with_optional_child(self.edit_dialog.clone())
-            .into()
-    }
 }
 
 impl Component for PvePendingPropertyGrid {
@@ -245,6 +215,7 @@ impl Component for PvePendingPropertyGrid {
 
         let mut me = Self {
             data: None,
+            error: None,
             reload_timeout: None,
             load_guard: None,
             revert_guard: None,
@@ -327,13 +298,17 @@ impl Component for PvePendingPropertyGrid {
                 }
             }
             Msg::LoadResult(result) => {
-                self.data = match result {
-                    Ok(data) => Some(
-                        PendingPropertyList::pve_pending_config_array_to_objects(data)
-                            .map_err(|err| err.to_string()),
-                    ),
-                    Err(err) => Some(Err(err.to_string())),
-                };
+                let result = result.and_then(|data| {
+                    PendingPropertyList::pve_pending_config_array_to_objects(data)
+                        .map_err(|err| err.to_string())
+                });
+                match result {
+                    Ok(data) => {
+                        self.data = Some(data);
+                        self.error = None;
+                    }
+                    Err(err) => self.error = Some(err),
+                }
                 self.update_store(ctx);
                 let link = ctx.link().clone();
                 self.reload_timeout = Some(Timeout::new(3000, move || {
@@ -359,8 +334,44 @@ impl Component for PvePendingPropertyGrid {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        // fixme: ??
-        crate::layout::render_loaded_data(&self.data, |_| self.view_properties(ctx))
+        let props = ctx.props();
+
+        let table = DataTable::new(self.columns.clone(), self.store.clone())
+            .class(pwt::css::FlexFit)
+            .show_header(false)
+            .virtual_scroll(false)
+            .selection(self.selection.clone())
+            .on_row_dblclick({
+                let link = ctx.link().clone();
+                move |event: &mut DataTableMouseEvent| {
+                    link.send_message(Msg::EditProperty(event.record_key.clone()));
+                }
+            })
+            .on_row_keydown({
+                let link = ctx.link().clone();
+                move |event: &mut DataTableKeyboardEvent| {
+                    if event.key() == " " {
+                        link.send_message(Msg::EditProperty(event.record_key.clone()));
+                    }
+                }
+            });
+
+        let loading = self.data.is_none() && self.error.is_none();
+
+        Column::new()
+            .class(props.class.clone())
+            .with_child(self.toolbar(ctx))
+            .with_optional_child(
+                loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
+            )
+            .with_child(table)
+            .with_optional_child(
+                self.error
+                    .as_deref()
+                    .map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
+            )
+            .with_optional_child(self.edit_dialog.clone())
+            .into()
     }
 }
 
