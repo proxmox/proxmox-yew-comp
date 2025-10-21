@@ -90,7 +90,7 @@ pub struct PvePropertyGrid {
     error: Option<String>,
     reload_timeout: Option<Timeout>,
     load_guard: Option<AsyncAbortGuard>,
-    edit_dialog: Option<Html>,
+    dialog: Option<Html>,
     store: Store<PropertyGridRecord>,
     columns: Rc<Vec<DataTableHeader<PropertyGridRecord>>>,
     selection: Selection,
@@ -186,7 +186,7 @@ impl Component for PvePropertyGrid {
             error: None,
             reload_timeout: None,
             load_guard: None,
-            edit_dialog: None,
+            dialog: None,
             store: Store::new(),
             columns: columns(),
             selection,
@@ -210,7 +210,7 @@ impl Component for PvePropertyGrid {
                     .loader(props.loader.clone())
                     .on_submit(props.on_submit.clone())
                     .into();
-                self.edit_dialog = Some(dialog);
+                self.dialog = Some(dialog);
             }
             Msg::Load => {
                 self.reload_timeout = None;
@@ -244,7 +244,7 @@ impl Component for PvePropertyGrid {
                 if dialog.is_none() && self.reload_timeout.is_some() {
                     ctx.link().send_message(Msg::Load);
                 }
-                self.edit_dialog = dialog;
+                self.dialog = dialog;
             }
         }
         true
@@ -295,7 +295,7 @@ impl Component for PvePropertyGrid {
                     .as_deref()
                     .map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
             )
-            .with_optional_child(self.edit_dialog.clone())
+            .with_optional_child(self.dialog.clone())
             .into()
     }
 }
