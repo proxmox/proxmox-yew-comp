@@ -16,7 +16,7 @@ use pwt::touch::SnackBarContextExt;
 use pwt::widget::data_table::{
     DataTable, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
 };
-use pwt::widget::{Column, Container};
+use pwt::widget::{Button, Column, Container, Toolbar};
 use pwt::AsyncAbortGuard;
 
 use crate::{ApiLoadCallback, IntoApiLoadCallback, PendingPropertyList};
@@ -64,6 +64,13 @@ impl PendingPropertyGrid {
         yew::props!(Self { properties })
     }
     pwt::impl_class_prop_builder!();
+
+    fn lookup_property(&self, key: &Key) -> Option<&EditableProperty> {
+        let property_name: AttrValue = key.to_string().into();
+        self.properties
+            .iter()
+            .find(|p| p.get_name() == Some(&property_name))
+    }
 }
 
 pub enum Msg {
@@ -71,8 +78,9 @@ pub enum Msg {
     LoadResult(Result<Vec<QemuPendingConfigValue>, String>),
     ShowDialog(Option<Html>),
     EditProperty(Key),
-    Revert(EditableProperty),
+    Revert(Key),
     RevertResult(Result<(), Error>),
+    Select(Option<Key>),
 }
 
 pub struct PvePendingPropertyGrid {
@@ -105,6 +113,7 @@ impl PvePendingPropertyGrid {
                     continue;
                 }
             };
+
             if item.required || keys.contains(&name) {
                 let header = html! { &item.title };
                 let (value, new_value) =
@@ -114,7 +123,10 @@ impl PvePendingPropertyGrid {
                     //.gap(0.5)
                     .with_child(Container::new().with_child(value.clone()));
 
+                let mut has_changes = false;
+
                 if let Some(new_value) = new_value {
+                    has_changes = true;
                     content.add_child(
                         Container::new()
                             .class("pwt-color-warning")
@@ -126,10 +138,57 @@ impl PvePendingPropertyGrid {
                     key: Key::from(name.clone()),
                     header,
                     content: content.into(),
+                    has_changes,
                 });
             }
         }
         self.store.set_data(rows);
+    }
+
+    fn toolbar(&self, ctx: &Context<Self>) -> Html {
+        let link = ctx.link();
+
+        let selected_key = self.selection.selected_key();
+        let has_changes = selected_key
+            .as_ref()
+            .map(|key| self.store.read().lookup_record(&key).cloned())
+            .flatten()
+            .map(|record| record.has_changes)
+            .unwrap_or(false);
+
+        let disable_revert = !(has_changes && selected_key.is_some());
+
+        let toolbar = Toolbar::new()
+            .class("pwt-overflow-hidden")
+            .class("pwt-border-bottom")
+            .with_child(
+                Button::new(tr!("Edit"))
+                    .disabled(selected_key.is_none())
+                    .onclick({
+                        let key = selected_key.clone();
+                        let link = link.clone();
+                        move |_| {
+                            if let Some(key) = &key {
+                                link.send_message(Msg::EditProperty(key.clone()));
+                            }
+                        }
+                    }),
+            )
+            .with_child(
+                Button::new(tr!("Revert"))
+                    .disabled(disable_revert)
+                    .onclick({
+                        let key = selected_key.clone();
+                        let link = link.clone();
+                        move |_| {
+                            if let Some(key) = &key {
+                                link.send_message(Msg::Revert(key.clone()));
+                            }
+                        }
+                    }),
+            );
+
+        toolbar.into()
     }
 
     fn view_properties(&self, ctx: &Context<Self>) -> Html {
@@ -157,6 +216,7 @@ impl PvePendingPropertyGrid {
 
         Column::new()
             .class(props.class.clone())
+            .with_child(self.toolbar(ctx))
             .with_child(table)
             .with_optional_child(self.edit_dialog.clone())
             .into()
@@ -173,9 +233,12 @@ impl Component for PvePendingPropertyGrid {
 
         let selection = Selection::new().on_select({
             let on_select = props.on_select.clone();
+            let link = ctx.link().clone();
             move |selection: Selection| {
+                let selected_key = selection.selected_key();
+                link.send_message(Msg::Select(selected_key.clone()));
                 if let Some(on_select) = &on_select {
-                    on_select.emit(selection.selected_key());
+                    on_select.emit(selected_key);
                 }
             }
         });
@@ -197,7 +260,12 @@ impl Component for PvePendingPropertyGrid {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
-            Msg::Revert(property) => {
+            Msg::Select(_key) => { /* just redraw */ }
+            Msg::Revert(key) => {
+                let property = match props.lookup_property(&key) {
+                    Some(property) => property,
+                    None::<_> => return false,
+                };
                 let link = ctx.link().clone();
                 let keys = match property.revert_keys.as_deref() {
                     Some(keys) => keys.iter().map(|a| a.to_string()).collect(),
@@ -232,14 +300,9 @@ impl Component for PvePendingPropertyGrid {
                 }
             }
             Msg::EditProperty(key) => {
-                let property_name: AttrValue = key.to_string().into();
-                let property = match props
-                    .properties
-                    .iter()
-                    .find(|p| p.get_name() == Some(&property_name))
-                {
+                let property = match props.lookup_property(&key) {
                     Some(property) => property,
-                    None => return false,
+                    None::<_> => return false,
                 };
 
                 let dialog = PropertyEditDialog::from(property.clone())

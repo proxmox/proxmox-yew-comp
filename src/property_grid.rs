@@ -12,10 +12,9 @@ use pwt::props::{ExtractPrimaryKey, IntoSubmitCallback, SubmitCallback};
 use pwt::widget::data_table::{
     DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
 };
-use pwt::widget::{Column, Container};
+use pwt::widget::{Button, Column, Toolbar};
 use pwt::AsyncAbortGuard;
 
-use crate::utils::render_boolean;
 use crate::{ApiLoadCallback, IntoApiLoadCallback, PropertyList};
 
 use pwt_macros::builder;
@@ -55,6 +54,13 @@ impl PropertyGrid {
     }
 
     pwt::impl_class_prop_builder!();
+
+    fn lookup_property(&self, key: &Key) -> Option<&EditableProperty> {
+        let property_name: AttrValue = key.to_string().into();
+        self.properties
+            .iter()
+            .find(|p| p.get_name() == Some(&property_name))
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -62,6 +68,7 @@ pub(crate) struct PropertyGridRecord {
     pub key: Key,
     pub header: Html,
     pub content: Html,
+    pub has_changes: bool,
 }
 
 impl ExtractPrimaryKey for PropertyGridRecord {
@@ -75,6 +82,7 @@ pub enum Msg {
     LoadResult(Result<Value, String>),
     ShowDialog(Option<Html>),
     EditProperty(Key),
+    Select(Option<Key>),
 }
 
 pub struct PvePropertyGrid {
@@ -88,6 +96,31 @@ pub struct PvePropertyGrid {
 }
 
 impl PvePropertyGrid {
+    fn toolbar(&self, ctx: &Context<Self>) -> Html {
+        let link = ctx.link();
+
+        let selected_key = self.selection.selected_key();
+
+        let toolbar = Toolbar::new()
+            .class("pwt-overflow-hidden")
+            .class("pwt-border-bottom")
+            .with_child(
+                Button::new(tr!("Edit"))
+                    .disabled(selected_key.is_none())
+                    .onclick({
+                        let key = selected_key.clone();
+                        let link = link.clone();
+                        move |_| {
+                            if let Some(key) = &key {
+                                link.send_message(Msg::EditProperty(key.clone()));
+                            }
+                        }
+                    }),
+            );
+
+        toolbar.into()
+    }
+
     fn view_properties(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
@@ -113,6 +146,7 @@ impl PvePropertyGrid {
 
         Column::new()
             .class(props.class.clone())
+            .with_child(self.toolbar(ctx))
             .with_child(table)
             .with_optional_child(self.edit_dialog.clone())
             .into()
@@ -149,6 +183,7 @@ impl PvePropertyGrid {
                     key: Key::from(name.clone()),
                     header,
                     content,
+                    has_changes: false,
                 });
             }
         }
@@ -166,9 +201,12 @@ impl Component for PvePropertyGrid {
 
         let selection = Selection::new().on_select({
             let on_select = props.on_select.clone();
+            let link = ctx.link().clone();
             move |selection: Selection| {
+                let selected_key = selection.selected_key();
+                link.send_message(Msg::Select(selected_key.clone()));
                 if let Some(on_select) = &on_select {
-                    on_select.emit(selection.selected_key());
+                    on_select.emit(selected_key);
                 }
             }
         });
@@ -189,15 +227,11 @@ impl Component for PvePropertyGrid {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
+            Msg::Select(_key) => { /* just redraw */ }
             Msg::EditProperty(key) => {
-                let property_name: AttrValue = key.to_string().into();
-                let property = match props
-                    .properties
-                    .iter()
-                    .find(|p| p.get_name() == Some(&property_name))
-                {
+                let property = match props.lookup_property(&key) {
                     Some(property) => property,
-                    None => return false,
+                    None::<_> => return false,
                 };
 
                 let dialog = PropertyEditDialog::from(property.clone())
@@ -248,7 +282,7 @@ impl Component for PvePropertyGrid {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        crate::layout::render_loaded_data(&self.data, |data| self.view_properties(ctx))
+        crate::layout::render_loaded_data(&self.data, |_data| self.view_properties(ctx))
     }
 }
 
