@@ -285,10 +285,10 @@ impl Component for PvePropertyGrid {
 
         Column::new()
             .class(props.class.clone())
+            .with_child(self.toolbar(ctx))
             .with_optional_child(
                 loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
             )
-            .with_child(self.toolbar(ctx))
             .with_child(table)
             .with_optional_child(
                 self.error
