@@ -4,7 +4,6 @@ use std::rc::Rc;
 use anyhow::Error;
 use gloo_timers::callback::Timeout;
 use pwt::state::{Selection, Store};
-use pwt::touch::SnackBar;
 use serde_json::{json, Value};
 
 use yew::html::IntoEventCallback;
@@ -12,11 +11,10 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{IntoSubmitCallback, SubmitCallback};
-use pwt::touch::SnackBarContextExt;
 use pwt::widget::data_table::{
     DataTable, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
 };
-use pwt::widget::{Button, Column, Container, Toolbar};
+use pwt::widget::{AlertDialog, Button, Column, Container, Toolbar};
 use pwt::AsyncAbortGuard;
 
 use crate::{ApiLoadCallback, IntoApiLoadCallback, PendingPropertyList};
@@ -89,7 +87,7 @@ pub struct PvePendingPropertyGrid {
     reload_timeout: Option<Timeout>,
     load_guard: Option<AsyncAbortGuard>,
     revert_guard: Option<AsyncAbortGuard>,
-    edit_dialog: Option<Html>,
+    dialog: Option<Html>,
     store: Store<PropertyGridRecord>,
     columns: Rc<Vec<DataTableHeader<PropertyGridRecord>>>,
     selection: Selection,
@@ -219,7 +217,7 @@ impl Component for PvePendingPropertyGrid {
             reload_timeout: None,
             load_guard: None,
             revert_guard: None,
-            edit_dialog: None,
+            dialog: None,
             store: Store::new(),
             columns: columns(),
             selection,
@@ -261,9 +259,10 @@ impl Component for PvePendingPropertyGrid {
             }
             Msg::RevertResult(result) => {
                 if let Err(err) = result {
-                    ctx.link().show_snackbar(
-                        SnackBar::new()
-                            .message(tr!("Revert property failed") + " - " + &err.to_string()),
+                    self.dialog = Some(
+                        AlertDialog::new(tr!("Revert property failed") + " - " + &err.to_string())
+                            .on_close(ctx.link().callback(|_| Msg::ShowDialog(None)))
+                            .into(),
                     );
                 }
                 if self.reload_timeout.is_some() {
@@ -281,7 +280,7 @@ impl Component for PvePendingPropertyGrid {
                     .loader(props.editor_loader.clone())
                     .on_submit(props.on_submit.clone())
                     .into();
-                self.edit_dialog = Some(dialog);
+                self.dialog = Some(dialog);
             }
             Msg::Load => {
                 self.reload_timeout = None;
@@ -319,7 +318,7 @@ impl Component for PvePendingPropertyGrid {
                 if dialog.is_none() && self.reload_timeout.is_some() {
                     ctx.link().send_message(Msg::Load);
                 }
-                self.edit_dialog = dialog;
+                self.dialog = dialog;
             }
         }
         true
@@ -370,7 +369,7 @@ impl Component for PvePendingPropertyGrid {
                     .as_deref()
                     .map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
             )
-            .with_optional_child(self.edit_dialog.clone())
+            .with_optional_child(self.dialog.clone())
             .into()
     }
 }
