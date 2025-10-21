@@ -92,10 +92,11 @@ pub enum Msg {
 }
 
 pub struct PvePropertyList {
-    data: Option<Result<Value, String>>,
+    data: Option<Value>,
+    error: Option<String>,
     reload_timeout: Option<Timeout>,
     load_guard: Option<AsyncAbortGuard>,
-    edit_dialog: Option<Html>,
+    dialog: Option<Html>,
 }
 
 impl PvePropertyList {
@@ -119,43 +120,6 @@ impl PvePropertyList {
             list_tile
         }
     }
-
-    fn view_property(&self, ctx: &Context<Self>, record: &Value) -> Html {
-        let props = ctx.props();
-
-        let mut tiles: Vec<ListTile> = Vec::new();
-
-        for item in props.properties.iter() {
-            let name = match item.get_name() {
-                Some(name) => name.clone(),
-                None => {
-                    log::error!("property list: skiping property without name");
-                    continue;
-                }
-            };
-            let value = record.get(&*name);
-            if !item.required && (value.is_none() || value == Some(&Value::Null)) {
-                continue;
-            }
-
-            let mut list_tile = self.property_tile(ctx, record, item);
-            list_tile.set_key(name);
-
-            tiles.push(list_tile);
-        }
-
-        Column::new()
-            .class(props.class.clone())
-            .with_child(
-                List::from_tiles(tiles)
-                    .virtual_scroll(Some(false))
-                    //fixme: .separator(props.separator)
-                    .grid_template_columns("1fr auto")
-                    .class(pwt::css::FlexFit),
-            )
-            .with_optional_child(self.edit_dialog.clone())
-            .into()
-    }
 }
 
 impl Component for PvePropertyList {
@@ -166,9 +130,10 @@ impl Component for PvePropertyList {
         ctx.link().send_message(Msg::Load);
         Self {
             data: None,
+            error: None,
             reload_timeout: None,
             load_guard: None,
-            edit_dialog: None,
+            dialog: None,
         }
     }
 
@@ -182,7 +147,7 @@ impl Component for PvePropertyList {
                     .loader(props.loader.clone())
                     .on_submit(props.on_submit.clone())
                     .into();
-                self.edit_dialog = Some(dialog);
+                self.dialog = Some(dialog);
             }
             Msg::Load => {
                 self.reload_timeout = None;
@@ -199,7 +164,13 @@ impl Component for PvePropertyList {
                 }
             }
             Msg::LoadResult(result) => {
-                self.data = Some(result);
+                match result {
+                    Ok(data) => {
+                        self.data = Some(data);
+                        self.error = None;
+                    }
+                    Err(err) => self.error = Some(err),
+                }
                 let link = ctx.link().clone();
                 self.reload_timeout = Some(Timeout::new(3000, move || {
                     link.send_message(Msg::Load);
@@ -209,14 +180,62 @@ impl Component for PvePropertyList {
                 if dialog.is_none() && self.reload_timeout.is_some() {
                     ctx.link().send_message(Msg::Load);
                 }
-                self.edit_dialog = dialog;
+                self.dialog = dialog;
             }
         }
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        crate::layout::render_loaded_data(&self.data, |data| self.view_property(ctx, data))
+        let props = ctx.props();
+
+        let mut tiles: Vec<ListTile> = Vec::new();
+
+        let record = match &self.data {
+            Some(data) => data.clone(),
+            _ => Value::Null,
+        };
+
+        for item in props.properties.iter() {
+            let name = match item.get_name() {
+                Some(name) => name.clone(),
+                None => {
+                    log::error!("property list: skiping property without name");
+                    continue;
+                }
+            };
+            let value = record.get(&*name);
+            if !item.required && (value.is_none() || value == Some(&Value::Null)) {
+                continue;
+            }
+
+            let mut list_tile = self.property_tile(ctx, &record, item);
+            list_tile.set_key(name);
+
+            tiles.push(list_tile);
+        }
+
+        let loading = self.data.is_none() && self.error.is_none();
+
+        Column::new()
+            .class(props.class.clone())
+            .with_optional_child(
+                loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
+            )
+            .with_child(
+                List::from_tiles(tiles)
+                    .virtual_scroll(Some(false))
+                    //fixme: .separator(props.separator)
+                    .grid_template_columns("1fr auto")
+                    .class(pwt::css::FlexFit),
+            )
+            .with_optional_child(
+                self.error
+                    .as_deref()
+                    .map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
+            )
+            .with_optional_child(self.dialog.clone())
+            .into()
     }
 }
 
