@@ -1,3 +1,35 @@
+rust-proxmox-yew-comp (0.6.5) trixie; urgency=medium
+
+  * login panel: make realm selector optional
+  * auth edit openid: add a default realm checkbox
+  * auth view: add openid icon to openid menu option
+  * login panel & realm selector: add support for openid realm logins
+  * login panel & realm selector: use default realm provided by api
+  * utils: split out clipboard helpers into their own modules
+  * token panel: improve token secret dialog layout and hide password
+  * add and use copy_text_to_clipboard function to avoid using deprecated API
+  * PropertyView and PendingPropertyView: share code between List and Grid
+    implementation
+  * PropertyList: improve load status/error display
+  * PendingPropertyList: improve load status/error display
+  * qemu storage selector: pass format parameter as string "1" instead of
+    boolean.
+  * add PropertyGrid as new widget.
+  * PropertyList: add class property
+  * PendigPropertyGrid: hide table header.
+  * PendingPropertyList: add class property.
+  * rename EditDialog to PropertyEditDialog
+  * add mobile flag to more qemu property editors
+  * EditDialog: set min-width for desktop UI.
+  * add mobile flag to qemu property editors.
+  * EditDialog: add mobile flag to allow reusing this for both mobile and
+    desktop.
+  * add PendingPropertyGrid as new widget, it's like PendingPropertyList, but
+    for desktop.
+  * qemu hotplug property: use comma to separate options
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 22 Oct 2025 19:12:01 +0200
+
 rust-proxmox-yew-comp (0.6.4) trixie; urgency=medium
 
   * meter: change low-threshold default to 80% for zero optimum
