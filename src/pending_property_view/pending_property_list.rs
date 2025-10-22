@@ -169,6 +169,8 @@ impl PvePendingPropertyList {
 
 impl PendingPropertyView for PvePendingPropertyList {
     type Properties = PendingPropertyList;
+    type Message = ();
+
     const MOBILE: bool = true;
 
     fn class(props: &Self::Properties) -> &Classes {

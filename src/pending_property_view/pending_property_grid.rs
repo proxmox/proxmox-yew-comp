@@ -71,6 +71,8 @@ pub struct PvePendingPropertyGrid {
 
 impl PendingPropertyView for PvePendingPropertyGrid {
     type Properties = PendingPropertyGrid;
+    type Message = ();
+
     const MOBILE: bool = false;
 
     fn class(props: &Self::Properties) -> &Classes {

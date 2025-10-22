@@ -22,7 +22,7 @@ use pwt::AsyncAbortGuard;
 use crate::pve_api_types::QemuPendingConfigValue;
 use crate::{ApiLoadCallback, EditableProperty, PropertyEditDialog};
 
-pub enum PendingPropertyViewMsg {
+pub enum PendingPropertyViewMsg<M> {
     Load,
     LoadResult(Result<Vec<QemuPendingConfigValue>, String>),
     ShowDialog(Option<Html>),
@@ -30,10 +30,13 @@ pub enum PendingPropertyViewMsg {
     Revert(Key),
     RevertResult(Result<(), Error>),
     Select(Option<Key>),
+    Custom(M),
 }
 
 pub trait PendingPropertyView {
     type Properties: Properties;
+    type Message;
+
     const MOBILE: bool;
 
     fn class(props: &Self::Properties) -> &Classes;
@@ -52,21 +55,42 @@ pub trait PendingPropertyView {
     where
         Self: 'static + Sized;
 
+    fn update(&mut self, _ctx: &Context<PvePendingPropertyView<Self>>, _msg: Self::Message) -> bool
+    where
+        Self: 'static + Sized,
+    {
+        true
+    }
+
+    #[allow(unused_variables)]
+    fn changed(
+        &mut self,
+        ctx: &Context<PvePendingPropertyView<Self>>,
+        old_props: &Self::Properties,
+    ) -> bool
+    where
+        Self: 'static + Sized,
+    {
+        true
+    }
+
+    #[allow(unused_variables)]
     fn update_data(
         &mut self,
-        _ctx: &Context<PvePendingPropertyView<Self>>,
-        _data: Option<&(Value, Value, HashSet<String>)>,
-        _error: Option<&str>,
+        ctx: &Context<PvePendingPropertyView<Self>>,
+        data: Option<&(Value, Value, HashSet<String>)>,
+        error: Option<&str>,
     ) where
         Self: 'static + Sized,
     {
     }
 
+    #[allow(unused_variables)]
     fn toolbar(
         &self,
-        _ctx: &Context<PvePendingPropertyView<Self>>,
-        _data: Option<&(Value, Value, HashSet<String>)>,
-        _error: Option<&str>,
+        ctx: &Context<PvePendingPropertyView<Self>>,
+        data: Option<&(Value, Value, HashSet<String>)>,
+        error: Option<&str>,
     ) -> Option<Html>
     where
         Self: 'static + Sized,
@@ -95,7 +119,7 @@ pub struct PvePendingPropertyView<T> {
 }
 
 impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
-    type Message = PendingPropertyViewMsg;
+    type Message = PendingPropertyViewMsg<T::Message>;
     type Properties = T::Properties;
 
     fn create(ctx: &Context<Self>) -> Self {
@@ -117,6 +141,9 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
+            PendingPropertyViewMsg::Custom(custom) => {
+                return self.view_state.update(ctx, custom);
+            }
             PendingPropertyViewMsg::Select(_key) => { /* just redraw */ }
             PendingPropertyViewMsg::Revert(key) => {
                 let property = match lookup_property(T::properties(props), &key) {
@@ -233,6 +260,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
             self.view_state
                 .update_data(ctx, self.data.as_ref(), self.error.as_deref());
         }
+        let _ = self.view_state.changed(ctx, old_props);
         true
     }
 
