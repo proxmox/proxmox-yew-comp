@@ -102,17 +102,9 @@ pub use object_grid::{
 mod permission_panel;
 pub use permission_panel::{PermissionPanel, ProxmoxPermissionPanel};
 
-mod property_list;
-pub use property_list::PropertyList;
+pub mod property_view;
 
-mod property_grid;
-pub use property_grid::PropertyGrid;
-
-mod pending_property_list;
-pub use pending_property_list::PendingPropertyList;
-
-mod pending_property_grid;
-pub use pending_property_grid::PendingPropertyGrid;
+pub mod pending_property_view;
 
 pub mod pve_api_types;
 

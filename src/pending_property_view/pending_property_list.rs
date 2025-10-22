@@ -1,18 +1,13 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use anyhow::Error;
-use gloo_timers::callback::Timeout;
-use pwt::touch::SnackBar;
-use serde_json::{json, Map, Value};
+use serde_json::Value;
 
-use yew::virtual_dom::{VComp, VNode};
+use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{IntoOptionalInlineHtml, IntoSubmitCallback, SubmitCallback};
-use pwt::touch::SnackBarContextExt;
-use pwt::widget::{ActionIcon, Column, Fa, List, ListTile, Row};
-use pwt::AsyncAbortGuard;
+use pwt::widget::{ActionIcon, Fa, List, ListTile, Row};
 
 use crate::{ApiLoadCallback, IntoApiLoadCallback};
 
@@ -20,7 +15,9 @@ use pwt_macros::builder;
 
 use crate::layout::list_tile::title_subtitle_column;
 use crate::pve_api_types::QemuPendingConfigValue;
-use crate::{EditableProperty, PropertyEditDialog, PropertyList};
+use crate::EditableProperty;
+
+use super::{PendingPropertyView, PendingPropertyViewMsg, PvePendingPropertyView};
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
 #[derive(Properties, Clone, PartialEq)]
@@ -55,51 +52,6 @@ impl PendingPropertyList {
     }
 
     pwt::impl_class_prop_builder!();
-
-    /// Parse PVE pending configuration array
-    ///
-    /// Returns 2 Objects, containing current and pending configuration,
-    /// and the set of contained configuration  keys.
-    pub fn pve_pending_config_array_to_objects(
-        data: Vec<QemuPendingConfigValue>,
-    ) -> Result<(Value, Value, HashSet<String>), Error> {
-        let mut current = Map::new();
-        let mut pending = Map::new();
-        let mut keys = HashSet::new();
-
-        for item in data.iter() {
-            keys.insert(item.key.clone());
-
-            if let Some(value) = item.value.clone() {
-                current.insert(item.key.clone(), value);
-            }
-            if matches!(item.delete, Some(1) | Some(2)) {
-                continue;
-            }
-            if let Some(value) = item.pending.clone() {
-                pending.insert(item.key.clone(), value);
-            } else if let Some(value) = item.value.clone() {
-                pending.insert(item.key.clone(), value);
-            }
-        }
-
-        Ok((Value::Object(current), Value::Object(pending), keys))
-    }
-
-    pub fn render_property_value(
-        current: &Value,
-        pending: &Value,
-        property: &EditableProperty,
-    ) -> (Html, Option<Html>) {
-        let value = PropertyList::render_property_value(current, property);
-        let new_value = PropertyList::render_property_value(pending, property);
-
-        if value != new_value {
-            (value, Some(new_value))
-        } else {
-            (value, None)
-        }
-    }
 
     /// Render a ListTile with a single child.
     ///
@@ -137,7 +89,8 @@ impl PendingPropertyList {
         trailing: impl IntoOptionalInlineHtml,
         on_revert: Callback<Event>,
     ) -> ListTile {
-        let (value, new_value) = Self::render_property_value(current, pending, property);
+        let (value, new_value) =
+            crate::pending_property_view::render_pending_property_value(current, pending, property);
 
         let revert: Html = ActionIcon::new("fa fa-undo")
             .on_activate(on_revert.clone())
@@ -182,69 +135,111 @@ impl PendingPropertyList {
     }
 }
 
-pub enum Msg {
-    Load,
-    LoadResult(Result<Vec<QemuPendingConfigValue>, String>),
-    ShowDialog(Option<Html>),
-    EditProperty(EditableProperty),
-    Revert(EditableProperty),
-    RevertResult(Result<(), Error>),
-}
-
-pub struct PvePendingPropertyList {
-    data: Option<(Value, Value, HashSet<String>)>,
-    error: Option<String>,
-    reload_timeout: Option<Timeout>,
-    load_guard: Option<AsyncAbortGuard>,
-    revert_guard: Option<AsyncAbortGuard>,
-    dialog: Option<Html>,
-}
+pub struct PvePendingPropertyList {}
 
 impl PvePendingPropertyList {
     fn property_tile(
         &self,
-        ctx: &Context<Self>,
+        ctx: &Context<PvePendingPropertyView<Self>>,
         current: &Value,
         pending: &Value,
+        name: Key,
         property: &EditableProperty,
     ) -> ListTile {
         let on_revert = Callback::from({
-            let property = property.clone();
-            ctx.link()
-                .callback(move |_: Event| Msg::Revert(property.clone()))
+            ctx.link().callback({
+                let name = name.clone();
+                move |_: Event| PendingPropertyViewMsg::Revert(name.clone())
+            })
         });
 
         let list_tile =
             PendingPropertyList::render_list_tile(current, pending, property, (), on_revert);
 
         if property.render_input_panel.is_some() {
-            list_tile
-                .interactive(true)
-                .on_activate(ctx.link().callback({
-                    let property = property.clone();
-                    move |_| Msg::EditProperty(property.clone())
-                }))
+            list_tile.interactive(true).on_activate(
+                ctx.link()
+                    .callback(move |_| PendingPropertyViewMsg::EditProperty(name.clone())),
+            )
         } else {
             list_tile
         }
     }
 }
 
+impl PendingPropertyView for PvePendingPropertyList {
+    type Properties = PendingPropertyList;
+    const MOBILE: bool = true;
+
+    fn class(props: &Self::Properties) -> &Classes {
+        &props.class
+    }
+
+    fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>> {
+        &props.properties
+    }
+
+    fn editor_loader(props: &Self::Properties) -> Option<ApiLoadCallback<Value>> {
+        props.editor_loader.clone()
+    }
+
+    fn pending_loader(
+        props: &Self::Properties,
+    ) -> Option<ApiLoadCallback<Vec<QemuPendingConfigValue>>> {
+        props.pending_loader.clone()
+    }
+
+    fn on_submit(props: &Self::Properties) -> Option<SubmitCallback<Value>> {
+        props.on_submit.clone()
+    }
+
+    fn create(_ctx: &Context<PvePendingPropertyView<Self>>) -> Self {
+        Self {}
+    }
+
+    fn view(
+        &self,
+        ctx: &Context<PvePendingPropertyView<Self>>,
+        data: Option<&(Value, Value, HashSet<String>)>,
+        _error: Option<&str>,
+    ) -> Html {
+        let props = ctx.props();
+
+        let mut tiles: Vec<ListTile> = Vec::new();
+
+        let (current, pending, keys): (Value, Value, HashSet<String>) = match data {
+            Some(data) => data.clone(),
+            _ => (Value::Null, Value::Null, HashSet::new()),
+        };
+
+        for item in props.properties.iter() {
+            let name = match item.get_name() {
+                Some(name) => name.to_string(),
+                None::<_> => {
+                    log::error!("pending property list: skiping property without name");
+                    continue;
+                }
+            };
+            if item.required || keys.contains(&name) {
+                let mut tile = self.property_tile(ctx, &current, &pending, Key::from(&*name), item);
+                tile.set_key(name);
+                tiles.push(tile);
+            }
+        }
+
+        List::from_tiles(tiles)
+            .virtual_scroll(Some(false))
+            .grid_template_columns("1fr")
+            .class(pwt::css::FlexFit)
+            .into()
+    }
+}
+
+/*
 impl Component for PvePendingPropertyList {
     type Message = Msg;
     type Properties = PendingPropertyList;
 
-    fn create(ctx: &Context<Self>) -> Self {
-        ctx.link().send_message(Msg::Load);
-        Self {
-            data: None,
-            error: None,
-            reload_timeout: None,
-            load_guard: None,
-            revert_guard: None,
-            dialog: None,
-        }
-    }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
@@ -333,58 +328,13 @@ impl Component for PvePendingPropertyList {
         true
     }
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let props = ctx.props();
-
-        let mut tiles: Vec<ListTile> = Vec::new();
-
-        let (current, pending, keys): (Value, Value, HashSet<String>) = match &self.data {
-            Some(data) => data.clone(),
-            _ => (Value::Null, Value::Null, HashSet::new()),
-        };
-
-        for item in props.properties.iter() {
-            let name = match item.get_name() {
-                Some(name) => name.to_string(),
-                None::<_> => {
-                    log::error!("pending property list: skiping property without name");
-                    continue;
-                }
-            };
-            if item.required || keys.contains(&name) {
-                let mut tile = self.property_tile(ctx, &current, &pending, item);
-                tile.set_key(name);
-                tiles.push(tile);
-            }
-        }
-
-        let loading = self.data.is_none() && self.error.is_none();
-
-        Column::new()
-            .class(props.class.clone())
-            .with_optional_child(
-                loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
-            )
-            .with_child(
-                List::from_tiles(tiles)
-                    .virtual_scroll(Some(false))
-                    //fixme: .separator(props.separator)
-                    .grid_template_columns("1fr")
-                    .class(pwt::css::FlexFit),
-            )
-            .with_optional_child(
-                self.error
-                    .as_deref()
-                    .map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
-            )
-            .with_optional_child(self.dialog.clone())
-            .into()
-    }
 }
+*/
 
 impl From<PendingPropertyList> for VNode {
     fn from(props: PendingPropertyList) -> Self {
-        let comp = VComp::new::<PvePendingPropertyList>(Rc::new(props), None);
+        let comp =
+            VComp::new::<PvePendingPropertyView<PvePendingPropertyList>>(Rc::new(props), None);
         VNode::from(comp)
     }
 }
