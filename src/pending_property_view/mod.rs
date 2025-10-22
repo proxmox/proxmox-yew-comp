@@ -5,6 +5,8 @@ mod pending_property_list;
 pub use pending_property_list::PendingPropertyList;
 
 use std::collections::HashSet;
+use std::future::Future;
+use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
@@ -13,11 +15,11 @@ use serde_json::{json, Value};
 
 use yew::virtual_dom::Key;
 
-use pwt::prelude::*;
 use pwt::props::SubmitCallback;
 use pwt::touch::{SnackBar, SnackBarContextExt};
 use pwt::widget::{AlertDialog, Column};
 use pwt::AsyncAbortGuard;
+use pwt::{prelude::*, AsyncPool};
 
 use crate::pve_api_types::QemuPendingConfigValue;
 use crate::{ApiLoadCallback, EditableProperty, PropertyEditDialog};
@@ -30,6 +32,7 @@ pub enum PendingPropertyViewMsg<M> {
     Revert(Key),
     RevertResult(Result<(), Error>),
     Select(Option<Key>),
+    Spawn(Pin<Box<dyn Future<Output = ()>>>),
     Custom(M),
 }
 
@@ -114,6 +117,7 @@ pub struct PvePendingPropertyView<T> {
     reload_timeout: Option<Timeout>,
     load_guard: Option<AsyncAbortGuard>,
     revert_guard: Option<AsyncAbortGuard>,
+    async_pool: AsyncPool,
     dialog: Option<Html>,
     view_state: T,
 }
@@ -131,6 +135,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
             reload_timeout: None,
             load_guard: None,
             revert_guard: None,
+            async_pool: AsyncPool::new(),
             dialog: None,
             view_state: T::create(ctx),
         };
@@ -143,6 +148,10 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
         match msg {
             PendingPropertyViewMsg::Custom(custom) => {
                 return self.view_state.update(ctx, custom);
+            }
+            PendingPropertyViewMsg::Spawn(future) => {
+                self.async_pool.spawn(future);
+                return false;
             }
             PendingPropertyViewMsg::Select(_key) => { /* just redraw */ }
             PendingPropertyViewMsg::Revert(key) => {
