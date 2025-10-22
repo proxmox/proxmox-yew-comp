@@ -159,7 +159,7 @@ impl PvePendingPropertyList {
         if property.render_input_panel.is_some() {
             list_tile.interactive(true).on_activate(
                 ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::EditProperty(name.clone())),
+                    .callback(move |_| PendingPropertyViewMsg::Edit(name.clone())),
             )
         } else {
             list_tile

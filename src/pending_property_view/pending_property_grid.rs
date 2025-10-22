@@ -202,9 +202,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
                         let link = link.clone();
                         move |_| {
                             if let Some(key) = &key {
-                                link.send_message(PendingPropertyViewMsg::EditProperty(
-                                    key.clone(),
-                                ));
+                                link.send_message(PendingPropertyViewMsg::Edit(key.clone()));
                             }
                         }
                     }),
@@ -240,18 +238,14 @@ impl PendingPropertyView for PvePendingPropertyGrid {
             .on_row_dblclick({
                 let link = ctx.link().clone();
                 move |event: &mut DataTableMouseEvent| {
-                    link.send_message(PendingPropertyViewMsg::EditProperty(
-                        event.record_key.clone(),
-                    ));
+                    link.send_message(PendingPropertyViewMsg::Edit(event.record_key.clone()));
                 }
             })
             .on_row_keydown({
                 let link = ctx.link().clone();
                 move |event: &mut DataTableKeyboardEvent| {
                     if event.key() == " " {
-                        link.send_message(PendingPropertyViewMsg::EditProperty(
-                            event.record_key.clone(),
-                        ));
+                        link.send_message(PendingPropertyViewMsg::Edit(event.record_key.clone()));
                     }
                 }
             })

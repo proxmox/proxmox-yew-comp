@@ -28,7 +28,9 @@ pub enum PendingPropertyViewMsg<M> {
     Load,
     LoadResult(Result<Vec<QemuPendingConfigValue>, String>),
     ShowDialog(Option<Html>),
-    EditProperty(Key),
+    EditProperty(EditableProperty),
+    Edit(Key),
+    RevertProperty(EditableProperty),
     Revert(Key),
     RevertResult(Result<(), Error>),
     Select(Option<Key>),
@@ -159,6 +161,10 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                     Some(property) => property,
                     None::<_> => return false,
                 };
+                ctx.link()
+                    .send_message(PendingPropertyViewMsg::RevertProperty(property.clone()));
+            }
+            PendingPropertyViewMsg::RevertProperty(property) => {
                 let link = ctx.link().clone();
                 let keys = match property.revert_keys.as_deref() {
                     Some(keys) => keys.iter().map(|a| a.to_string()).collect(),
@@ -205,11 +211,15 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                     ctx.link().send_message(PendingPropertyViewMsg::Load);
                 }
             }
-            PendingPropertyViewMsg::EditProperty(key) => {
+            PendingPropertyViewMsg::Edit(key) => {
                 let property = match lookup_property(T::properties(props), &key) {
                     Some(property) => property,
                     None::<_> => return false,
                 };
+                ctx.link()
+                    .send_message(PendingPropertyViewMsg::EditProperty(property.clone()));
+            }
+            PendingPropertyViewMsg::EditProperty(property) => {
                 let dialog = PropertyEditDialog::from(property.clone())
                     .mobile(T::MOBILE)
                     .on_done(
