@@ -19,7 +19,9 @@ use pwt_macros::builder;
 
 use crate::EditableProperty;
 
-use super::{PropertyGridRecord, PropertyView, PropertyViewMsg, PvePropertyView};
+use super::{
+    PropertyGridRecord, PropertyView, PropertyViewMsg, PropertyViewState, PvePropertyView,
+};
 
 /// Render object properties as [List]
 #[derive(Properties, Clone, PartialEq)]
@@ -62,13 +64,37 @@ struct PvePropertyGrid {
     selection: Selection,
 }
 
+impl PvePropertyGrid {
+    fn toolbar(&self, ctx: &Context<PvePropertyView<Self>>) -> Html {
+        let link = ctx.link();
+
+        let selected_key = self.selection.selected_key();
+
+        let toolbar = Toolbar::new()
+            .class("pwt-overflow-hidden")
+            .class("pwt-border-bottom")
+            .with_child(
+                Button::new(tr!("Edit"))
+                    .disabled(selected_key.is_none())
+                    .onclick({
+                        let key = selected_key.clone();
+                        let link = link.clone();
+                        move |_| {
+                            if let Some(key) = &key {
+                                link.send_message(PropertyViewMsg::EditProperty(key.clone()));
+                            }
+                        }
+                    }),
+            );
+
+        toolbar.into()
+    }
+}
+
 impl PropertyView for PvePropertyGrid {
     type Properties = PropertyGrid;
     const MOBILE: bool = false;
 
-    fn class(props: &Self::Properties) -> &Classes {
-        &props.class
-    }
     fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>> {
         &props.properties
     }
@@ -105,12 +131,11 @@ impl PropertyView for PvePropertyGrid {
     fn update_data(
         &mut self,
         ctx: &Context<PvePropertyView<Self>>,
-        data: Option<&Value>,
-        _error: Option<&str>,
+        view_state: &mut PropertyViewState,
     ) {
         let props = ctx.props();
 
-        let record = match data {
+        let record = match &view_state.data {
             Some(data) => data.clone(),
             _ => Value::Null,
         };
@@ -145,43 +170,10 @@ impl PropertyView for PvePropertyGrid {
         self.store.set_data(rows);
     }
 
-    fn toolbar(
-        &self,
-        ctx: &Context<PvePropertyView<Self>>,
-        _data: Option<&Value>,
-        _error: Option<&str>,
-    ) -> Option<Html> {
-        let link = ctx.link();
+    fn view(&self, ctx: &Context<PvePropertyView<Self>>, view_state: &PropertyViewState) -> Html {
+        let props = ctx.props();
 
-        let selected_key = self.selection.selected_key();
-
-        let toolbar = Toolbar::new()
-            .class("pwt-overflow-hidden")
-            .class("pwt-border-bottom")
-            .with_child(
-                Button::new(tr!("Edit"))
-                    .disabled(selected_key.is_none())
-                    .onclick({
-                        let key = selected_key.clone();
-                        let link = link.clone();
-                        move |_| {
-                            if let Some(key) = &key {
-                                link.send_message(PropertyViewMsg::EditProperty(key.clone()));
-                            }
-                        }
-                    }),
-            );
-
-        Some(toolbar.into())
-    }
-
-    fn view(
-        &self,
-        ctx: &Context<PvePropertyView<Self>>,
-        _data: Option<&Value>,
-        _error: Option<&str>,
-    ) -> Html {
-        DataTable::new(self.columns.clone(), self.store.clone())
+        let table = DataTable::new(self.columns.clone(), self.store.clone())
             .class(pwt::css::FlexFit)
             .show_header(false)
             .virtual_scroll(false)
@@ -200,7 +192,15 @@ impl PropertyView for PvePropertyGrid {
                     }
                 }
             })
-            .into()
+            .into();
+
+        let loading = view_state.loading();
+        let toolbar = self.toolbar(ctx);
+        let class = props.class.clone();
+        let dialog = view_state.dialog.clone();
+        let error = view_state.error.clone();
+
+        super::render_loadable_panel(class, table, Some(toolbar), dialog, loading, error)
     }
 }
 

@@ -17,7 +17,9 @@ use crate::layout::list_tile::title_subtitle_column;
 use crate::pve_api_types::QemuPendingConfigValue;
 use crate::EditableProperty;
 
-use super::{PendingPropertyView, PendingPropertyViewMsg, PvePendingPropertyView};
+use super::{
+    PendingPropertyView, PendingPropertyViewMsg, PendingPropertyViewState, PvePendingPropertyView,
+};
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
 #[derive(Properties, Clone, PartialEq)]
@@ -173,10 +175,6 @@ impl PendingPropertyView for PvePendingPropertyList {
 
     const MOBILE: bool = true;
 
-    fn class(props: &Self::Properties) -> &Classes {
-        &props.class
-    }
-
     fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>> {
         &props.properties
     }
@@ -202,14 +200,13 @@ impl PendingPropertyView for PvePendingPropertyList {
     fn view(
         &self,
         ctx: &Context<PvePendingPropertyView<Self>>,
-        data: Option<&(Value, Value, HashSet<String>)>,
-        _error: Option<&str>,
+        view_state: &PendingPropertyViewState,
     ) -> Html {
         let props = ctx.props();
 
         let mut tiles: Vec<ListTile> = Vec::new();
 
-        let (current, pending, keys): (Value, Value, HashSet<String>) = match data {
+        let (current, pending, keys): (Value, Value, HashSet<String>) = match &view_state.data {
             Some(data) => data.clone(),
             _ => (Value::Null, Value::Null, HashSet::new()),
         };
@@ -229,11 +226,19 @@ impl PendingPropertyView for PvePendingPropertyList {
             }
         }
 
-        List::from_tiles(tiles)
+        let panel = List::from_tiles(tiles)
             .virtual_scroll(Some(false))
             .grid_template_columns("1fr")
             .class(pwt::css::FlexFit)
-            .into()
+            .into();
+
+        let loading = view_state.loading();
+
+        let class = props.class.clone();
+        let dialog = view_state.dialog.clone();
+        let error = view_state.error.clone();
+
+        crate::property_view::render_loadable_panel(class, panel, None, dialog, loading, error)
     }
 }
 

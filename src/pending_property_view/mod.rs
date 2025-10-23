@@ -5,8 +5,6 @@ mod pending_property_list;
 pub use pending_property_list::PendingPropertyList;
 
 use std::collections::HashSet;
-use std::future::Future;
-use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
@@ -34,7 +32,6 @@ pub enum PendingPropertyViewMsg<M> {
     Revert(Key),
     RevertResult(Result<(), Error>),
     Select(Option<Key>),
-    Spawn(Pin<Box<dyn Future<Output = ()>>>),
     Custom(M),
 }
 
@@ -43,8 +40,6 @@ pub trait PendingPropertyView {
     type Message;
 
     const MOBILE: bool;
-
-    fn class(props: &Self::Properties) -> &Classes;
 
     fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>>;
 
@@ -60,7 +55,13 @@ pub trait PendingPropertyView {
     where
         Self: 'static + Sized;
 
-    fn update(&mut self, _ctx: &Context<PvePendingPropertyView<Self>>, _msg: Self::Message) -> bool
+    #[allow(unused_variables)]
+    fn update(
+        &mut self,
+        ctx: &Context<PvePendingPropertyView<Self>>,
+        view_state: &mut PendingPropertyViewState,
+        msg: Self::Message,
+    ) -> bool
     where
         Self: 'static + Sized,
     {
@@ -83,45 +84,52 @@ pub trait PendingPropertyView {
     fn update_data(
         &mut self,
         ctx: &Context<PvePendingPropertyView<Self>>,
-        data: Option<&(Value, Value, HashSet<String>)>,
-        error: Option<&str>,
+        view_state: &mut PendingPropertyViewState,
     ) where
         Self: 'static + Sized,
     {
     }
 
-    #[allow(unused_variables)]
-    fn toolbar(
-        &self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        data: Option<&(Value, Value, HashSet<String>)>,
-        error: Option<&str>,
-    ) -> Option<Html>
-    where
-        Self: 'static + Sized,
-    {
-        None
-    }
-
     fn view(
         &self,
         ctx: &Context<PvePendingPropertyView<Self>>,
-        data: Option<&(Value, Value, HashSet<String>)>,
-        error: Option<&str>,
+        view_state: &PendingPropertyViewState,
     ) -> Html
     where
         Self: 'static + Sized;
 }
 
+pub struct PendingPropertyViewState {
+    pub data: Option<(Value, Value, HashSet<String>)>,
+    pub error: Option<String>,
+    pub reload_timeout: Option<Timeout>,
+    pub load_guard: Option<AsyncAbortGuard>,
+    pub revert_guard: Option<AsyncAbortGuard>,
+    pub async_pool: AsyncPool,
+    pub dialog: Option<Html>,
+}
+
+impl PendingPropertyViewState {
+    pub fn update(&mut self, result: Result<(Value, Value, HashSet<String>), String>) {
+        match result {
+            Ok(data) => {
+                self.error = None;
+                self.data = Some(data);
+            }
+            Err(err) => {
+                self.error = Some(err);
+            }
+        }
+    }
+
+    pub fn loading(&self) -> bool {
+        self.data.is_none() && self.error.is_none()
+    }
+}
+
 pub struct PvePendingPropertyView<T> {
-    data: Option<(Value, Value, HashSet<String>)>,
-    error: Option<String>,
-    reload_timeout: Option<Timeout>,
-    load_guard: Option<AsyncAbortGuard>,
-    revert_guard: Option<AsyncAbortGuard>,
-    async_pool: AsyncPool,
-    dialog: Option<Html>,
-    view_state: T,
+    view_state: PendingPropertyViewState,
+    child_state: T,
 }
 
 impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
@@ -132,16 +140,18 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
         ctx.link().send_message(PendingPropertyViewMsg::Load);
 
         let mut me = Self {
-            data: None,
-            error: None,
-            reload_timeout: None,
-            load_guard: None,
-            revert_guard: None,
-            async_pool: AsyncPool::new(),
-            dialog: None,
-            view_state: T::create(ctx),
+            view_state: PendingPropertyViewState {
+                data: None,
+                error: None,
+                reload_timeout: None,
+                load_guard: None,
+                revert_guard: None,
+                async_pool: AsyncPool::new(),
+                dialog: None,
+            },
+            child_state: T::create(ctx),
         };
-        me.view_state.update_data(ctx, None, None);
+        me.child_state.update_data(ctx, &mut me.view_state);
         me
     }
 
@@ -149,11 +159,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
         let props = ctx.props();
         match msg {
             PendingPropertyViewMsg::Custom(custom) => {
-                return self.view_state.update(ctx, custom);
-            }
-            PendingPropertyViewMsg::Spawn(future) => {
-                self.async_pool.spawn(future);
-                return false;
+                return self.child_state.update(ctx, &mut self.view_state, custom);
             }
             PendingPropertyViewMsg::Select(_key) => { /* just redraw */ }
             PendingPropertyViewMsg::Revert(key) => {
@@ -181,7 +187,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 };
                 if let Some(on_submit) = T::on_submit(props) {
                     let param = json!({ "revert": keys });
-                    self.revert_guard = Some(AsyncAbortGuard::spawn(async move {
+                    self.view_state.revert_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = on_submit.apply(param).await;
                         link.send_message(PendingPropertyViewMsg::RevertResult(result));
                     }));
@@ -195,7 +201,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                                 .message(tr!("Revert property failed") + " - " + &err.to_string()),
                         );
                     } else {
-                        self.dialog = Some(
+                        self.view_state.dialog = Some(
                             AlertDialog::new(
                                 tr!("Revert property failed") + " - " + &err.to_string(),
                             )
@@ -207,7 +213,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                         );
                     }
                 }
-                if self.reload_timeout.is_some() {
+                if self.view_state.reload_timeout.is_some() {
                     ctx.link().send_message(PendingPropertyViewMsg::Load);
                 }
             }
@@ -229,13 +235,13 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                     .loader(T::editor_loader(props))
                     .on_submit(T::on_submit(props))
                     .into();
-                self.dialog = Some(dialog);
+                self.view_state.dialog = Some(dialog);
             }
             PendingPropertyViewMsg::Load => {
-                self.reload_timeout = None;
+                self.view_state.reload_timeout = None;
                 let link = ctx.link().clone();
                 if let Some(loader) = T::pending_loader(props) {
-                    self.load_guard = Some(AsyncAbortGuard::spawn(async move {
+                    self.view_state.load_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = loader.apply().await;
                         let data = match result {
                             Ok(result) => Ok(result.data),
@@ -249,25 +255,18 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 let result = result.and_then(|data| {
                     pve_pending_config_array_to_objects(data).map_err(|err| err.to_string())
                 });
-                match result {
-                    Ok(data) => {
-                        self.data = Some(data);
-                        self.error = None;
-                    }
-                    Err(err) => self.error = Some(err),
-                }
-                self.view_state
-                    .update_data(ctx, self.data.as_ref(), self.error.as_deref());
+                self.view_state.update(result);
+                self.child_state.update_data(ctx, &mut self.view_state);
                 let link = ctx.link().clone();
-                self.reload_timeout = Some(Timeout::new(3000, move || {
+                self.view_state.reload_timeout = Some(Timeout::new(3000, move || {
                     link.send_message(PendingPropertyViewMsg::Load);
                 }));
             }
             PendingPropertyViewMsg::ShowDialog(dialog) => {
-                if dialog.is_none() && self.reload_timeout.is_some() {
+                if dialog.is_none() && self.view_state.reload_timeout.is_some() {
                     ctx.link().send_message(PendingPropertyViewMsg::Load);
                 }
-                self.dialog = dialog;
+                self.view_state.dialog = dialog;
             }
         }
         true
@@ -276,39 +275,14 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
         if T::properties(props) != T::properties(old_props) {
-            self.view_state
-                .update_data(ctx, self.data.as_ref(), self.error.as_deref());
+            self.child_state.update_data(ctx, &mut self.view_state);
         }
-        let _ = self.view_state.changed(ctx, old_props);
+        let _ = self.child_state.changed(ctx, old_props);
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let props = ctx.props();
-        let panel = self
-            .view_state
-            .view(ctx, self.data.as_ref(), self.error.as_deref());
-
-        let loading = self.data.is_none() && self.error.is_none();
-
-        Column::new()
-            .class(T::class(props).clone())
-            .with_optional_child(self.view_state.toolbar(
-                ctx,
-                self.data.as_ref(),
-                self.error.as_deref(),
-            ))
-            .with_optional_child(
-                loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
-            )
-            .with_child(panel)
-            .with_optional_child(
-                self.error
-                    .as_deref()
-                    .map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
-            )
-            .with_optional_child(self.dialog.clone())
-            .into()
+        self.child_state.view(ctx, &self.view_state)
     }
 }
 

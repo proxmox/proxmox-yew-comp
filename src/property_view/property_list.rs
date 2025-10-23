@@ -15,7 +15,7 @@ use pwt_macros::builder;
 use crate::layout::list_tile::form_list_tile;
 use crate::EditableProperty;
 
-use super::{PropertyView, PropertyViewMsg, PvePropertyView};
+use super::{PropertyView, PropertyViewMsg, PropertyViewState, PvePropertyView};
 
 /// Render object properties as [List]
 #[derive(Properties, Clone, PartialEq)]
@@ -75,10 +75,6 @@ impl PropertyView for PvePropertyList {
     type Properties = PropertyList;
     const MOBILE: bool = true;
 
-    fn class(props: &Self::Properties) -> &Classes {
-        &props.class
-    }
-
     fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>> {
         &props.properties
     }
@@ -98,28 +94,12 @@ impl PropertyView for PvePropertyList {
         Self {}
     }
 
-    fn update_data(
-        &mut self,
-        _ctx: &Context<PvePropertyView<Self>>,
-        _data: Option<&Value>,
-        _error: Option<&str>,
-    ) where
-        Self: 'static + Sized,
-    {
-        /* do nothing */
-    }
-
-    fn view(
-        &self,
-        ctx: &Context<PvePropertyView<Self>>,
-        data: Option<&Value>,
-        _error: Option<&str>,
-    ) -> Html {
+    fn view(&self, ctx: &Context<PvePropertyView<Self>>, view_state: &PropertyViewState) -> Html {
         let props = ctx.props();
 
         let mut tiles: Vec<ListTile> = Vec::new();
 
-        let record = match data {
+        let record = match &view_state.data {
             Some(data) => data.clone(),
             _ => Value::Null,
         };
@@ -142,11 +122,20 @@ impl PropertyView for PvePropertyList {
 
             tiles.push(list_tile);
         }
-        List::from_tiles(tiles)
+
+        let panel = List::from_tiles(tiles)
             .virtual_scroll(Some(false))
             .grid_template_columns("1fr auto")
             .class(pwt::css::FlexFit)
-            .into()
+            .into();
+
+        let loading = view_state.loading();
+
+        let class = props.class.clone();
+        let dialog = view_state.dialog.clone();
+        let error = view_state.error.clone();
+
+        super::render_loadable_panel(class, panel, None, dialog, loading, error)
     }
 }
 

@@ -45,8 +45,6 @@ pub trait PropertyView {
     type Properties: Properties;
     const MOBILE: bool;
 
-    fn class(props: &Self::Properties) -> &Classes;
-
     fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>>;
 
     fn loader(props: &Self::Properties) -> Option<ApiLoadCallback<Value>>;
@@ -57,45 +55,50 @@ pub trait PropertyView {
     where
         Self: 'static + Sized;
 
+    #[allow(unused_variables)]
     fn update_data(
         &mut self,
-        _ctx: &Context<PvePropertyView<Self>>,
-        _data: Option<&Value>,
-        _error: Option<&str>,
+        ctx: &Context<PvePropertyView<Self>>,
+        view_state: &mut PropertyViewState,
     ) where
         Self: 'static + Sized,
     {
     }
 
-    fn toolbar(
-        &self,
-        _ctx: &Context<PvePropertyView<Self>>,
-        _data: Option<&Value>,
-        _error: Option<&str>,
-    ) -> Option<Html>
-    where
-        Self: 'static + Sized,
-    {
-        None
-    }
-
-    fn view(
-        &self,
-        ctx: &Context<PvePropertyView<Self>>,
-        data: Option<&Value>,
-        error: Option<&str>,
-    ) -> Html
+    fn view(&self, ctx: &Context<PvePropertyView<Self>>, view_state: &PropertyViewState) -> Html
     where
         Self: 'static + Sized;
 }
 
+pub struct PropertyViewState {
+    pub data: Option<Value>,
+    pub error: Option<String>,
+    pub reload_timeout: Option<Timeout>,
+    pub load_guard: Option<AsyncAbortGuard>,
+    pub dialog: Option<Html>,
+}
+
+impl PropertyViewState {
+    pub fn update(&mut self, result: Result<Value, String>) {
+        match result {
+            Ok(data) => {
+                self.error = None;
+                self.data = Some(data);
+            }
+            Err(err) => {
+                self.error = Some(err);
+            }
+        }
+    }
+
+    pub fn loading(&self) -> bool {
+        self.data.is_none() && self.error.is_none()
+    }
+}
+
 pub struct PvePropertyView<T> {
-    data: Option<Value>,
-    error: Option<String>,
-    reload_timeout: Option<Timeout>,
-    load_guard: Option<AsyncAbortGuard>,
-    dialog: Option<Html>,
-    view_state: T,
+    view_state: PropertyViewState,
+    child_state: T,
 }
 
 impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
@@ -106,14 +109,16 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
         ctx.link().send_message(PropertyViewMsg::Load);
 
         let mut me = Self {
-            data: None,
-            error: None,
-            reload_timeout: None,
-            load_guard: None,
-            dialog: None,
-            view_state: T::create(ctx),
+            view_state: PropertyViewState {
+                data: None,
+                error: None,
+                reload_timeout: None,
+                load_guard: None,
+                dialog: None,
+            },
+            child_state: T::create(ctx),
         };
-        me.view_state.update_data(ctx, None, None);
+        me.child_state.update_data(ctx, &mut me.view_state);
         me
     }
 
@@ -133,13 +138,13 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
                     .loader(T::loader(props))
                     .on_submit(T::on_submit(props))
                     .into();
-                self.dialog = Some(dialog);
+                self.view_state.dialog = Some(dialog);
             }
             PropertyViewMsg::Load => {
-                self.reload_timeout = None;
+                self.view_state.reload_timeout = None;
                 let link = ctx.link().clone();
                 if let Some(loader) = T::loader(props) {
-                    self.load_guard = Some(AsyncAbortGuard::spawn(async move {
+                    self.view_state.load_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = loader.apply().await;
                         let data = match result {
                             Ok(result) => Ok(result.data),
@@ -150,25 +155,19 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
                 }
             }
             PropertyViewMsg::LoadResult(result) => {
-                match result {
-                    Ok(data) => {
-                        self.data = Some(data);
-                        self.error = None;
-                    }
-                    Err(err) => self.error = Some(err),
-                }
-                self.view_state
-                    .update_data(ctx, self.data.as_ref(), self.error.as_deref());
+                self.view_state.update(result);
+
+                self.child_state.update_data(ctx, &mut self.view_state);
                 let link = ctx.link().clone();
-                self.reload_timeout = Some(Timeout::new(3000, move || {
+                self.view_state.reload_timeout = Some(Timeout::new(3000, move || {
                     link.send_message(PropertyViewMsg::Load);
                 }));
             }
             PropertyViewMsg::ShowDialog(dialog) => {
-                if dialog.is_none() && self.reload_timeout.is_some() {
+                if dialog.is_none() && self.view_state.reload_timeout.is_some() {
                     ctx.link().send_message(PropertyViewMsg::Load);
                 }
-                self.dialog = dialog;
+                self.view_state.dialog = dialog;
             }
         }
         true
@@ -177,40 +176,39 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
         if T::properties(props) != T::properties(old_props) {
-            self.view_state
-                .update_data(ctx, self.data.as_ref(), self.error.as_deref());
+            self.child_state.update_data(ctx, &mut self.view_state);
         }
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let props = ctx.props();
-
-        let panel = self
-            .view_state
-            .view(ctx, self.data.as_ref(), self.error.as_deref());
-
-        let loading = self.data.is_none() && self.error.is_none();
-
-        Column::new()
-            .class(T::class(props).clone())
-            .with_optional_child(self.view_state.toolbar(
-                ctx,
-                self.data.as_ref(),
-                self.error.as_deref(),
-            ))
-            .with_optional_child(
-                loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
-            )
-            .with_child(panel)
-            .with_optional_child(
-                self.error
-                    .as_deref()
-                    .map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
-            )
-            .with_optional_child(self.dialog.clone())
-            .into()
+        self.child_state.view(ctx, &self.view_state)
     }
+}
+
+/// Render into a [Column] with toolbar, loading indicator and error display
+///
+/// With optional dialog widget.
+pub fn render_loadable_panel(
+    class: Classes,
+    panel: Html,
+    toolbar: Option<Html>,
+    dialog: Option<Html>,
+    loading: bool,
+    error: Option<String>,
+) -> Html {
+    Column::new()
+        .class(class)
+        .with_optional_child(toolbar)
+        .with_optional_child(
+            loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
+        )
+        .with_child(panel)
+        .with_optional_child(
+            error.map(|err| pwt::widget::error_message(&err.to_string()).padding(2)),
+        )
+        .with_optional_child(dialog)
+        .into()
 }
 
 fn lookup_property<'a>(

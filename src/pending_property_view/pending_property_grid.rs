@@ -22,7 +22,9 @@ use crate::property_view::{property_grid_columns, PropertyGridRecord};
 use crate::pve_api_types::QemuPendingConfigValue;
 use crate::EditableProperty;
 
-use super::{PendingPropertyView, PendingPropertyViewMsg, PvePendingPropertyView};
+use super::{
+    PendingPropertyView, PendingPropertyViewMsg, PendingPropertyViewState, PvePendingPropertyView,
+};
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
 #[derive(Properties, Clone, PartialEq)]
@@ -69,15 +71,59 @@ pub struct PvePendingPropertyGrid {
     selection: Selection,
 }
 
+impl PvePendingPropertyGrid {
+    fn toolbar(&self, ctx: &Context<PvePendingPropertyView<Self>>) -> Html {
+        let link = ctx.link();
+
+        let selected_key = self.selection.selected_key();
+        let has_changes = selected_key
+            .as_ref()
+            .map(|key| self.store.read().lookup_record(&key).cloned())
+            .flatten()
+            .map(|record| record.has_changes)
+            .unwrap_or(false);
+
+        let disable_revert = !(has_changes && selected_key.is_some());
+
+        let toolbar = Toolbar::new()
+            .class("pwt-overflow-hidden")
+            .class("pwt-border-bottom")
+            .with_child(
+                Button::new(tr!("Edit"))
+                    .disabled(selected_key.is_none())
+                    .onclick({
+                        let key = selected_key.clone();
+                        let link = link.clone();
+                        move |_| {
+                            if let Some(key) = &key {
+                                link.send_message(PendingPropertyViewMsg::Edit(key.clone()));
+                            }
+                        }
+                    }),
+            )
+            .with_child(
+                Button::new(tr!("Revert"))
+                    .disabled(disable_revert)
+                    .onclick({
+                        let key = selected_key.clone();
+                        let link = link.clone();
+                        move |_| {
+                            if let Some(key) = &key {
+                                link.send_message(PendingPropertyViewMsg::Revert(key.clone()));
+                            }
+                        }
+                    }),
+            );
+
+        toolbar.into()
+    }
+}
+
 impl PendingPropertyView for PvePendingPropertyGrid {
     type Properties = PendingPropertyGrid;
     type Message = ();
 
     const MOBILE: bool = false;
-
-    fn class(props: &Self::Properties) -> &Classes {
-        &props.class
-    }
 
     fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>> {
         &props.properties
@@ -121,12 +167,11 @@ impl PendingPropertyView for PvePendingPropertyGrid {
     fn update_data(
         &mut self,
         ctx: &Context<super::PvePendingPropertyView<Self>>,
-        data: Option<&(Value, Value, HashSet<String>)>,
-        _error: Option<&str>,
+        view_state: &mut PendingPropertyViewState,
     ) {
         let props = ctx.props();
 
-        let (current, pending, keys): (Value, Value, HashSet<String>) = match data {
+        let (current, pending, keys): (Value, Value, HashSet<String>) = match &view_state.data {
             Some(data) => data.clone(),
             _ => (Value::Null, Value::Null, HashSet::new()),
         };
@@ -173,64 +218,14 @@ impl PendingPropertyView for PvePendingPropertyGrid {
         self.store.set_data(rows);
     }
 
-    fn toolbar(
-        &self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        _data: Option<&(Value, Value, HashSet<String>)>,
-        _error: Option<&str>,
-    ) -> Option<Html> {
-        let link = ctx.link();
-
-        let selected_key = self.selection.selected_key();
-        let has_changes = selected_key
-            .as_ref()
-            .map(|key| self.store.read().lookup_record(&key).cloned())
-            .flatten()
-            .map(|record| record.has_changes)
-            .unwrap_or(false);
-
-        let disable_revert = !(has_changes && selected_key.is_some());
-
-        let toolbar = Toolbar::new()
-            .class("pwt-overflow-hidden")
-            .class("pwt-border-bottom")
-            .with_child(
-                Button::new(tr!("Edit"))
-                    .disabled(selected_key.is_none())
-                    .onclick({
-                        let key = selected_key.clone();
-                        let link = link.clone();
-                        move |_| {
-                            if let Some(key) = &key {
-                                link.send_message(PendingPropertyViewMsg::Edit(key.clone()));
-                            }
-                        }
-                    }),
-            )
-            .with_child(
-                Button::new(tr!("Revert"))
-                    .disabled(disable_revert)
-                    .onclick({
-                        let key = selected_key.clone();
-                        let link = link.clone();
-                        move |_| {
-                            if let Some(key) = &key {
-                                link.send_message(PendingPropertyViewMsg::Revert(key.clone()));
-                            }
-                        }
-                    }),
-            );
-
-        Some(toolbar.into())
-    }
-
     fn view(
         &self,
         ctx: &Context<PvePendingPropertyView<Self>>,
-        _data: Option<&(Value, Value, HashSet<String>)>,
-        _error: Option<&str>,
+        view_state: &PendingPropertyViewState,
     ) -> Html {
-        DataTable::new(self.columns.clone(), self.store.clone())
+        let props = ctx.props();
+
+        let table = DataTable::new(self.columns.clone(), self.store.clone())
             .class(pwt::css::FlexFit)
             .show_header(false)
             .virtual_scroll(false)
@@ -249,7 +244,22 @@ impl PendingPropertyView for PvePendingPropertyGrid {
                     }
                 }
             })
-            .into()
+            .into();
+
+        let loading = view_state.loading();
+        let toolbar = self.toolbar(ctx);
+        let class = props.class.clone();
+        let dialog = view_state.dialog.clone();
+        let error = view_state.error.clone();
+
+        crate::property_view::render_loadable_panel(
+            class,
+            table,
+            Some(toolbar),
+            dialog,
+            loading,
+            error,
+        )
     }
 }
 
