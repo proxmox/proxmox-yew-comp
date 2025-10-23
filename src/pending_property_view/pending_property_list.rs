@@ -151,7 +151,8 @@ impl PvePendingPropertyList {
         let on_revert = Callback::from({
             ctx.link().callback({
                 let name = name.clone();
-                move |_: Event| PendingPropertyViewMsg::Revert(name.clone())
+                let property = property.clone();
+                move |_: Event| PendingPropertyViewMsg::RevertProperty(property.clone())
             })
         });
 
@@ -159,10 +160,12 @@ impl PvePendingPropertyList {
             PendingPropertyList::render_list_tile(current, pending, property, (), on_revert);
 
         if property.render_input_panel.is_some() {
-            list_tile.interactive(true).on_activate(
-                ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::Edit(name.clone())),
-            )
+            list_tile
+                .interactive(true)
+                .on_activate(ctx.link().callback({
+                    let property = property.clone();
+                    move |_| PendingPropertyViewMsg::EditProperty(property.clone())
+                }))
         } else {
             list_tile
         }
@@ -174,10 +177,6 @@ impl PendingPropertyView for PvePendingPropertyList {
     type Message = ();
 
     const MOBILE: bool = true;
-
-    fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>> {
-        &props.properties
-    }
 
     fn editor_loader(props: &Self::Properties) -> Option<ApiLoadCallback<Value>> {
         props.editor_loader.clone()

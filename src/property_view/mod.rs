@@ -22,6 +22,7 @@ use crate::{ApiLoadCallback, EditableProperty, PropertyEditDialog};
 #[derive(Clone, PartialEq)]
 pub struct PropertyGridRecord {
     pub key: Key,
+    pub property: EditableProperty,
     pub header: Html,
     pub content: Html,
     pub has_changes: bool,
@@ -33,19 +34,19 @@ impl ExtractPrimaryKey for PropertyGridRecord {
     }
 }
 
-pub enum PropertyViewMsg {
+pub enum PropertyViewMsg<M> {
     Load,
     LoadResult(Result<Value, String>),
     ShowDialog(Option<Html>),
-    EditProperty(Key),
+    EditProperty(EditableProperty),
     Select(Option<Key>),
+    Custom(M),
 }
 
 pub trait PropertyView {
     type Properties: Properties;
+    type Message;
     const MOBILE: bool;
-
-    fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>>;
 
     fn loader(props: &Self::Properties) -> Option<ApiLoadCallback<Value>>;
 
@@ -54,6 +55,32 @@ pub trait PropertyView {
     fn create(ctx: &Context<PvePropertyView<Self>>) -> Self
     where
         Self: 'static + Sized;
+
+    #[allow(unused_variables)]
+    fn update(
+        &mut self,
+        ctx: &Context<PvePropertyView<Self>>,
+        view_state: &mut PropertyViewState,
+        msg: Self::Message,
+    ) -> bool
+    where
+        Self: 'static + Sized,
+    {
+        true
+    }
+
+    #[allow(unused_variables)]
+    fn changed(
+        &mut self,
+        ctx: &Context<PvePropertyView<Self>>,
+        view_state: &mut PropertyViewState,
+        old_props: &Self::Properties,
+    ) -> bool
+    where
+        Self: 'static + Sized,
+    {
+        true
+    }
 
     #[allow(unused_variables)]
     fn update_data(
@@ -102,7 +129,7 @@ pub struct PvePropertyView<T> {
 }
 
 impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
-    type Message = PropertyViewMsg;
+    type Message = PropertyViewMsg<T::Message>;
     type Properties = T::Properties;
 
     fn create(ctx: &Context<Self>) -> Self {
@@ -125,13 +152,11 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
+            PropertyViewMsg::Custom(custom) => {
+                return self.child_state.update(ctx, &mut self.view_state, custom);
+            }
             PropertyViewMsg::Select(_key) => { /* just redraw */ }
-            PropertyViewMsg::EditProperty(key) => {
-                let property = match lookup_property(T::properties(props), &key) {
-                    Some(property) => property,
-                    None::<_> => return false,
-                };
-
+            PropertyViewMsg::EditProperty(property) => {
                 let dialog = PropertyEditDialog::from(property.clone())
                     .mobile(T::MOBILE)
                     .on_done(ctx.link().callback(|_| PropertyViewMsg::ShowDialog(None)))
@@ -174,11 +199,15 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
     }
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
+        self.child_state
+            .changed(ctx, &mut self.view_state, old_props)
+        /*
         let props = ctx.props();
-        if T::properties(props) != T::properties(old_props) {
-            self.child_state.update_data(ctx, &mut self.view_state);
-        }
-        true
+         if T::properties(props) != T::properties(old_props) {
+             self.child_state.update_data(ctx, &mut self.view_state);
+         }
+         true
+         */
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {

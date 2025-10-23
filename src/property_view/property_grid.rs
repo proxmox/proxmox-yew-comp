@@ -69,6 +69,11 @@ impl PvePropertyGrid {
         let link = ctx.link();
 
         let selected_key = self.selection.selected_key();
+        let selected_record = selected_key
+            .as_ref()
+            .map(|key| self.store.read().lookup_record(&key).cloned())
+            .flatten();
+        let property = selected_record.as_ref().map(|r| r.property.clone());
 
         let toolbar = Toolbar::new()
             .class("pwt-overflow-hidden")
@@ -77,11 +82,11 @@ impl PvePropertyGrid {
                 Button::new(tr!("Edit"))
                     .disabled(selected_key.is_none())
                     .onclick({
-                        let key = selected_key.clone();
+                        let property = property.clone();
                         let link = link.clone();
                         move |_| {
-                            if let Some(key) = &key {
-                                link.send_message(PropertyViewMsg::EditProperty(key.clone()));
+                            if let Some(property) = &property {
+                                link.send_message(PropertyViewMsg::EditProperty(property.clone()));
                             }
                         }
                     }),
@@ -93,11 +98,8 @@ impl PvePropertyGrid {
 
 impl PropertyView for PvePropertyGrid {
     type Properties = PropertyGrid;
+    type Message = ();
     const MOBILE: bool = false;
-
-    fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>> {
-        &props.properties
-    }
 
     fn loader(props: &Self::Properties) -> Option<ApiLoadCallback<Value>> {
         props.loader.clone()
@@ -161,6 +163,7 @@ impl PropertyView for PvePropertyGrid {
 
                 rows.push(PropertyGridRecord {
                     key: Key::from(name.clone()),
+                    property: item.clone(),
                     header,
                     content,
                     has_changes: false,
@@ -180,15 +183,29 @@ impl PropertyView for PvePropertyGrid {
             .selection(self.selection.clone())
             .on_row_dblclick({
                 let link = ctx.link().clone();
+                let store = self.store.clone();
                 move |event: &mut DataTableMouseEvent| {
-                    link.send_message(PropertyViewMsg::EditProperty(event.record_key.clone()));
+                    let property = store
+                        .read()
+                        .lookup_record(&event.record_key)
+                        .map(|r| r.property.clone());
+                    if let Some(property) = property {
+                        link.send_message(PropertyViewMsg::EditProperty(property));
+                    }
                 }
             })
             .on_row_keydown({
                 let link = ctx.link().clone();
+                let store = self.store.clone();
                 move |event: &mut DataTableKeyboardEvent| {
                     if event.key() == " " {
-                        link.send_message(PropertyViewMsg::EditProperty(event.record_key.clone()));
+                        let property = store
+                            .read()
+                            .lookup_record(&event.record_key)
+                            .map(|r| r.property.clone());
+                        if let Some(property) = property {
+                            link.send_message(PropertyViewMsg::EditProperty(property));
+                        }
                     }
                 }
             })

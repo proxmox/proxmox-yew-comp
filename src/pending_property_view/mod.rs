@@ -5,7 +5,6 @@ mod pending_property_list;
 pub use pending_property_list::PendingPropertyList;
 
 use std::collections::HashSet;
-use std::rc::Rc;
 
 use anyhow::Error;
 use gloo_timers::callback::Timeout;
@@ -15,7 +14,7 @@ use yew::virtual_dom::Key;
 
 use pwt::props::SubmitCallback;
 use pwt::touch::{SnackBar, SnackBarContextExt};
-use pwt::widget::{AlertDialog, Column};
+use pwt::widget::AlertDialog;
 use pwt::AsyncAbortGuard;
 use pwt::{prelude::*, AsyncPool};
 
@@ -27,9 +26,7 @@ pub enum PendingPropertyViewMsg<M> {
     LoadResult(Result<Vec<QemuPendingConfigValue>, String>),
     ShowDialog(Option<Html>),
     EditProperty(EditableProperty),
-    Edit(Key),
     RevertProperty(EditableProperty),
-    Revert(Key),
     RevertResult(Result<(), Error>),
     Select(Option<Key>),
     Custom(M),
@@ -40,8 +37,6 @@ pub trait PendingPropertyView {
     type Message;
 
     const MOBILE: bool;
-
-    fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>>;
 
     fn editor_loader(props: &Self::Properties) -> Option<ApiLoadCallback<Value>>;
 
@@ -72,6 +67,7 @@ pub trait PendingPropertyView {
     fn changed(
         &mut self,
         ctx: &Context<PvePendingPropertyView<Self>>,
+        view_state: &mut PendingPropertyViewState,
         old_props: &Self::Properties,
     ) -> bool
     where
@@ -162,14 +158,6 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 return self.child_state.update(ctx, &mut self.view_state, custom);
             }
             PendingPropertyViewMsg::Select(_key) => { /* just redraw */ }
-            PendingPropertyViewMsg::Revert(key) => {
-                let property = match lookup_property(T::properties(props), &key) {
-                    Some(property) => property,
-                    None::<_> => return false,
-                };
-                ctx.link()
-                    .send_message(PendingPropertyViewMsg::RevertProperty(property.clone()));
-            }
             PendingPropertyViewMsg::RevertProperty(property) => {
                 let link = ctx.link().clone();
                 let keys = match property.revert_keys.as_deref() {
@@ -216,14 +204,6 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 if self.view_state.reload_timeout.is_some() {
                     ctx.link().send_message(PendingPropertyViewMsg::Load);
                 }
-            }
-            PendingPropertyViewMsg::Edit(key) => {
-                let property = match lookup_property(T::properties(props), &key) {
-                    Some(property) => property,
-                    None::<_> => return false,
-                };
-                ctx.link()
-                    .send_message(PendingPropertyViewMsg::EditProperty(property.clone()));
             }
             PendingPropertyViewMsg::EditProperty(property) => {
                 let dialog = PropertyEditDialog::from(property.clone())
@@ -273,12 +253,8 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
     }
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
-        let props = ctx.props();
-        if T::properties(props) != T::properties(old_props) {
-            self.child_state.update_data(ctx, &mut self.view_state);
-        }
-        let _ = self.child_state.changed(ctx, old_props);
-        true
+        self.child_state
+            .changed(ctx, &mut self.view_state, old_props)
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -286,7 +262,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
     }
 }
 
-fn lookup_property<'a>(
+pub fn lookup_property<'a>(
     properties: &'a [EditableProperty],
     key: &Key,
 ) -> Option<&'a EditableProperty> {

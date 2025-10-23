@@ -76,12 +76,16 @@ impl PvePendingPropertyGrid {
         let link = ctx.link();
 
         let selected_key = self.selection.selected_key();
-        let has_changes = selected_key
+        let selected_record = selected_key
             .as_ref()
             .map(|key| self.store.read().lookup_record(&key).cloned())
-            .flatten()
+            .flatten();
+        let has_changes = selected_record
+            .as_ref()
             .map(|record| record.has_changes)
             .unwrap_or(false);
+
+        let property = selected_record.as_ref().map(|r| r.property.clone());
 
         let disable_revert = !(has_changes && selected_key.is_some());
 
@@ -92,11 +96,13 @@ impl PvePendingPropertyGrid {
                 Button::new(tr!("Edit"))
                     .disabled(selected_key.is_none())
                     .onclick({
-                        let key = selected_key.clone();
                         let link = link.clone();
+                        let property = property.clone();
                         move |_| {
-                            if let Some(key) = &key {
-                                link.send_message(PendingPropertyViewMsg::Edit(key.clone()));
+                            if let Some(property) = &property {
+                                link.send_message(PendingPropertyViewMsg::EditProperty(
+                                    property.clone(),
+                                ));
                             }
                         }
                     }),
@@ -105,11 +111,13 @@ impl PvePendingPropertyGrid {
                 Button::new(tr!("Revert"))
                     .disabled(disable_revert)
                     .onclick({
-                        let key = selected_key.clone();
                         let link = link.clone();
+                        let property = property.clone();
                         move |_| {
-                            if let Some(key) = &key {
-                                link.send_message(PendingPropertyViewMsg::Revert(key.clone()));
+                            if let Some(property) = &property {
+                                link.send_message(PendingPropertyViewMsg::RevertProperty(
+                                    property.clone(),
+                                ));
                             }
                         }
                     }),
@@ -124,10 +132,6 @@ impl PendingPropertyView for PvePendingPropertyGrid {
     type Message = ();
 
     const MOBILE: bool = false;
-
-    fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>> {
-        &props.properties
-    }
 
     fn editor_loader(props: &Self::Properties) -> Option<ApiLoadCallback<Value>> {
         props.editor_loader.clone()
@@ -209,6 +213,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
 
                 rows.push(PropertyGridRecord {
                     key: Key::from(name.clone()),
+                    property: item.clone(),
                     header,
                     content: content.into(),
                     has_changes,
@@ -216,6 +221,19 @@ impl PendingPropertyView for PvePendingPropertyGrid {
             }
         }
         self.store.set_data(rows);
+    }
+
+    fn changed(
+        &mut self,
+        ctx: &Context<PvePendingPropertyView<Self>>,
+        view_state: &mut PendingPropertyViewState,
+        old_props: &Self::Properties,
+    ) -> bool {
+        let props = ctx.props();
+        if props.properties != old_props.properties {
+            self.update_data(ctx, view_state);
+        }
+        true
     }
 
     fn view(
@@ -232,15 +250,29 @@ impl PendingPropertyView for PvePendingPropertyGrid {
             .selection(self.selection.clone())
             .on_row_dblclick({
                 let link = ctx.link().clone();
+                let store = self.store.clone();
                 move |event: &mut DataTableMouseEvent| {
-                    link.send_message(PendingPropertyViewMsg::Edit(event.record_key.clone()));
+                    let property = store
+                        .read()
+                        .lookup_record(&event.record_key)
+                        .map(|r| r.property.clone());
+                    if let Some(property) = property {
+                        link.send_message(PendingPropertyViewMsg::EditProperty(property));
+                    }
                 }
             })
             .on_row_keydown({
                 let link = ctx.link().clone();
+                let store = self.store.clone();
                 move |event: &mut DataTableKeyboardEvent| {
                     if event.key() == " " {
-                        link.send_message(PendingPropertyViewMsg::Edit(event.record_key.clone()));
+                        let property = store
+                            .read()
+                            .lookup_record(&event.record_key)
+                            .map(|r| r.property.clone());
+                        if let Some(property) = property {
+                            link.send_message(PendingPropertyViewMsg::EditProperty(property));
+                        }
                     }
                 }
             })

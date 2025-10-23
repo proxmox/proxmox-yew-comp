@@ -54,17 +54,18 @@ impl PvePropertyList {
         &self,
         ctx: &Context<PvePropertyView<Self>>,
         record: &Value,
-        name: Key,
         property: &EditableProperty,
     ) -> ListTile {
         let value_text = super::render_property_value(record, property);
         let list_tile = form_list_tile(property.title.clone(), value_text, ());
 
         if property.render_input_panel.is_some() {
-            list_tile.interactive(true).on_activate(
-                ctx.link()
-                    .callback(move |_| PropertyViewMsg::EditProperty(name.clone())),
-            )
+            list_tile
+                .interactive(true)
+                .on_activate(ctx.link().callback({
+                    let property = property.clone();
+                    move |_| PropertyViewMsg::EditProperty(property.clone())
+                }))
         } else {
             list_tile
         }
@@ -73,11 +74,8 @@ impl PvePropertyList {
 
 impl PropertyView for PvePropertyList {
     type Properties = PropertyList;
+    type Message = ();
     const MOBILE: bool = true;
-
-    fn properties(props: &Self::Properties) -> &Rc<Vec<EditableProperty>> {
-        &props.properties
-    }
 
     fn loader(props: &Self::Properties) -> Option<ApiLoadCallback<Value>> {
         props.loader.clone()
@@ -107,7 +105,7 @@ impl PropertyView for PvePropertyList {
         for item in props.properties.iter() {
             let name = match item.get_name() {
                 Some(name) => name.clone(),
-                None => {
+                None::<_> => {
                     log::error!("property list: skiping property without name");
                     continue;
                 }
@@ -117,7 +115,7 @@ impl PropertyView for PvePropertyList {
                 continue;
             }
 
-            let mut list_tile = self.property_tile(ctx, &record, Key::from(&*name), item);
+            let mut list_tile = self.property_tile(ctx, &record, item);
             list_tile.set_key(name);
 
             tiles.push(list_tile);
