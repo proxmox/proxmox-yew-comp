@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::rc::Rc;
 
 use pwt::state::{Selection, Store};
@@ -19,11 +18,11 @@ use crate::{ApiLoadCallback, IntoApiLoadCallback};
 use pwt_macros::builder;
 
 use crate::property_view::{property_grid_columns, PropertyGridRecord};
-use crate::pve_api_types::QemuPendingConfigValue;
 use crate::EditableProperty;
 
 use super::{
-    PendingPropertyView, PendingPropertyViewMsg, PendingPropertyViewState, PvePendingPropertyView,
+    PendingPropertyView, PendingPropertyViewMsg, PendingPropertyViewState, PvePendingConfiguration,
+    PvePendingPropertyView,
 };
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
@@ -38,9 +37,9 @@ pub struct PendingPropertyGrid {
     pub properties: Rc<Vec<EditableProperty>>,
 
     /// Load property list with pending changes information.
-    #[builder_cb(IntoApiLoadCallback, into_api_load_callback, Vec<QemuPendingConfigValue>)]
+    #[builder_cb(IntoApiLoadCallback, into_api_load_callback, PvePendingConfiguration)]
     #[prop_or_default]
-    pub pending_loader: Option<ApiLoadCallback<Vec<QemuPendingConfigValue>>>,
+    pub pending_loader: Option<ApiLoadCallback<PvePendingConfiguration>>,
 
     /// Loader passed to the EditDialog
     #[builder_cb(IntoApiLoadCallback, into_api_load_callback, Value)]
@@ -139,7 +138,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
 
     fn pending_loader(
         props: &Self::Properties,
-    ) -> Option<ApiLoadCallback<Vec<QemuPendingConfigValue>>> {
+    ) -> Option<ApiLoadCallback<PvePendingConfiguration>> {
         props.pending_loader.clone()
     }
 
@@ -175,9 +174,13 @@ impl PendingPropertyView for PvePendingPropertyGrid {
     ) {
         let props = ctx.props();
 
-        let (current, pending, keys): (Value, Value, HashSet<String>) = match &view_state.data {
-            Some(data) => data.clone(),
-            _ => (Value::Null, Value::Null, HashSet::new()),
+        let PvePendingConfiguration {
+            current,
+            pending,
+            keys,
+        } = match &view_state.data {
+            Some(data) => data,
+            _ => &PvePendingConfiguration::new(),
         };
 
         let mut rows: Vec<PropertyGridRecord> = Vec::new();

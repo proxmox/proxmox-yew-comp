@@ -8,8 +8,11 @@ use std::collections::HashSet;
 
 use anyhow::Error;
 use gloo_timers::callback::Timeout;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use serde_json::{json, Value};
 
+use proxmox_client::ApiResponseData;
 use yew::virtual_dom::Key;
 
 use pwt::props::SubmitCallback;
@@ -18,12 +21,82 @@ use pwt::widget::AlertDialog;
 use pwt::AsyncAbortGuard;
 use pwt::{prelude::*, AsyncPool};
 
-use crate::pve_api_types::QemuPendingConfigValue;
-use crate::{ApiLoadCallback, EditableProperty, PropertyEditDialog};
+use crate::{http_get_full, ApiLoadCallback, EditableProperty, PropertyEditDialog};
+use pve_api_types::QemuPendingConfigValue;
+
+/// Pending configuration data
+///
+/// The PVE interface often returns `<Vec<QemuPendingConfigValue>>`, which
+/// can be converted into this struct with: [PvePendingConfiguration::from_config_array] or
+/// [pve_pending_config_array_to_objects_typed].
+pub struct PvePendingConfiguration {
+    /// Current, active configuration
+    pub current: Value,
+    pub pending: Value,
+    pub keys: HashSet<String>,
+}
+
+impl PvePendingConfiguration {
+    pub fn new() -> Self {
+        Self {
+            current: Value::Null,
+            pending: Value::Null,
+            keys: HashSet::new(),
+        }
+    }
+
+    pub fn from_config_array(data: Vec<QemuPendingConfigValue>) -> Self {
+        let (current, pending, keys) = pve_pending_config_array_to_objects(data);
+        Self {
+            current,
+            pending,
+            keys,
+        }
+    }
+}
+
+/// Load data using PVE pending api
+///
+/// The generic type T is used to  to convert between perl and rust types.
+///
+pub fn pending_typed_load<T: DeserializeOwned + Serialize>(
+    url: impl Into<String>,
+) -> ApiLoadCallback<PvePendingConfiguration> {
+    let url = url.into();
+    let url_cloned = url.clone();
+    ApiLoadCallback::new(move || {
+        let url = url.clone();
+        async move {
+            let ApiResponseData { data, attribs } = http_get_full(&url, None).await?;
+            let data = pve_pending_config_array_to_objects_typed::<T>(data)?;
+            Ok(ApiResponseData { attribs, data })
+        }
+    })
+    .url(url_cloned)
+}
+
+/// Note: PVE API sometime return numbers as string, and bool as 1/0
+pub fn pve_pending_config_array_to_objects_typed<T: DeserializeOwned + Serialize>(
+    data: Vec<QemuPendingConfigValue>,
+) -> Result<PvePendingConfiguration, Error> {
+    let (current, pending, keys) = pve_pending_config_array_to_objects(data);
+
+    let current: T = serde_json::from_value(current)?;
+    let current = serde_json::to_value(current)?;
+
+    let pending: T = serde_json::from_value(pending)?;
+    let pending = serde_json::to_value(pending)?;
+
+    Ok(PvePendingConfiguration {
+        current,
+        pending,
+        keys,
+    })
+}
 
 pub enum PendingPropertyViewMsg<M> {
     Load,
-    LoadResult(Result<Vec<QemuPendingConfigValue>, String>),
+    LoadResult(Result<PvePendingConfiguration, String>),
     ShowDialog(Option<Html>),
     EditProperty(EditableProperty),
     RevertProperty(EditableProperty),
@@ -40,9 +113,8 @@ pub trait PendingPropertyView {
 
     fn editor_loader(props: &Self::Properties) -> Option<ApiLoadCallback<Value>>;
 
-    fn pending_loader(
-        props: &Self::Properties,
-    ) -> Option<ApiLoadCallback<Vec<QemuPendingConfigValue>>>;
+    fn pending_loader(props: &Self::Properties)
+        -> Option<ApiLoadCallback<PvePendingConfiguration>>;
 
     fn on_submit(props: &Self::Properties) -> Option<SubmitCallback<Value>>;
 
@@ -96,7 +168,7 @@ pub trait PendingPropertyView {
 }
 
 pub struct PendingPropertyViewState {
-    pub data: Option<(Value, Value, HashSet<String>)>,
+    pub data: Option<PvePendingConfiguration>,
     pub error: Option<String>,
     pub reload_timeout: Option<Timeout>,
     pub load_guard: Option<AsyncAbortGuard>,
@@ -106,7 +178,7 @@ pub struct PendingPropertyViewState {
 }
 
 impl PendingPropertyViewState {
-    pub fn update(&mut self, result: Result<(Value, Value, HashSet<String>), String>) {
+    pub fn update(&mut self, result: Result<PvePendingConfiguration, String>) {
         match result {
             Ok(data) => {
                 self.error = None;
@@ -232,9 +304,6 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 }
             }
             PendingPropertyViewMsg::LoadResult(result) => {
-                let result = result.and_then(|data| {
-                    pve_pending_config_array_to_objects(data).map_err(|err| err.to_string())
-                });
                 self.view_state.update(result);
                 self.child_state.update_data(ctx, &mut self.view_state);
                 let link = ctx.link().clone();
@@ -290,10 +359,10 @@ pub fn render_pending_property_value(
 /// Parse PVE pending configuration array
 ///
 /// Returns 2 Objects, containing current and pending configuration,
-/// and the set of contained configuration  keys.
+/// and the set of contained configuration keys.
 pub fn pve_pending_config_array_to_objects(
     data: Vec<QemuPendingConfigValue>,
-) -> Result<(Value, Value, HashSet<String>), Error> {
+) -> (Value, Value, HashSet<String>) {
     let mut current = serde_json::Map::new();
     let mut pending = serde_json::Map::new();
     let mut keys = HashSet::new();
@@ -314,5 +383,5 @@ pub fn pve_pending_config_array_to_objects(
         }
     }
 
-    Ok((Value::Object(current), Value::Object(pending), keys))
+    (Value::Object(current), Value::Object(pending), keys)
 }

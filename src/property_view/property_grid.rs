@@ -154,7 +154,7 @@ impl PropertyView for PvePropertyGrid {
             };
             let property_exists = match record.as_object() {
                 Some(map) => map.contains_key(&name),
-                None => false,
+                None::<_> => false,
             };
 
             if item.required || property_exists {

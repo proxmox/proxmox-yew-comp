@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use serde_json::Value;
 
-use yew::virtual_dom::{Key, VComp, VNode};
+use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{IntoSubmitCallback, SubmitCallback};

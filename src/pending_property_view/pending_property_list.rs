@@ -1,9 +1,8 @@
-use std::collections::HashSet;
 use std::rc::Rc;
 
 use serde_json::Value;
 
-use yew::virtual_dom::{Key, VComp, VNode};
+use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{IntoOptionalInlineHtml, IntoSubmitCallback, SubmitCallback};
@@ -14,11 +13,11 @@ use crate::{ApiLoadCallback, IntoApiLoadCallback};
 use pwt_macros::builder;
 
 use crate::layout::list_tile::title_subtitle_column;
-use crate::pve_api_types::QemuPendingConfigValue;
 use crate::EditableProperty;
 
 use super::{
-    PendingPropertyView, PendingPropertyViewMsg, PendingPropertyViewState, PvePendingPropertyView,
+    PendingPropertyView, PendingPropertyViewMsg, PendingPropertyViewState, PvePendingConfiguration,
+    PvePendingPropertyView,
 };
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
@@ -33,9 +32,9 @@ pub struct PendingPropertyList {
     pub properties: Rc<Vec<EditableProperty>>,
 
     /// Load property list with pending changes information.
-    #[builder_cb(IntoApiLoadCallback, into_api_load_callback, Vec<QemuPendingConfigValue>)]
+    #[builder_cb(IntoApiLoadCallback, into_api_load_callback, PvePendingConfiguration)]
     #[prop_or_default]
-    pub pending_loader: Option<ApiLoadCallback<Vec<QemuPendingConfigValue>>>,
+    pub pending_loader: Option<ApiLoadCallback<PvePendingConfiguration>>,
 
     /// Loader passed to the EditDialog
     #[builder_cb(IntoApiLoadCallback, into_api_load_callback, Value)]
@@ -145,12 +144,10 @@ impl PvePendingPropertyList {
         ctx: &Context<PvePendingPropertyView<Self>>,
         current: &Value,
         pending: &Value,
-        name: Key,
         property: &EditableProperty,
     ) -> ListTile {
         let on_revert = Callback::from({
             ctx.link().callback({
-                let name = name.clone();
                 let property = property.clone();
                 move |_: Event| PendingPropertyViewMsg::RevertProperty(property.clone())
             })
@@ -184,7 +181,7 @@ impl PendingPropertyView for PvePendingPropertyList {
 
     fn pending_loader(
         props: &Self::Properties,
-    ) -> Option<ApiLoadCallback<Vec<QemuPendingConfigValue>>> {
+    ) -> Option<ApiLoadCallback<PvePendingConfiguration>> {
         props.pending_loader.clone()
     }
 
@@ -205,9 +202,13 @@ impl PendingPropertyView for PvePendingPropertyList {
 
         let mut tiles: Vec<ListTile> = Vec::new();
 
-        let (current, pending, keys): (Value, Value, HashSet<String>) = match &view_state.data {
-            Some(data) => data.clone(),
-            _ => (Value::Null, Value::Null, HashSet::new()),
+        let PvePendingConfiguration {
+            current,
+            pending,
+            keys,
+        } = match &view_state.data {
+            Some(data) => data,
+            _ => &PvePendingConfiguration::new(),
         };
 
         for item in props.properties.iter() {
@@ -219,7 +220,7 @@ impl PendingPropertyView for PvePendingPropertyList {
                 }
             };
             if item.required || keys.contains(&name) {
-                let mut tile = self.property_tile(ctx, &current, &pending, Key::from(&*name), item);
+                let mut tile = self.property_tile(ctx, &current, &pending, item);
                 tile.set_key(name);
                 tiles.push(tile);
             }

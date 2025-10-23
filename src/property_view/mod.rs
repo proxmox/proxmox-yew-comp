@@ -4,8 +4,6 @@ pub use property_grid::{property_grid_columns, PropertyGrid};
 mod property_list;
 pub use property_list::PropertyList;
 
-use std::rc::Rc;
-
 use gloo_timers::callback::Timeout;
 use serde_json::Value;
 
@@ -238,16 +236,6 @@ pub fn render_loadable_panel(
         )
         .with_optional_child(dialog)
         .into()
-}
-
-fn lookup_property<'a>(
-    properties: &'a [EditableProperty],
-    key: &Key,
-) -> Option<&'a EditableProperty> {
-    let property_name: AttrValue = key.to_string().into();
-    properties
-        .iter()
-        .find(|p| p.get_name() == Some(&property_name))
 }
 
 pub fn render_property_value(record: &Value, property: &EditableProperty) -> Html {
