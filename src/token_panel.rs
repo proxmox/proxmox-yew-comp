@@ -190,7 +190,9 @@ impl LoadableComponent for ProxmoxTokenView {
                     .on_activate(link.change_view_callback(|_| Some(ViewState::EditToken))),
             )
             .with_child(
-                Button::new(tr!("Remove"))
+                ConfirmButton::new(tr!("Remove"))
+                    .confirm_message(tr!("Are you sure you want to remove the API token? \
+                        All current usage sites will lose access!"))
                     .disabled(disabled)
                     .on_activate(link.callback(|_| Msg::Remove)),
             )
