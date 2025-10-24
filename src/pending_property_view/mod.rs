@@ -233,7 +233,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
             PendingPropertyViewMsg::Select(_key) => { /* just redraw */ }
             PendingPropertyViewMsg::RevertProperty(property) => {
                 let link = ctx.link().clone();
-                let keys = match property.revert_keys.as_deref() {
+                let keys: Vec<String> = match property.revert_keys.as_deref() {
                     Some(keys) => keys.iter().map(|a| a.to_string()).collect(),
                     None::<_> => {
                         if let Some(name) = property.get_name() {
@@ -247,7 +247,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                     }
                 };
                 if let Some(on_submit) = T::on_submit(props) {
-                    let param = json!({ "revert": keys });
+                    let param = json!({ "revert": keys.join(",") });
                     self.view_state.revert_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = on_submit.apply(param).await;
                         link.send_message(PendingPropertyViewMsg::RevertResult(result));
