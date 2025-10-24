@@ -99,6 +99,7 @@ pub enum PendingPropertyViewMsg<M> {
     LoadResult(Result<PvePendingConfiguration, String>),
     ShowDialog(Option<Html>),
     EditProperty(EditableProperty),
+    AddProperty(EditableProperty),
     RevertProperty(EditableProperty),
     RevertResult(Result<(), Error>),
     Select(Option<Key>),
@@ -280,6 +281,19 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
             PendingPropertyViewMsg::EditProperty(property) => {
                 let dialog = PropertyEditDialog::from(property.clone())
                     .mobile(T::MOBILE)
+                    .on_done(
+                        ctx.link()
+                            .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
+                    )
+                    .loader(T::editor_loader(props))
+                    .on_submit(T::on_submit(props))
+                    .into();
+                self.view_state.dialog = Some(dialog);
+            }
+            PendingPropertyViewMsg::AddProperty(property) => {
+                let dialog = PropertyEditDialog::from(property.clone())
+                    .mobile(T::MOBILE)
+                    .edit(false)
                     .on_done(
                         ctx.link()
                             .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
