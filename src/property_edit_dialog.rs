@@ -40,7 +40,7 @@ use crate::{
 /// - on_submit: submit data from submit hook
 ///
 /// Shares many properties with [crate::EditableProperty], any you can
-/// create an [EditDialog] from such property (`Editdialog::from(property)`).
+/// create an [PropertyEditDialog] from such property (`PropertyEditdialog::from(property)`).
 ///
 #[derive(Properties, Clone, PartialEq)]
 #[builder]

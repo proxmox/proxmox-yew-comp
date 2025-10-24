@@ -23,7 +23,7 @@ use super::{
     PropertyGridRecord, PropertyView, PropertyViewMsg, PropertyViewState, PvePropertyView,
 };
 
-/// Render object properties as [List]
+/// Render object properties as [DataTable] grid (for desktop style UI)
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct PropertyGrid {

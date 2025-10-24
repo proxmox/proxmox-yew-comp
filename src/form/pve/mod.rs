@@ -133,7 +133,7 @@ pub fn property_string_submit_hook<P: ApiType + Serialize + DeserializeOwned>(
 
 /// Convert a property string to separate properties
 ///
-/// This is useful for use in an [`crate::EditDialog`] when editing parts of a property string.
+/// This is useful for use in an [`crate::PropertyEditDialog`] when editing parts of a property string.
 /// Takes the `name` property from `data`, parses it as property string, and sets it back to
 /// `data` as `_{key}`, so that this can be used as a field. If it's not desired
 /// to expose a property to the UI, simply add a hidden field to the form, or use
@@ -196,7 +196,7 @@ pub fn property_string_add_missing_data<T: ApiType + Serialize + DeserializeOwne
 // Copied from proxmox-yew-com and added proper error handling
 /// Uses an [`proxmox_schema::ObjectSchema`] to generate a property string from separate properties.
 ///
-/// This is useful for use in an [`crate::EditDialog`] when editing parts of a property string.
+/// This is useful for use in an [`crate::PropertyEditDialog`] when editing parts of a property string.
 /// Takes the single properties from `data` and assembles a property string.
 ///
 /// Property string data is removed from the original data, and re-added as assembled

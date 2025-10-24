@@ -20,7 +20,7 @@ use super::{
     PvePendingPropertyView,
 };
 
-/// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
+/// Render a list of pending changes ([PvePendingConfiguration])
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct PendingPropertyList {
