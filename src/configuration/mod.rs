@@ -6,6 +6,8 @@ pub use dns::DnsPanel;
 mod time;
 pub use time::TimePanel;
 
+pub mod pve;
+
 #[cfg(feature = "network")]
 mod network_view;
 #[cfg(feature = "network")]
