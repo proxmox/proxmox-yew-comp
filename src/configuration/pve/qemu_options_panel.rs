@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
+use anyhow::Error;
 use serde_json::Value;
 
-use yew::html::IntoPropValue;
+use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
@@ -22,7 +23,14 @@ pub struct QemuOptionsPanel {
     vmid: u32,
     node: AttrValue,
 
-    /// use Proxmox Datacenter Manaager API endpoints
+    /// This callback is called after starting a task on the backend.
+    ///
+    /// The UPID is passed as argument to the callback.
+    #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    #[prop_or_default]
+    on_start_command: Option<Callback<String>>,
+
+    /// Use Proxmox Datacenter Manager API endpoints
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     pub remote: Option<AttrValue>,
@@ -112,13 +120,19 @@ impl Component for PveQemuOptionsPanel {
         };
 
         let loader = typed_load::<QemuConfig>(editor_url.clone());
+
+        let on_start_command = props.on_start_command.clone();
         let on_submit = move |value: Value| {
             let editor_url = editor_url.clone();
+            let on_start_command = on_start_command.clone();
             async move {
                 let result: Option<String> =
                     http_post(editor_url.clone(), Some(value.clone())).await?;
-                log::info!("GOT RESULT {result:?}");
-                // fixme: howto display tasks (use on_task_start callback?)
+                if let Some(upid) = result {
+                    if let Some(on_start_command) = &on_start_command {
+                        on_start_command.emit(upid.clone());
+                    }
+                }
                 Ok(())
             }
         };
