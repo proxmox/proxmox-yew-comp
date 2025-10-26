@@ -4,13 +4,14 @@ use serde_json::Value;
 use pve_api_types::QemuConfigNet;
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Checkbox, Combobox, Field, Number};
+use pwt::widget::form::{Checkbox, Combobox, Field, Number};
 use pwt::widget::{Column, Row};
 
 use crate::form::{
     flatten_property_string, property_string_add_missing_data, property_string_from_parts,
 };
 
+use crate::form::delete_empty_values;
 use crate::form::pve::{PveNetworkSelector, PveVlanField};
 use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};

@@ -4,10 +4,10 @@ use serde_json::{json, Value};
 use pve_api_types::{QemuConfigSpiceEnhancements, QemuConfigVga, QemuConfigVgaType};
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Checkbox, Combobox};
+use pwt::widget::form::{Checkbox, Combobox};
 use pwt::widget::{Column, Container};
 
-use crate::form::{property_string_from_parts, property_string_load_hook};
+use crate::form::{delete_empty_values, property_string_from_parts, property_string_load_hook};
 use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 

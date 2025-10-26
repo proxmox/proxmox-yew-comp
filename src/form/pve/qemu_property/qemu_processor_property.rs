@@ -6,11 +6,11 @@ use proxmox_schema::{ApiType, ObjectSchemaType, Schema};
 
 use pwt::prelude::*;
 use pwt::props::PwtSpace;
-use pwt::widget::form::{delete_empty_values, Checkbox, Field, Hidden, Number};
+use pwt::widget::form::{Checkbox, Field, Hidden, Number};
 use pwt::widget::{Column, Container, Row};
 
 use crate::form::pve::{QemuCpuFlags, QemuCpuModelSelector};
-use crate::form::{flatten_property_string, property_string_from_parts};
+use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::layout::mobile_form::label_field;
 use crate::PropertyEditorState;
 use crate::{EditableProperty, RenderPropertyInputPanelFn};

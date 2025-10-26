@@ -10,9 +10,10 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Field, TristateBoolean};
+use pwt::widget::form::{Field, TristateBoolean};
 use pwt::widget::{Container, InputPanel, TabBarItem, TabPanel};
 
+use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
 
 use pwt_macros::builder;

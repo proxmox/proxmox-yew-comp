@@ -7,10 +7,10 @@ use serde_json::Value;
 use pve_api_types::QemuConfigMemory;
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Checkbox, FormContext, Hidden, Number};
+use pwt::widget::form::{Checkbox, FormContext, Hidden, Number};
 use pwt::widget::{Column, Row};
 
-use crate::form::{flatten_property_string, property_string_from_parts};
+use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 

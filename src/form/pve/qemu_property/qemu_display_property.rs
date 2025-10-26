@@ -5,14 +5,14 @@ use proxmox_schema::property_string::PropertyString;
 use serde_json::Value;
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Combobox, FormContextObserver, Number};
+use pwt::widget::form::{Combobox, FormContextObserver, Number};
 use pwt::widget::{Column, Container};
 
 use pve_api_types::{QemuConfigVga, QemuConfigVgaClipboard};
 use yew::virtual_dom::VComp;
 
 use crate::form::pve::{format_qemu_display_type, QemuDisplayTypeSelector};
-use crate::form::{flatten_property_string, property_string_from_parts};
+use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState};
 

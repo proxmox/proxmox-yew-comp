@@ -6,9 +6,10 @@ use regex::Regex;
 use serde_json::Value;
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Field, Number};
+use pwt::widget::form::{Field, Number};
 use pwt::widget::{Column, InputPanel};
 
+use crate::form::delete_empty_values;
 use crate::layout::mobile_form::label_field;
 use crate::SchemaValidation;
 

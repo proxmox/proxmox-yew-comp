@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Combobox};
+use pwt::widget::form::Combobox;
 use pwt::widget::{Column, Container};
 
 use pve_api_types::{QemuConfigMachine, QemuConfigOstype};
@@ -10,6 +10,7 @@ use crate::form::{
     flatten_property_string, property_string_add_missing_data, property_string_from_parts,
 };
 
+use crate::form::delete_empty_values;
 use crate::form::pve::QemuMachineVersionSelector;
 use crate::layout::mobile_form::label_field;
 use crate::pve_api_types::QemuMachineType;

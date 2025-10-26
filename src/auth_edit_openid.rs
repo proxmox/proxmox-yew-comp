@@ -7,9 +7,10 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Field};
+use pwt::widget::form::Field;
 use pwt::widget::InputPanel;
 
+use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
 
 use pwt_macros::builder;

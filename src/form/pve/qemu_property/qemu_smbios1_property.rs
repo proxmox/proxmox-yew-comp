@@ -5,10 +5,10 @@ use serde_json::Value;
 use pve_api_types::PveQmSmbios1;
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Field, TextArea};
+use pwt::widget::form::{Field, TextArea};
 use pwt::widget::{Column, InputPanel};
 
-use crate::form::{flatten_property_string, property_string_from_parts};
+use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 

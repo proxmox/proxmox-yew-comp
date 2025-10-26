@@ -5,7 +5,7 @@ use proxmox_schema::property_string::PropertyString;
 use serde_json::Value;
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, RadioButton};
+use pwt::widget::form::RadioButton;
 use pwt::widget::{Column, Container, Row};
 
 use pve_api_types::{
@@ -19,6 +19,7 @@ const IMAGE_STORAGE: &'static str = "_storage_";
 
 const FILE_PN: &'static str = "_file";
 
+use crate::form::delete_empty_values;
 use crate::form::pve::pve_storage_content_selector::PveStorageContentSelector;
 use crate::form::pve::{
     flatten_property_string, parse_qemu_controller_name, property_string_add_missing_data,

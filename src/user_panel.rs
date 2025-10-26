@@ -16,9 +16,10 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
-use pwt::widget::form::{delete_empty_values, Checkbox, Field, FormContext, InputType};
+use pwt::widget::form::{Checkbox, Field, FormContext, InputType};
 use pwt::widget::{Button, Dialog, InputPanel, Toolbar};
 
+use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::{epoch_to_input_value, render_epoch_short};
 use crate::{

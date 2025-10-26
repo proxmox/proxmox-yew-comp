@@ -63,7 +63,7 @@ mod pve_storage_selector;
 pub use pve_storage_selector::PveStorageSelector;
 
 use proxmox_schema::{property_string::PropertyString, ApiType, Schema};
-use pwt::widget::form::{delete_empty_values, Combobox, FormContext};
+use pwt::widget::form::{Combobox, FormContext};
 
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
@@ -71,6 +71,7 @@ use serde_json::{json, Value};
 use proxmox_client::ApiResponseData;
 use proxmox_schema::ObjectSchemaType;
 
+use crate::form::delete_empty_values;
 use crate::{ApiLoadCallback, PropertyEditorState};
 
 pub fn qemu_image_format_selector() -> Combobox {

@@ -11,12 +11,13 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
-use pwt::widget::form::{delete_empty_values, DisplayField, Field, FormContext, Number, TextArea};
+use pwt::widget::form::{DisplayField, Field, FormContext, Number, TextArea};
 use pwt::widget::{Button, InputPanel, Toolbar};
 use pwt::{prelude::*, AsyncPool};
 
 use pwt_macros::builder;
 
+use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
 use crate::{
     http_get, ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,

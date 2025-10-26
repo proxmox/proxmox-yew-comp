@@ -1,9 +1,10 @@
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Combobox};
+use pwt::widget::form::Combobox;
 use pwt::widget::{Column, Container};
 
 use pve_api_types::QemuConfigBios;
 
+use crate::form::delete_empty_values;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
 fn input_panel(name: String) -> RenderPropertyInputPanelFn {

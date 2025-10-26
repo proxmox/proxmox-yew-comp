@@ -5,10 +5,10 @@ use pve_api_types::{PveQemuSevFmt, PveQemuSevFmtType};
 
 use pwt::prelude::*;
 
-use pwt::widget::form::{delete_empty_values, Checkbox, Combobox};
+use pwt::widget::form::{Checkbox, Combobox};
 use pwt::widget::{Column, Container};
 
-use crate::form::{flatten_property_string, property_string_from_parts};
+use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
 fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {

@@ -1,8 +1,10 @@
 use indexmap::IndexMap;
 
 use pwt::prelude::*;
-use pwt::widget::form::{delete_empty_values, Combobox};
+use pwt::widget::form::Combobox;
 use pwt::widget::Column;
+
+use crate::form::delete_empty_values;
 
 use crate::{EditableProperty, PropertyEditorState};
 
