@@ -7,11 +7,48 @@ use proxmox_schema::{property_string::PropertyString, ApiType, ObjectSchemaType,
 
 use yew::Callback;
 
-use pwt::widget::form::{delete_empty_values, FormContext};
+use pwt::widget::form::FormContext;
 
 pub mod pve;
 
 use crate::{ApiLoadCallback, PropertyEditorState};
+
+/// Delete empty values from the submit data.
+///
+/// And adds their names to the "delete" parameter.
+///
+/// By default only existing values are considered. if `delete_undefined` is
+/// set, we also delete undefined values.
+pub fn delete_empty_values(record: &Value, param_list: &[&str], delete_undefined: bool) -> Value {
+    let mut new = json!({});
+    let mut delete: Vec<String> = Vec::new();
+
+    for (param, v) in record.as_object().unwrap().iter() {
+        if !param_list.contains(&param.as_str()) {
+            new[param] = v.clone();
+            continue;
+        }
+        if v.is_null() || (v.is_string() && v.as_str().unwrap().is_empty()) {
+            delete.push(param.to_string());
+        } else {
+            new[param] = v.clone();
+        }
+    }
+
+    if delete_undefined {
+        for param in param_list {
+            if record.get(param).is_none() {
+                delete.push(param.to_string());
+            }
+        }
+    }
+
+    if !delete.is_empty() {
+        new["delete"] = delete.into();
+    }
+
+    new
+}
 
 /// Load data from API endpoint into a defined Rust type, then serialize it back into Value.
 ///
