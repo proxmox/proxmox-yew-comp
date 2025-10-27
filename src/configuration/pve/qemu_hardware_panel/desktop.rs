@@ -411,7 +411,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         );
         push_property(
             &mut list,
-            qemu_sockets_cores_property(),
+            qemu_sockets_cores_property(false),
             Fa::new("cpu"),
             EditAction::Edit,
         );

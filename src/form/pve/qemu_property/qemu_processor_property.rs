@@ -6,8 +6,8 @@ use proxmox_schema::{ApiType, ObjectSchemaType, Schema};
 
 use pwt::prelude::*;
 use pwt::props::PwtSpace;
-use pwt::widget::form::{Checkbox, Field, Hidden, Number};
-use pwt::widget::{Column, Container, Row};
+use pwt::widget::form::{Checkbox, DisplayField, Field, Hidden, Number};
+use pwt::widget::{Column, Container, InputPanel, Row};
 
 use crate::form::pve::{QemuCpuFlags, QemuCpuModelSelector};
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
@@ -66,7 +66,7 @@ fn add_hidden_cpu_properties(column: &mut Column, exclude: &[&str]) {
     };
 }
 
-fn input_panel() -> RenderPropertyInputPanelFn {
+fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
         let total_cores;
@@ -85,39 +85,44 @@ fn input_panel() -> RenderPropertyInputPanelFn {
             total_cores = sockets * cores;
         }
 
-        let mut column = Column::new()
-            .class(pwt::css::FlexFit)
-            .gap(2)
-            .padding_top(2)
-            .padding_bottom(1) // avoid scrollbar
-            .with_child(label_field(
-                tr!("Type"),
-                QemuCpuModelSelector::new().name("_cputype").mobile(true),
-                true,
-            ))
-            .with_child(Hidden::new().name("cpu")) // store original cpu settings
-            .with_child(label_field(
-                tr!("Sockets"),
-                Number::<u64>::new().name("sockets").min(1),
-                true,
-            ))
-            .with_child(label_field(
-                tr!("Cores"),
-                Number::<u64>::new().name("cores").min(1),
-                true,
-            ))
-            .with_child(
-                Row::new()
-                    .padding_top(1)
-                    .gap(PwtSpace::Em(0.5))
-                    .with_child(tr!("Total cores") + ":")
-                    .with_child(Container::new().with_child(total_cores.to_string())),
-            );
+        let cpu_type_label = tr!("Type");
+        let cpu_type_field = QemuCpuModelSelector::new().name("_cputype").mobile(mobile);
 
-        // add unused cpu property - we want to keep them!
-        add_hidden_cpu_properties(&mut column, &["cputype"]);
+        let sockets_label = tr!("Sockets");
+        let sockets_field = Number::<u64>::new().name("sockets").min(1);
 
-        column.into()
+        let cores_label = tr!("Cores");
+        let cores_field = Number::<u64>::new().name("cores").min(1);
+
+        let total_label = tr!("Total cores");
+        let total_field = DisplayField::new().value(total_cores.to_string());
+
+        if mobile {
+            Column::new()
+                .class(pwt::css::FlexFit)
+                .gap(2)
+                .padding_top(2)
+                .padding_bottom(1) // avoid scrollbar
+                .with_child(label_field(cpu_type_label, cpu_type_field, true))
+                .with_child(Hidden::new().name("cpu")) // store original cpu settings
+                .with_child(label_field(sockets_label, sockets_field, true))
+                .with_child(label_field(cores_label, cores_field, true))
+                .with_child(
+                    Row::new()
+                        .padding_top(1)
+                        .gap(PwtSpace::Em(0.5))
+                        .with_child(total_label + ":")
+                        .with_child(total_field),
+                )
+                .into()
+        } else {
+            InputPanel::new()
+                .with_field(sockets_label, sockets_field)
+                .with_right_field(cpu_type_label, cpu_type_field)
+                .with_field(cores_label, cores_field)
+                .with_right_field(total_label, total_field)
+                .into()
+        }
     })
 }
 
@@ -198,7 +203,7 @@ fn input_panel_with_tabs() -> RenderPropertyInputPanelFn {
 }
 */
 
-pub fn qemu_sockets_cores_property() -> EditableProperty {
+pub fn qemu_sockets_cores_property(mobile: bool) -> EditableProperty {
     EditableProperty::new(
         "sockets",
         format!(
@@ -218,7 +223,7 @@ pub fn qemu_sockets_cores_property() -> EditableProperty {
         .collect(),
     ))
     .renderer(renderer)
-    .render_input_panel(input_panel())
+    .render_input_panel(input_panel(mobile))
     .load_hook(move |mut record: Value| {
         flatten_property_string::<PveVmCpuConf>(&mut record, "cpu")?;
         Ok(record)
