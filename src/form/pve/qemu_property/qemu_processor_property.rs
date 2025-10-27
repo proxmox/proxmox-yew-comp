@@ -95,7 +95,6 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let cores_field = Number::<u64>::new().name("cores").min(1);
 
         let total_label = tr!("Total cores");
-        let total_field = DisplayField::new().value(total_cores.to_string());
 
         if mobile {
             Column::new()
@@ -112,7 +111,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
                         .padding_top(1)
                         .gap(PwtSpace::Em(0.5))
                         .with_child(total_label + ":")
-                        .with_child(total_field),
+                        .with_child(Container::new().with_child(total_cores.to_string())),
                 )
                 .into()
         } else {
@@ -120,7 +119,10 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
                 .with_field(sockets_label, sockets_field)
                 .with_right_field(cpu_type_label, cpu_type_field)
                 .with_field(cores_label, cores_field)
-                .with_right_field(total_label, total_field)
+                .with_right_field(
+                    total_label,
+                    DisplayField::new().value(total_cores.to_string()),
+                )
                 .into()
         }
     })
