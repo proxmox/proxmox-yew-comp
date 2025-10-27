@@ -31,7 +31,7 @@ use crate::pending_property_view::{
     pending_typed_load, render_pending_property_value, PendingPropertyView, PendingPropertyViewMsg,
     PendingPropertyViewState, PvePendingConfiguration, PvePendingPropertyView,
 };
-use crate::EditableProperty;
+use crate::{EditableProperty, SafeConfirmDialog};
 
 use super::{EditAction, QemuHardwarePanel};
 
@@ -87,7 +87,7 @@ impl PveQemuHardwarePanel {
 
         let disable_revert = !(has_changes && selected_key.is_some());
 
-        let (disable_remove, remove_label) = match &selected_record {
+        let (disable_remove, remove_label, remove_message) = match &selected_record {
             Some(record) => {
                 let disable = record.property.required;
                 let label = if record.is_disk {
@@ -95,9 +95,14 @@ impl PveQemuHardwarePanel {
                 } else {
                     tr!("Remove")
                 };
-                (disable, label)
+                let message = if record.is_disk {
+                    tr!("Detach disk")
+                } else {
+                    tr!("Delete Device")
+                };
+                (disable, label, message)
             }
-            None::<_> => (true, tr!("Remove")),
+            None::<_> => (true, tr!("Remove"), tr!("Remove")),
         };
 
         let disable_disk_actions = match &selected_record {
@@ -109,7 +114,26 @@ impl PveQemuHardwarePanel {
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
             .with_child(self.add_hardware_menu(ctx, view_state))
-            .with_child(Button::new(remove_label).disabled(disable_remove))
+            .with_child(
+                Button::new(remove_label)
+                    .disabled(disable_remove)
+                    .on_activate({
+                        let dialog = selected_key.clone().map(|name| {
+                            SafeConfirmDialog::new(name.to_string())
+                                .message(remove_message)
+                                .on_done(
+                                    link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
+                                )
+                                .on_confirm(link.callback({
+                                    let name = name.to_string();
+                                    move |_| PendingPropertyViewMsg::Delete(name.clone())
+                                }))
+                                .into()
+                        });
+                        ctx.link()
+                            .callback(move |_| PendingPropertyViewMsg::ShowDialog(dialog.clone()))
+                    }),
+            )
             .with_child(
                 Button::new(tr!("Edit"))
                     .disabled(selected_key.is_none())
