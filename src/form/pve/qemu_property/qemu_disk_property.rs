@@ -279,7 +279,7 @@ fn cdrom_input_panel(
     name: Option<String>,
     node: Option<AttrValue>,
     remote: Option<AttrValue>,
-    mobile: bool,
+    _mobile: bool,
 ) -> RenderPropertyInputPanelFn {
     let is_create = name.is_none();
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {

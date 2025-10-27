@@ -15,21 +15,18 @@ use std::rc::Rc;
 
 use pve_api_types::QemuConfig;
 
-use yew::{
-    html::{IntoEventCallback, IntoPropValue},
-    virtual_dom::{Key, VComp, VNode},
-};
+use yew::html::{IntoEventCallback, IntoPropValue};
+use yew::virtual_dom::{VComp, VNode};
 
-use pwt::{prelude::*, props::SubmitCallback};
+use pwt::prelude::*;
+use pwt::props::SubmitCallback;
 use pwt_macros::builder;
 
-use crate::{
-    form::typed_load,
-    http_post,
-    pending_property_view::{PvePendingConfiguration, PvePendingPropertyView},
-    percent_encoding::percent_encode_component,
-    EditableProperty, PropertyEditDialog,
-};
+use crate::form::typed_load;
+use crate::http_post;
+use crate::pending_property_view::PvePendingPropertyView;
+use crate::percent_encoding::percent_encode_component;
+use crate::PropertyEditDialog;
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -176,13 +173,6 @@ enum EditAction {
     None,
     Edit,
     Add,
-}
-
-#[derive(Copy, Clone, PartialEq)]
-enum HarwareKind {
-    None, // unspecified
-    Disk,
-    Net,
 }
 
 fn create_on_submit(
