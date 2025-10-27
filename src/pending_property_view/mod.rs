@@ -101,7 +101,8 @@ pub enum PendingPropertyViewMsg<M> {
     EditProperty(EditableProperty),
     AddProperty(EditableProperty),
     RevertProperty(EditableProperty),
-    RevertResult(Result<(), Error>),
+    CommandResult(Result<(), Error>, String),
+    Delete(String),
     Select(Option<Key>),
     Custom(M),
 }
@@ -231,6 +232,19 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 return self.child_state.update(ctx, &mut self.view_state, custom);
             }
             PendingPropertyViewMsg::Select(_key) => { /* just redraw */ }
+            PendingPropertyViewMsg::Delete(name) => {
+                let link = ctx.link().clone();
+                if let Some(on_submit) = T::on_submit(props) {
+                    let param = json!({ "delete": name });
+                    self.view_state.async_pool.spawn(async move {
+                        let result = on_submit.apply(param).await;
+                        link.send_message(PendingPropertyViewMsg::CommandResult(
+                            result,
+                            tr!("Delete property failed"),
+                        ));
+                    });
+                }
+            }
             PendingPropertyViewMsg::RevertProperty(property) => {
                 let link = ctx.link().clone();
                 let keys: Vec<String> = match property.revert_keys.as_deref() {
@@ -250,27 +264,24 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                     let param = json!({ "revert": keys.join(",") });
                     self.view_state.revert_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = on_submit.apply(param).await;
-                        link.send_message(PendingPropertyViewMsg::RevertResult(result));
+                        link.send_message(PendingPropertyViewMsg::CommandResult(result, tr!("")));
                     }));
                 }
             }
-            PendingPropertyViewMsg::RevertResult(result) => {
+            PendingPropertyViewMsg::CommandResult(result, message) => {
                 if let Err(err) = result {
                     if T::MOBILE {
                         ctx.link().show_snackbar(
-                            SnackBar::new()
-                                .message(tr!("Revert property failed") + " - " + &err.to_string()),
+                            SnackBar::new().message(message + " - " + &err.to_string()),
                         );
                     } else {
                         self.view_state.dialog = Some(
-                            AlertDialog::new(
-                                tr!("Revert property failed") + " - " + &err.to_string(),
-                            )
-                            .on_close(
-                                ctx.link()
-                                    .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                            )
-                            .into(),
+                            AlertDialog::new(message + " - " + &err.to_string())
+                                .on_close(
+                                    ctx.link()
+                                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
+                                )
+                                .into(),
                         );
                     }
                 }
