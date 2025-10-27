@@ -20,6 +20,7 @@ use pwt_macros::{builder, widget};
 
 use crate::http_get;
 use crate::layout::list_tile::title_subtitle_column;
+use crate::percent_encoding::percent_encode_component;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum PveGuestType {
@@ -35,6 +36,11 @@ pub struct PveGuestSelector {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     pub default: Option<AttrValue>,
+
+    /// Use Proxmox Datacenter Manager API endpoints
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub remote: Option<AttrValue>,
 
     /// Change callback
     #[builder_cb(IntoEventCallback, into_event_callback, Option<ClusterResource>)]
@@ -79,11 +85,23 @@ pub struct PveGuestSelectorComp {
 
 impl PveGuestSelectorComp {
     async fn get_guest_list(
+        remote: Option<AttrValue>,
         guest_type: Option<PveGuestType>,
         templates: Option<bool>,
     ) -> Result<Vec<ClusterResource>, Error> {
-        let url = format!("/cluster/resources");
-        let param = json!({ "type": ClusterResourceKind::Vm });
+        let url = if let Some(remote) = &remote {
+            format!(
+                "/pve/remotes/{}/resources",
+                percent_encode_component(remote),
+            )
+        } else {
+            format!("/cluster/resources")
+        };
+        let param = if remote.is_some() {
+            json!({ "kind": ClusterResourceKind::Vm })
+        } else {
+            json!({ "type": ClusterResourceKind::Vm })
+        };
 
         let mut guest_list: Vec<ClusterResource> = http_get(url, Some(param)).await?;
 
@@ -109,9 +127,10 @@ impl PveGuestSelectorComp {
 
     fn create_load_callback(ctx: &yew::Context<Self>) -> LoadCallback<Vec<ClusterResource>> {
         let props = ctx.props();
+        let remote = props.remote.clone();
         let guest_type = props.guest_type;
         let templates = props.templates.clone();
-        (move || Self::get_guest_list(guest_type, templates)).into()
+        (move || Self::get_guest_list(remote.clone(), guest_type, templates)).into()
     }
 }
 
