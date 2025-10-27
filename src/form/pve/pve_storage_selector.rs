@@ -40,6 +40,11 @@ pub struct PveStorageSelector {
     #[prop_or_default]
     pub node: Option<AttrValue>,
 
+    /// Use Proxmox Datacenter Manager API endpoints
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub remote: Option<AttrValue>,
+
     /// The content types to show
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
@@ -73,9 +78,19 @@ pub struct PveStorageSelectorComp {
 impl PveStorageSelectorComp {
     async fn get_storage_list(
         node: AttrValue,
+        remote: Option<AttrValue>,
         content: Option<Vec<StorageContent>>,
     ) -> Result<Vec<StorageInfo>, Error> {
-        let url = format!("/nodes/{}/storage", percent_encode_component(&node));
+        let url = if let Some(remote) = &remote {
+            // fixme: is this url correct?
+            format!(
+                "/pve/remotes/{}/nodes/{}/storage",
+                percent_encode_component(&node),
+                percent_encode_component(remote),
+            )
+        } else {
+            format!("/nodes/{}/storage", percent_encode_component(&node))
+        };
         let mut param = json!({ "format": "1" });
         if let Some(content) = content {
             let content = content
@@ -95,11 +110,13 @@ impl PveStorageSelectorComp {
     fn create_load_callback(ctx: &yew::Context<Self>) -> LoadCallback<Vec<StorageInfo>> {
         let props = ctx.props();
         let node = props.node.clone();
+        let remote = props.remote.clone();
         let content_types = props.content_types.clone();
 
         (move || {
             Self::get_storage_list(
                 node.clone().unwrap_or("localhost".into()),
+                remote.clone(),
                 content_types.clone(),
             )
         })
