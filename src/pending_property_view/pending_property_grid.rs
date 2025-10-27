@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-use pwt::state::{Selection, Store};
 use serde_json::Value;
 
 use yew::html::IntoEventCallback;
@@ -8,6 +7,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{IntoSubmitCallback, SubmitCallback};
+use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{
     DataTable, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
 };

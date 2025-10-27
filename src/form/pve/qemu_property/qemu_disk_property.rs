@@ -275,7 +275,12 @@ fn first_unused_scsi_device(used_devices: &HashSet<String>) -> Option<String> {
     None
 }
 
-fn cdrom_input_panel(name: Option<String>, node: Option<AttrValue>) -> RenderPropertyInputPanelFn {
+fn cdrom_input_panel(
+    name: Option<String>,
+    node: Option<AttrValue>,
+    remote: Option<AttrValue>,
+    mobile: bool,
+) -> RenderPropertyInputPanelFn {
     let is_create = name.is_none();
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
@@ -307,6 +312,7 @@ fn cdrom_input_panel(name: Option<String>, node: Option<AttrValue>) -> RenderPro
             .with_child(label_field(
                 tr!("Storage"),
                 PveStorageSelector::new(node.clone())
+                    .remote(remote.clone())
                     .name(IMAGE_STORAGE)
                     .submit(false)
                     .required(true)
@@ -340,13 +346,23 @@ fn cdrom_input_panel(name: Option<String>, node: Option<AttrValue>) -> RenderPro
     })
 }
 
-pub fn qemu_cdrom_property(name: Option<String>, node: Option<AttrValue>) -> EditableProperty {
+pub fn qemu_cdrom_property(
+    name: Option<String>,
+    node: Option<AttrValue>,
+    remote: Option<AttrValue>,
+    mobile: bool,
+) -> EditableProperty {
     let mut title = tr!("CD/DVD Drive");
     if let Some(name) = name.as_deref() {
         title = title + " (" + name + ")";
     }
     EditableProperty::new(name.clone(), title)
-        .render_input_panel(cdrom_input_panel(name.clone(), node.clone()))
+        .render_input_panel(cdrom_input_panel(
+            name.clone(),
+            node.clone(),
+            remote.clone(),
+            mobile,
+        ))
         .load_hook({
             let name = name.clone();
 

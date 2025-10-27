@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-use anyhow::Error;
 use serde_json::Value;
 
 use yew::html::{IntoEventCallback, IntoPropValue};
