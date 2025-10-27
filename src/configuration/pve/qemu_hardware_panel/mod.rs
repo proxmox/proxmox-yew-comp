@@ -1,0 +1,219 @@
+mod move_disk_dialog;
+pub use move_disk_dialog::qemu_move_disk_dialog;
+
+mod reassign_disk_dialog;
+pub use reassign_disk_dialog::qemu_reassign_disk_dialog;
+
+mod resize_disk_dialog;
+pub use resize_disk_dialog::qemu_resize_disk_dialog;
+use serde_json::Value;
+
+mod desktop;
+mod mobile;
+
+use std::rc::Rc;
+
+use pve_api_types::QemuConfig;
+
+use yew::{
+    html::{IntoEventCallback, IntoPropValue},
+    virtual_dom::{Key, VComp, VNode},
+};
+
+use pwt::{prelude::*, props::SubmitCallback};
+use pwt_macros::builder;
+
+use crate::{
+    form::typed_load,
+    http_post,
+    pending_property_view::{PvePendingConfiguration, PvePendingPropertyView},
+    percent_encoding::percent_encode_component,
+    EditableProperty, PropertyEditDialog,
+};
+
+#[derive(Clone, PartialEq, Properties)]
+#[builder]
+pub struct QemuHardwarePanel {
+    vmid: u32,
+    node: AttrValue,
+
+    /// Use Proxmox Datacenter Manager API endpoints
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub remote: Option<AttrValue>,
+
+    /// This callback is called after starting a task on the backend.
+    ///
+    /// The UPID is passed as argument to the callback.
+    #[builder_cb(IntoEventCallback, into_event_callback, String)]
+    #[prop_or_default]
+    on_start_command: Option<Callback<String>>,
+
+    /// Layout for mobile devices.
+    #[prop_or_default]
+    #[builder]
+    pub mobile: bool,
+}
+
+impl QemuHardwarePanel {
+    pub fn new(node: impl Into<AttrValue>, vmid: u32) -> Self {
+        yew::props!(Self {
+            node: node.into(),
+            vmid,
+        })
+    }
+
+    pub(crate) fn editor_url(&self) -> String {
+        if let Some(remote) = &self.remote {
+            format!(
+                "/pve/remotes/{}/qemu/{}/config?state=pending",
+                percent_encode_component(remote),
+                self.vmid
+            )
+        } else {
+            format!(
+                "/nodes/{}/qemu/{}/config",
+                percent_encode_component(&self.node),
+                self.vmid
+            )
+        }
+    }
+
+    pub(crate) fn pending_url(&self) -> String {
+        if let Some(remote) = &self.remote {
+            format!(
+                "/pve/remotes/{}/qemu/{}/pending",
+                percent_encode_component(remote),
+                self.vmid
+            )
+        } else {
+            format!(
+                "/nodes/{}/qemu/{}/pending",
+                percent_encode_component(&self.node),
+                self.vmid
+            )
+        }
+    }
+
+    pub(crate) fn resize_disk_url(&self) -> String {
+        if let Some(remote) = &self.remote {
+            format!(
+                "/pve/remotes/{}/qemu/{}/resize",
+                percent_encode_component(remote),
+                self.vmid
+            )
+        } else {
+            format!(
+                "/nodes/{}/qemu/{}/resize",
+                percent_encode_component(&self.node),
+                self.vmid
+            )
+        }
+    }
+
+    pub(crate) fn move_disk_url(&self) -> String {
+        if let Some(remote) = &self.remote {
+            format!(
+                "/pve/remotes/{}/qemu/{}/move_disk",
+                percent_encode_component(remote),
+                self.vmid
+            )
+        } else {
+            format!(
+                "/nodes/{}/qemu/{}/move_disk",
+                percent_encode_component(&self.node),
+                self.vmid
+            )
+        }
+    }
+
+    pub(crate) fn resize_disk_dialog(&self, name: &str) -> PropertyEditDialog {
+        qemu_resize_disk_dialog(
+            name,
+            Some(self.node.clone()),
+            self.remote.clone(),
+            self.mobile,
+        )
+        .loader(typed_load::<QemuConfig>(self.editor_url()))
+        .on_submit(create_on_submit(
+            self.resize_disk_url(),
+            self.on_start_command.clone(),
+        ))
+        .into()
+    }
+
+    pub(crate) fn reassign_disk_dialog(&self, name: &str) -> PropertyEditDialog {
+        qemu_reassign_disk_dialog(
+            &name,
+            Some(self.node.clone()),
+            self.remote.clone(),
+            self.mobile,
+        )
+        .loader(typed_load::<QemuConfig>(self.editor_url()))
+        .on_submit(create_on_submit(
+            self.move_disk_url(),
+            self.on_start_command.clone(),
+        ))
+    }
+
+    pub(crate) fn move_disk_dialog(&self, name: &str) -> PropertyEditDialog {
+        qemu_move_disk_dialog(
+            &name,
+            Some(self.node.clone()),
+            self.remote.clone(),
+            self.mobile,
+        )
+        .loader(typed_load::<QemuConfig>(self.editor_url()))
+        .on_submit(create_on_submit(
+            self.move_disk_url(),
+            self.on_start_command.clone(),
+        ))
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+enum EditAction {
+    None,
+    Edit,
+    Add,
+}
+
+#[derive(Copy, Clone, PartialEq)]
+enum HarwareKind {
+    None, // unspecified
+    Disk,
+    Net,
+}
+
+fn create_on_submit(
+    submit_url: String,
+    on_start_command: Option<Callback<String>>,
+) -> SubmitCallback<Value> {
+    SubmitCallback::new(move |data: Value| {
+        let submit_url = submit_url.clone();
+        let on_start_command = on_start_command.clone();
+        async move {
+            let result: Option<String> = http_post(&submit_url, Some(data)).await?;
+            if let Some(upid) = result {
+                if let Some(on_start_command) = &on_start_command {
+                    on_start_command.emit(upid.clone());
+                }
+            }
+            Ok(())
+        }
+    })
+}
+
+impl From<QemuHardwarePanel> for VNode {
+    fn from(props: QemuHardwarePanel) -> Self {
+        let comp = if props.mobile {
+            VComp::new::<PvePendingPropertyView<mobile::PveQemuHardwarePanel>>(Rc::new(props), None)
+        } else {
+            VComp::new::<PvePendingPropertyView<desktop::PveQemuHardwarePanel>>(
+                Rc::new(props),
+                None,
+            )
+        };
+        VNode::from(comp)
+    }
+}
