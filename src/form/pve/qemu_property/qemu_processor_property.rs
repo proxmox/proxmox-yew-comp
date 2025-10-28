@@ -2,12 +2,10 @@ use std::rc::Rc;
 
 use serde_json::Value;
 
-use proxmox_schema::{ApiType, ObjectSchemaType, Schema};
-
 use pwt::prelude::*;
 use pwt::props::PwtSpace;
-use pwt::widget::form::{Checkbox, DisplayField, Field, Hidden, Number};
-use pwt::widget::{Column, Container, InputPanel, Row, TabBarItem, TabPanel};
+use pwt::widget::form::{Checkbox, DisplayField, Field, Number};
+use pwt::widget::{Column, Container, InputPanel, Row};
 
 use crate::form::pve::{QemuCpuFlags, QemuCpuModelSelector};
 use crate::form::{

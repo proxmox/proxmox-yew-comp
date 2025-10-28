@@ -63,6 +63,7 @@ impl Component for QemuEfidiskPanelComp {
 
         Column::new()
             .class(pwt::css::FlexFit)
+            .padding_x(2)
             .gap(2)
             .with_child(label_field(
                 tr!("Storage"),

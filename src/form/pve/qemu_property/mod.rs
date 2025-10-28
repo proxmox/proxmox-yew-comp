@@ -110,10 +110,15 @@ fn render_string_input_panel(
             input.set_required(!optional);
         }
         if mobile {
-            input.into()
+            Column::new()
+                .class(pwt::css::FlexFit)
+                .padding_x(2)
+                .with_child(input)
+                .into()
         } else {
             InputPanel::new()
                 .class(pwt::css::FlexFit)
+                .padding_x(2)
                 .with_field(title.clone(), input)
                 .into()
         }
@@ -177,11 +182,16 @@ pub fn qemu_ostype_property(mobile: bool) -> EditableProperty {
                 .submit_empty(true);
 
             if mobile {
-                input.into()
+                Column::new()
+                    .class(pwt::css::FlexFit)
+                    .padding_x(2)
+                    .with_child(input)
+                    .into()
             } else {
                 InputPanel::new()
                     .style("min-width", "500px")
                     .class(pwt::css::FlexFit)
+                    .padding_x(2)
                     .with_field(title.clone(), input)
                     .into()
             }
@@ -209,6 +219,7 @@ pub fn qemu_startup_property(mobile: bool) -> EditableProperty {
             if mobile {
                 Column::new()
                     .gap(2)
+                    .padding_x(2)
                     .class(pwt::css::Flex::Fill)
                     .class(pwt::css::AlignItems::Stretch)
                     .with_child(label_field(order_label, order_field, true))
@@ -218,6 +229,7 @@ pub fn qemu_startup_property(mobile: bool) -> EditableProperty {
             } else {
                 InputPanel::new()
                     .class(pwt::css::FlexFit)
+                    .padding_x(2)
                     .style("min-width", "500px")
                     .with_field(order_label, order_field)
                     .with_field(up_label, up_field)
@@ -246,10 +258,15 @@ pub fn qemu_boot_property(mobile: bool) -> EditableProperty {
             tr!("any net")
         ))
         .render_input_panel(move |state: PropertyEditorState| {
-            BootDeviceList::new(state.record.clone())
-                .mobile(mobile)
-                .name("boot")
-                .submit_empty(true)
+            Column::new()
+                .class(pwt::css::FlexFit)
+                .padding_x(2)
+                .with_child(
+                    BootDeviceList::new(state.record.clone())
+                        .mobile(mobile)
+                        .name("boot")
+                        .submit_empty(true),
+                )
                 .into()
         })
         .required(true)
@@ -268,9 +285,14 @@ pub fn qemu_hotplug_property() -> EditableProperty {
             Ok(record)
         })
         .render_input_panel(move |_| {
-            HotplugFeatureSelector::new()
-                .name("hotplug")
-                .submit_empty(true)
+            Column::new()
+                .class(pwt::css::FlexFit)
+                .padding_x(2)
+                .with_child(
+                    HotplugFeatureSelector::new()
+                        .name("hotplug")
+                        .submit_empty(true),
+                )
                 .into()
         })
         .required(true)
@@ -301,10 +323,15 @@ pub fn qemu_startdate_property(mobile: bool) -> EditableProperty {
                     bail!(tr!("Format") + ": \"now\" or \"2006-06-17T16:01:21\" or \"2006-06-17\"")
                 });
             if mobile {
-                input.into()
+                Column::new()
+                    .class(pwt::css::FlexFit)
+                    .padding_x(2)
+                    .with_child(input)
+                    .into()
             } else {
                 InputPanel::new()
                     .class(pwt::css::FlexFit)
+                    .padding_x(2)
                     .with_field(title.clone(), input)
                     .into()
             }
@@ -331,11 +358,16 @@ pub fn qemu_vmstatestorage_property(node: &str, mobile: bool) -> EditablePropert
                     .content_types(vec![StorageContent::Images])
                     .placeholder(tr!("Automatic (Storage used by the VM, or 'local')"));
                 if mobile {
-                    selector.into()
+                    Column::new()
+                        .class(pwt::css::FlexFit)
+                        .padding_x(2)
+                        .with_child(selector)
+                        .into()
                 } else {
                     InputPanel::new()
                         .style("min-width", "600px")
                         .class(pwt::css::FlexFit)
+                        .padding_x(2)
                         .with_field(title.clone(), selector)
                         .into()
                 }

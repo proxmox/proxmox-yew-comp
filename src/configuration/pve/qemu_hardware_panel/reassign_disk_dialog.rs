@@ -103,6 +103,7 @@ impl Component for QemuReassignDiskPanelComp {
         if props.mobile {
             Column::new()
                 .class(pwt::css::FlexFit)
+                .padding_x(2)
                 .gap(2)
                 .with_child(label_field(target_vmid_label, target_vmid_field, true))
                 .with_child(label_field(target_disk_label, target_disk_field, true))

@@ -33,6 +33,7 @@ fn input_panel() -> RenderPropertyInputPanelFn {
 
         Column::new()
             .class(pwt::css::FlexFit)
+            .padding_x(2)
             .padding_bottom(1) // avoid scrollbar ?!
             .gap(2)
             .with_child(

@@ -21,7 +21,7 @@ pub fn qemu_scsihw_property() -> EditableProperty {
     ]);
     let placeholder = tr!("Default") + " (LSI 53C895A)";
 
-    EditableProperty::new(NAME, "scsihw")
+    EditableProperty::new(NAME, tr!("SCSI Controller Type"))
         .required(true)
         .placeholder(placeholder.clone())
         .renderer({
@@ -34,6 +34,7 @@ pub fn qemu_scsihw_property() -> EditableProperty {
         .render_input_panel(move |_| {
             Column::new()
                 .class(pwt::css::FlexFit)
+                .padding_x(2)
                 .gap(2)
                 .padding_bottom(1) // avoid scrollbar ?!
                 .with_child(

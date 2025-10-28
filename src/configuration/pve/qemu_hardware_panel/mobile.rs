@@ -575,7 +575,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         let mobile = true;
         Self {
             memory_property: qemu_memory_property(mobile),
-            bios_property: qemu_bios_property(),
+            bios_property: qemu_bios_property(mobile),
             sockets_cores_property: qemu_sockets_cores_property(mobile),
             kernel_scheduler_property: qemu_kernel_scheduler_property(mobile),
             cpu_flags_property: qemu_cpu_flags_property(mobile),

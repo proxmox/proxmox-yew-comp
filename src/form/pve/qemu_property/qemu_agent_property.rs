@@ -57,6 +57,7 @@ fn input_panel() -> RenderPropertyInputPanelFn {
         };
 
         Column::new()
+                        .padding_x(2)
                         .class(pwt::css::FlexFit)
                         .with_child(
                             Checkbox::new()

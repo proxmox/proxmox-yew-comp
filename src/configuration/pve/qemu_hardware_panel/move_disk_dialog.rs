@@ -66,6 +66,7 @@ impl Component for QemuMoveDiskPanelComp {
         if props.mobile {
             Column::new()
                 .class(pwt::css::FlexFit)
+                .padding_x(2)
                 .gap(2)
                 .with_child(label_field(storage_label, storage_field, true))
                 .with_child(label_field(

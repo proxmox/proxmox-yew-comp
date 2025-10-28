@@ -36,6 +36,7 @@ fn disk_input_panel(name: Option<String>, node: Option<AttrValue>) -> RenderProp
 
         Column::new()
             .class(pwt::css::FlexFit)
+            .padding_x(2)
             .gap(2)
             .with_optional_child(is_create.then(|| {
                 label_field(
@@ -206,6 +207,7 @@ fn add_unused_disk_panel(name: String, _node: Option<AttrValue>) -> RenderProper
 
         Column::new()
             .class(pwt::css::FlexFit)
+            .padding_x(2)
             .gap(2)
             .with_child(Container::new().with_child(disk_image))
             .with_child(label_field(
@@ -291,6 +293,7 @@ fn cdrom_input_panel(
 
         Column::new()
             .class(pwt::css::FlexFit)
+            .padding_x(2)
             .gap(2)
             .with_optional_child(is_create.then(|| {
                 label_field(

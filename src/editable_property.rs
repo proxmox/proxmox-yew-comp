@@ -180,9 +180,16 @@ impl EditableProperty {
                     .name(name.to_string())
                     .switch(mobile);
                 if mobile {
-                    Row::new().with_flex_spacer().with_child(checkbox).into()
+                    Row::new()
+                        .padding_x(2)
+                        .with_flex_spacer()
+                        .with_child(checkbox)
+                        .into()
                 } else {
-                    checkbox.box_label(title.clone()).into()
+                    Row::new()
+                        .padding_x(2)
+                        .with_child(checkbox.box_label(title.clone()))
+                        .into()
                 }
             })
     }
@@ -201,6 +208,7 @@ impl EditableProperty {
             }
             InputPanel::new()
                 .class(pwt::css::FlexFit)
+                .padding_x(2)
                 .with_field(title.clone(), field)
                 .into()
         })

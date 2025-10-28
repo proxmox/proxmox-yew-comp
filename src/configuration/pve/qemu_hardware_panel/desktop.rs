@@ -417,7 +417,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         );
         push_property(
             &mut list,
-            qemu_bios_property(),
+            qemu_bios_property(false),
             Fa::new("microchip"),
             EditAction::Edit,
         );

@@ -123,6 +123,7 @@ impl Component for StatefulPanelComp {
 
         Column::new()
             .class(pwt::css::FlexFit)
+            .padding_x(2)
             .gap(2)
             .padding_bottom(1) // avoid scrollbar ?!
             .with_child(label_field(

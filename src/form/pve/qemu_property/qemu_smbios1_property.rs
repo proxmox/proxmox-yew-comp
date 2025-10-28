@@ -80,6 +80,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         if mobile {
             Column::new()
                 .gap(2)
+                .padding_x(2)
                 .class(pwt::css::FlexFit)
                 .class(pwt::css::AlignItems::Stretch)
                 .with_child(label_field(uuid_label, uuid_field, true))
@@ -94,6 +95,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             InputPanel::new()
                 .field_width("300px")
                 .class(pwt::css::FlexFit)
+                .padding_x(2)
                 .with_field(uuid_label, uuid_field)
                 .with_field(manu_label, manu_field)
                 .with_field(product_label, product_field)

@@ -17,6 +17,7 @@ fn input_panel(node: Option<AttrValue>) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |_state: PropertyEditorState| {
         Column::new()
             .class(pwt::css::FlexFit)
+            .padding_x(2)
             .gap(2)
             .with_child(label_field(
                 tr!("Storage"),

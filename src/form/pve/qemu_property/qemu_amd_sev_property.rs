@@ -22,65 +22,68 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let snp_enabled = amd_sev_type == "snp";
         let sev_enabled = !amd_sev_type.is_empty();
 
+        let type_field = Combobox::from_key_value_pairs([
+            ("std", "AMD SEV"),
+            ("es", "AMD SEV-ES (highly experimental)"),
+            ("snp", "AMD SEV-SNP (highly experimental)"),
+        ])
+        .name("_type")
+        .force_selection(true)
+        .placeholder(format!("{} ({})", tr!("Default"), tr!("Disabled")));
+
+        let debug_label = tr!("Allow Debugging");
+        let debug_field = Checkbox::new()
+            .class((!advanced || !sev_enabled).then(|| pwt::css::Display::None))
+            .disabled(!sev_enabled)
+            .submit(false)
+            .name("_debug");
+
+        let key_sharing_label = tr!("Allow Key-Sharing");
+        let key_sharing_field = Checkbox::new()
+            .class((!advanced || !sev_enabled || snp_enabled).then(|| pwt::css::Display::None))
+            .disabled(!sev_enabled || snp_enabled)
+            .submit(false)
+            .name("_key-sharing");
+
+        let allow_smt_label = tr!("Allow SMT");
+        let allow_smt_field = Checkbox::new()
+            .class((!advanced || !snp_enabled).then(|| pwt::css::Display::None))
+            .disabled(!snp_enabled)
+            .default(true)
+            .submit(false)
+            .name("_allow-smt");
+
+        let kernel_hashes_label = tr!("Enable Kernel Hashes");
+        let kernel_hashes_field = Checkbox::new()
+            .class((!advanced || !sev_enabled).then(|| pwt::css::Display::None))
+            .disabled(!sev_enabled)
+            .name("_kernel-hashes")
+            .submit(false);
+
+        let hint1 = snp_enabled.then(|| {
+            hint(tr!(
+                "WARNING: When using SEV-SNP no EFI disk is loaded as pflash."
+            ))
+        });
+
+        let hint2 = snp_enabled.then(|| {
+            hint(tr!(
+                "Note: SEV-SNP requires host kernel version 6.11 or higher."
+            ))
+        });
+
         Column::new()
             .style("min-width", (!mobile).then(|| "500px"))
             .gap(2)
+            .padding_x(2)
             .padding_bottom(1) // avoid scrollbar ?!
-            .with_child(
-                Combobox::from_key_value_pairs([
-                    ("std", "AMD SEV"),
-                    ("es", "AMD SEV-ES (highly experimental)"),
-                    ("snp", "AMD SEV-SNP (highly experimental)"),
-                ])
-                .name("_type")
-                .force_selection(true)
-                .placeholder(format!("{} ({})", tr!("Default"), tr!("Disabled"))),
-            )
-            .with_child(
-                Checkbox::new()
-                    .class((!advanced || !sev_enabled).then(|| pwt::css::Display::None))
-                    .disabled(!sev_enabled)
-                    .submit(false)
-                    .name("_debug")
-                    .box_label(tr!("Allow Debugging")),
-            )
-            .with_child(
-                Checkbox::new()
-                    .class(
-                        (!advanced || !sev_enabled || snp_enabled).then(|| pwt::css::Display::None),
-                    )
-                    .disabled(!sev_enabled || snp_enabled)
-                    .submit(false)
-                    .name("_key-sharing")
-                    .box_label(tr!("Allow Key-Sharing")),
-            )
-            .with_child(
-                Checkbox::new()
-                    .class((!advanced || !snp_enabled).then(|| pwt::css::Display::None))
-                    .disabled(!snp_enabled)
-                    .default(true)
-                    .submit(false)
-                    .name("_allow-smt")
-                    .box_label(tr!("Allow SMT")),
-            )
-            .with_child(
-                Checkbox::new()
-                    .class((!advanced || !sev_enabled).then(|| pwt::css::Display::None))
-                    .disabled(!sev_enabled)
-                    .name("_kernel-hashes")
-                    .submit(false)
-                    .box_label(tr!("Enable Kernel Hashes")),
-            )
-            .with_optional_child(snp_enabled.then(|| {
-                hint(tr!(
-                    "WARNING: When using SEV-SNP no EFI disk is loaded as pflash."
-                ))
-            }))
-            .with_optional_child(snp_enabled.then(|| {
-                hint(tr!(
-                    "Note: SEV-SNP requires host kernel version 6.11 or higher."
-                ))
-            }))
+            .with_child(type_field)
+            .with_child(debug_field.box_label(debug_label))
+            .with_child(key_sharing_field.box_label(key_sharing_label))
+            .with_child(allow_smt_field.box_label(allow_smt_label))
+            .with_child(kernel_hashes_field.box_label(kernel_hashes_label))
+            .with_optional_child(hint1)
+            .with_optional_child(hint2)
             .into()
     })
 }

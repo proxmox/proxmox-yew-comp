@@ -48,6 +48,7 @@ pub fn qemu_resize_disk_dialog(
             if mobile {
                 Column::new()
                     .class(pwt::css::FlexFit)
+                    .padding_x(2)
                     .gap(2)
                     .with_child(label_field(incr_label, incr_field, true))
                     .into()
