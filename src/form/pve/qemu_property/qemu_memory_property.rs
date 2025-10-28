@@ -8,7 +8,7 @@ use pve_api_types::QemuConfigMemory;
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, FormContext, Hidden, Number};
-use pwt::widget::{Column, Row};
+use pwt::widget::{Column, InputPanel, Row};
 
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::layout::mobile_form::label_field;
@@ -22,7 +22,7 @@ fn read_u64(form_ctx: &FormContext, name: &str) -> Option<u64> {
     }
 }
 
-fn input_panel() -> RenderPropertyInputPanelFn {
+fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
         let advanced = form_ctx.get_show_advanced();
@@ -41,61 +41,76 @@ fn input_panel() -> RenderPropertyInputPanelFn {
 
         let memory_default = 512u64;
 
-        Column::new()
-            .class(pwt::css::FlexFit)
-            .gap(2)
-            .with_child(label_field(
-                tr!("Memory") + " (MiB)",
-                Number::<u64>::new()
-                    .name("_current")
-                    .placeholder(memory_default.to_string())
-                    .min(16)
-                    .step(32),
-                true,
-            ))
-            .with_child(Hidden::new().name("_old_memory").submit(false))
-            .with_child(
-                label_field(
-                    tr!("Minimum memory") + " (MiB)",
-                    Number::<u64>::new()
-                        .name("balloon")
-                        .submit_empty(true)
-                        .min(1)
-                        .max(current_memory)
-                        .step(32)
-                        .placeholder(current_memory.map(|n| n.to_string())),
-                    use_ballooning,
+        let current_label = tr!("Memory") + " (MiB)";
+        let current_field = Number::<u64>::new()
+            .name("_current")
+            .placeholder(memory_default.to_string())
+            .min(16)
+            .step(32);
+
+        let balloon_label = tr!("Minimum memory") + " (MiB)";
+        let balloon_field = Number::<u64>::new()
+            .name("balloon")
+            .disabled(!use_ballooning)
+            .submit_empty(true)
+            .min(1)
+            .max(current_memory)
+            .step(32)
+            .placeholder(current_memory.map(|n| n.to_string()));
+
+        let shares_enable = use_ballooning && !disable_shares;
+        let shares_label = tr!("Shares");
+        let shares_field = Number::<u64>::new()
+            .name("shares")
+            .disabled(!shares_enable)
+            .submit_empty(true)
+            .placeholder(tr!("Default") + " (1000)")
+            .max(50000)
+            .step(10);
+
+        let use_balloon_label = tr!("Ballooning Device");
+        let use_balloon_field = Checkbox::new()
+            .name("_use_ballooning")
+            .switch(mobile)
+            .submit(false);
+
+        if mobile {
+            Column::new()
+                .padding_x(2)
+                .class(pwt::css::FlexFit)
+                .gap(2)
+                .with_child(label_field(current_label, current_field, true))
+                .with_child(Hidden::new().name("_old_memory").submit(false))
+                .with_child(
+                    label_field(balloon_label, balloon_field, use_ballooning)
+                        .class((!advanced).then(|| pwt::css::Display::None)),
                 )
-                .class((!advanced).then(|| pwt::css::Display::None)),
-            )
-            .with_child(
-                label_field(
-                    tr!("Shares"),
-                    Number::<u64>::new()
-                        .name("shares")
-                        .submit_empty(true)
-                        .placeholder(tr!("Default") + " (1000)")
-                        .max(50000)
-                        .step(10),
-                    use_ballooning && !disable_shares,
+                .with_child(
+                    label_field(shares_label, shares_field, shares_enable)
+                        .class((!advanced).then(|| pwt::css::Display::None)),
                 )
-                .class((!advanced).then(|| pwt::css::Display::None)),
-            )
-            .with_child(
-                Row::new()
-                    .padding_top(1)
-                    .class(pwt::css::AlignItems::Center)
-                    .with_child(tr!("Ballooning Device"))
-                    .with_flex_spacer()
-                    .with_child(
-                        Checkbox::new()
-                            .name("_use_ballooning")
-                            .switch(true)
-                            .submit(false),
-                    )
-                    .class((!advanced).then(|| pwt::css::Display::None)),
-            )
-            .into()
+                .with_child(
+                    Row::new()
+                        .padding_top(1)
+                        .class(pwt::css::AlignItems::Center)
+                        .with_child(use_balloon_label)
+                        .with_flex_spacer()
+                        .with_child(use_balloon_field)
+                        .class((!advanced).then(|| pwt::css::Display::None)),
+                )
+                .into()
+        } else {
+            InputPanel::new()
+                .label_width("max-content")
+                .show_advanced(advanced)
+                .padding_x(2)
+                .with_field(current_label, current_field)
+                .with_custom_child(Hidden::new().name("_old_memory").submit(false))
+                .with_advanced_field(balloon_label, balloon_field)
+                .with_advanced_field(shares_label, shares_field)
+                .with_advanced_field(use_balloon_label, use_balloon_field)
+                .into()
+        }
     })
 }
 
@@ -128,7 +143,7 @@ fn render_value(_name: &str, v: &Value, record: &Value) -> Html {
     text.into()
 }
 
-pub fn qemu_memory_property() -> EditableProperty {
+pub fn qemu_memory_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("memory", tr!("Memory"))
         .advanced_checkbox(true)
         .required(true)
@@ -138,7 +153,7 @@ pub fn qemu_memory_property() -> EditableProperty {
                 .map(AttrValue::from)
                 .collect(),
         ))
-        .render_input_panel(input_panel())
+        .render_input_panel(input_panel(mobile))
         .renderer(render_value)
         .submit_hook(|state: PropertyEditorState| {
             let form_ctx = state.form_ctx;

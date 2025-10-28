@@ -405,7 +405,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
 
         push_property(
             &mut list,
-            qemu_memory_property(),
+            qemu_memory_property(false),
             Fa::new("memory"),
             EditAction::Edit,
         );

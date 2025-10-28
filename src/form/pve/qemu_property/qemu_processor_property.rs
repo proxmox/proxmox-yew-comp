@@ -7,7 +7,7 @@ use proxmox_schema::{ApiType, ObjectSchemaType, Schema};
 use pwt::prelude::*;
 use pwt::props::PwtSpace;
 use pwt::widget::form::{Checkbox, DisplayField, Field, Hidden, Number};
-use pwt::widget::{Column, Container, InputPanel, Row};
+use pwt::widget::{Column, Container, InputPanel, Row, TabBarItem, TabPanel};
 
 use crate::form::pve::{QemuCpuFlags, QemuCpuModelSelector};
 use crate::form::{
@@ -52,24 +52,7 @@ fn renderer(_name: &str, _value: &Value, record: &Value) -> Html {
     text.into()
 }
 
-fn add_hidden_cpu_properties(column: &mut Column, exclude: &[&str]) {
-    // add unused cpu property - we want to keep them!
-    match PveVmCpuConf::API_SCHEMA {
-        Schema::Object(object_schema) => {
-            let props = object_schema.properties();
-            for (part, _, _) in props {
-                if !exclude.contains(part) {
-                    column.add_child(Hidden::new().name(format!("_{part}")));
-                }
-            }
-        }
-        _ => {
-            log::error!("add_hidden_cpu_properties: internal error - got unsupported schema type")
-        }
-    };
-}
-
-fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
+fn socket_cores_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
         let total_cores;
@@ -103,7 +86,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             Column::new()
                 .class(pwt::css::FlexFit)
                 .gap(2)
-                .padding_top(2)
+                .padding_x(2)
                 .padding_bottom(1) // avoid scrollbar
                 .with_child(label_field(cpu_type_label, cpu_type_field, true))
                 .with_child(label_field(sockets_label, sockets_field, true))
@@ -131,83 +114,42 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 }
 
 // Note: For the desktop view, we want everything in one edit wondow!
-/*
-fn input_panel_with_tabs() -> RenderPropertyInputPanelFn {
-    RenderPropertyInputPanelFn::new(move |form_ctx: FormContext, _| {
+fn processor_input_panel() -> RenderPropertyInputPanelFn {
+    RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
+        let form_ctx = &state.form_ctx;
         let advanced = form_ctx.get_show_advanced();
-        let total_cores;
-        {
-            let guard = form_ctx.read();
-            let cores = guard
-                .get_last_valid_value("cores")
-                .unwrap_or(Value::Number(1.into()))
-                .as_u64()
-                .unwrap_or(1);
-            let sockets = guard
-                .get_last_valid_value("sockets")
-                .unwrap_or(Value::Number(1.into()))
-                .as_u64()
-                .unwrap_or(1);
-            total_cores = sockets * cores;
-        }
 
-        let main_view = Column::new()
+        let main_view = socket_cores_input_panel(false).apply(state.clone());
+        let flags_view = cpu_flags_input_panel(false).apply(state.clone());
+        let scheduler_view = kernel_scheduler_input_panel(false).apply(state.clone());
+
+        Column::new()
             .class(pwt::css::FlexFit)
-            .gap(2)
-            .padding_top(2)
-            .padding_bottom(1) // avoid scrollbar
-            .with_child(label_field(tr!("Type"), Field::new().name("_cpu_cputype")))
-            .with_child(label_field(
-                tr!("Sockets"),
-                Number::<u64>::new().name("sockets").min(1),
-            ))
-            .with_child(label_field(
-                tr!("Cores"),
-                Number::<u64>::new().name("cores").min(1),
-            ))
+            .with_child(Column::new().padding(2).with_child(main_view))
             .with_child(
-                Row::new()
-                    .padding_top(1)
-                    .gap(PwtSpace::Em(0.5))
-                    .with_child(tr!("Total cores") + ":")
-                    .with_child(Container::new().with_child(total_cores.to_string())),
-            );
-
-        let scheduler_view = Column::new()
-            .gap(2)
-            .padding_top(2)
-            .padding_bottom(1) // avoid scrollbar
-            .with_child("Scheduler...");
-
-        let flags_view = Column::new()
-            .gap(2)
-            .padding_top(2)
-            .padding_bottom(1) // avoid scrollbar
-            .with_child("FLAGS...");
-
-        TabPanel::new()
-            .tab_bar_style(pwt::widget::TabBarStyle::Pills)
-            .with_item(TabBarItem::new().key("main").label(tr!("Cores")), main_view)
-            .with_item(
-                TabBarItem::new()
-                    .key("scheduler")
-                    .label(tr!("Scheduler"))
-                    .disabled(!advanced),
-                scheduler_view,
-            )
-            .with_item(
-                TabBarItem::new()
-                    .key("flags")
-                    .label(tr!("Flags"))
-                    .disabled(!advanced),
-                flags_view,
+                Column::new()
+                    .class((!advanced).then(|| pwt::css::Display::None))
+                    .with_child(Column::new().padding(2).with_child(scheduler_view))
+                    .with_child(
+                        Container::new()
+                            .padding_top(2)
+                            .padding_x(2)
+                            .style("padding-bottom", "0.25em")
+                            .border_bottom(true)
+                            .with_child(tr!("Extra CPU Flags") + ":"),
+                    )
+                    .with_child(flags_view)
+                    .max_height(500),
             )
             .into()
     })
 }
-*/
 
 pub fn qemu_sockets_cores_property(mobile: bool) -> EditableProperty {
+    const KEYS: &[&'static str] = &[
+        "sockets", "cores", "cpu", "vcpus", "cpuunits", "cpulimit", "affinity", "numa",
+    ];
+
     EditableProperty::new(
         "sockets",
         format!(
@@ -218,16 +160,14 @@ pub fn qemu_sockets_cores_property(mobile: bool) -> EditableProperty {
         ),
     )
     .required(true)
-    .revert_keys(Rc::new(
-        [
-            "sockets", "cores", "cpu", "vcpus", "cpuunits", "cpulimit", "affinity", "numa",
-        ]
-        .into_iter()
-        .map(AttrValue::from)
-        .collect(),
-    ))
+    .advanced_checkbox(!mobile)
+    .revert_keys(Rc::new(KEYS.iter().map(|s| AttrValue::from(*s)).collect()))
     .renderer(renderer)
-    .render_input_panel(input_panel(mobile))
+    .render_input_panel(if mobile {
+        socket_cores_input_panel(mobile)
+    } else {
+        processor_input_panel()
+    })
     .load_hook(move |mut record: Value| {
         flatten_property_string::<PveVmCpuConf>(&mut record, "cpu")?;
         Ok(record)
@@ -244,111 +184,113 @@ pub fn qemu_sockets_cores_property(mobile: bool) -> EditableProperty {
             record["_cputype"] = "kvm64".into();
         }
         property_string_from_parts::<PveVmCpuConf>(&mut record, "cpu", true)?;
-        let record = delete_empty_values(&record, &["sockets", "cores", "cpu"], false);
+        let record = delete_empty_values(&record, KEYS, false);
         Ok(record)
     })
 }
 
-fn cpu_flags_input_panel() -> RenderPropertyInputPanelFn {
-    RenderPropertyInputPanelFn::new(move |_| {
-        let mut column = Column::new()
-            .class(pwt::css::FlexFit)
-            .gap(2)
-            .padding_top(2)
-            .padding_bottom(1) // avoid scrollbar
-            .with_child(QemuCpuFlags::new().name("_flags"));
-
-        // add unused cpu property - we want to keep them!
-        add_hidden_cpu_properties(&mut column, &["flags"]);
-
-        column.into()
-    })
+fn cpu_flags_input_panel(_mobile: bool) -> RenderPropertyInputPanelFn {
+    RenderPropertyInputPanelFn::new(move |_| QemuCpuFlags::new().name("_flags").into())
 }
 
-pub fn qemu_cpu_flags_property() -> EditableProperty {
+pub fn qemu_cpu_flags_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("cpu", tr!("CPU flags"))
         .required(true)
         .renderer(renderer)
-        .render_input_panel(cpu_flags_input_panel())
+        .render_input_panel(cpu_flags_input_panel(mobile))
         .load_hook(move |mut record: Value| {
             flatten_property_string::<PveVmCpuConf>(&mut record, "cpu")?;
             Ok(record)
         })
         .submit_hook(|state: PropertyEditorState| {
             let mut record = state.get_submit_data();
+            property_string_add_missing_data::<PveVmCpuConf>(
+                &mut record,
+                &state.record,
+                &state.form_ctx,
+            )?;
             property_string_from_parts::<PveVmCpuConf>(&mut record, "cpu", true)?;
             let record = delete_empty_values(&record, &["cpu"], false);
             Ok(record)
         })
 }
 
-fn kernel_scheduler_input_panel() -> RenderPropertyInputPanelFn {
+fn kernel_scheduler_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let record = state.record;
         let cores = record["cores"].as_u64().unwrap_or(1);
         let sockets = record["sockets"].as_u64().unwrap_or(1);
         let total_cores = cores * sockets;
 
-        Column::new()
-            .class(pwt::css::FlexFit)
-            .gap(2)
-            .padding_top(2)
-            .padding_bottom(1) // avoid scrollbar
-            .with_child(label_field(
-                tr!("VCPUs"),
-                Number::<u64>::new()
-                    .name("vcpus")
-                    .min(1)
-                    .max(total_cores)
-                    .placeholder(total_cores.to_string())
-                    .submit_empty(true),
-                true,
-            ))
-            .with_child(label_field(
-                tr!("CPU units"),
-                Number::<u64>::new()
-                    .name("cpuunits")
-                    .min(1)
-                    .max(10000)
-                    .placeholder("100")
-                    .submit_empty(true),
-                true,
-            ))
-            .with_child(label_field(
-                tr!("CPU limit"),
-                Number::<f64>::new()
-                    .name("cpulimit")
-                    .placeholder(tr!("unlimited"))
-                    .min(0.0)
-                    .max(128.0) // api maximum
-                    .submit_empty(true),
-                true,
-            ))
-            .with_child(label_field(
-                tr!("CPU Affinity"),
-                Field::new()
-                    .name("affinity")
-                    .placeholder(tr!("All Cores"))
-                    .submit_empty(true),
-                true,
-            ))
-            .with_child(
-                Row::new()
-                    .padding_top(1)
-                    .class(pwt::css::AlignItems::Center)
-                    .with_child(tr!("Enable NUMA"))
-                    .with_flex_spacer()
-                    .with_child(Checkbox::new().name("numa").switch(true)),
-            )
-            .into()
+        let vcpus_label = tr!("VCPUs");
+        let vcpus_field = Number::<u64>::new()
+            .name("vcpus")
+            .min(1)
+            .max(total_cores)
+            .placeholder(total_cores.to_string())
+            .submit_empty(true);
+
+        let units_label = tr!("CPU units");
+        let units_field = Number::<u64>::new()
+            .name("cpuunits")
+            .min(1)
+            .max(10000)
+            .placeholder("100")
+            .submit_empty(true);
+
+        let limit_label = tr!("CPU limit");
+        let limit_field = Number::<f64>::new()
+            .name("cpulimit")
+            .placeholder(tr!("unlimited"))
+            .min(0.0)
+            .max(128.0) // api maximum
+            .submit_empty(true);
+
+        let affinity_label = tr!("CPU Affinity");
+        let affinity_field = Field::new()
+            .name("affinity")
+            .placeholder(tr!("All Cores"))
+            .submit_empty(true);
+
+        let numa_label = tr!("Enable NUMA");
+        let numa_field = Checkbox::new().name("numa").switch(true);
+
+        if mobile {
+            Column::new()
+                .class(pwt::css::FlexFit)
+                .gap(2)
+                .padding_x(2)
+                .padding_bottom(1) // avoid scrollbar
+                .with_child(label_field(vcpus_label, vcpus_field, true))
+                .with_child(label_field(units_label, units_field, true))
+                .with_child(label_field(limit_label, limit_field, true))
+                .with_child(label_field(affinity_label, affinity_field, true))
+                .with_child(
+                    Row::new()
+                        .padding_top(1)
+                        .class(pwt::css::AlignItems::Center)
+                        .with_child(numa_label)
+                        .with_flex_spacer()
+                        .with_child(numa_field),
+                )
+                .into()
+        } else {
+            InputPanel::new()
+                .with_field(vcpus_label, vcpus_field)
+                .with_right_field(units_label, units_field)
+                .with_field(limit_label, limit_field)
+                .with_right_field(numa_label, numa_field)
+                .with_field(affinity_label, affinity_field)
+                .into()
+        }
     })
 }
 
-pub fn qemu_kernel_scheduler_property() -> EditableProperty {
+pub fn qemu_kernel_scheduler_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("cpuunits", tr!("Kernel scheduler settings"))
         .required(true)
         .renderer(renderer)
-        .render_input_panel(kernel_scheduler_input_panel())
+        .render_input_panel(kernel_scheduler_input_panel(mobile))
         .submit_hook(|state: PropertyEditorState| {
             let mut record = state.get_submit_data();
 

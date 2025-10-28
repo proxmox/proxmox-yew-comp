@@ -214,7 +214,6 @@ impl ManagedField for QemuCpuFlagsField {
                 )
                 .interactive(true)
                 .border_bottom(!is_last)
-                .padding_x(0)
                 .key(item.name.clone())
             })
             .collect();
