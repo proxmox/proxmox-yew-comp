@@ -347,12 +347,13 @@ impl Component for PwtPropertyEditDialog {
             .class("pwt-font-size-title-medium")
             .with_optional_child(props.mobile.then(|| {
                 Container::new()
+                    .padding(2)
                     .class("pwt-font-size-title-large")
                     .with_child(props.title.clone())
             }))
             .with_flex_spacer()
             .with_child(
-                Container::new()
+                Column::new()
                     .class(pwt::css::FlexFit)
                     // This may have scrollable elements, so we Diasble the SideDialog gesture detecture..
                     .onpointerdown(|event: PointerEvent| {
@@ -364,7 +365,7 @@ impl Component for PwtPropertyEditDialog {
                     .with_child(content),
             );
 
-        let mut toolbar = Row::new().gap(2);
+        let mut toolbar = Row::new().gap(2).padding(2);
 
         if props.advanced_checkbox {
             let advanced = Checkbox::new()
@@ -410,15 +411,11 @@ impl Component for PwtPropertyEditDialog {
 
         let form = Form::new()
             .form_context(form_ctx.clone())
+            .class(pwt::css::Display::Flex)
+            .class(pwt::css::FlexDirection::Column)
             .class(pwt::css::FlexFit)
-            .with_child(
-                Column::new()
-                    .class(pwt::css::FlexFit)
-                    .padding(2)
-                    .gap(4)
-                    .with_child(input_panel)
-                    .with_child(toolbar),
-            );
+            .with_child(input_panel)
+            .with_child(toolbar);
 
         let form = Column::new()
             .class(pwt::css::FlexFit)
