@@ -167,6 +167,11 @@ impl LoadableComponent for ProxmoxUserPanel {
         let link = ctx.link();
 
         let disabled = self.selection.is_empty();
+        let mut disable_change_password = disabled;
+
+        if let Some(user) = self.get_selected_user() {
+            disable_change_password = user.user.userid.realm().as_str() == "pam";
+        }
 
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
@@ -190,7 +195,7 @@ impl LoadableComponent for ProxmoxUserPanel {
             .with_spacer()
             .with_child(
                 Button::new(tr!("Change Password"))
-                    .disabled(disabled)
+                    .disabled(disable_change_password)
                     .onclick(link.change_view_callback(|_| Some(ViewState::ChangePassword))),
             )
             .with_child(
@@ -257,6 +262,12 @@ fn check_confirm_password(form_ctx: FormContext) {
 }
 
 impl ProxmoxUserPanel {
+    fn get_selected_user(&self) -> Option<UserWithTokens> {
+        self.selection
+            .selected_key()
+            .and_then(|key| self.store.read().lookup_record(&key).cloned())
+    }
+
     fn create_add_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         EditWindow::new(tr!("Add") + ": " + &tr!("User"))
             .renderer(add_user_input_panel)
@@ -463,8 +474,10 @@ fn password_change_input_panel(_form_ctx: &FormContext) -> Html {
         .into()
 }
 
-fn add_user_input_panel(_form_ctx: &FormContext) -> Html {
-    InputPanel::new()
+fn add_user_input_panel(form_ctx: &FormContext) -> Html {
+    let is_pam = form_ctx.read().get_field_text("realm") == "pam";
+
+    let mut panel = InputPanel::new()
         .padding(4)
         .with_field(
             tr!("User name"),
@@ -481,24 +494,30 @@ fn add_user_input_panel(_form_ctx: &FormContext) -> Html {
                 .name("realm")
                 .required(true)
                 .submit(false),
-        )
-        .with_field(
-            tr!("Password"),
-            Field::new()
-                .name("password")
-                .required(true)
-                .schema(&PASSWORD_SCHEMA)
-                .input_type(InputType::Password),
-        )
-        // fixme: validate confirmation
-        .with_field(
-            tr!("Confirm password"),
-            Field::new()
-                .name("confirm_password")
-                .required(true)
-                .submit(false)
-                .input_type(InputType::Password),
-        )
+        );
+
+    if !is_pam {
+        panel = panel
+            .with_field(
+                tr!("Password"),
+                Field::new()
+                    .name("password")
+                    .required(true)
+                    .schema(&PASSWORD_SCHEMA)
+                    .input_type(InputType::Password),
+            )
+            // fixme: validate confirmation
+            .with_field(
+                tr!("Confirm password"),
+                Field::new()
+                    .name("confirm_password")
+                    .required(true)
+                    .submit(false)
+                    .input_type(InputType::Password),
+            );
+    }
+
+    panel
         .with_field(
             tr!("Expire"),
             Field::new()
