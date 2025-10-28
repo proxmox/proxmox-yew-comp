@@ -10,7 +10,10 @@ use pwt::widget::form::{Checkbox, DisplayField, Field, Hidden, Number};
 use pwt::widget::{Column, Container, InputPanel, Row};
 
 use crate::form::pve::{QemuCpuFlags, QemuCpuModelSelector};
-use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
+use crate::form::{
+    delete_empty_values, flatten_property_string, property_string_add_missing_data,
+    property_string_from_parts,
+};
 use crate::layout::mobile_form::label_field;
 use crate::PropertyEditorState;
 use crate::{EditableProperty, RenderPropertyInputPanelFn};
@@ -103,7 +106,6 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
                 .padding_top(2)
                 .padding_bottom(1) // avoid scrollbar
                 .with_child(label_field(cpu_type_label, cpu_type_field, true))
-                .with_child(Hidden::new().name("cpu")) // store original cpu settings
                 .with_child(label_field(sockets_label, sockets_field, true))
                 .with_child(label_field(cores_label, cores_field, true))
                 .with_child(
@@ -232,6 +234,15 @@ pub fn qemu_sockets_cores_property(mobile: bool) -> EditableProperty {
     })
     .submit_hook(|state: PropertyEditorState| {
         let mut record = state.get_submit_data();
+        property_string_add_missing_data::<PveVmCpuConf>(
+            &mut record,
+            &state.record,
+            &state.form_ctx,
+        )?;
+        if record["_cputype"] == Value::Null {
+            // PVE API actually requires this value to be set!
+            record["_cputype"] = "kvm64".into();
+        }
         property_string_from_parts::<PveVmCpuConf>(&mut record, "cpu", true)?;
         let record = delete_empty_values(&record, &["sockets", "cores", "cpu"], false);
         Ok(record)
