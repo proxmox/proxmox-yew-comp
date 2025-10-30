@@ -8,10 +8,9 @@ use pve_api_types::QemuConfigMemory;
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, FormContext, Hidden, Number};
-use pwt::widget::{Column, FieldPosition, InputPanel, Row};
+use pwt::widget::{FieldPosition, InputPanel};
 
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
-use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
 fn read_u64(form_ctx: &FormContext, name: &str) -> Option<u64> {
@@ -74,52 +73,27 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             .switch(mobile)
             .submit(false);
 
-        if mobile {
-            Column::new()
-                .padding_x(2)
-                .class(pwt::css::FlexFit)
-                .gap(2)
-                .with_child(label_field(current_label, current_field, true))
-                .with_child(Hidden::new().name("_old_memory").submit(false))
-                .with_child(
-                    label_field(balloon_label, balloon_field, use_ballooning)
-                        .class((!advanced).then(|| pwt::css::Display::None)),
-                )
-                .with_child(
-                    label_field(shares_label, shares_field, shares_enable)
-                        .class((!advanced).then(|| pwt::css::Display::None)),
-                )
-                .with_child(
-                    Row::new()
-                        .padding_top(1)
-                        .class(pwt::css::AlignItems::Center)
-                        .with_child(use_balloon_label)
-                        .with_flex_spacer()
-                        .with_child(use_balloon_field)
-                        .class((!advanced).then(|| pwt::css::Display::None)),
-                )
-                .into()
-        } else {
-            InputPanel::new()
-                .label_width("max-content")
-                .show_advanced(advanced)
-                .padding_x(2)
-                .with_field(current_label, current_field)
-                .with_custom_child_and_options(
-                    FieldPosition::Left,
-                    false,
-                    true,
-                    Hidden::new()
-                        .key("old_memory_cache")
-                        .name("_old_memory")
-                        .submit(false),
-                )
-                .with_advanced_spacer()
-                .with_advanced_field(balloon_label, balloon_field)
-                .with_advanced_field(shares_label, shares_field)
-                .with_advanced_field(use_balloon_label, use_balloon_field)
-                .into()
-        }
+        InputPanel::new()
+            .class(pwt::css::FlexFit)
+            .mobile(mobile)
+            .label_width("max-content")
+            .show_advanced(advanced)
+            .padding_x(2)
+            .with_field(current_label, current_field)
+            .with_custom_child_and_options(
+                FieldPosition::Left,
+                false,
+                true,
+                Hidden::new()
+                    .key("old_memory_cache")
+                    .name("_old_memory")
+                    .submit(false),
+            )
+            .with_advanced_spacer()
+            .with_advanced_field(balloon_label, balloon_field)
+            .with_advanced_field(shares_label, shares_field)
+            .with_single_line_field(true, false, use_balloon_label, use_balloon_field)
+            .into()
     })
 }
 
