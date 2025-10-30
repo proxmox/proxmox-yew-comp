@@ -6,7 +6,7 @@ use pve_api_types::{PveQemuSevFmt, PveQemuSevFmtType};
 use pwt::prelude::*;
 
 use pwt::widget::form::{Checkbox, Combobox};
-use pwt::widget::{Column, Container, FieldPosition, InputPanel};
+use pwt::widget::{Container, FieldPosition, InputPanel};
 
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
@@ -35,6 +35,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let debug_hidden = !advanced || !sev_enabled;
         let debug_label = tr!("Allow Debugging");
         let debug_field = Checkbox::new()
+            .switch(mobile)
             .disabled(!sev_enabled)
             .submit(false)
             .name("_debug");
@@ -42,6 +43,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let key_sharing_hidden = !advanced || !sev_enabled || snp_enabled;
         let key_sharing_label = tr!("Allow Key-Sharing");
         let key_sharing_field = Checkbox::new()
+            .switch(mobile)
             .disabled(!sev_enabled || snp_enabled)
             .submit(false)
             .name("_key-sharing");
@@ -49,6 +51,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let allow_smt_hidden = !advanced || !snp_enabled;
         let allow_smt_label = tr!("Allow SMT");
         let allow_smt_field = Checkbox::new()
+            .switch(mobile)
             .disabled(!snp_enabled)
             .default(true)
             .submit(false)
@@ -57,6 +60,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let kernel_hashes_hidden = !advanced || !sev_enabled;
         let kernel_hashes_label = tr!("Enable Kernel Hashes");
         let kernel_hashes_field = Checkbox::new()
+            .switch(mobile)
             .disabled(!sev_enabled)
             .name("_kernel-hashes")
             .submit(false);
@@ -64,87 +68,40 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let hint1 = hint(tr!(
             "WARNING: When using SEV-SNP no EFI disk is loaded as pflash."
         ))
-        .key("hint1")
-        .class((!snp_enabled).then(|| pwt::css::Display::None));
+        .key("hint1");
 
         let hint2 = hint(tr!(
             "Note: SEV-SNP requires host kernel version 6.11 or higher."
         ))
-        .key("hint2")
-        .class((!snp_enabled).then(|| pwt::css::Display::None));
+        .key("hint2");
 
-        if mobile {
-            Column::new()
-                .style("min-width", (!mobile).then(|| "500px"))
-                .gap(2)
-                .padding_x(2)
-                .padding_bottom(1) // avoid scrollbar ?!
-                .with_child(type_field)
-                .with_child(
-                    debug_field
-                        .box_label(debug_label)
-                        .class(debug_hidden.then(|| pwt::css::Display::None)),
-                )
-                .with_child(
-                    key_sharing_field
-                        .box_label(key_sharing_label)
-                        .class(key_sharing_hidden.then(|| pwt::css::Display::None)),
-                )
-                .with_child(
-                    allow_smt_field
-                        .box_label(allow_smt_label)
-                        .class(allow_smt_hidden.then(|| pwt::css::Display::None)),
-                )
-                .with_child(
-                    kernel_hashes_field
-                        .box_label(kernel_hashes_label)
-                        .class(kernel_hashes_hidden.then(|| pwt::css::Display::None)),
-                )
-                .with_child(hint1)
-                .with_child(hint2)
-                .into()
-        } else {
-            InputPanel::new()
-                .show_advanced(advanced)
-                .label_width("max-content")
-                .field_width("350px")
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .padding_bottom(1) // avoid scrollbar
-                .with_field(type_label, type_field)
-                .with_custom_child_and_options(FieldPosition::Left, false, !snp_enabled, hint1)
-                .with_custom_child_and_options(FieldPosition::Left, false, !snp_enabled, hint2)
-                .with_advanced_spacer()
-                .with_field_and_options(
-                    FieldPosition::Left,
-                    true,
-                    debug_hidden,
-                    debug_label,
-                    debug_field,
-                )
-                .with_field_and_options(
-                    FieldPosition::Left,
-                    true,
-                    key_sharing_hidden,
-                    key_sharing_label,
-                    key_sharing_field,
-                )
-                .with_field_and_options(
-                    FieldPosition::Left,
-                    true,
-                    allow_smt_hidden,
-                    allow_smt_label,
-                    allow_smt_field,
-                )
-                .with_field_and_options(
-                    FieldPosition::Left,
-                    true,
-                    kernel_hashes_hidden,
-                    kernel_hashes_label,
-                    kernel_hashes_field,
-                )
-                .into()
-        }
+        InputPanel::new()
+            .mobile(mobile)
+            .show_advanced(advanced)
+            .label_width("max-content")
+            .field_width((!mobile).then(|| "350px"))
+            .class(pwt::css::FlexFit)
+            .padding_x(2)
+            .padding_bottom(1) // avoid scrollbar
+            .with_field(type_label, type_field)
+            .with_custom_child_and_options(FieldPosition::Left, false, !snp_enabled, hint1)
+            .with_custom_child_and_options(FieldPosition::Left, false, !snp_enabled, hint2)
+            .with_advanced_spacer()
+            .with_single_line_field(true, debug_hidden, debug_label, debug_field)
+            .with_single_line_field(
+                true,
+                key_sharing_hidden,
+                key_sharing_label,
+                key_sharing_field,
+            )
+            .with_single_line_field(true, allow_smt_hidden, allow_smt_label, allow_smt_field)
+            .with_single_line_field(
+                true,
+                kernel_hashes_hidden,
+                kernel_hashes_label,
+                kernel_hashes_field,
+            )
+            .into()
     })
 }
 
