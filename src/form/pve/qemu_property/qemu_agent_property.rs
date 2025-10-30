@@ -3,7 +3,7 @@ use pve_api_types::QemuConfigAgent;
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, Combobox};
-use pwt::widget::{Column, Container};
+use pwt::widget::{Container, FieldPosition, InputPanel};
 use serde_json::Value;
 
 use crate::form::{property_string_load_hook, property_string_submit_hook};
@@ -42,74 +42,74 @@ fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {
     }
 }
 
-fn input_panel() -> RenderPropertyInputPanelFn {
+fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
         let advanced = form_ctx.get_show_advanced();
         let enabled = form_ctx.read().get_field_checked("_enabled");
         let ffob_enabled = form_ctx.read().get_field_checked("_freeze-fs-on-backup");
 
-        let warning = |msg: String| {
-            Container::new()
-                .class("pwt-color-warning")
-                .padding(1)
-                .with_child(msg)
+        let warning = |msg: String| -> Container {
+            Container::new().class("pwt-color-warning").with_child(msg)
         };
 
-        Column::new()
-                        .padding_x(2)
-                        .class(pwt::css::FlexFit)
-                        .with_child(
-                            Checkbox::new()
-                                .name("_enabled")
-                                .box_label(tr!("Use QEMU Guest Agent")),
-                        )
-                        .with_child(
-                            Checkbox::new()
-                                .name("_fstrim_cloned_disks")
-                                .box_label(tr!("Run guest-trim after a disk move or VM migration"))
-                                .disabled(!enabled),
-                        )
-                        .with_child(
-                            Checkbox::new()
-                                .name("_freeze-fs-on-backup")
-                                .box_label(tr!(
-                                    "Freeze/thaw guest filesystems on backup for consistency"
-                                ))
-                                .disabled(!enabled),
-                        )
-                        .with_child(
-                            crate::layout::mobile_form::label_field(
-                                tr!("Type"),
-                                Combobox::from_key_value_pairs([
-                                        ("virtio", "VirtIO"),
-                                        ("isa", "ISA"),
-                                ])
-                                    .name("_type")
-                                    .placeholder(tr!("Default") + " (VirtIO)"),
-                                true
-                            ).class((!advanced).then(|| pwt::css::Display::None))
-                            .padding_top(2)
-                            .padding_bottom(1),
-                        )
-                        .with_optional_child((!ffob_enabled).then(|| warning(tr!(
-                            "Freeze/thaw for guest filesystems disabled. This can lead to inconsistent disk backups."
-                        ))))
-                        .with_optional_child(enabled.then(|| warning(tr!(
-                            "Make sure the QEMU Guest Agent is installed in the VM"
-                        ))))
-                        .into()
+        let hint1_enabled = ffob_enabled;
+        let hint1 = warning(tr!("Freeze/thaw for guest filesystems disabled. This can lead to inconsistent disk backups."));
+
+        let hint2_enabled = !enabled;
+        let hint2 = warning(tr!("Make sure the QEMU Guest Agent is installed in the VM"));
+
+        InputPanel::new()
+            .mobile(mobile)
+            .show_advanced(advanced)
+            .label_width("300px")
+            .padding_x(2)
+            .padding_bottom(1) // avoid scroll
+            .class(pwt::css::FlexFit)
+            .with_single_line_field(
+                false,
+                false,
+                tr!("Use QEMU Guest Agent"),
+                Checkbox::new().switch(mobile).name("_enabled"),
+            )
+            .with_single_line_field(
+                false,
+                false,
+                tr!("Run guest-trim after a disk move or VM migration"),
+                Checkbox::new()
+                    .switch(mobile)
+                    .name("_fstrim_cloned_disks")
+                    .disabled(!enabled),
+            )
+            .with_single_line_field(
+                false,
+                false,
+                tr!("Freeze/thaw guest filesystems on backup for consistency"),
+                Checkbox::new()
+                    .switch(mobile)
+                    .name("_freeze-fs-on-backup")
+                    .disabled(!enabled),
+            )
+            .with_advanced_field(
+                tr!("Type"),
+                Combobox::from_key_value_pairs([("virtio", "VirtIO"), ("isa", "ISA")])
+                    .name("_type")
+                    .placeholder(tr!("Default") + " (VirtIO)"),
+            )
+            .with_custom_child_and_options(FieldPosition::Left, false, hint1_enabled, hint1)
+            .with_custom_child_and_options(FieldPosition::Left, false, hint2_enabled, hint2)
+            .into()
     })
 }
 
-pub fn qemu_agent_property() -> EditableProperty {
+pub fn qemu_agent_property(mobile: bool) -> EditableProperty {
     let name = String::from("agent");
     EditableProperty::new(name.clone(), tr!("QEMU Guest Agent"))
         .advanced_checkbox(true)
         .required(true)
         .placeholder(format!("{} ({})", tr!("Default"), tr!("Disabled")))
         .renderer(renderer)
-        .render_input_panel(input_panel())
+        .render_input_panel(input_panel(mobile))
         .load_hook(property_string_load_hook::<QemuConfigAgent>(&name))
         .submit_hook(property_string_submit_hook::<QemuConfigAgent>(&name, true))
 }
