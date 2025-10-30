@@ -6,10 +6,9 @@ use pve_api_types::PveQmSmbios1;
 
 use pwt::prelude::*;
 use pwt::widget::form::{Field, TextArea};
-use pwt::widget::{Column, InputPanel};
+use pwt::widget::InputPanel;
 
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
-use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
 thread_local! {
@@ -77,34 +76,19 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             .name("_family")
             .style("height", field_height);
 
-        if mobile {
-            Column::new()
-                .gap(2)
-                .padding_x(2)
-                .class(pwt::css::FlexFit)
-                .class(pwt::css::AlignItems::Stretch)
-                .with_child(label_field(uuid_label, uuid_field, true))
-                .with_child(label_field(manu_label, manu_field, true))
-                .with_child(label_field(product_label, product_field, true))
-                .with_child(label_field(version_label, version_field, true))
-                .with_child(label_field(serial_label, serial_field, true))
-                .with_child(label_field(sku_label, sku_field, true))
-                .with_child(label_field(family_label, family_field, true))
-                .into()
-        } else {
-            InputPanel::new()
-                .field_width("300px")
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .with_field(uuid_label, uuid_field)
-                .with_field(manu_label, manu_field)
-                .with_field(product_label, product_field)
-                .with_field(version_label, version_field)
-                .with_field(serial_label, serial_field)
-                .with_field(sku_label, sku_field)
-                .with_field(family_label, family_field)
-                .into()
-        }
+        InputPanel::new()
+            .mobile(mobile)
+            .field_width((!mobile).then(|| "300px"))
+            .class(pwt::css::FlexFit)
+            .padding_x(2)
+            .with_field(uuid_label, uuid_field)
+            .with_field(manu_label, manu_field)
+            .with_field(product_label, product_field)
+            .with_field(version_label, version_field)
+            .with_field(serial_label, serial_field)
+            .with_field(sku_label, sku_field)
+            .with_field(family_label, family_field)
+            .into()
     })
 }
 
