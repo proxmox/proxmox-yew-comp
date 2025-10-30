@@ -70,7 +70,7 @@ fn properties(node: &str, vmid: u32, mobile: bool) -> Vec<EditableProperty> {
         crate::form::pve::qemu_smbios_property(mobile),
         crate::form::pve::qemu_agent_property(mobile),
         crate::form::pve::qemu_protection_property(mobile),
-        crate::form::pve::qemu_spice_enhancement_property(),
+        crate::form::pve::qemu_spice_enhancement_property(mobile),
         crate::form::pve::qemu_vmstatestorage_property(node, mobile),
         crate::form::pve::qemu_amd_sev_property(mobile),
     ]

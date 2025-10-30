@@ -5,13 +5,12 @@ use pve_api_types::{QemuConfigSpiceEnhancements, QemuConfigVga, QemuConfigVgaTyp
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, Combobox};
-use pwt::widget::{Column, Container};
+use pwt::widget::{Container, FieldPosition, InputPanel};
 
 use crate::form::{delete_empty_values, property_string_from_parts, property_string_load_hook};
-use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
-fn input_panel() -> RenderPropertyInputPanelFn {
+fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
         let folder_sharing = form_ctx.read().get_field_checked("_foldersharing");
@@ -30,40 +29,44 @@ fn input_panel() -> RenderPropertyInputPanelFn {
         }
 
         let hint = |msg: String| Container::new().class("pwt-color-warning").with_child(msg);
+        let spice_hint = hint(tr!(
+            "To use these features set the display to SPICE in the hardware settings of the VM."
+        ));
+        let folder_sharing_hint = hint(tr!(
+            "Make sure the SPICE WebDav daemon is installed in the VM."
+        ));
 
-        Column::new()
+        InputPanel::new()
+            .mobile(mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
             .padding_bottom(1) // avoid scrollbar ?!
-            .gap(2)
-            .with_child(
-                Checkbox::new()
-                    .name("_foldersharing")
-                    .box_label(tr!("Folder Sharing")),
+            .with_single_line_field(
+                false,
+                false,
+                tr!("Folder Sharing"),
+                Checkbox::new().switch(mobile).name("_foldersharing"),
             )
-            .with_child(label_field(
+            .with_field(
                 tr!("Video Streaming"),
                 Combobox::new()
                     .name("_videostreaming")
                     .placeholder("off")
                     .with_item("all")
-                    .with_item("filter"), true
-            ))
-            .with_optional_child(show_spice_hint.then(|| {
-                hint(tr!(
-                    "To use these features set the display to SPICE in the hardware settings of the VM."
-                ))
-            }))
-            .with_optional_child(folder_sharing.then(|| {
-                hint(tr!(
-                    "Make sure the SPICE WebDav daemon is installed in the VM."
-                ))
-            }))
+                    .with_item("filter"),
+            )
+            .with_custom_child_and_options(FieldPosition::Left, false, !show_spice_hint, spice_hint)
+            .with_custom_child_and_options(
+                FieldPosition::Left,
+                false,
+                !folder_sharing,
+                folder_sharing_hint,
+            )
             .into()
     })
 }
 
-pub fn qemu_spice_enhancement_property() -> EditableProperty {
+pub fn qemu_spice_enhancement_property(mobile: bool) -> EditableProperty {
     let name = String::from("spice_enhancements");
     EditableProperty::new(name.clone(), tr!("Spice Enhancements"))
         .required(true)
@@ -93,7 +96,7 @@ pub fn qemu_spice_enhancement_property() -> EditableProperty {
                 }
             }
         })
-        .render_input_panel(input_panel())
+        .render_input_panel(input_panel(mobile))
         .load_hook(property_string_load_hook::<QemuConfigSpiceEnhancements>(
             &name,
         ))
