@@ -8,7 +8,7 @@ use pve_api_types::QemuConfigMemory;
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, FormContext, Hidden, Number};
-use pwt::widget::{Column, InputPanel, Row};
+use pwt::widget::{Column, FieldPosition, InputPanel, Row};
 
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::layout::mobile_form::label_field;
@@ -105,7 +105,16 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
                 .show_advanced(advanced)
                 .padding_x(2)
                 .with_field(current_label, current_field)
-                .with_custom_child(Hidden::new().name("_old_memory").submit(false))
+                .with_custom_child_and_options(
+                    FieldPosition::Left,
+                    false,
+                    true,
+                    Hidden::new()
+                        .key("old_memory_cache")
+                        .name("_old_memory")
+                        .submit(false),
+                )
+                .with_advanced_spacer()
                 .with_advanced_field(balloon_label, balloon_field)
                 .with_advanced_field(shares_label, shares_field)
                 .with_advanced_field(use_balloon_label, use_balloon_field)
