@@ -6,14 +6,13 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::{Combobox, FormContextObserver, Number};
-use pwt::widget::{Column, Container};
+use pwt::widget::{Container, FieldPosition, InputPanel};
 
 use pve_api_types::{QemuConfigVga, QemuConfigVgaClipboard};
 use yew::virtual_dom::VComp;
 
 use crate::form::pve::{format_qemu_display_type, QemuDisplayTypeSelector};
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
-use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState};
 
 fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {
@@ -54,6 +53,7 @@ fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {
 #[derive(Properties, Clone, PartialEq)]
 struct StatefulPanel {
     state: PropertyEditorState,
+    mobile: bool,
 }
 struct StatefulPanelComp {
     serial_device_list: Rc<Vec<AttrValue>>,
@@ -108,65 +108,77 @@ impl Component for StatefulPanelComp {
 
         let hint = |msg: String| Container::new().class("pwt-color-warning").with_child(msg);
 
-        let vnc_hint =
+        let vnc_hint = hint(
             tr!("You cannot use the default SPICE clipboard if the VNC clipboard is selected.")
                 + " "
-                + &tr!("VNC clipboard requires spice-tools installed in the Guest-VM.");
+                + &tr!("VNC clipboard requires spice-tools installed in the Guest-VM."),
+        );
 
-        let migration_hint = tr!("You cannot live-migrate while using the VNC clipboard.");
+        let migration_hint = hint(tr!(
+            "You cannot live-migrate while using the VNC clipboard."
+        ));
 
-        let default_hint = tr!("This option depends on your display type.")
-            + " "
-            + &tr!(
+        let default_hint = hint(
+            tr!("This option depends on your display type.")
+                + " "
+                + &tr!(
                 "If the display type uses SPICE you are able to use the default SPICE clipboard."
-            );
+            ),
+        );
 
-        Column::new()
+        InputPanel::new()
+            .mobile(props.mobile)
+            .show_advanced(advanced)
             .class(pwt::css::FlexFit)
             .padding_x(2)
-            .gap(2)
             .padding_bottom(1) // avoid scrollbar ?!
-            .with_child(label_field(
+            .with_field(
                 tr!("Graphic card"),
                 QemuDisplayTypeSelector::new()
                     .name("_type")
                     .serial_device_list(Some(self.serial_device_list.clone())),
-                true,
-            ))
-            .with_child(label_field(
+            )
+            .with_field(
                 tr!("Memory") + " (MiB)",
                 Number::<u64>::new()
                     .name("_memory")
+                    .disabled(!has_gui)
                     .placeholder(memory_placeholder)
                     .min(4)
                     .max(512)
                     .step(4),
-                has_gui,
-            ))
-            .with_child(
-                label_field(
-                    tr!("Clipboard"),
-                    Combobox::from_key_value_pairs([("", tr!("Default")), ("vnc", "VNC".into())])
-                        .name("_clipboard"),
-                    has_gui,
-                )
-                .class((!advanced).then(|| pwt::css::Display::None)),
             )
-            .with_optional_child(show_vnc_hint.then(|| hint(vnc_hint)))
-            .with_optional_child(show_vnc_hint.then(|| hint(migration_hint)))
-            .with_optional_child(show_default_hint.then(|| hint(default_hint)))
+            .with_advanced_field(
+                tr!("Clipboard"),
+                Combobox::from_key_value_pairs([("", tr!("Default")), ("vnc", "VNC".into())])
+                    .name("_clipboard")
+                    .disabled(!has_gui),
+            )
+            .with_custom_child_and_options(FieldPosition::Left, false, !show_vnc_hint, vnc_hint)
+            .with_custom_child_and_options(
+                FieldPosition::Left,
+                false,
+                !show_vnc_hint,
+                migration_hint,
+            )
+            .with_custom_child_and_options(
+                FieldPosition::Left,
+                false,
+                !show_default_hint,
+                default_hint,
+            )
             .into()
     }
 }
 
-pub fn qemu_display_property() -> EditableProperty {
+pub fn qemu_display_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("vga", tr!("Display"))
         .required(true)
         .advanced_checkbox(true)
         .placeholder(tr!("Default"))
         .renderer(renderer)
-        .render_input_panel(|state: PropertyEditorState| {
-            let props = StatefulPanel { state };
+        .render_input_panel(move |state: PropertyEditorState| {
+            let props = StatefulPanel { state, mobile };
             VComp::new::<StatefulPanelComp>(Rc::new(props), None).into()
         })
         .load_hook(move |mut record: Value| {

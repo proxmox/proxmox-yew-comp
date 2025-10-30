@@ -423,7 +423,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         );
         push_property(
             &mut list,
-            qemu_display_property(),
+            qemu_display_property(false),
             Fa::new("desktop"),
             EditAction::Edit,
         );
