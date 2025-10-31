@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::Combobox;
-use pwt::widget::{Column, Container};
+use pwt::widget::{Container, FieldPosition, InputPanel};
 
 use pve_api_types::{QemuConfigMachine, QemuConfigOstype};
 
@@ -12,7 +12,6 @@ use crate::form::{
 
 use crate::form::delete_empty_values;
 use crate::form::pve::QemuMachineVersionSelector;
-use crate::layout::mobile_form::label_field;
 use crate::pve_api_types::QemuMachineType;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
@@ -52,7 +51,7 @@ fn placeholder() -> String {
     tr!("Default") + &format!(" ({})", QemuMachineType::I440fx)
 }
 
-fn input_panel() -> RenderPropertyInputPanelFn {
+fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
         let hint = |msg: String| Container::new().class("pwt-color-warning").with_child(msg);
@@ -87,28 +86,30 @@ fn input_panel() -> RenderPropertyInputPanelFn {
             _ => true, // show field if we have errors
         };
 
-        let add_version_selector = |column: &mut Column, ty| {
+        let add_version_selector = |panel: &mut InputPanel, ty| {
             let disabled = machine_type != ty;
             let name = format!("_{ty}-version");
-            let field = label_field(
+            let field = QemuMachineVersionSelector::new(ty)
+                .name(name)
+                .disabled(machine_type != ty)
+                .required(ostype_is_windows(&ostype))
+                .submit(false);
+            panel.add_field_with_options(
+                FieldPosition::Left,
+                false,
+                disabled,
                 tr!("Version"),
-                QemuMachineVersionSelector::new(ty)
-                    .name(name)
-                    .required(ostype_is_windows(&ostype))
-                    .submit(false),
-                !disabled,
-            )
-            .class((disabled || !show_version).then(|| pwt::css::Display::None));
-
-            column.add_child(field);
+                field,
+            );
         };
 
-        let mut column = Column::new()
+        let mut panel = InputPanel::new()
+            .mobile(mobile)
+            .show_advanced(advanced)
             .class(pwt::css::FlexFit)
             .padding_x(2)
-            .gap(2)
             .padding_bottom(1) // avoid scrollbar ?!
-            .with_child(label_field(
+            .with_field(
                 tr!("Type"),
                 Combobox::new()
                     .name(extracted_type_prop_name)
@@ -121,12 +122,11 @@ fn input_panel() -> RenderPropertyInputPanelFn {
                         "q35" => "Q35".into(),
                         _ => v.into(),
                     }),
-                true,
-            ));
+            );
 
-        add_version_selector(&mut column, QemuMachineType::I440fx);
-        add_version_selector(&mut column, QemuMachineType::Q35);
-        add_version_selector(&mut column, QemuMachineType::Virt);
+        add_version_selector(&mut panel, QemuMachineType::I440fx);
+        add_version_selector(&mut panel, QemuMachineType::Q35);
+        add_version_selector(&mut panel, QemuMachineType::Virt);
 
         let mut items = Vec::new();
         if machine_type == QemuMachineType::Q35 {
@@ -134,37 +134,40 @@ fn input_panel() -> RenderPropertyInputPanelFn {
         }
         items.push(("virtio", tr!("VirtIO")));
 
-        column.add_child(
-            label_field(
-                "vIOMMU",
-                Combobox::from_key_value_pairs(items)
-                    .name("_viommu")
-                    .force_selection(true)
-                    .placeholder(tr!("Default") + " (" + &tr!("None") + ")")
-                    .render_value(|v: &AttrValue| {
-                        match v.as_str() {
-                            "intel" => tr!("Intel (AMD Compatible)"),
-                            "virtio" => tr!("VirtIO"),
-                            _ => v.to_string(),
-                        }
-                        .into()
-                    }),
-                true,
-            )
-            .class((!advanced).then(|| pwt::css::Display::None)),
+        panel.add_field_with_options(
+            FieldPosition::Left,
+            true,
+            false,
+            "vIOMMU",
+            Combobox::from_key_value_pairs(items)
+                .name("_viommu")
+                .force_selection(true)
+                .placeholder(tr!("Default") + " (" + &tr!("None") + ")")
+                .render_value(|v: &AttrValue| {
+                    match v.as_str() {
+                        "intel" => tr!("Intel (AMD Compatible)"),
+                        "virtio" => tr!("VirtIO"),
+                        _ => v.to_string(),
+                    }
+                    .into()
+                }),
         );
 
-        column.add_optional_child(show_version.then(|| {
+        panel.add_custom_child_with_options(
+            FieldPosition::Left,
+            false,
+            !show_version,
             hint(tr!(
                 "Machine version change may affect hardware layout and settings in the guest OS."
             ))
-        }));
+            .key("version_hint"),
+        );
 
-        column.into()
+        panel.into()
     })
 }
 
-pub fn qemu_machine_property() -> EditableProperty {
+pub fn qemu_machine_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("machine", tr!("Machine"))
         .required(true)
         .advanced_checkbox(true)
@@ -180,7 +183,7 @@ pub fn qemu_machine_property() -> EditableProperty {
                 (None, _) => placeholder().into(),
             }
         })
-        .render_input_panel(input_panel())
+        .render_input_panel(input_panel(mobile))
         .load_hook(move |mut record: Value| {
             flatten_property_string::<QemuConfigMachine>(&mut record, "machine")?;
 

@@ -578,7 +578,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             kernel_scheduler_property: qemu_kernel_scheduler_property(mobile),
             cpu_flags_property: qemu_cpu_flags_property(mobile),
             display_property: qemu_display_property(mobile),
-            machine_property: qemu_machine_property(),
+            machine_property: qemu_machine_property(mobile),
             scsihw_property: qemu_scsihw_property(),
             vmstate_property: qemu_vmstate_property(),
         }

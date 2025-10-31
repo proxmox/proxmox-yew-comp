@@ -429,7 +429,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         );
         push_property(
             &mut list,
-            qemu_machine_property(),
+            qemu_machine_property(false),
             Fa::new("cogs"),
             EditAction::Edit,
         );
