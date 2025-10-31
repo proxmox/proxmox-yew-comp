@@ -311,6 +311,7 @@ impl ProxmoxLoginPanel {
                 .with_child(
                     Field::new()
                         .name("password")
+                        .required(true)
                         .label_id(password_label_id)
                         .input_type(InputType::Password),
                 );
