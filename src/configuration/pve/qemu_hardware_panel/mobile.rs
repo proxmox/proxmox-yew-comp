@@ -148,7 +148,7 @@ impl PveQemuHardwarePanel {
     ) -> ListTile {
         let props = ctx.props();
         let network_property =
-            qemu_network_property(Some(name.to_string()), Some(props.node.clone()));
+            qemu_network_property(Some(name.to_string()), Some(props.node.clone()), true);
         let mtu_property =
             qemu_network_mtu_property(Some(name.to_string()), Some(props.node.clone()), true);
 
@@ -531,7 +531,7 @@ impl PveQemuHardwarePanel {
                 MenuItem::new(tr!("Add Network card"))
                     .icon_class("fa fa-exchange")
                     .on_select(ctx.link().callback({
-                        let property = qemu_network_property(None, Some(props.node.clone()));
+                        let property = qemu_network_property(None, Some(props.node.clone()), true);
                         move |_| PendingPropertyViewMsg::AddProperty(property.clone())
                     }))
             })

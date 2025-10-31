@@ -252,7 +252,7 @@ impl PveQemuHardwarePanel {
                 MenuItem::new(tr!("Add Network card"))
                     .icon_class("fa fa-exchange")
                     .on_select(ctx.link().callback({
-                        let property = qemu_network_property(None, Some(props.node.clone()));
+                        let property = qemu_network_property(None, Some(props.node.clone()), false);
                         move |_| PendingPropertyViewMsg::AddProperty(property.clone())
                     }))
             })
@@ -391,7 +391,8 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         let push_network_property = |list: &mut Vec<_>, name: &str| {
             let icon = Fa::new("exchange");
             // fixme: add remote
-            let property = qemu_network_property(Some(name.to_string()), Some(props.node.clone()));
+            let property =
+                qemu_network_property(Some(name.to_string()), Some(props.node.clone()), false);
             let entry = create_entry(&name, property, icon, EditAction::Edit);
             list.push(entry);
         };

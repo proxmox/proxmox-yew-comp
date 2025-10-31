@@ -5,7 +5,7 @@ use pve_api_types::QemuConfigNet;
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, Combobox, Field, Number};
-use pwt::widget::{Column, InputPanel, Row};
+use pwt::widget::InputPanel;
 
 use crate::form::{
     flatten_property_string, property_string_add_missing_data, property_string_from_parts,
@@ -13,24 +13,22 @@ use crate::form::{
 
 use crate::form::delete_empty_values;
 use crate::form::pve::{PveNetworkSelector, PveVlanField};
-use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
-fn input_panel(node: Option<AttrValue>) -> RenderPropertyInputPanelFn {
+fn input_panel(node: Option<AttrValue>, mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |_| {
-        Column::new()
+        InputPanel::new()
+            .mobile(mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
-            .gap(2)
-            .with_child(label_field(
+            .with_field(
                 tr!("Bridge"),
                 PveNetworkSelector::new()
                     .node(node.clone())
                     .name("_bridge")
                     .required(true),
-                true,
-            ))
-            .with_child(label_field(
+            )
+            .with_field(
                 tr!("Model"),
                 Combobox::from_key_value_pairs([
                     ("e1000", String::from("Intel E1000")),
@@ -45,31 +43,29 @@ fn input_panel(node: Option<AttrValue>) -> RenderPropertyInputPanelFn {
                 .name("_model")
                 .required(true)
                 .default("virtio"),
-                true,
-            ))
-            .with_child(label_field(
+            )
+            .with_field(
                 PveVlanField::get_std_label(),
                 PveVlanField::new().name("_tag"),
-                true,
-            ))
-            .with_child(label_field(
+            )
+            .with_field(
                 tr!("MAC address"),
                 Field::new().name("_macaddr").placeholder("auto"),
-                true,
-            ))
-            .with_child(
-                Row::new()
-                    .gap(2)
-                    .with_child(label_field(
-                        tr!("Firewall"),
-                        Checkbox::new().name("_firewall").default(true),
-                        true,
-                    ))
-                    .with_child(label_field(
-                        tr!("Disconnect"),
-                        Checkbox::new().name("_link_down"),
-                        true,
-                    )),
+            )
+            .with_single_line_field(
+                false,
+                false,
+                tr!("Firewall"),
+                Checkbox::new()
+                    .switch(mobile)
+                    .name("_firewall")
+                    .default(true),
+            )
+            .with_single_line_field(
+                false,
+                false,
+                tr!("Disconnect"),
+                Checkbox::new().switch(mobile).name("_link_down"),
             )
             .into()
     })
@@ -89,13 +85,17 @@ fn find_free_network(record: &Value) -> Result<String, Error> {
     }
 }
 
-pub fn qemu_network_property(name: Option<String>, node: Option<AttrValue>) -> EditableProperty {
+pub fn qemu_network_property(
+    name: Option<String>,
+    node: Option<AttrValue>,
+    mobile: bool,
+) -> EditableProperty {
     let mut title = tr!("Network Device");
     if let Some(name) = name.as_deref() {
         title = title + " (" + name + ")";
     }
     EditableProperty::new(name.clone(), title)
-        .render_input_panel(input_panel(node.clone()))
+        .render_input_panel(input_panel(node.clone(), mobile))
         .submit_hook({
             let name = name.clone();
             move |state: PropertyEditorState| {
@@ -174,8 +174,8 @@ pub fn qemu_network_mtu_property(
     node: Option<AttrValue>,
     mobile: bool,
 ) -> EditableProperty {
-    let mut property =
-        qemu_network_property(name.clone(), node).render_input_panel(mtu_input_panel(mobile));
+    let mut property = qemu_network_property(name.clone(), node, mobile)
+        .render_input_panel(mtu_input_panel(mobile));
 
     let mut title = format!("MTU, {}, Multiqueue", tr!("Rate limit"));
     if let Some(name) = name.as_deref() {
