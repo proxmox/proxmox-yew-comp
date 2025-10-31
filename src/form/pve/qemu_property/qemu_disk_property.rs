@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::RadioButton;
-use pwt::widget::{Column, Container, Row};
+use pwt::widget::{Column, Container, InputPanel, Row};
 
 use pve_api_types::{
     PveQmIde, QemuConfigSata, QemuConfigScsi, QemuConfigScsiArray, QemuConfigUnused,
@@ -281,7 +281,7 @@ fn cdrom_input_panel(
     name: Option<String>,
     node: Option<AttrValue>,
     remote: Option<AttrValue>,
-    _mobile: bool,
+    mobile: bool,
 ) -> RenderPropertyInputPanelFn {
     let is_create = name.is_none();
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
@@ -291,55 +291,58 @@ fn cdrom_input_panel(
 
         let used_devices = extract_used_devices(&state.record);
 
-        Column::new()
+        let mut panel = InputPanel::new()
+            .mobile(mobile)
             .class(pwt::css::FlexFit)
-            .padding_x(2)
-            .gap(2)
-            .with_optional_child(is_create.then(|| {
-                label_field(
-                    tr!("Bus/Device"),
-                    QemuControllerSelector::new()
-                        .name(BUS_DEVICE)
-                        .submit(false)
-                        .exclude_devices(used_devices),
-                    true,
-                )
-            }))
-            .with_child(
+            .padding_x(2);
+
+        if is_create {
+            panel.add_field(
+                tr!("Bus/Device"),
+                QemuControllerSelector::new()
+                    .name(BUS_DEVICE)
+                    .submit(false)
+                    .exclude_devices(used_devices),
+            );
+        }
+
+        panel
+            .with_custom_child(
                 RadioButton::new("iso")
                     .default(true)
                     .box_label(tr!("Use CD/DVD disc image file (iso)"))
                     .name(MEDIA_TYPE)
                     .submit(false),
             )
-            .with_child(label_field(
+            .with_field(
                 tr!("Storage"),
                 PveStorageSelector::new(node.clone())
+                    .mobile(mobile)
+                    .disabled(media_type != "iso")
                     .remote(remote.clone())
                     .name(IMAGE_STORAGE)
                     .submit(false)
                     .required(true)
-                    .autoselect(true)
-                    .mobile(true),
-                media_type == "iso",
-            ))
-            .with_child(label_field(
+                    .autoselect(true),
+            )
+            .with_field(
                 tr!("ISO image"),
                 PveStorageContentSelector::new()
+                    .mobile(mobile)
+                    .disabled(media_type != "iso")
                     .name(FILE_PN)
                     .required(true)
                     .node(node.clone())
                     .storage(image_storage.clone())
                     .content_filter(StorageContent::Iso),
-                media_type == "iso",
-            ))
-            .with_child(
+            )
+            .with_custom_child(
                 RadioButton::new("cdrom")
                     .box_label(tr!("Use physical CD/DVD Drive"))
                     .name(MEDIA_TYPE)
                     .submit(false),
             )
-            .with_child(
+            .with_custom_child(
                 RadioButton::new("none")
                     .box_label(tr!("Do not use any media"))
                     .name(MEDIA_TYPE)
