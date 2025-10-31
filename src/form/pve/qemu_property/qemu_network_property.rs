@@ -15,10 +15,51 @@ use crate::form::delete_empty_values;
 use crate::form::pve::{PveNetworkSelector, PveVlanField};
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
+fn mtu_label() -> String {
+    tr!("MTU")
+}
+
+fn mtu_field() -> Number<u16> {
+    Number::<u16>::new()
+        .name("_mtu")
+        .placeholder("Same as bridge")
+        .min(1)
+        .max(65520)
+        .validate(|val: &u16| {
+            if *val >= 576 || *val == 1 {
+                return Ok(());
+            }
+            bail!("MTU needs to be >= 576 or 1 to inherit the MTU from the underlying bridge.");
+        })
+}
+
+fn rate_label() -> String {
+    tr!("Rate limit") + " (MB/s)"
+}
+
+fn rate_field() -> Number<f64> {
+    Number::<f64>::new()
+        .name("_rate")
+        .placeholder(tr!("unlimited"))
+        .min(0.0)
+        .max(10.0 * 1024.0)
+}
+
+fn multiqueue_label() -> String {
+    tr!("Multiqueue")
+}
+
+fn multiqueue_field() -> Number<u8> {
+    Number::<u8>::new().name("_queues").min(1).max(64)
+}
+
 fn input_panel(node: Option<AttrValue>, mobile: bool) -> RenderPropertyInputPanelFn {
-    RenderPropertyInputPanelFn::new(move |_| {
-        InputPanel::new()
+    RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
+        let advanced = state.form_ctx.get_show_advanced();
+        let panel = InputPanel::new()
             .mobile(mobile)
+            .show_advanced(advanced)
+            .label_width("max-content")
             .class(pwt::css::FlexFit)
             .padding_x(2)
             .with_field(
@@ -28,7 +69,7 @@ fn input_panel(node: Option<AttrValue>, mobile: bool) -> RenderPropertyInputPane
                     .name("_bridge")
                     .required(true),
             )
-            .with_field(
+            .with_right_field(
                 tr!("Model"),
                 Combobox::from_key_value_pairs([
                     ("e1000", String::from("Intel E1000")),
@@ -48,7 +89,7 @@ fn input_panel(node: Option<AttrValue>, mobile: bool) -> RenderPropertyInputPane
                 PveVlanField::get_std_label(),
                 PveVlanField::new().name("_tag"),
             )
-            .with_field(
+            .with_right_field(
                 tr!("MAC address"),
                 Field::new().name("_macaddr").placeholder("auto"),
             )
@@ -60,12 +101,46 @@ fn input_panel(node: Option<AttrValue>, mobile: bool) -> RenderPropertyInputPane
                     .switch(mobile)
                     .name("_firewall")
                     .default(true),
+            );
+
+        let disconnect_label = tr!("Disconnect");
+        let disconnect_field = Checkbox::new().switch(mobile).name("_link_down");
+
+        if mobile {
+            return panel
+                .with_single_line_field(false, false, disconnect_label, disconnect_field)
+                .into();
+        }
+
+        panel
+            .with_advanced_spacer()
+            .with_field_and_options(
+                pwt::widget::FieldPosition::Left,
+                true,
+                false,
+                disconnect_label,
+                disconnect_field,
             )
-            .with_single_line_field(
+            .with_field_and_options(
+                pwt::widget::FieldPosition::Right,
+                true,
                 false,
+                rate_label(),
+                rate_field(),
+            )
+            .with_field_and_options(
+                pwt::widget::FieldPosition::Left,
+                true,
                 false,
-                tr!("Disconnect"),
-                Checkbox::new().switch(mobile).name("_link_down"),
+                mtu_label(),
+                mtu_field(),
+            )
+            .with_field_and_options(
+                pwt::widget::FieldPosition::Right,
+                true,
+                false,
+                multiqueue_label(),
+                multiqueue_field(),
             )
             .into()
     })
@@ -95,6 +170,7 @@ pub fn qemu_network_property(
         title = title + " (" + name + ")";
     }
     EditableProperty::new(name.clone(), title)
+        .advanced_checkbox(!mobile)
         .render_input_panel(input_panel(node.clone(), mobile))
         .submit_hook({
             let name = name.clone();
@@ -136,35 +212,9 @@ fn mtu_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             .mobile(mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
-            .with_field(
-                tr!("MTU"),
-                Number::<u16>::new()
-                    .name("_mtu")
-                    .placeholder("Same as bridge")
-                    .min(1)
-                    .max(65520)
-                    .validate(|val: &u16| {
-                        if *val >= 576 || *val == 1 {
-                            return Ok(());
-                        }
-                        bail!("MTU needs to be >= 576 or 1 to inherit the MTU from the underlying bridge.");
-                    }),
-            )
-            .with_field(
-                tr!("Rate limit") + " (MB/s)",
-                Number::<f64>::new()
-                    .name("_rate")
-                    .placeholder(tr!("unlimited"))
-                    .min(0.0)
-                    .max(10.0 * 1024.0)
-            )
-            .with_field(
-                tr!("Multiqueue"),
-                Number::<u8>::new()
-                    .name("_queues")
-                    .min(1)
-                    .max(64),
-            )
+            .with_field(mtu_label(), mtu_field())
+            .with_field(rate_label(), rate_field())
+            .with_field(multiqueue_label(), multiqueue_field())
             .into()
     })
 }
