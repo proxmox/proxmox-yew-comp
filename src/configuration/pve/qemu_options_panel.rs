@@ -61,7 +61,7 @@ fn properties(node: &str, vmid: u32, mobile: bool) -> Vec<EditableProperty> {
         crate::form::pve::qemu_ostype_property(mobile),
         crate::form::pve::qemu_boot_property(mobile),
         crate::form::pve::qemu_tablet_property(mobile),
-        crate::form::pve::qemu_hotplug_property(),
+        crate::form::pve::qemu_hotplug_property(mobile),
         crate::form::pve::qemu_acpi_property(mobile),
         crate::form::pve::qemu_kvm_property(mobile),
         crate::form::pve::qemu_freeze_property(mobile),

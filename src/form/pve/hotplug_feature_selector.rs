@@ -7,16 +7,23 @@ use pwt::prelude::*;
 use pwt::widget::form::{
     Checkbox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState,
 };
-use pwt::widget::Column;
+use pwt::widget::{Column, List};
 
 use pwt_macros::{builder, widget};
+
+use crate::layout::list_tile::form_list_tile;
 
 pub type PveHotplugFeatureSelector = ManagedFieldMaster<PveHotplugFeatureMaster>;
 
 #[widget(comp=ManagedFieldMaster<PveHotplugFeatureMaster>, @input)]
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
-pub struct HotplugFeatureSelector {}
+pub struct HotplugFeatureSelector {
+    /// Layout for mobile devices.
+    #[builder]
+    #[prop_or(false)]
+    pub mobile: bool,
+}
 
 impl HotplugFeatureSelector {
     pub fn new() -> Self {
@@ -172,26 +179,44 @@ impl ManagedField for PveHotplugFeatureMaster {
     }
 
     fn view(&self, ctx: &ManagedFieldContext<Self>) -> Html {
-        let cb = |value: &str, label: String| -> Html {
+        let mobile = ctx.props().mobile;
+
+        let cb = |value: &str| -> Checkbox {
             let checked = self.selection.contains(value);
             let value = value.to_string();
-            Checkbox::new()
-                .box_label(label)
-                .checked(checked)
-                .on_input(
-                    ctx.link()
-                        .callback(move |checked| Msg::SetValue(value.clone(), checked)),
-                )
-                .into()
+
+            Checkbox::new().checked(checked).on_input(
+                ctx.link()
+                    .callback(move |checked| Msg::SetValue(value.clone(), checked)),
+            )
         };
 
-        Column::new()
-            .class(pwt::css::FlexFit)
-            .with_child(cb("disk", tr!("Disk")))
-            .with_child(cb("network", tr!("Network")))
-            .with_child(cb("usb", String::from("USB")))
-            .with_child(cb("memory", tr!("Memory")))
-            .with_child(cb("cpu", tr!("CPU")))
-            .into()
+        let list = vec![
+            ("disk", tr!("Disk")),
+            ("network", tr!("Network")),
+            ("usb", String::from("USB")),
+            ("memory", tr!("Memory")),
+            ("cpu", tr!("CPU")),
+        ];
+
+        if mobile {
+            let tiles = list
+                .into_iter()
+                .map(|(value, label)| form_list_tile(label, (), Html::from(cb(value))))
+                .collect();
+            List::from_tiles(tiles)
+                .class(pwt::css::FlexFit)
+                .grid_template_columns("1fr auto")
+                .into()
+        } else {
+            let children: Vec<Html> = list
+                .into_iter()
+                .map(|(value, label)| cb(value).box_label(label).into())
+                .collect();
+            Column::new()
+                .class(pwt::css::FlexFit)
+                .children(children)
+                .into()
+        }
     }
 }

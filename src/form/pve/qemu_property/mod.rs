@@ -264,7 +264,7 @@ pub fn qemu_boot_property(mobile: bool) -> EditableProperty {
         })
 }
 
-pub fn qemu_hotplug_property() -> EditableProperty {
+pub fn qemu_hotplug_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("hotplug", tr!("Hotplug"))
         .placeholder(format_hotplug_feature(&Value::Null))
         .renderer(|_, v, _| format_hotplug_feature(v).into())
@@ -278,6 +278,7 @@ pub fn qemu_hotplug_property() -> EditableProperty {
                 .padding_x(2)
                 .with_child(
                     HotplugFeatureSelector::new()
+                        .mobile(mobile)
                         .name("hotplug")
                         .submit_empty(true),
                 )
