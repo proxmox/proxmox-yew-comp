@@ -185,7 +185,7 @@ impl ManagedField for PveHotplugFeatureMaster {
             let checked = self.selection.contains(value);
             let value = value.to_string();
 
-            Checkbox::new().checked(checked).on_input(
+            Checkbox::new().switch(mobile).checked(checked).on_input(
                 ctx.link()
                     .callback(move |checked| Msg::SetValue(value.clone(), checked)),
             )
