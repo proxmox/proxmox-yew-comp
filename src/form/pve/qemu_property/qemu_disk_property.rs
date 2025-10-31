@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::RadioButton;
-use pwt::widget::{Column, Container, InputPanel, Row};
+use pwt::widget::{Container, InputPanel, Row};
 
 use pve_api_types::{
     PveQmIde, QemuConfigSata, QemuConfigScsi, QemuConfigScsiArray, QemuConfigUnused,
@@ -26,29 +26,32 @@ use crate::form::pve::{
     property_string_from_parts, PveStorageSelector, QemuCacheTypeSelector, QemuControllerSelector,
     QemuDiskSizeFormatSelector,
 };
-use crate::layout::mobile_form::{label_field, label_widget};
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
-fn disk_input_panel(name: Option<String>, node: Option<AttrValue>) -> RenderPropertyInputPanelFn {
+fn disk_input_panel(
+    name: Option<String>,
+    node: Option<AttrValue>,
+    mobile: bool,
+) -> RenderPropertyInputPanelFn {
     let is_create = name.is_none();
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let used_devices = extract_used_devices(&state.record);
 
-        Column::new()
+        let mut panel = InputPanel::new()
+            .mobile(mobile)
             .class(pwt::css::FlexFit)
-            .padding_x(2)
-            .gap(2)
-            .with_optional_child(is_create.then(|| {
-                label_field(
-                    tr!("Bus/Device"),
-                    QemuControllerSelector::new()
-                        .name(BUS_DEVICE)
-                        .submit(false)
-                        .exclude_devices(used_devices),
-                    true,
-                )
-            }))
-            .with_optional_child((!is_create).then(|| {
+            .padding_x(2);
+
+        if is_create {
+            panel.add_field(
+                tr!("Bus/Device"),
+                QemuControllerSelector::new()
+                    .name(BUS_DEVICE)
+                    .submit(false)
+                    .exclude_devices(used_devices),
+            );
+        } else {
+            panel.add_custom_child({
                 let file_text = match state.record.get(FILE_PN) {
                     Some(Value::String(file)) => file.clone(),
                     _ => String::new(),
@@ -62,82 +65,85 @@ fn disk_input_panel(name: Option<String>, node: Option<AttrValue>) -> RenderProp
                     .with_child(Container::new().with_child(file_text))
                     .with_flex_spacer()
                     .with_child(Container::new().with_child(size_text))
-            }))
-            .with_child(label_field(
-                tr!("Cache"),
-                QemuCacheTypeSelector::new().name("_cache"),
-                true,
-            ))
-            .with_optional_child(is_create.then(|| {
-                label_field(
-                    tr!("Storage"),
-                    PveStorageSelector::new(node.clone())
-                        .name(IMAGE_STORAGE)
-                        .submit(false)
-                        .required(true)
-                        .content_types(Some(vec![StorageContent::Images]))
-                        .mobile(true),
-                    true,
+            });
+        }
+
+        panel.add_field(tr!("Cache"), QemuCacheTypeSelector::new().name("_cache"));
+
+        if is_create {
+            panel.add_field(
+                tr!("Storage"),
+                PveStorageSelector::new(node.clone())
+                    .name(IMAGE_STORAGE)
+                    .submit(false)
+                    .required(true)
+                    .content_types(Some(vec![StorageContent::Images]))
+                    .mobile(mobile),
+            );
+
+            panel.add_field(
+                tr!("Disk size") + " (GiB)",
+                QemuDiskSizeFormatSelector::new().raw(false),
+            );
+        }
+
+        panel.into()
+
+        /*
+        // fixme: boolean in property strings does not work currently
+        .with_child(
+            Row::new()
+                .gap(2)
+                .style("flex-wrap", "wrap")
+                .with_child(
+                    label_field(
+                        tr!("Discard"),
+                        Checkbox::new().name("_discard").default(true),
+                        true,
+                    )
+                    .class(pwt::css::JustifyContent::SpaceBetween),
                 )
-            }))
-            .with_optional_child(is_create.then(|| {
-                label_widget(
-                    tr!("Disk size") + " (GiB)",
-                    QemuDiskSizeFormatSelector::new().raw(false),
+                .with_child(
+                    label_field(tr!("IO thread"), Checkbox::new().name("_iothread"), true)
+                        .class(pwt::css::JustifyContent::SpaceBetween),
                 )
-            }))
-            /*
-            // fixme: boolean in property strings does not work currently
-            .with_child(
-                Row::new()
-                    .gap(2)
-                    .style("flex-wrap", "wrap")
-                    .with_child(
-                        label_field(
-                            tr!("Discard"),
-                            Checkbox::new().name("_discard").default(true),
-                            true,
-                        )
+                .with_child(
+                    label_field(tr!("SSD emulation"), Checkbox::new().name("_ssd"), true)
                         .class(pwt::css::JustifyContent::SpaceBetween),
-                    )
-                    .with_child(
-                        label_field(tr!("IO thread"), Checkbox::new().name("_iothread"), true)
-                            .class(pwt::css::JustifyContent::SpaceBetween),
-                    )
-                    .with_child(
-                        label_field(tr!("SSD emulation"), Checkbox::new().name("_ssd"), true)
-                            .class(pwt::css::JustifyContent::SpaceBetween),
-                    )
-                    .with_child(
-                        label_field(tr!("Backup"), Checkbox::new().name("_backup"), true)
-                            .class(pwt::css::JustifyContent::SpaceBetween),
-                    )
-                    .with_child(
-                        label_field(
-                            tr!("Skip replication"),
-                            Checkbox::new().name("_noreplicate"),
-                            true,
-                        )
+                )
+                .with_child(
+                    label_field(tr!("Backup"), Checkbox::new().name("_backup"), true)
                         .class(pwt::css::JustifyContent::SpaceBetween),
+                )
+                .with_child(
+                    label_field(
+                        tr!("Skip replication"),
+                        Checkbox::new().name("_noreplicate"),
+                        true,
                     )
-                    .with_child(
-                        label_field(tr!("Read-only"), Checkbox::new().name("_readOnly"), true)
-                            .class(pwt::css::JustifyContent::SpaceBetween),
-                    ),
-            )
-            */
-            .into()
+                    .class(pwt::css::JustifyContent::SpaceBetween),
+                )
+                .with_child(
+                    label_field(tr!("Read-only"), Checkbox::new().name("_readOnly"), true)
+                        .class(pwt::css::JustifyContent::SpaceBetween),
+                ),
+        )
+        */
     })
 }
 
-pub fn qemu_disk_property(name: Option<String>, node: Option<AttrValue>) -> EditableProperty {
+pub fn qemu_disk_property(
+    name: Option<String>,
+    node: Option<AttrValue>,
+    mobile: bool,
+) -> EditableProperty {
     let mut title = tr!("Hard Disk");
     if let Some(name) = name.as_deref() {
         title = title + " (" + name + ")";
     }
 
     EditableProperty::new(name.clone(), title)
-        .render_input_panel(disk_input_panel(name.clone(), node.clone()))
+        .render_input_panel(disk_input_panel(name.clone(), node.clone(), mobile))
         .load_hook({
             let name = name.clone();
 
