@@ -328,7 +328,7 @@ impl PveQemuHardwarePanel {
             .into();
 
         let icon = Fa::new("hdd-o");
-        let property = qemu_unused_disk_property(&name, Some(props.node.clone()));
+        let property = qemu_unused_disk_property(&name, true);
         let mut tile = self.property_tile(
             ctx,
             &record,

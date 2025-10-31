@@ -398,7 +398,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
 
         let push_unused_disk_property = |list: &mut Vec<_>, name: &str| {
             let icon = Fa::new("hdd-o");
-            let property = qemu_unused_disk_property(&name, Some(props.node.clone()));
+            let property = qemu_unused_disk_property(&name, false);
             let entry = create_entry(&name, property, icon, EditAction::Add);
             list.push(entry);
         };

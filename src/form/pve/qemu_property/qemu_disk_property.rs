@@ -194,7 +194,7 @@ pub fn qemu_disk_property(name: Option<String>, node: Option<AttrValue>) -> Edit
         })
 }
 
-fn add_unused_disk_panel(name: String, _node: Option<AttrValue>) -> RenderPropertyInputPanelFn {
+fn add_unused_disk_panel(name: String, mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let used_devices = extract_used_devices(&state.record);
 
@@ -205,28 +205,27 @@ fn add_unused_disk_panel(name: String, _node: Option<AttrValue>) -> RenderProper
             .flatten()
             .unwrap_or("unknown");
 
-        Column::new()
+        InputPanel::new()
+            .mobile(mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
-            .gap(2)
-            .with_child(Container::new().with_child(disk_image))
-            .with_child(label_field(
+            .with_custom_child(Container::new().with_child(disk_image))
+            .with_field(
                 tr!("Bus/Device"),
                 QemuControllerSelector::new()
                     .name(BUS_DEVICE)
                     .submit(false)
                     .exclude_devices(used_devices),
-                true,
-            ))
+            )
             .into()
     })
 }
 
-pub fn qemu_unused_disk_property(name: &str, node: Option<AttrValue>) -> EditableProperty {
+pub fn qemu_unused_disk_property(name: &str, mobile: bool) -> EditableProperty {
     let title = tr!("Unused Disk");
 
     EditableProperty::new(name.to_string(), title)
-        .render_input_panel(add_unused_disk_panel(name.to_string(), node.clone()))
+        .render_input_panel(add_unused_disk_panel(name.to_string(), mobile))
         .load_hook({
             // let name = name.to_string();
             move |mut record: Value| {
