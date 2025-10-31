@@ -215,6 +215,7 @@ impl ManagedField for PveHotplugFeatureMaster {
                 .collect();
             Column::new()
                 .class(pwt::css::FlexFit)
+                .padding_x(2)
                 .children(children)
                 .into()
         }

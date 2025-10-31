@@ -275,7 +275,6 @@ pub fn qemu_hotplug_property(mobile: bool) -> EditableProperty {
         .render_input_panel(move |_| {
             Column::new()
                 .class(pwt::css::FlexFit)
-                .padding_x(2)
                 .with_child(
                     HotplugFeatureSelector::new()
                         .mobile(mobile)
