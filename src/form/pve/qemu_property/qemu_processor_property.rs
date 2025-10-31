@@ -80,16 +80,18 @@ fn socket_cores_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 
         let total_label = tr!("Total cores");
 
+        let panel = InputPanel::new()
+            .mobile(mobile)
+            .class(pwt::css::FlexFit)
+            .padding_x(2)
+            .padding_bottom(1); // avoid scrollbar
+
         if mobile {
-            Column::new()
-                .class(pwt::css::FlexFit)
-                .gap(2)
-                .padding_x(2)
-                .padding_bottom(1) // avoid scrollbar
-                .with_child(label_field(cpu_type_label, cpu_type_field, true))
-                .with_child(label_field(sockets_label, sockets_field, true))
-                .with_child(label_field(cores_label, cores_field, true))
-                .with_child(
+            panel
+                .with_field(cpu_type_label, cpu_type_field)
+                .with_field(sockets_label, sockets_field)
+                .with_field(cores_label, cores_field)
+                .with_custom_child(
                     Row::new()
                         .padding_top(1)
                         .gap(PwtSpace::Em(0.5))
@@ -98,7 +100,7 @@ fn socket_cores_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
                 )
                 .into()
         } else {
-            InputPanel::new()
+            panel
                 .with_field(sockets_label, sockets_field)
                 .with_right_field(cpu_type_label, cpu_type_field)
                 .with_field(cores_label, cores_field)
@@ -253,12 +255,14 @@ fn kernel_scheduler_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let numa_label = tr!("Enable NUMA");
         let numa_field = Checkbox::new().name("numa").switch(true);
 
+        let panel = InputPanel::new()
+            .mobile(mobile)
+            .class(pwt::css::FlexFit)
+            .padding_x(2)
+            .padding_bottom(1); // avoid scrollbar
+
         if mobile {
-            Column::new()
-                .class(pwt::css::FlexFit)
-                .gap(2)
-                .padding_x(2)
-                .padding_bottom(1) // avoid scrollbar
+            panel
                 .with_child(label_field(vcpus_label, vcpus_field, true))
                 .with_child(label_field(units_label, units_field, true))
                 .with_child(label_field(limit_label, limit_field, true))
@@ -273,7 +277,7 @@ fn kernel_scheduler_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
                 )
                 .into()
         } else {
-            InputPanel::new()
+            panel
                 .with_field(vcpus_label, vcpus_field)
                 .with_right_field(units_label, units_field)
                 .with_field(limit_label, limit_field)
