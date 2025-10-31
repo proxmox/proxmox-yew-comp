@@ -2,13 +2,13 @@ use indexmap::IndexMap;
 
 use pwt::prelude::*;
 use pwt::widget::form::Combobox;
-use pwt::widget::Column;
+use pwt::widget::InputPanel;
 
 use crate::form::delete_empty_values;
 
 use crate::{EditableProperty, PropertyEditorState};
 
-pub fn qemu_scsihw_property() -> EditableProperty {
+pub fn qemu_scsihw_property(mobile: bool) -> EditableProperty {
     const NAME: &'static str = "scsihw";
     let mut items = IndexMap::new();
     items.extend([
@@ -32,18 +32,25 @@ pub fn qemu_scsihw_property() -> EditableProperty {
             }
         })
         .render_input_panel(move |_| {
-            Column::new()
+            let field = Combobox::from_key_value_pairs(items.clone())
+                .name(NAME)
+                .submit_empty(true)
+                .placeholder(tr!("Default") + " (LSI 53C895A)");
+
+            let mut panel = InputPanel::new()
+                .mobile(mobile)
                 .class(pwt::css::FlexFit)
+                .field_width((!mobile).then(|| "250px"))
                 .padding_x(2)
-                .gap(2)
-                .padding_bottom(1) // avoid scrollbar ?!
-                .with_child(
-                    Combobox::from_key_value_pairs(items.clone())
-                        .name(NAME)
-                        .submit_empty(true)
-                        .placeholder(tr!("Default") + " (LSI 53C895A)"),
-                )
-                .into()
+                .padding_bottom(1); // avoid scrollbar ?!
+
+            if mobile {
+                panel.add_custom_child(field);
+            } else {
+                panel.add_field(tr!("Type"), field);
+            }
+
+            panel.into()
         })
         .submit_hook({
             move |state: PropertyEditorState| {

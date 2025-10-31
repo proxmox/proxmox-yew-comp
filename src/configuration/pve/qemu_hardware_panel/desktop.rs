@@ -435,7 +435,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         );
         push_property(
             &mut list,
-            qemu_scsihw_property(),
+            qemu_scsihw_property(false),
             Fa::new("database"),
             EditAction::Edit,
         );
