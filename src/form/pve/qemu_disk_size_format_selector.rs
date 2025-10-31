@@ -6,7 +6,7 @@ use pwt::prelude::*;
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::form::{Number, Selector, SelectorRenderArgs};
 
-use pwt::widget::{GridPicker, Row};
+use pwt::widget::{GridPicker, Labelable, Row};
 
 use pwt_macros::builder;
 
@@ -31,6 +31,14 @@ pub struct QemuDiskSizeFormatSelector {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(QemuDiskSizeFormatSelector::DISK_FORMAT)]
     pub disk_format_name: AttrValue,
+
+    /// Field disabled flag.
+    #[builder]
+    #[prop_or_default]
+    pub disabled: bool,
+
+    #[prop_or_default]
+    label_id: Option<AttrValue>,
 }
 
 impl QemuDiskSizeFormatSelector {
@@ -39,6 +47,19 @@ impl QemuDiskSizeFormatSelector {
 
     pub fn new() -> Self {
         yew::props!(Self {})
+    }
+}
+
+// impl Labelable, so that we can use it with InputPanel
+impl Labelable for QemuDiskSizeFormatSelector {
+    fn name(&self) -> Option<AttrValue> {
+        Some(self.disk_size_name.clone())
+    }
+    fn set_label_id(&mut self, label_id: AttrValue) {
+        self.label_id = Some(label_id);
+    }
+    fn disabled(&self) -> bool {
+        self.disabled
     }
 }
 
@@ -104,6 +125,8 @@ impl Component for QemuDiskSizeFormatComp {
                 Number::<f64>::new()
                     .style("min-width", "0")
                     .name(&props.disk_size_name)
+                    .label_id(props.label_id.clone())
+                    .disabled(props.disabled)
                     .submit(false)
                     .required(true)
                     .min(0.001)
@@ -129,6 +152,7 @@ impl Component for QemuDiskSizeFormatComp {
                 )
                 .style("min-width", "6em")
                 .name(&props.disk_format_name)
+                .disabled(props.disabled)
                 .submit(false)
                 .required(true)
                 .default("raw")
