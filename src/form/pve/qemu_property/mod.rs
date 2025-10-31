@@ -10,7 +10,6 @@ use pwt::widget::form::{Field, Number};
 use pwt::widget::{Column, InputPanel};
 
 use crate::form::delete_empty_values;
-use crate::layout::mobile_form::label_field;
 use crate::SchemaValidation;
 
 use pve_api_types::{QemuConfig, StorageContent};
@@ -216,26 +215,15 @@ pub fn qemu_startup_property(mobile: bool) -> EditableProperty {
                 .name("_down")
                 .placeholder(tr!("default"));
 
-            if mobile {
-                Column::new()
-                    .gap(2)
-                    .padding_x(2)
-                    .class(pwt::css::Flex::Fill)
-                    .class(pwt::css::AlignItems::Stretch)
-                    .with_child(label_field(order_label, order_field, true))
-                    .with_child(label_field(up_label, up_field, true))
-                    .with_child(label_field(down_label, down_field, true))
-                    .into()
-            } else {
-                InputPanel::new()
-                    .class(pwt::css::FlexFit)
-                    .padding_x(2)
-                    .style("min-width", "500px")
-                    .with_field(order_label, order_field)
-                    .with_field(up_label, up_field)
-                    .with_field(down_label, down_field)
-                    .into()
-            }
+            InputPanel::new()
+                .mobile(mobile)
+                .class(pwt::css::FlexFit)
+                .padding_x(2)
+                .style("min-width", (!mobile).then(|| "500px"))
+                .with_field(order_label, order_field)
+                .with_field(up_label, up_field)
+                .with_field(down_label, down_field)
+                .into()
         })
         .load_hook(property_string_load_hook::<QemuConfigStartup>("startup"))
         .submit_hook(property_string_submit_hook::<QemuConfigStartup>(
