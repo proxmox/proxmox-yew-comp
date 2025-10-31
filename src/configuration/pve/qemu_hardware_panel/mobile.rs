@@ -150,7 +150,7 @@ impl PveQemuHardwarePanel {
         let network_property =
             qemu_network_property(Some(name.to_string()), Some(props.node.clone()));
         let mtu_property =
-            qemu_network_mtu_property(Some(name.to_string()), Some(props.node.clone()));
+            qemu_network_mtu_property(Some(name.to_string()), Some(props.node.clone()), true);
 
         let menu =
             Menu::new()

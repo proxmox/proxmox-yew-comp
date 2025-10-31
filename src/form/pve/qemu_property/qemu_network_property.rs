@@ -5,7 +5,7 @@ use pve_api_types::QemuConfigNet;
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, Combobox, Field, Number};
-use pwt::widget::{Column, Row};
+use pwt::widget::{Column, InputPanel, Row};
 
 use crate::form::{
     flatten_property_string, property_string_add_missing_data, property_string_from_parts,
@@ -130,13 +130,13 @@ pub fn qemu_network_property(name: Option<String>, node: Option<AttrValue>) -> E
         })
 }
 
-fn mtu_input_panel() -> RenderPropertyInputPanelFn {
+fn mtu_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |_| {
-        Column::new()
+        InputPanel::new()
+            .mobile(mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
-            .gap(2)
-            .with_child(label_field(
+            .with_field(
                 tr!("MTU"),
                 Number::<u16>::new()
                     .name("_mtu")
@@ -149,34 +149,33 @@ fn mtu_input_panel() -> RenderPropertyInputPanelFn {
                         }
                         bail!("MTU needs to be >= 576 or 1 to inherit the MTU from the underlying bridge.");
                     }),
-                    true
-            ))
-            .with_child(label_field(
+            )
+            .with_field(
                 tr!("Rate limit") + " (MB/s)",
                 Number::<f64>::new()
                     .name("_rate")
                     .placeholder(tr!("unlimited"))
                     .min(0.0)
-                    .max(10.0 * 1024.0),
-                    true
-            ))
-            .with_child(label_field(
+                    .max(10.0 * 1024.0)
+            )
+            .with_field(
                 tr!("Multiqueue"),
                 Number::<u8>::new()
                     .name("_queues")
                     .min(1)
                     .max(64),
-                    true
-            )).into()
+            )
+            .into()
     })
 }
 
 pub fn qemu_network_mtu_property(
     name: Option<String>,
     node: Option<AttrValue>,
+    mobile: bool,
 ) -> EditableProperty {
     let mut property =
-        qemu_network_property(name.clone(), node).render_input_panel(mtu_input_panel());
+        qemu_network_property(name.clone(), node).render_input_panel(mtu_input_panel(mobile));
 
     let mut title = format!("MTU, {}, Multiqueue", tr!("Rate limit"));
     if let Some(name) = name.as_deref() {
