@@ -1,13 +1,13 @@
 use std::rc::Rc;
 
-use pwt::widget::{Column, InputPanel};
-use pwt::{prelude::*, widget::form::Checkbox};
+use pwt::prelude::*;
+use pwt::widget::form::Checkbox;
+use pwt::widget::InputPanel;
 
 use pve_api_types::{StorageContent, StorageInfo};
 use yew::virtual_dom::VComp;
 
 use crate::form::pve::{qemu_image_format_selector, PveStorageSelector};
-use crate::layout::mobile_form::label_field;
 use crate::{PropertyEditDialog, PropertyEditorState};
 
 #[derive(PartialEq, Properties, Clone)]
@@ -58,35 +58,23 @@ impl Component for QemuMoveDiskPanelComp {
             .mobile(props.mobile);
 
         let format_label = tr!("Format");
-        let format_field = qemu_image_format_selector().name("format");
+        let format_field = qemu_image_format_selector()
+            .name("format")
+            .disabled(disable_format_selector);
 
         let delete_source_label = tr!("Delete source");
-        let delete_source_field = Checkbox::new().name("delete");
+        let delete_source_field = Checkbox::new()
+            .name("delete")
+            .disabled(disable_format_selector);
 
-        if props.mobile {
-            Column::new()
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .gap(2)
-                .with_child(label_field(storage_label, storage_field, true))
-                .with_child(label_field(
-                    format_label,
-                    format_field,
-                    !disable_format_selector,
-                ))
-                .with_child(label_field(
-                    delete_source_label,
-                    delete_source_field,
-                    !disable_format_selector,
-                ))
-                .into()
-        } else {
-            InputPanel::new()
-                .with_field(storage_label, storage_field)
-                .with_field(format_label, format_field)
-                .with_field(delete_source_label, delete_source_field)
-                .into()
-        }
+        InputPanel::new()
+            .mobile(props.mobile)
+            .class(pwt::css::FlexFit)
+            .padding_x(2)
+            .with_field(storage_label, storage_field)
+            .with_field(format_label, format_field)
+            .with_field(delete_source_label, delete_source_field)
+            .into()
     }
 }
 

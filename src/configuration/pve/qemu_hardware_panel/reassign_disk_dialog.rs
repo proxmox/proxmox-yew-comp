@@ -7,14 +7,14 @@ use yew::virtual_dom::VComp;
 
 use pve_api_types::ClusterResource;
 
-use pwt::widget::{Column, InputPanel};
-use pwt::{prelude::*, AsyncAbortGuard};
+use pwt::prelude::*;
+use pwt::widget::InputPanel;
+use pwt::AsyncAbortGuard;
 
 use crate::form::pve::{
     extract_used_devices, PveGuestSelector, PveGuestType, QemuControllerSelector,
 };
 use crate::http_get;
-use crate::layout::mobile_form::label_field;
 use crate::{PropertyEditDialog, PropertyEditorState};
 
 #[derive(PartialEq, Properties, Clone)]
@@ -100,21 +100,14 @@ impl Component for QemuReassignDiskPanelComp {
             .name("target-disk")
             .exclude_devices(self.used_devices.clone());
 
-        if props.mobile {
-            Column::new()
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .gap(2)
-                .with_child(label_field(target_vmid_label, target_vmid_field, true))
-                .with_child(label_field(target_disk_label, target_disk_field, true))
-                .into()
-        } else {
-            InputPanel::new()
-                .min_width(400)
-                .with_field(target_vmid_label, target_vmid_field)
-                .with_field(target_disk_label, target_disk_field)
-                .into()
-        }
+        InputPanel::new()
+            .mobile(props.mobile)
+            .field_width((!props.mobile).then(|| "300px"))
+            .class(pwt::css::FlexFit)
+            .padding_x(2)
+            .with_field(target_vmid_label, target_vmid_field)
+            .with_field(target_disk_label, target_disk_field)
+            .into()
     }
 }
 

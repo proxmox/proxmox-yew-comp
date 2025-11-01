@@ -3,9 +3,8 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::Number;
-use pwt::widget::{Column, InputPanel};
+use pwt::widget::InputPanel;
 
-use crate::layout::mobile_form::label_field;
 use crate::{PropertyEditDialog, PropertyEditorState};
 
 pub fn qemu_resize_disk_dialog(
@@ -38,22 +37,20 @@ pub fn qemu_resize_disk_dialog(
             }
         })
         .renderer(move |_| {
-            let incr_label = tr!("Size Increment") + " (" + &tr!("GiB") + ")";
+            let incr_label = tr!("Size IncrementX") + " (" + &tr!("GiB") + ")";
             let incr_field = Number::<f64>::new()
                 .name("_size_increment_")
                 .default(0.0)
                 .min(0.0)
                 .max(128.0 * 1024.0)
                 .submit(false);
-            if mobile {
-                Column::new()
-                    .class(pwt::css::FlexFit)
-                    .padding_x(2)
-                    .gap(2)
-                    .with_child(label_field(incr_label, incr_field, true))
-                    .into()
-            } else {
-                InputPanel::new().with_field(incr_label, incr_field).into()
-            }
+
+            InputPanel::new()
+                .mobile(mobile)
+                .label_width("max-content")
+                .class(pwt::css::FlexFit)
+                .padding_x(2)
+                .with_field(incr_label, incr_field)
+                .into()
         })
 }
