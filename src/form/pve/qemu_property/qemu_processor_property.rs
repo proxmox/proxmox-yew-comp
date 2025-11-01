@@ -125,13 +125,13 @@ fn processor_input_panel() -> RenderPropertyInputPanelFn {
 
         Column::new()
             .class(pwt::css::FlexFit)
-            .with_child(Column::new().padding(2).with_child(main_view))
+            .with_child(Column::new().padding_y(2).with_child(main_view))
             .with_optional_child(advanced.then(|| html! {<hr/>}))
             .with_child(
                 Column::new()
                     .class(pwt::css::FlexFit)
                     .class((!advanced).then(|| pwt::css::Display::None))
-                    .with_child(Column::new().padding(2).with_child(scheduler_view))
+                    .with_child(Column::new().padding_y(2).with_child(scheduler_view))
                     .with_child(
                         Container::new()
                             .padding_top(2)
