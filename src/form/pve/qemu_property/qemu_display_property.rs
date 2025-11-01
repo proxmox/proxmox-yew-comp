@@ -112,11 +112,13 @@ impl Component for StatefulPanelComp {
             tr!("You cannot use the default SPICE clipboard if the VNC clipboard is selected.")
                 + " "
                 + &tr!("VNC clipboard requires spice-tools installed in the Guest-VM."),
-        );
+        )
+        .key("vnc_hint");
 
         let migration_hint = hint(tr!(
             "You cannot live-migrate while using the VNC clipboard."
-        ));
+        ))
+        .key("migration_hint");
 
         let default_hint = hint(
             tr!("This option depends on your display type.")
@@ -124,10 +126,12 @@ impl Component for StatefulPanelComp {
                 + &tr!(
                 "If the display type uses SPICE you are able to use the default SPICE clipboard."
             ),
-        );
+        )
+        .key("default_hint");
 
         InputPanel::new()
             .mobile(props.mobile)
+            .style("min-width", (!props.mobile).then(|| "400px"))
             .show_advanced(advanced)
             .class(pwt::css::FlexFit)
             .padding_x(2)
@@ -148,22 +152,23 @@ impl Component for StatefulPanelComp {
                     .max(512)
                     .step(4),
             )
+            .with_advanced_spacer()
             .with_advanced_field(
                 tr!("Clipboard"),
                 Combobox::from_key_value_pairs([("", tr!("Default")), ("vnc", "VNC".into())])
                     .name("_clipboard")
                     .disabled(!has_gui),
             )
-            .with_custom_child_and_options(FieldPosition::Left, false, !show_vnc_hint, vnc_hint)
+            .with_custom_child_and_options(FieldPosition::Left, true, !show_vnc_hint, vnc_hint)
             .with_custom_child_and_options(
                 FieldPosition::Left,
-                false,
+                true,
                 !show_vnc_hint,
                 migration_hint,
             )
             .with_custom_child_and_options(
                 FieldPosition::Left,
-                false,
+                true,
                 !show_default_hint,
                 default_hint,
             )
