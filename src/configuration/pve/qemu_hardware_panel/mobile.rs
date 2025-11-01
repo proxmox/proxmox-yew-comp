@@ -706,6 +706,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         Some(super::create_on_submit(
             props.editor_url(),
             props.on_start_command.clone(),
+            true,
         ))
     }
 }

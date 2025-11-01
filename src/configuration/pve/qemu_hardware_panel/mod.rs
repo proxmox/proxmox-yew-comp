@@ -23,10 +23,10 @@ use pwt::props::SubmitCallback;
 use pwt_macros::builder;
 
 use crate::form::typed_load;
-use crate::http_post;
 use crate::pending_property_view::PvePendingPropertyView;
 use crate::percent_encoding::percent_encode_component;
 use crate::PropertyEditDialog;
+use crate::{http_post, http_put};
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -135,6 +135,7 @@ impl QemuHardwarePanel {
         .on_submit(create_on_submit(
             self.resize_disk_url(),
             self.on_start_command.clone(),
+            false,
         ))
         .into()
     }
@@ -150,6 +151,7 @@ impl QemuHardwarePanel {
         .on_submit(create_on_submit(
             self.move_disk_url(),
             self.on_start_command.clone(),
+            true,
         ))
     }
 
@@ -164,6 +166,7 @@ impl QemuHardwarePanel {
         .on_submit(create_on_submit(
             self.move_disk_url(),
             self.on_start_command.clone(),
+            true,
         ))
     }
 }
@@ -178,12 +181,17 @@ enum EditAction {
 fn create_on_submit(
     submit_url: String,
     on_start_command: Option<Callback<String>>,
+    post: bool, // PUT or POST
 ) -> SubmitCallback<Value> {
     SubmitCallback::new(move |data: Value| {
         let submit_url = submit_url.clone();
         let on_start_command = on_start_command.clone();
         async move {
-            let result: Option<String> = http_post(&submit_url, Some(data)).await?;
+            let result: Option<String> = if post {
+                http_post(&submit_url, Some(data)).await?
+            } else {
+                http_put(&submit_url, Some(data)).await?
+            };
             if let Some(upid) = result {
                 if let Some(on_start_command) = &on_start_command {
                     on_start_command.emit(upid.clone());
