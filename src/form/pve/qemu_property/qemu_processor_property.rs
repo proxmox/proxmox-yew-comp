@@ -255,7 +255,7 @@ fn kernel_scheduler_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             .submit_empty(true);
 
         let numa_label = tr!("Enable NUMA");
-        let numa_field = Checkbox::new().name("numa").switch(true);
+        let numa_field = Checkbox::new().name("numa").switch(mobile);
 
         let panel = InputPanel::new()
             .mobile(mobile)
