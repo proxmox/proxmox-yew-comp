@@ -109,15 +109,20 @@ impl QemuHardwarePanel {
     }
 
     pub(crate) fn move_disk_url(&self) -> String {
+        let name = if self.remote.is_some() {
+            "move-disk"
+        } else {
+            "move_disk"
+        };
         if let Some(remote) = &self.remote {
             format!(
-                "/pve/remotes/{}/qemu/{}/move_disk",
+                "/pve/remotes/{}/qemu/{}/{name}",
                 percent_encode_component(remote),
                 self.vmid
             )
         } else {
             format!(
-                "/nodes/{}/qemu/{}/move_disk",
+                "/nodes/{}/qemu/{}/{name}",
                 percent_encode_component(&self.node),
                 self.vmid
             )
