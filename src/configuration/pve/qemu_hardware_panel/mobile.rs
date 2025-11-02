@@ -485,7 +485,12 @@ impl PveQemuHardwarePanel {
         let property = qemu_efidisk_property(Some("edidisk0".into()), Some(props.node.clone()));
         push_property_tile(&mut list, property, Fa::new("hdd-o"), EditAction::None);
 
-        let property = qemu_tpmstate_property(Some("tpmstate0".into()), Some(props.node.clone()));
+        let property = qemu_tpmstate_property(
+            Some("tpmstate0".into()),
+            Some(props.node.clone()),
+            props.remote.clone(),
+            true,
+        );
         push_property_tile(&mut list, property, Fa::new("hdd-o"), EditAction::None);
 
         List::from_tiles(list)
@@ -549,7 +554,12 @@ impl PveQemuHardwarePanel {
                     .icon_class("fa fa-hdd-o")
                     .disabled(has_tpmstate)
                     .on_select(ctx.link().callback({
-                        let property = qemu_tpmstate_property(None, Some(props.node.clone()));
+                        let property = qemu_tpmstate_property(
+                            None,
+                            Some(props.node.clone()),
+                            props.remote.clone(),
+                            true,
+                        );
                         move |_| PendingPropertyViewMsg::AddProperty(property.clone())
                     }))
             });

@@ -270,7 +270,12 @@ impl PveQemuHardwarePanel {
                     .icon_class("fa fa-hdd-o")
                     .disabled(has_tpmstate)
                     .on_select(ctx.link().callback({
-                        let property = qemu_tpmstate_property(None, Some(props.node.clone()));
+                        let property = qemu_tpmstate_property(
+                            None,
+                            Some(props.node.clone()),
+                            props.remote.clone(),
+                            false,
+                        );
                         move |_| PendingPropertyViewMsg::AddProperty(property.clone())
                     }))
             });
