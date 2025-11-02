@@ -4,7 +4,7 @@ use pwt::widget::form::Checkbox;
 use pwt::widget::Container;
 
 use pwt::prelude::*;
-use pwt::widget::Column;
+use pwt::widget::{FieldPosition, InputPanel};
 
 use pve_api_types::{
     QemuConfigBios, QemuConfigEfidisk0, QemuConfigEfidisk0Efitype, StorageContent, StorageInfo,
@@ -16,12 +16,13 @@ const IMAGE_STORAGE: &'static str = "_storage_";
 use crate::form::property_string_from_parts;
 use crate::form::pve::{qemu_image_format_selector, PveStorageSelector};
 
-use crate::layout::mobile_form::label_field;
 use crate::{EditableProperty, PropertyEditorState};
 
 #[derive(PartialEq, Properties)]
 struct QemuEfidiskPanel {
     node: Option<AttrValue>,
+    remote: Option<AttrValue>,
+    mobile: bool,
     state: PropertyEditorState,
 }
 
@@ -46,8 +47,10 @@ impl Component for QemuEfidiskPanelComp {
         }
         true
     }
+
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
+        let mobile = props.mobile;
         let state = &props.state;
 
         let hint = |msg: String| Container::new().class("pwt-color-warning").with_child(msg);
@@ -61,13 +64,15 @@ impl Component for QemuEfidiskPanelComp {
         // fixme: detect available storage formats from self.storage_info
         let disable_format_selector = true;
 
-        Column::new()
+        InputPanel::new()
+            .mobile(mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
-            .gap(2)
-            .with_child(label_field(
+            .padding_bottom(1) // avoid scrollbar
+            .with_field(
                 tr!("Storage"),
                 PveStorageSelector::new(props.node.clone())
+                    .remote(props.remote.clone())
                     .name(IMAGE_STORAGE)
                     .submit(false)
                     .required(true)
@@ -75,34 +80,43 @@ impl Component for QemuEfidiskPanelComp {
                     .content_types(Some(vec![StorageContent::Images]))
                     .on_change(ctx.link().callback(Msg::StorageInfo))
                     .mobile(true),
-                true,
-            ))
-            .with_child(label_field(
+            )
+            .with_field(
                 tr!("Format"),
-                qemu_image_format_selector().name("_format"),
-                !disable_format_selector,
-            ))
-            .with_child(label_field(
+                qemu_image_format_selector()
+                    .name("_format")
+                    .disabled(disable_format_selector),
+            )
+            .with_field(
                 tr!("Pre-Enroll keys"),
                 Checkbox::new().name("_pre-enrolled-keys").submit(false),
-                true,
-            ))
-            .with_optional_child(bios_hint.then(|| {
+            )
+            .with_custom_child_and_options(
+                FieldPosition::Left,
+                false,
+                !bios_hint,
                 hint(tr!(
                     "Warning: The VM currently does not uses 'OVMF (UEFI)' as BIOS."
-                ))
-            }))
+                )),
+            )
             .into()
     }
 }
 
-pub fn qemu_efidisk_property(name: Option<AttrValue>, node: Option<AttrValue>) -> EditableProperty {
+pub fn qemu_efidisk_property(
+    name: Option<AttrValue>,
+    node: Option<AttrValue>,
+    remote: Option<AttrValue>,
+    mobile: bool,
+) -> EditableProperty {
     let title = tr!("EFI Disk");
     EditableProperty::new(name.clone(), title)
         .render_input_panel(move |state| {
             let props = QemuEfidiskPanel {
                 state,
                 node: node.clone(),
+                remote: remote.clone(),
+                mobile,
             };
             VComp::new::<QemuEfidiskPanelComp>(Rc::new(props), None).into()
         })
