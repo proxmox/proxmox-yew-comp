@@ -483,7 +483,7 @@ impl PveQemuHardwarePanel {
         }
 
         let property = qemu_efidisk_property(
-            Some("edidisk0".into()),
+            Some("efidisk0".into()),
             Some(props.node.clone()),
             props.remote.clone(),
             true,

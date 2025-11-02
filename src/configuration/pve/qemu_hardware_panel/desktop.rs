@@ -536,6 +536,23 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             }
             push_unused_disk_property(&mut list, &name);
         }
+
+        let property = qemu_efidisk_property(
+            Some("efidisk0".into()),
+            Some(props.node.clone()),
+            props.remote.clone(),
+            true,
+        );
+        push_property(&mut list, property, Fa::new("hdd-o"), EditAction::None);
+
+        let property = qemu_tpmstate_property(
+            Some("tpmstate0".into()),
+            Some(props.node.clone()),
+            props.remote.clone(),
+            true,
+        );
+        push_property(&mut list, property, Fa::new("hdd-o"), EditAction::None);
+
         self.store.set_data(list);
     }
 
