@@ -427,7 +427,12 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         );
         push_property(
             &mut list,
-            qemu_sockets_cores_property(user_is_root, false),
+            qemu_sockets_cores_property(
+                props.node.clone(),
+                props.remote.clone(),
+                user_is_root,
+                false,
+            ),
             Fa::new("cpu"),
             EditAction::Edit,
         );

@@ -602,7 +602,12 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         Self {
             memory_property: qemu_memory_property(mobile),
             bios_property: qemu_bios_property(mobile),
-            sockets_cores_property: qemu_sockets_cores_property(user_is_root, mobile),
+            sockets_cores_property: qemu_sockets_cores_property(
+                props.node.clone(),
+                props.remote.clone(),
+                user_is_root,
+                mobile,
+            ),
             kernel_scheduler_property: qemu_kernel_scheduler_property(user_is_root, mobile),
             cpu_flags_property: qemu_cpu_flags_property(mobile),
             display_property: qemu_display_property(mobile),

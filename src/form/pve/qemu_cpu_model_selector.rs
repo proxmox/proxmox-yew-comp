@@ -17,6 +17,7 @@ use pwt_macros::{builder, widget};
 
 use crate::http_get;
 use crate::layout::list_tile::title_subtitle_column;
+use crate::percent_encoding::percent_encode_component;
 use crate::pve_api_types::QemuCpuModel;
 
 #[widget(comp=QemuCpuModelSelectorComp, @input)]
@@ -33,6 +34,15 @@ pub struct QemuCpuModelSelector {
     #[prop_or_default]
     pub on_change: Option<Callback<Option<AttrValue>>>,
 
+    /// The node to query
+    #[prop_or_default]
+    pub node: Option<AttrValue>,
+
+    /// Use Proxmox Datacenter Manager API endpoints
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub remote: Option<AttrValue>,
+
     /// If set, automatically selects the first value from the store (if no default is selected)
     #[builder]
     #[prop_or(false)]
@@ -45,8 +55,10 @@ pub struct QemuCpuModelSelector {
 }
 
 impl QemuCpuModelSelector {
-    pub fn new() -> Self {
-        yew::props!(Self {})
+    pub fn new(node: impl IntoPropValue<Option<AttrValue>>) -> Self {
+        yew::props!(Self {
+            node: node.into_prop_value()
+        })
     }
 }
 
@@ -56,8 +68,21 @@ pub struct QemuCpuModelSelectorComp {
     validate_fn: pwt::widget::form::ValidateFn<(String, Store<QemuCpuModel>)>,
 }
 
-async fn get_cpu_model_list() -> Result<Vec<QemuCpuModel>, Error> {
-    let url = "/nodes/localhost/capabilities/qemu/cpu";
+async fn get_cpu_model_list(props: QemuCpuModelSelector) -> Result<Vec<QemuCpuModel>, Error> {
+    let node = props.node.as_deref().unwrap_or("localhost");
+    let url = if let Some(remote) = &props.remote {
+        format!(
+            "/pve/remotes/{}/nodes/{}/capabilities/qemu/cpu",
+            percent_encode_component(node),
+            percent_encode_component(remote),
+        )
+    } else {
+        format!(
+            "/nodes/{}/capabilities/qemu/cpu",
+            percent_encode_component(node)
+        )
+    };
+
     let mut model_list: Vec<QemuCpuModel> = http_get(url, None).await?;
     model_list.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(model_list)
@@ -67,7 +92,8 @@ impl Component for QemuCpuModelSelectorComp {
     type Message = ();
     type Properties = QemuCpuModelSelector;
 
-    fn create(_ctx: &yew::Context<Self>) -> Self {
+    fn create(ctx: &yew::Context<Self>) -> Self {
+        let props = ctx.props().clone();
         let validate_fn = ValidateFn::new(|(value, store): &(String, Store<QemuCpuModel>)| {
             store
                 .read()
@@ -78,7 +104,7 @@ impl Component for QemuCpuModelSelectorComp {
         });
         Self {
             store: Store::with_extract_key(|info: &QemuCpuModel| Key::from(info.name.as_str())),
-            load_callback: LoadCallback::new(get_cpu_model_list),
+            load_callback: LoadCallback::new(move || get_cpu_model_list(props.clone())),
             validate_fn,
         }
     }

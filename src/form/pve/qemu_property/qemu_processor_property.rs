@@ -50,7 +50,11 @@ fn renderer(_name: &str, _value: &Value, record: &Value) -> Html {
     text.into()
 }
 
-fn socket_cores_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
+fn socket_cores_input_panel(
+    node: AttrValue,
+    remote: Option<AttrValue>,
+    mobile: bool,
+) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
         let total_cores;
@@ -70,7 +74,10 @@ fn socket_cores_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         }
 
         let cpu_type_label = tr!("Type");
-        let cpu_type_field = QemuCpuModelSelector::new().name("_cputype").mobile(mobile);
+        let cpu_type_field = QemuCpuModelSelector::new(node.clone())
+            .remote(remote.clone())
+            .name("_cputype")
+            .mobile(mobile);
 
         let sockets_label = tr!("Sockets");
         let sockets_field = Number::<u64>::new().name("sockets").min(1);
@@ -114,12 +121,17 @@ fn socket_cores_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 }
 
 // Note: For the desktop view, we want everything in one edit wondow!
-fn processor_input_panel(user_is_root: bool) -> RenderPropertyInputPanelFn {
+fn processor_input_panel(
+    node: AttrValue,
+    remote: Option<AttrValue>,
+    user_is_root: bool,
+) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = &state.form_ctx;
         let advanced = form_ctx.get_show_advanced();
 
-        let main_view = socket_cores_input_panel(false).apply(state.clone());
+        let main_view =
+            socket_cores_input_panel(node.clone(), remote.clone(), false).apply(state.clone());
         let flags_view = cpu_flags_input_panel(false).apply(state.clone());
         let scheduler_view = kernel_scheduler_input_panel(user_is_root, false).apply(state.clone());
 
@@ -148,7 +160,12 @@ fn processor_input_panel(user_is_root: bool) -> RenderPropertyInputPanelFn {
     })
 }
 
-pub fn qemu_sockets_cores_property(user_is_root: bool, mobile: bool) -> EditableProperty {
+pub fn qemu_sockets_cores_property(
+    node: AttrValue,
+    remote: Option<AttrValue>,
+    user_is_root: bool,
+    mobile: bool,
+) -> EditableProperty {
     const KEYS: &[&'static str] = &[
         "sockets", "cores", "cpu", "vcpus", "cpuunits", "cpulimit", "affinity", "numa",
     ];
@@ -167,9 +184,9 @@ pub fn qemu_sockets_cores_property(user_is_root: bool, mobile: bool) -> Editable
     .revert_keys(Rc::new(KEYS.iter().map(|s| AttrValue::from(*s)).collect()))
     .renderer(renderer)
     .render_input_panel(if mobile {
-        socket_cores_input_panel(mobile)
+        socket_cores_input_panel(node, remote, mobile)
     } else {
-        processor_input_panel(user_is_root)
+        processor_input_panel(node, remote, user_is_root)
     })
     .load_hook(move |mut record: Value| {
         flatten_property_string::<PveVmCpuConf>(&mut record, "cpu")?;
