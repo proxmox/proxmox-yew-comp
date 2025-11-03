@@ -1,3 +1,23 @@
+rust-proxmox-yew-comp (0.6.6) trixie; urgency=medium
+
+  * depend on pwt 0.7.4
+  * add qemu hardware and options panel
+  * login panel: set required flag on password field (mobile view)
+  * PendingPropertyView: add message to delete propertie
+  * layout: add helper to create card with title/subtitle and trailing html
+  * use new crate::from::delete_empty_values
+  * move delete_empty_values from pwt, because this is clearly Proxmox
+    api related.
+  * pending property view: add AddProperty message
+  * pending property view: change return type of pending loader
+  * property view: expose whole state to child implementation
+  * PendingPropertyList: add Edit/Revert message with EditableProperty
+    parameter
+  * PendingPropertyView: add Spawn message
+  * PendingPropertyView: add update and changed functions
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 03 Nov 2025 14:12:20 +0100
+
 rust-proxmox-yew-comp (0.6.5) trixie; urgency=medium
 
   * login panel: make realm selector optional
