@@ -235,7 +235,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
             PendingPropertyViewMsg::Delete(name) => {
                 let link = ctx.link().clone();
                 if let Some(on_submit) = T::on_submit(props) {
-                    let param = json!({ "delete": name });
+                    let param = json!({ "delete": [ name ] });
                     self.view_state.async_pool.spawn(async move {
                         let result = on_submit.apply(param).await;
                         link.send_message(PendingPropertyViewMsg::CommandResult(

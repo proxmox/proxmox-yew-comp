@@ -146,7 +146,7 @@ pub fn qemu_amd_sev_property(mobile: bool) -> EditableProperty {
                     _ => String::new(),
                 };
                 if ty.is_empty() {
-                    return Ok(json!({"delete": "amd-sev"}));
+                    return Ok(json!({"delete": [ "amd-sev" ] }));
                 }
 
                 let debug = form_ctx.read().get_field_checked("_debug");
