@@ -114,14 +114,14 @@ fn socket_cores_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 }
 
 // Note: For the desktop view, we want everything in one edit wondow!
-fn processor_input_panel() -> RenderPropertyInputPanelFn {
+fn processor_input_panel(user_is_root: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = &state.form_ctx;
         let advanced = form_ctx.get_show_advanced();
 
         let main_view = socket_cores_input_panel(false).apply(state.clone());
         let flags_view = cpu_flags_input_panel(false).apply(state.clone());
-        let scheduler_view = kernel_scheduler_input_panel(false).apply(state.clone());
+        let scheduler_view = kernel_scheduler_input_panel(user_is_root, false).apply(state.clone());
 
         Column::new()
             .class(pwt::css::FlexFit)
@@ -148,7 +148,7 @@ fn processor_input_panel() -> RenderPropertyInputPanelFn {
     })
 }
 
-pub fn qemu_sockets_cores_property(mobile: bool) -> EditableProperty {
+pub fn qemu_sockets_cores_property(user_is_root: bool, mobile: bool) -> EditableProperty {
     const KEYS: &[&'static str] = &[
         "sockets", "cores", "cpu", "vcpus", "cpuunits", "cpulimit", "affinity", "numa",
     ];
@@ -169,7 +169,7 @@ pub fn qemu_sockets_cores_property(mobile: bool) -> EditableProperty {
     .render_input_panel(if mobile {
         socket_cores_input_panel(mobile)
     } else {
-        processor_input_panel()
+        processor_input_panel(user_is_root)
     })
     .load_hook(move |mut record: Value| {
         flatten_property_string::<PveVmCpuConf>(&mut record, "cpu")?;
@@ -218,7 +218,7 @@ pub fn qemu_cpu_flags_property(mobile: bool) -> EditableProperty {
         })
 }
 
-fn kernel_scheduler_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
+fn kernel_scheduler_input_panel(user_is_root: bool, mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let record = state.record;
         let cores = record["cores"].as_u64().unwrap_or(1);
@@ -252,6 +252,7 @@ fn kernel_scheduler_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let affinity_label = tr!("CPU Affinity");
         let affinity_field = Field::new()
             .name("affinity")
+            .disabled(!user_is_root)
             .placeholder(tr!("All Cores"))
             .submit_empty(true);
 
@@ -291,11 +292,11 @@ fn kernel_scheduler_input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     })
 }
 
-pub fn qemu_kernel_scheduler_property(mobile: bool) -> EditableProperty {
+pub fn qemu_kernel_scheduler_property(user_is_root: bool, mobile: bool) -> EditableProperty {
     EditableProperty::new("cpuunits", tr!("Kernel scheduler settings"))
         .required(true)
         .renderer(renderer)
-        .render_input_panel(kernel_scheduler_input_panel(mobile))
+        .render_input_panel(kernel_scheduler_input_panel(user_is_root, mobile))
         .submit_hook(|state: PropertyEditorState| {
             let mut record = state.get_submit_data();
 

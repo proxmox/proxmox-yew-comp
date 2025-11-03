@@ -325,6 +325,11 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         let props = ctx.props();
         let mut list: Vec<HardwareEntry> = Vec::new();
 
+        let username = crate::http_get_auth()
+            .map(|info| info.userid.clone())
+            .unwrap_or(String::new());
+        let user_is_root = props.remote.is_none() && username == "root@pam";
+
         let PvePendingConfiguration {
             current,
             pending,
@@ -422,7 +427,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         );
         push_property(
             &mut list,
-            qemu_sockets_cores_property(false),
+            qemu_sockets_cores_property(user_is_root, false),
             Fa::new("cpu"),
             EditAction::Edit,
         );

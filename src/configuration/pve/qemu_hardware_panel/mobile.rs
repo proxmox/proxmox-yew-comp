@@ -589,13 +589,21 @@ impl PendingPropertyView for PveQemuHardwarePanel {
     type Properties = QemuHardwarePanel;
     const MOBILE: bool = true;
 
-    fn create(_ctx: &PveQemuHardwarePanelContext) -> Self {
+    fn create(ctx: &PveQemuHardwarePanelContext) -> Self {
+        let props = ctx.props();
+
         let mobile = true;
+
+        let username = crate::http_get_auth()
+            .map(|info| info.userid.clone())
+            .unwrap_or(String::new());
+        let user_is_root = props.remote.is_none() && username == "root@pam";
+
         Self {
             memory_property: qemu_memory_property(mobile),
             bios_property: qemu_bios_property(mobile),
-            sockets_cores_property: qemu_sockets_cores_property(mobile),
-            kernel_scheduler_property: qemu_kernel_scheduler_property(mobile),
+            sockets_cores_property: qemu_sockets_cores_property(user_is_root, mobile),
+            kernel_scheduler_property: qemu_kernel_scheduler_property(user_is_root, mobile),
             cpu_flags_property: qemu_cpu_flags_property(mobile),
             display_property: qemu_display_property(mobile),
             machine_property: qemu_machine_property(mobile),
