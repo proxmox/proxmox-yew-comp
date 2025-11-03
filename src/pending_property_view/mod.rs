@@ -261,7 +261,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                     }
                 };
                 if let Some(on_submit) = T::on_submit(props) {
-                    let param = json!({ "revert": keys.join(",") });
+                    let param = json!({ "revert": keys });
                     self.view_state.revert_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = on_submit.apply(param).await;
                         link.send_message(PendingPropertyViewMsg::CommandResult(result, tr!("")));
