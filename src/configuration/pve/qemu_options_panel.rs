@@ -121,10 +121,11 @@ impl Component for PveQemuOptionsPanel {
         let loader = typed_load::<QemuConfig>(editor_url.clone());
 
         let on_start_command = props.on_start_command.clone();
-        let on_submit = move |value: Value| {
+        let on_submit = move |mut value: Value| {
             let editor_url = editor_url.clone();
             let on_start_command = on_start_command.clone();
             async move {
+                value["background_delay"] = 10.into();
                 let result: Option<String> =
                     http_post(editor_url.clone(), Some(value.clone())).await?;
                 if let Some(upid) = result {
