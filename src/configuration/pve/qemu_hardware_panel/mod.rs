@@ -141,6 +141,7 @@ impl QemuHardwarePanel {
             self.resize_disk_url(),
             self.on_start_command.clone(),
             false,
+            0,
         ))
         .into()
     }
@@ -157,6 +158,7 @@ impl QemuHardwarePanel {
             self.move_disk_url(),
             self.on_start_command.clone(),
             true,
+            0,
         ))
     }
 
@@ -172,6 +174,7 @@ impl QemuHardwarePanel {
             self.move_disk_url(),
             self.on_start_command.clone(),
             true,
+            0,
         ))
     }
 }
@@ -186,11 +189,15 @@ enum EditAction {
 fn create_on_submit(
     submit_url: String,
     on_start_command: Option<Callback<String>>,
-    post: bool, // PUT or POST
+    post: bool,              // PUT or POST
+    background_delay: usize, // add background_delay parameter
 ) -> SubmitCallback<Value> {
-    SubmitCallback::new(move |data: Value| {
+    SubmitCallback::new(move |mut data: Value| {
         let submit_url = submit_url.clone();
         let on_start_command = on_start_command.clone();
+        if background_delay > 0 {
+            data["background_delay"] = background_delay.into();
+        }
         async move {
             let result: Option<String> = if post {
                 http_post(&submit_url, Some(data)).await?

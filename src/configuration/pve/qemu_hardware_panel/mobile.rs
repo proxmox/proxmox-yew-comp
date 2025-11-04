@@ -740,6 +740,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             props.editor_url(),
             props.on_start_command.clone(),
             true,
+            5,
         ))
     }
 }
