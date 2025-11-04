@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use serde_json::Value;
 
-use yew::html::{IntoEventCallback, IntoPropValue};
+use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
@@ -10,7 +10,7 @@ use pwt::prelude::*;
 use crate::form::typed_load;
 use crate::pending_property_view::{pending_typed_load, PendingPropertyGrid, PendingPropertyList};
 use crate::EditableProperty;
-use crate::{http_post, percent_encoding::percent_encode_component};
+use crate::{http_put, percent_encoding::percent_encode_component};
 
 use pve_api_types::QemuConfig;
 
@@ -21,13 +21,6 @@ use pwt_macros::builder;
 pub struct QemuOptionsPanel {
     vmid: u32,
     node: AttrValue,
-
-    /// This callback is called after starting a task on the backend.
-    ///
-    /// The UPID is passed as argument to the callback.
-    #[builder_cb(IntoEventCallback, into_event_callback, String)]
-    #[prop_or_default]
-    on_start_command: Option<Callback<String>>,
 
     /// Use Proxmox Datacenter Manager API endpoints
     #[builder(IntoPropValue, into_prop_value)]
@@ -120,21 +113,9 @@ impl Component for PveQemuOptionsPanel {
 
         let loader = typed_load::<QemuConfig>(editor_url.clone());
 
-        let on_start_command = props.on_start_command.clone();
-        let on_submit = move |mut value: Value| {
+        let on_submit = move |value: Value| {
             let editor_url = editor_url.clone();
-            let on_start_command = on_start_command.clone();
-            async move {
-                value["background_delay"] = 10.into();
-                let result: Option<String> =
-                    http_post(editor_url.clone(), Some(value.clone())).await?;
-                if let Some(upid) = result {
-                    if let Some(on_start_command) = &on_start_command {
-                        on_start_command.emit(upid.clone());
-                    }
-                }
-                Ok(())
-            }
+            async move { http_put(editor_url.clone(), Some(value.clone())).await }
         };
         if props.mobile {
             PendingPropertyList::new(Rc::clone(&self.properties))
