@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
 use anyhow::{format_err, Error};
-use pwt::widget::GridPicker;
 
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::Key;
+
+use pve_api_types::QemuCpuModel;
 
 use pwt::prelude::*;
 
@@ -12,13 +13,13 @@ use pwt::props::{FieldBuilder, LoadCallback, WidgetBuilder, WidgetStyleBuilder};
 use pwt::state::Store;
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::form::{Selector, SelectorRenderArgs, ValidateFn};
+use pwt::widget::GridPicker;
 
 use pwt_macros::{builder, widget};
 
 use crate::http_get;
 use crate::layout::list_tile::title_subtitle_column;
 use crate::percent_encoding::percent_encode_component;
-use crate::pve_api_types::QemuCpuModel;
 
 #[widget(comp=QemuCpuModelSelectorComp, @input)]
 #[derive(Clone, Properties, PartialEq)]
