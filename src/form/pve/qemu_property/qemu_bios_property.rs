@@ -17,12 +17,13 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 
         let efidisk_hint = hint(tr!(
             "You need to add an EFI disk for storing the EFI settings. See the online help for details."
-        ));
+        )).key("efidisk_hint");
 
         let bios_label = "BIOS";
         let bios_field =
             Combobox::from_key_value_pairs([("ovmf", "OVMF (UEFI)"), ("seabios", "SeaBIOS")])
                 .name("bios")
+                .key("bios")
                 .submit_empty(true)
                 .placeholder("SeaBIOS");
 

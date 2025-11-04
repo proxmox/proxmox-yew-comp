@@ -54,10 +54,11 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         };
 
         let hint1_enabled = ffob_enabled;
-        let hint1 = warning(tr!("Freeze/thaw for guest filesystems disabled. This can lead to inconsistent disk backups."));
+        let hint1 = warning(tr!("Freeze/thaw for guest filesystems disabled. This can lead to inconsistent disk backups.")).key("hint1");
 
         let hint2_enabled = !enabled;
-        let hint2 = warning(tr!("Make sure the QEMU Guest Agent is installed in the VM"));
+        let hint2 =
+            warning(tr!("Make sure the QEMU Guest Agent is installed in the VM")).key("hint2");
 
         InputPanel::new()
             .mobile(mobile)

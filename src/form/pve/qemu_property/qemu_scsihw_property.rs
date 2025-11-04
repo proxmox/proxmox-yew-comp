@@ -34,6 +34,7 @@ pub fn qemu_scsihw_property(mobile: bool) -> EditableProperty {
         .render_input_panel(move |_| {
             let field = Combobox::from_key_value_pairs(items.clone())
                 .name(NAME)
+                .key(NAME)
                 .submit_empty(true)
                 .placeholder(tr!("Default") + " (LSI 53C895A)");
 

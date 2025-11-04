@@ -61,6 +61,7 @@ fn disk_input_panel(
                     _ => "-".into(),
                 };
                 Row::new()
+                    .key("filename_and_size")
                     .gap(1)
                     .with_child(Container::new().with_child(file_text))
                     .with_flex_spacer()

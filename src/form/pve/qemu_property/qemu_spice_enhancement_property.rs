@@ -31,10 +31,12 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let hint = |msg: String| Container::new().class("pwt-color-warning").with_child(msg);
         let spice_hint = hint(tr!(
             "To use these features set the display to SPICE in the hardware settings of the VM."
-        ));
+        ))
+        .key("spice_hint");
         let folder_sharing_hint = hint(tr!(
             "Make sure the SPICE WebDav daemon is installed in the VM."
-        ));
+        ))
+        .key("folder_sharing_hint");
 
         InputPanel::new()
             .mobile(mobile)
