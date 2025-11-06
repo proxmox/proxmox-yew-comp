@@ -307,8 +307,7 @@ impl ProxmoxTokenView {
     fn get_selected_record(&self) -> Option<ApiToken> {
         self.selection
             .selected_key()
-            .map(|key| self.store.read().lookup_record(&key).cloned())
-            .flatten()
+            .and_then(|key| self.store.read().lookup_record(&key).cloned())
     }
 
     fn create_show_permissions_dialog(

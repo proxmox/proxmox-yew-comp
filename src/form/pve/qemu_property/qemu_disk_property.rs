@@ -208,8 +208,7 @@ fn add_unused_disk_panel(name: String, mobile: bool) -> RenderPropertyInputPanel
         let disk_image = state
             .record
             .get(&name)
-            .map(|v| v.as_str())
-            .flatten()
+            .and_then(|v| v.as_str())
             .unwrap_or("unknown");
 
         InputPanel::new()

@@ -71,8 +71,7 @@ impl PvePropertyGrid {
         let selected_key = self.selection.selected_key();
         let selected_record = selected_key
             .as_ref()
-            .map(|key| self.store.read().lookup_record(&key).cloned())
-            .flatten();
+            .and_then(|key| self.store.read().lookup_record(key).cloned());
         let property = selected_record.as_ref().map(|r| r.property.clone());
 
         let toolbar = Toolbar::new()

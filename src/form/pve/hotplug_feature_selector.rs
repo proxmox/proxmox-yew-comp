@@ -129,8 +129,7 @@ impl ManagedField for PveHotplugFeatureMaster {
                 }
                 let mut list: Vec<String> = list
                     .iter()
-                    .map(|item| item.as_str().map(String::from))
-                    .flatten()
+                    .filter_map(|item| item.as_str().map(String::from))
                     .filter(|s| !s.is_empty())
                     .collect();
 

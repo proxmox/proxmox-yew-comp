@@ -168,7 +168,7 @@ impl Component for PveStorageSelectorComp {
                         .read()
                         .iter()
                         .find(|e| key == store.extract_key(e))
-                        .map(|e| e.clone());
+                        .cloned();
                     on_change.emit(result);
                 }
             }

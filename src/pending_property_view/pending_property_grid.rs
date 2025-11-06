@@ -77,8 +77,7 @@ impl PvePendingPropertyGrid {
         let selected_key = self.selection.selected_key();
         let selected_record = selected_key
             .as_ref()
-            .map(|key| self.store.read().lookup_record(&key).cloned())
-            .flatten();
+            .and_then(|key| self.store.read().lookup_record(key).cloned());
         let has_changes = selected_record
             .as_ref()
             .map(|record| record.has_changes)

@@ -75,8 +75,7 @@ impl PveBootDeviceField {
         let lookup_value = |name| {
             qemu_config
                 .get(name)
-                .map(|v| v.as_str().map(String::from))
-                .flatten()
+                .and_then(|v| v.as_str().map(String::from))
         };
 
         for item in self.devices.iter_mut() {
@@ -123,7 +122,7 @@ impl PveBootDeviceField {
             if order.is_empty() {
                 order = "cdn"
             }
-            let bootdisk: Option<&str> = qemu_config.get("bootdisk").map(|v| v.as_str()).flatten();
+            let bootdisk: Option<&str> = qemu_config.get("bootdisk").and_then(|v| v.as_str());
 
             let mut list = Vec::new();
             for c in order.chars() {
