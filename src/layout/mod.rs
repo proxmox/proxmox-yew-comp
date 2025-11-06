@@ -16,6 +16,6 @@ pub fn render_loaded_data<T, E: std::fmt::Display, F: Fn(&T) -> Html>(
         Some(Err(err)) => pwt::widget::error_message(&err.to_string())
             .padding(2)
             .into(),
-        Some(Ok(data)) => renderer(&data),
+        Some(Ok(data)) => renderer(data),
     }
 }

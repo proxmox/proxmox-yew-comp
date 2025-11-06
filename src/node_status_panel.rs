@@ -181,7 +181,7 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
         if view_state == &ViewState::FingerprintDialog {
             if let Some(ref node_status) = self.node_status {
                 return Some(
-                    self.fingerprint_dialog(&ctx, &node_status.info.fingerprint)
+                    self.fingerprint_dialog(ctx, &node_status.info.fingerprint)
                         .into(),
                 );
             }

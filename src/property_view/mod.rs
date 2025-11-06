@@ -270,6 +270,6 @@ pub fn render_property_value(record: &Value, property: &EditableProperty) -> Htm
             v => v.to_string(),
         }
         .into(),
-        (Some(value), Some(renderer)) => renderer.apply(&render_name, &value, &record),
+        (Some(value), Some(renderer)) => renderer.apply(&render_name, value, record),
     }
 }

@@ -148,12 +148,11 @@ impl QemuHardwarePanel {
             false,
             0,
         ))
-        .into()
     }
 
     pub(crate) fn reassign_disk_dialog(&self, name: &str) -> PropertyEditDialog {
         qemu_reassign_disk_dialog(
-            &name,
+            name,
             Some(self.node.clone()),
             self.remote.clone(),
             self.mobile,
@@ -169,7 +168,7 @@ impl QemuHardwarePanel {
 
     pub(crate) fn move_disk_dialog(&self, name: &str) -> PropertyEditDialog {
         qemu_move_disk_dialog(
-            &name,
+            name,
             Some(self.node.clone()),
             self.remote.clone(),
             self.mobile,

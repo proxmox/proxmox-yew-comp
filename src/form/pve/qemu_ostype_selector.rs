@@ -54,7 +54,7 @@ impl Component for PveQemuOstypeSelector {
             .show_filter(false)
             .default(&props.default)
             .items(ITEM_KEYS.with(Rc::clone))
-            .render_value(|v: &AttrValue| QemuOstypeSelector::render_value(&*v).into())
+            .render_value(|v: &AttrValue| QemuOstypeSelector::render_value(v).into())
             .into()
     }
 }

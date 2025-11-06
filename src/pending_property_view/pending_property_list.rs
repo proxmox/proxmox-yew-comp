@@ -220,7 +220,7 @@ impl PendingPropertyView for PvePendingPropertyList {
                 }
             };
             if item.required || keys.contains(&name) {
-                let mut tile = self.property_tile(ctx, &current, &pending, item);
+                let mut tile = self.property_tile(ctx, current, pending, item);
                 tile.set_key(name);
                 tiles.push(tile);
             }

@@ -295,8 +295,8 @@ impl PveQemuHardwarePanel {
             .into();
         let mut tile = self.property_tile(
             ctx,
-            &record,
-            &pending,
+            record,
+            pending,
             property,
             icon,
             if props.readonly {
@@ -347,11 +347,11 @@ impl PveQemuHardwarePanel {
             .into();
 
         let icon = Fa::new("hdd-o");
-        let property = qemu_unused_disk_property(&name, true);
+        let property = qemu_unused_disk_property(name, true);
         let mut tile = self.property_tile(
             ctx,
-            &record,
-            &pending,
+            record,
+            pending,
             property,
             icon,
             if props.readonly {

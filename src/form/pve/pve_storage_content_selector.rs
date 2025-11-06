@@ -100,7 +100,7 @@ impl PveStorageContentSelectorComp {
         // fixme: Howto use PveClient trait (Send,Sync problem)?
         let url = format!(
             "/nodes/{}/storage/{}/content",
-            percent_encode_component(&*node),
+            percent_encode_component(&node),
             percent_encode_component(&storage)
         );
         let mut param = json!({});

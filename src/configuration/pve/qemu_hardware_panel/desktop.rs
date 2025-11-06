@@ -412,7 +412,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                     true,
                 )
             };
-            let mut entry = create_entry(&name, property, icon, EditAction::Edit);
+            let mut entry = create_entry(name, property, icon, EditAction::Edit);
             entry.is_disk = is_disk;
             list.push(entry);
         };
@@ -422,14 +422,14 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             // fixme: add remote
             let property =
                 qemu_network_property(Some(name.to_string()), Some(props.node.clone()), false);
-            let entry = create_entry(&name, property, icon, EditAction::Edit);
+            let entry = create_entry(name, property, icon, EditAction::Edit);
             list.push(entry);
         };
 
         let push_unused_disk_property = |list: &mut Vec<_>, name: &str| {
             let icon = Fa::new("hdd-o");
-            let property = qemu_unused_disk_property(&name, false);
-            let entry = create_entry(&name, property, icon, EditAction::Add);
+            let property = qemu_unused_disk_property(name, false);
+            let entry = create_entry(name, property, icon, EditAction::Add);
             list.push(entry);
         };
 

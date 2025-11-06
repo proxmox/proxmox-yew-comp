@@ -198,7 +198,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
             if item.required || keys.contains(&name) {
                 let header = html! { &item.title };
                 let (value, new_value) =
-                    super::render_pending_property_value(&current, &pending, item);
+                    super::render_pending_property_value(current, pending, item);
 
                 let mut content = Column::new()
                     //.gap(0.5)

@@ -74,7 +74,7 @@ fn lookup_schema(name: &str) -> Option<(bool, &'static Schema)> {
 
     for entry in allof_schema.list {
         if let Schema::Object(object_schema) = entry {
-            if let Some((optional, schema)) = lookup_object_property_schema(&object_schema, name) {
+            if let Some((optional, schema)) = lookup_object_property_schema(object_schema, name) {
                 return Some((optional, schema));
             }
         }
@@ -104,7 +104,7 @@ fn render_string_input_panel(
     RenderPropertyInputPanelFn::new(move |_| {
         let mut input = Field::new().name(name.to_string()).submit_empty(true);
 
-        if let Some((optional, schema)) = lookup_schema(&name) {
+        if let Some((optional, schema)) = lookup_schema(name) {
             input.set_schema(schema);
             input.set_required(!optional);
         }

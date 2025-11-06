@@ -466,20 +466,20 @@ fn assemble_device_data(
 ) -> Result<Value, Error> {
     let form_ctx = &state.form_ctx;
     if device.starts_with("ide") {
-        property_string_add_missing_data::<PveQmIde>(data, &state.record, &form_ctx)?;
-        property_string_from_parts::<PveQmIde>(data, &device, true)?;
+        property_string_add_missing_data::<PveQmIde>(data, &state.record, form_ctx)?;
+        property_string_from_parts::<PveQmIde>(data, device, true)?;
     } else if device.starts_with("sata") {
-        property_string_add_missing_data::<QemuConfigSata>(data, &state.record, &form_ctx)?;
-        property_string_from_parts::<QemuConfigSata>(data, &device, true)?;
+        property_string_add_missing_data::<QemuConfigSata>(data, &state.record, form_ctx)?;
+        property_string_from_parts::<QemuConfigSata>(data, device, true)?;
     } else if device.starts_with("scsi") {
-        property_string_add_missing_data::<QemuConfigScsi>(data, &state.record, &form_ctx)?;
-        property_string_from_parts::<QemuConfigScsi>(data, &device, true)?;
+        property_string_add_missing_data::<QemuConfigScsi>(data, &state.record, form_ctx)?;
+        property_string_from_parts::<QemuConfigScsi>(data, device, true)?;
     } else if device.starts_with("virtio") {
-        property_string_add_missing_data::<QemuConfigVirtio>(data, &state.record, &form_ctx)?;
-        property_string_from_parts::<QemuConfigVirtio>(data, &device, true)?;
+        property_string_add_missing_data::<QemuConfigVirtio>(data, &state.record, form_ctx)?;
+        property_string_from_parts::<QemuConfigVirtio>(data, device, true)?;
     } else {
         bail!("assemble_device_data: unsupported device type '{device}'");
     }
-    let data = delete_empty_values(data, &[&device], false);
+    let data = delete_empty_values(data, &[device], false);
     Ok(data)
 }
