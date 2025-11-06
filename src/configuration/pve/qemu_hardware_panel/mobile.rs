@@ -134,7 +134,7 @@ impl PveQemuHardwarePanel {
             .menu(menu)
             .into();
 
-        let tile = self.property_tile(
+        self.property_tile(
             ctx,
             record,
             pending,
@@ -146,9 +146,7 @@ impl PveQemuHardwarePanel {
                 menu_button
             },
             EditAction::Edit,
-        );
-
-        tile
+        )
     }
 
     fn network_list_tile(
@@ -199,7 +197,7 @@ impl PveQemuHardwarePanel {
             .menu(menu)
             .into();
 
-        let tile = self.property_tile(
+        self.property_tile(
             ctx,
             record,
             pending,
@@ -211,9 +209,7 @@ impl PveQemuHardwarePanel {
                 menu_button
             },
             EditAction::Edit,
-        );
-
-        tile
+        )
     }
 
     fn disk_list_tile(
