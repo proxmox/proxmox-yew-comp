@@ -50,6 +50,11 @@ pub struct QemuHardwarePanel {
     #[prop_or_default]
     #[builder]
     pub mobile: bool,
+
+    /// Read-only view - hide toolbar and all buttons/menus to edit content.
+    #[prop_or_default]
+    #[builder]
+    pub readonly: bool,
 }
 
 impl QemuHardwarePanel {

@@ -637,34 +637,20 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         ctx: &PveQemuHardwarePanelContext,
         view_state: &PendingPropertyViewState,
     ) -> Html {
-        let table = DataTable::new(self.columns.clone(), self.store.clone())
+        let props = ctx.props();
+
+        let mut table = DataTable::new(self.columns.clone(), self.store.clone())
             .class(pwt::css::FlexFit)
             .show_header(false)
             .virtual_scroll(false)
-            .selection(self.selection.clone())
-            .on_row_dblclick({
-                let link = ctx.link().clone();
-                let store = self.store.clone();
-                move |event: &mut DataTableMouseEvent| {
-                    let record = store.read().lookup_record(&event.record_key).cloned();
-                    if let Some(record) = record {
-                        match record.edit_action {
-                            EditAction::None => {}
-                            EditAction::Add => link.send_message(
-                                PendingPropertyViewMsg::AddProperty(record.property, None),
-                            ),
-                            EditAction::Edit => link.send_message(
-                                PendingPropertyViewMsg::EditProperty(record.property, None),
-                            ),
-                        }
-                    }
-                }
-            })
-            .on_row_keydown({
-                let link = ctx.link().clone();
-                let store = self.store.clone();
-                move |event: &mut DataTableKeyboardEvent| {
-                    if event.key() == " " {
+            .selection(self.selection.clone());
+
+        if !props.readonly {
+            table = table
+                .on_row_dblclick({
+                    let link = ctx.link().clone();
+                    let store = self.store.clone();
+                    move |event: &mut DataTableMouseEvent| {
                         let record = store.read().lookup_record(&event.record_key).cloned();
                         if let Some(record) = record {
                             match record.edit_action {
@@ -678,24 +664,37 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                             }
                         }
                     }
-                }
-            })
-            .into();
+                })
+                .on_row_keydown({
+                    let link = ctx.link().clone();
+                    let store = self.store.clone();
+                    move |event: &mut DataTableKeyboardEvent| {
+                        if event.key() == " " {
+                            let record = store.read().lookup_record(&event.record_key).cloned();
+                            if let Some(record) = record {
+                                match record.edit_action {
+                                    EditAction::None => {}
+                                    EditAction::Add => link.send_message(
+                                        PendingPropertyViewMsg::AddProperty(record.property, None),
+                                    ),
+                                    EditAction::Edit => link.send_message(
+                                        PendingPropertyViewMsg::EditProperty(record.property, None),
+                                    ),
+                                }
+                            }
+                        }
+                    }
+                });
+        }
 
+        let table = table.into();
         let loading = view_state.loading();
-        let toolbar = self.toolbar(ctx, view_state);
+        let toolbar = (!props.readonly).then(|| self.toolbar(ctx, view_state));
         let class = classes!(pwt::css::FlexFit);
         let dialog = view_state.dialog.clone();
         let error = view_state.error.clone();
 
-        crate::property_view::render_loadable_panel(
-            class,
-            table,
-            Some(toolbar),
-            dialog,
-            loading,
-            error,
-        )
+        crate::property_view::render_loadable_panel(class, table, toolbar, dialog, loading, error)
     }
 
     fn editor_loader(props: &Self::Properties) -> Option<crate::ApiLoadCallback<Value>> {

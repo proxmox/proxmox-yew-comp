@@ -63,6 +63,8 @@ impl PveQemuHardwarePanel {
         trailing: impl IntoOptionalInlineHtml,
         edit_action: EditAction,
     ) -> ListTile {
+        let props = ctx.props();
+
         let on_revert = Callback::from({
             let property = property.clone();
             ctx.link()
@@ -73,20 +75,22 @@ impl PveQemuHardwarePanel {
             current, pending, &property, icon, trailing, on_revert,
         );
 
-        match edit_action {
-            EditAction::None => { /* do nothing  */ }
-            EditAction::Add | EditAction::Edit => {
-                list_tile.set_interactive(true);
-                list_tile.set_on_activate(ctx.link().callback({
-                    let property = property.clone();
-                    move |_| {
-                        if edit_action == EditAction::Edit {
-                            PendingPropertyViewMsg::EditProperty(property.clone(), None)
-                        } else {
-                            PendingPropertyViewMsg::AddProperty(property.clone(), None)
+        if !props.readonly {
+            match edit_action {
+                EditAction::None => { /* do nothing  */ }
+                EditAction::Add | EditAction::Edit => {
+                    list_tile.set_interactive(true);
+                    list_tile.set_on_activate(ctx.link().callback({
+                        let property = property.clone();
+                        move |_| {
+                            if edit_action == EditAction::Edit {
+                                PendingPropertyViewMsg::EditProperty(property.clone(), None)
+                            } else {
+                                PendingPropertyViewMsg::AddProperty(property.clone(), None)
+                            }
                         }
-                    }
-                }));
+                    }));
+                }
             }
         }
 
@@ -99,6 +103,8 @@ impl PveQemuHardwarePanel {
         record: &Value,
         pending: &Value,
     ) -> ListTile {
+        let props = ctx.props();
+
         let menu = Menu::new()
             .with_item(MenuItem::new(&self.sockets_cores_property.title).on_select(
                 ctx.link().callback({
@@ -134,7 +140,11 @@ impl PveQemuHardwarePanel {
             pending,
             self.sockets_cores_property.clone(),
             Fa::new("cpu"),
-            menu_button,
+            if props.readonly {
+                html! {}
+            } else {
+                menu_button
+            },
             EditAction::Edit,
         );
 
@@ -195,7 +205,11 @@ impl PveQemuHardwarePanel {
             pending,
             network_property,
             Fa::new("exchange"),
-            menu_button,
+            if props.readonly {
+                html! {}
+            } else {
+                menu_button
+            },
             EditAction::Edit,
         );
 
@@ -289,7 +303,11 @@ impl PveQemuHardwarePanel {
             &pending,
             property,
             icon,
-            menu_button,
+            if props.readonly {
+                html! {}
+            } else {
+                menu_button
+            },
             EditAction::Edit,
         );
         tile.set_key(name.to_string());
@@ -303,6 +321,8 @@ impl PveQemuHardwarePanel {
         record: &Value,
         pending: &Value,
     ) -> ListTile {
+        let props = ctx.props();
+
         let menu = Menu::new().with_item({
             let link = ctx.link().clone();
 
@@ -338,7 +358,11 @@ impl PveQemuHardwarePanel {
             &pending,
             property,
             icon,
-            menu_button,
+            if props.readonly {
+                html! {}
+            } else {
+                menu_button
+            },
             EditAction::Add,
         );
         tile.set_key(name.to_string());
@@ -510,6 +534,10 @@ impl PveQemuHardwarePanel {
 
     fn card_menu(&self, ctx: &PveQemuHardwarePanelContext, data: &PvePendingConfiguration) -> Html {
         let props = ctx.props();
+
+        if props.readonly {
+            return html! {};
+        }
 
         let PvePendingConfiguration {
             current: _,
