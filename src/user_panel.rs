@@ -166,11 +166,11 @@ impl LoadableComponent for ProxmoxUserPanel {
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
         let link = ctx.link();
 
-        let disabled = self.selection.is_empty();
+        let no_selection = self.selection.is_empty();
         let disable_change_password = self
             .get_selected_user()
             .map(|user| user.user.userid.realm().as_str() == "pam")
-            .unwrap_or(disabled);
+            .unwrap_or(no_selection);
 
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
@@ -183,12 +183,12 @@ impl LoadableComponent for ProxmoxUserPanel {
             .with_spacer()
             .with_child(
                 Button::new(tr!("Edit"))
-                    .disabled(disabled)
+                    .disabled(no_selection)
                     .onclick(link.change_view_callback(|_| Some(ViewState::Edit))),
             )
             .with_child(
                 Button::new(tr!("Remove"))
-                    .disabled(disabled)
+                    .disabled(no_selection)
                     .onclick(link.callback(|_| Msg::RemoveItem)),
             )
             .with_spacer()
@@ -199,7 +199,7 @@ impl LoadableComponent for ProxmoxUserPanel {
             )
             .with_child(
                 Button::new(tr!("Show Permissions"))
-                    .disabled(disabled)
+                    .disabled(no_selection)
                     .onclick(link.change_view_callback(|_| Some(ViewState::ShowPermissions))),
             )
             .with_flex_spacer()
