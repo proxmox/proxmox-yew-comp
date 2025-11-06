@@ -167,11 +167,10 @@ impl LoadableComponent for ProxmoxUserPanel {
         let link = ctx.link();
 
         let disabled = self.selection.is_empty();
-        let mut disable_change_password = disabled;
-
-        if let Some(user) = self.get_selected_user() {
-            disable_change_password = user.user.userid.realm().as_str() == "pam";
-        }
+        let disable_change_password = self
+            .get_selected_user()
+            .map(|user| user.user.userid.realm().as_str() == "pam")
+            .unwrap_or(disabled);
 
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
