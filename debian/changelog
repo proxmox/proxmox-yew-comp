@@ -1,3 +1,14 @@
+rust-proxmox-yew-comp (0.6.7) trixie; urgency=medium
+
+  * depend on pwt 0.7.6
+  * qemu hardware view: add readonly property
+  * pending property view: add on_submit parameter to messages
+  * qemu property editors: add keys to all hints/child
+  * qemu hardware panel: use async api for disk add/delete
+  * use pve_api_types::QemuCpuModel
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 06 Nov 2025 11:56:11 +0100
+
 rust-proxmox-yew-comp (0.6.6) trixie; urgency=medium
 
   * depend on pwt 0.7.4
