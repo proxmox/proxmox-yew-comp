@@ -1,3 +1,13 @@
+rust-proxmox-yew-comp (0.6.8) trixie; urgency=medium
+
+  * node info: extend NodeStatus enum to include NodeStatus from proxmox-rs
+  * node status panel: add a panel that show the current status of a node.
+  * token panel: ask for confirmation when removing a token.
+  * token panel: ask for confirmation when removing a token.
+  * fix #6787: ui: allow creating PAM users from dashboard.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 06 Nov 2025 21:18:50 +0100
+
 rust-proxmox-yew-comp (0.6.7) trixie; urgency=medium
 
   * depend on pwt 0.7.6

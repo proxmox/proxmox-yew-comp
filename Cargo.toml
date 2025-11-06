@@ -1,6 +1,6 @@
 [package]
 name = "proxmox-yew-comp"
-version = "0.6.7"
+version = "0.6.8"
 authors = ["Dietmar Maurer <dietmar@proxmox.com>"]
 license = "AGPLv3"
 edition = "2021"
