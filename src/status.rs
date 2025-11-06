@@ -4,10 +4,15 @@ use pwt::{
     widget::Fa,
 };
 
-/// Used to represent a Status of some resource or component, e.g.
-/// if a PVE node is online or not.
+/// Used to represent a Status of some resource or component, e.g., if a PVE node is online or not.
+///
+/// Note that this should *not* be used to represent config values like enabled/disabled and might
+/// also not be ideal for showing if something is active/inactive or even for more fine grained
+/// status types.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum Status {
+    // "Success" is odd for a status, and normally rather used for results. Should this be "Ok" or
+    // "Good"?
     Success,
     Warning,
     Error,
