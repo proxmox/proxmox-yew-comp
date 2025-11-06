@@ -91,6 +91,9 @@ pub use loadable_component::{
 mod node_info;
 pub use node_info::{node_info, NodeStatus};
 
+mod node_status_panel;
+pub use node_status_panel::NodeStatusPanel;
+
 mod notes_view;
 pub use notes_view::{NotesView, NotesWithDigest, ProxmoxNotesView};
 
