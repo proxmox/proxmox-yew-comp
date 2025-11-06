@@ -61,7 +61,7 @@ regex = "1.7"
 
 #pwt = { path = "../proxmox-yew-widget-toolkit" }
 #pwt-macros = { path = "../proxmox-yew-widget-toolkit/pwt-macros" }
-pwt = "0.7.4"
+pwt = "0.7.6"
 pwt-macros = "0.5"
 
 proxmox-base64 = "1"
