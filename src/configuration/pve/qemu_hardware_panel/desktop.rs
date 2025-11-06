@@ -63,6 +63,7 @@ pub struct PveQemuHardwarePanel {
     store: Store<HardwareEntry>,
     columns: Rc<Vec<DataTableHeader<HardwareEntry>>>,
     selection: Selection,
+    async_submit: SubmitCallback<Value>,
 }
 
 impl PveQemuHardwarePanel {
@@ -126,7 +127,7 @@ impl PveQemuHardwarePanel {
                                 )
                                 .on_confirm(link.callback({
                                     let name = name.to_string();
-                                    move |_| PendingPropertyViewMsg::Delete(name.clone())
+                                    move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
                                 }))
                                 .into()
                         });
@@ -144,6 +145,7 @@ impl PveQemuHardwarePanel {
                             if let Some(property) = &property {
                                 link.send_message(PendingPropertyViewMsg::EditProperty(
                                     property.clone(),
+                                    None,
                                 ));
                             }
                         }
@@ -232,7 +234,13 @@ impl PveQemuHardwarePanel {
                     .icon_class("fa fa-hdd-o")
                     .on_select(ctx.link().callback({
                         let property = qemu_disk_property(None, Some(props.node.clone()), false);
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        let async_submit = self.async_submit.clone();
+                        move |_| {
+                            PendingPropertyViewMsg::AddProperty(
+                                property.clone(),
+                                Some(async_submit.clone()),
+                            )
+                        }
                     }))
             })
             .with_item({
@@ -245,7 +253,7 @@ impl PveQemuHardwarePanel {
                             props.remote.clone(),
                             false,
                         );
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
                     }))
             })
             .with_item({
@@ -253,7 +261,7 @@ impl PveQemuHardwarePanel {
                     .icon_class("fa fa-exchange")
                     .on_select(ctx.link().callback({
                         let property = qemu_network_property(None, Some(props.node.clone()), false);
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
                     }))
             })
             .with_item({
@@ -267,7 +275,7 @@ impl PveQemuHardwarePanel {
                             props.remote.clone(),
                             false,
                         );
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
                     }))
             })
             .with_item({
@@ -281,7 +289,7 @@ impl PveQemuHardwarePanel {
                             props.remote.clone(),
                             false,
                         );
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
                     }))
             });
 
@@ -300,6 +308,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
     const MOBILE: bool = false;
 
     fn create(ctx: &PveQemuHardwarePanelContext) -> Self {
+        let props = ctx.props();
         let selection = Selection::new().on_select({
             let link = ctx.link().clone();
             move |selection: Selection| {
@@ -312,6 +321,12 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             store: Store::new(),
             columns: columns(),
             selection,
+            async_submit: super::create_on_submit(
+                props.editor_url(),
+                props.on_start_command.clone(),
+                true,
+                5,
+            ),
         }
     }
 
@@ -635,10 +650,11 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                     if let Some(record) = record {
                         match record.edit_action {
                             EditAction::None => {}
-                            EditAction::Add => link
-                                .send_message(PendingPropertyViewMsg::AddProperty(record.property)),
+                            EditAction::Add => link.send_message(
+                                PendingPropertyViewMsg::AddProperty(record.property, None),
+                            ),
                             EditAction::Edit => link.send_message(
-                                PendingPropertyViewMsg::EditProperty(record.property),
+                                PendingPropertyViewMsg::EditProperty(record.property, None),
                             ),
                         }
                     }
@@ -654,10 +670,10 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                             match record.edit_action {
                                 EditAction::None => {}
                                 EditAction::Add => link.send_message(
-                                    PendingPropertyViewMsg::AddProperty(record.property),
+                                    PendingPropertyViewMsg::AddProperty(record.property, None),
                                 ),
                                 EditAction::Edit => link.send_message(
-                                    PendingPropertyViewMsg::EditProperty(record.property),
+                                    PendingPropertyViewMsg::EditProperty(record.property, None),
                                 ),
                             }
                         }
@@ -698,8 +714,8 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         Some(super::create_on_submit(
             props.editor_url(),
             props.on_start_command.clone(),
-            true,
-            5,
+            false,
+            0,
         ))
     }
 }

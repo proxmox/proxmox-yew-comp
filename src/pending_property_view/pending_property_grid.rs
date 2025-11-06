@@ -101,6 +101,7 @@ impl PvePendingPropertyGrid {
                             if let Some(property) = &property {
                                 link.send_message(PendingPropertyViewMsg::EditProperty(
                                     property.clone(),
+                                    None,
                                 ));
                             }
                         }
@@ -260,7 +261,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
                         .lookup_record(&event.record_key)
                         .map(|r| r.property.clone());
                     if let Some(property) = property {
-                        link.send_message(PendingPropertyViewMsg::EditProperty(property));
+                        link.send_message(PendingPropertyViewMsg::EditProperty(property, None));
                     }
                 }
             })
@@ -274,7 +275,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
                             .lookup_record(&event.record_key)
                             .map(|r| r.property.clone());
                         if let Some(property) = property {
-                            link.send_message(PendingPropertyViewMsg::EditProperty(property));
+                            link.send_message(PendingPropertyViewMsg::EditProperty(property, None));
                         }
                     }
                 }

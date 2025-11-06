@@ -98,11 +98,11 @@ pub enum PendingPropertyViewMsg<M> {
     Load,
     LoadResult(Result<PvePendingConfiguration, String>),
     ShowDialog(Option<Html>),
-    EditProperty(EditableProperty),
-    AddProperty(EditableProperty),
+    EditProperty(EditableProperty, Option<SubmitCallback<Value>>),
+    AddProperty(EditableProperty, Option<SubmitCallback<Value>>),
     RevertProperty(EditableProperty),
     CommandResult(Result<(), Error>, String),
-    Delete(String),
+    Delete(String, Option<SubmitCallback<Value>>),
     Select(Option<Key>),
     Custom(M),
 }
@@ -232,9 +232,9 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 return self.child_state.update(ctx, &mut self.view_state, custom);
             }
             PendingPropertyViewMsg::Select(_key) => { /* just redraw */ }
-            PendingPropertyViewMsg::Delete(name) => {
+            PendingPropertyViewMsg::Delete(name, on_submit) => {
                 let link = ctx.link().clone();
-                if let Some(on_submit) = T::on_submit(props) {
+                if let Some(on_submit) = on_submit.or_else(|| T::on_submit(props)) {
                     let param = json!({ "delete": [ name ] });
                     self.view_state.async_pool.spawn(async move {
                         let result = on_submit.apply(param).await;
@@ -289,7 +289,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                     ctx.link().send_message(PendingPropertyViewMsg::Load);
                 }
             }
-            PendingPropertyViewMsg::EditProperty(property) => {
+            PendingPropertyViewMsg::EditProperty(property, on_submit) => {
                 let dialog = PropertyEditDialog::from(property.clone())
                     .mobile(T::MOBILE)
                     .on_done(
@@ -297,11 +297,11 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                             .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                     )
                     .loader(T::editor_loader(props))
-                    .on_submit(T::on_submit(props))
+                    .on_submit(on_submit.or_else(|| T::on_submit(props)))
                     .into();
                 self.view_state.dialog = Some(dialog);
             }
-            PendingPropertyViewMsg::AddProperty(property) => {
+            PendingPropertyViewMsg::AddProperty(property, on_submit) => {
                 let dialog = PropertyEditDialog::from(property.clone())
                     .mobile(T::MOBILE)
                     .edit(false)
@@ -310,7 +310,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                             .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                     )
                     .loader(T::editor_loader(props))
-                    .on_submit(T::on_submit(props))
+                    .on_submit(on_submit.or_else(|| T::on_submit(props)))
                     .into();
                 self.view_state.dialog = Some(dialog);
             }

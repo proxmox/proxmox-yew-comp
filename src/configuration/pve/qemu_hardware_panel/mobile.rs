@@ -39,6 +39,8 @@ pub enum Msg {
 }
 
 pub struct PveQemuHardwarePanel {
+    async_submit: SubmitCallback<Value>,
+
     memory_property: EditableProperty,
     bios_property: EditableProperty,
     sockets_cores_property: EditableProperty,
@@ -79,9 +81,9 @@ impl PveQemuHardwarePanel {
                     let property = property.clone();
                     move |_| {
                         if edit_action == EditAction::Edit {
-                            PendingPropertyViewMsg::EditProperty(property.clone())
+                            PendingPropertyViewMsg::EditProperty(property.clone(), None)
                         } else {
-                            PendingPropertyViewMsg::AddProperty(property.clone())
+                            PendingPropertyViewMsg::AddProperty(property.clone(), None)
                         }
                     }
                 }));
@@ -101,21 +103,21 @@ impl PveQemuHardwarePanel {
             .with_item(MenuItem::new(&self.sockets_cores_property.title).on_select(
                 ctx.link().callback({
                     let property = self.sockets_cores_property.clone();
-                    move |_| PendingPropertyViewMsg::EditProperty(property.clone())
+                    move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
                 }),
             ))
             .with_item(
                 MenuItem::new(&self.kernel_scheduler_property.title).on_select(
                     ctx.link().callback({
                         let property = self.kernel_scheduler_property.clone();
-                        move |_| PendingPropertyViewMsg::EditProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
                     }),
                 ),
             )
             .with_item(MenuItem::new(&self.cpu_flags_property.title).on_select(
                 ctx.link().callback({
                     let property = self.cpu_flags_property.clone();
-                    move |_| PendingPropertyViewMsg::EditProperty(property.clone())
+                    move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
                 }),
             ));
 
@@ -157,13 +159,13 @@ impl PveQemuHardwarePanel {
                 .with_item(
                     MenuItem::new(&network_property.title).on_select(ctx.link().callback({
                         let property = network_property.clone();
-                        move |_| PendingPropertyViewMsg::EditProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
                     })),
                 )
                 .with_item(
                     MenuItem::new(&mtu_property.title).on_select(ctx.link().callback({
                         let property = mtu_property.clone();
-                        move |_| PendingPropertyViewMsg::EditProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
                     })),
                 )
                 .with_item({
@@ -172,7 +174,7 @@ impl PveQemuHardwarePanel {
                         .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                         .on_confirm(link.callback({
                             let name = name.to_string();
-                            move |_| PendingPropertyViewMsg::Delete(name.clone())
+                            move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
                         }))
                         .into();
                     MenuItem::new(tr!("Delete device")).on_select(ctx.link().callback(move |_| {
@@ -266,7 +268,7 @@ impl PveQemuHardwarePanel {
                 .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                 .on_confirm(link.callback({
                     let name = name.to_string();
-                    move |_| PendingPropertyViewMsg::Delete(name.clone())
+                    move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
                 }))
                 .into();
             MenuItem::new(title).on_select(
@@ -308,7 +310,10 @@ impl PveQemuHardwarePanel {
                 .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                 .on_confirm(link.callback({
                     let name = name.to_string();
-                    move |_| PendingPropertyViewMsg::Delete(name.clone())
+                    let async_submit = self.async_submit.clone();
+                    move |_| {
+                        PendingPropertyViewMsg::Delete(name.clone(), Some(async_submit.clone()))
+                    }
                 }))
                 .into();
 
@@ -521,7 +526,13 @@ impl PveQemuHardwarePanel {
                     .icon_class("fa fa-hdd-o")
                     .on_select(ctx.link().callback({
                         let property = qemu_disk_property(None, Some(props.node.clone()), true);
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        let async_submit = self.async_submit.clone();
+                        move |_| {
+                            PendingPropertyViewMsg::AddProperty(
+                                property.clone(),
+                                Some(async_submit.clone()),
+                            )
+                        }
                     }))
             })
             .with_item({
@@ -534,7 +545,7 @@ impl PveQemuHardwarePanel {
                             props.remote.clone(),
                             true,
                         );
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
                     }))
             })
             .with_item({
@@ -542,7 +553,7 @@ impl PveQemuHardwarePanel {
                     .icon_class("fa fa-exchange")
                     .on_select(ctx.link().callback({
                         let property = qemu_network_property(None, Some(props.node.clone()), true);
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
                     }))
             })
             .with_item({
@@ -556,7 +567,7 @@ impl PveQemuHardwarePanel {
                             props.remote.clone(),
                             true,
                         );
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
                     }))
             })
             .with_item({
@@ -570,7 +581,7 @@ impl PveQemuHardwarePanel {
                             props.remote.clone(),
                             true,
                         );
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone())
+                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
                     }))
             });
 
@@ -600,6 +611,12 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         let user_is_root = props.remote.is_none() && username == "root@pam";
 
         Self {
+            async_submit: super::create_on_submit(
+                props.editor_url(),
+                props.on_start_command.clone(),
+                true,
+                5,
+            ),
             memory_property: qemu_memory_property(mobile),
             bios_property: qemu_bios_property(mobile),
             sockets_cores_property: qemu_sockets_cores_property(
@@ -739,8 +756,8 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         Some(super::create_on_submit(
             props.editor_url(),
             props.on_start_command.clone(),
-            true,
-            5,
+            false,
+            0,
         ))
     }
 }

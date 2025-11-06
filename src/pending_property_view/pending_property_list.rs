@@ -161,7 +161,7 @@ impl PvePendingPropertyList {
                 .interactive(true)
                 .on_activate(ctx.link().callback({
                     let property = property.clone();
-                    move |_| PendingPropertyViewMsg::EditProperty(property.clone())
+                    move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
                 }))
         } else {
             list_tile
