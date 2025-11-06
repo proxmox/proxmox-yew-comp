@@ -84,6 +84,7 @@ proxmox-apt-api-types = { version = "2.0", optional = true }
 proxmox-access-control = "1.1"
 proxmox-dns-api = { version = "1", optional = true }
 proxmox-network-api = { version = "1", optional = true }
+proxmox-node-status = { version = "1", features = [] }
 
 pve-api-types = "8"
 pbs-api-types = "1"

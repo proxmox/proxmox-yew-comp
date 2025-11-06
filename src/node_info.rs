@@ -1,4 +1,5 @@
 use proxmox_human_byte::HumanByte;
+use proxmox_node_status::BootMode;
 use pwt::{prelude::*, widget::Container};
 
 use crate::{MeterLabel, StatusRow};
@@ -7,6 +8,7 @@ use crate::{MeterLabel, StatusRow};
 pub enum NodeStatus<'a> {
     Pve(&'a pve_api_types::NodeStatus),
     Pbs(&'a pbs_api_types::NodeStatus),
+    Common(&'a proxmox_node_status::NodeStatus),
 }
 
 impl<'a> From<&'a pve_api_types::NodeStatus> for NodeStatus<'a> {
@@ -29,6 +31,7 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
     let (cpu, cpus_total) = match data {
         Some(NodeStatus::Pve(node_status)) => (node_status.cpu, node_status.cpuinfo.cpus as u64),
         Some(NodeStatus::Pbs(node_status)) => (node_status.cpu, node_status.cpuinfo.cpus as u64),
+        Some(NodeStatus::Common(node_status)) => (node_status.cpu, node_status.cpuinfo.cpus as u64),
         None => (0.0, 1),
     };
 
@@ -39,6 +42,7 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
             .and_then(|wait| wait.as_f64())
             .unwrap_or_default(),
         Some(NodeStatus::Pbs(node_status)) => node_status.wait,
+        Some(NodeStatus::Common(node_status)) => node_status.wait,
         None => 0.0,
     };
 
@@ -48,12 +52,19 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
             node_status.memory.total as u64,
         ),
         Some(NodeStatus::Pbs(node_status)) => (node_status.memory.used, node_status.memory.total),
+        Some(NodeStatus::Common(node_status)) => {
+            (node_status.memory.used, node_status.memory.total)
+        }
         None => (0, 1),
     };
 
     let loadavg = match data {
         Some(NodeStatus::Pve(node_status)) => node_status.loadavg.join(" "),
         Some(NodeStatus::Pbs(node_status)) => format!(
+            "{:.2} {:.2} {:.2}",
+            node_status.loadavg[0], node_status.loadavg[1], node_status.loadavg[2]
+        ),
+        Some(NodeStatus::Common(node_status)) => format!(
             "{:.2} {:.2} {:.2}",
             node_status.loadavg[0], node_status.loadavg[1], node_status.loadavg[2]
         ),
@@ -66,6 +77,7 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
             node_status.rootfs.total as u64,
         ),
         Some(NodeStatus::Pbs(node_status)) => (node_status.root.used, node_status.root.total),
+        Some(NodeStatus::Common(node_status)) => (node_status.root.used, node_status.root.total),
         None => (0, 1),
     };
 
@@ -90,6 +102,7 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
             }
         }
         Some(NodeStatus::Pbs(node_status)) => (node_status.swap.used, node_status.swap.total),
+        Some(NodeStatus::Common(node_status)) => (node_status.swap.used, node_status.swap.total),
         None => (0, 1),
     };
 
@@ -99,6 +112,10 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
             node_status.cpuinfo.sockets as u64,
         ),
         Some(NodeStatus::Pbs(node_status)) => (
+            node_status.cpuinfo.model.clone(),
+            node_status.cpuinfo.sockets as u64,
+        ),
+        Some(NodeStatus::Common(node_status)) => (
             node_status.cpuinfo.model.clone(),
             node_status.cpuinfo.sockets as u64,
         ),
@@ -121,7 +138,18 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
             node_status.current_kernel.release.clone(),
             node_status.current_kernel.version.clone(),
         ),
+        Some(NodeStatus::Common(node_status)) => (
+            node_status.current_kernel.sysname.clone(),
+            node_status.current_kernel.release.clone(),
+            node_status.current_kernel.version.clone(),
+        ),
         None => (String::new(), String::new(), String::new()),
+    };
+
+    let boot_mode = if let Some(NodeStatus::Common(node_status)) = data {
+        Some(&node_status.boot_info)
+    } else {
+        None
     };
 
     Container::new()
@@ -221,4 +249,14 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
                 .style("grid-column", "1/-1")
                 .status(format!("{} {} {}", k_sysname, k_release, k_version)),
         )
+        .with_optional_child(boot_mode.map(|m| {
+            let mode = match m.mode {
+                BootMode::Efi => tr!("Legacy BIOS"),
+                BootMode::LegacyBios if m.secureboot => tr!("UEFI (Secure Boot Enabled)"),
+                BootMode::LegacyBios => tr!("UEFI"),
+            };
+            StatusRow::new(tr!("Boot Mode"))
+                .style("grid-column", "1/-1")
+                .status(mode)
+        }))
 }
