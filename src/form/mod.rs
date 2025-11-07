@@ -13,6 +13,20 @@ pub mod pve;
 
 use crate::{ApiLoadCallback, PropertyEditorState};
 
+/// Delete default values fron submit data.
+pub fn delete_default_values(record: &mut Value, defaults: &Value) {
+    let defaults = match defaults.as_object() {
+        Some(defaults) => defaults,
+        None => return,
+    };
+    let record = match record.as_object_mut() {
+        Some(record) => record,
+        None => return,
+    };
+
+    record.retain(|k, v| defaults.get(k) != Some(v));
+}
+
 /// Delete empty values from the submit data.
 ///
 /// And adds their names to the "delete" parameter.

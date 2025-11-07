@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use anyhow::{bail, Error};
 use proxmox_schema::property_string::PropertyString;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, FormContextObserver, RadioButton};
@@ -26,6 +26,9 @@ const FILE_PN: &'static str = "_file";
 const DISCARD_PN: &'static str = "_discard";
 const READONLY_PN: &'static str = "_ro";
 const REPLICATE_PN: &'static str = "_replicate";
+const BACKUP_PN: &'static str = "_backup";
+const IOTHREAD_PN: &'static str = "_iothread";
+const SSD_PN: &'static str = "_ssd";
 
 use crate::form::pve::pve_storage_content_selector::PveStorageContentSelector;
 use crate::form::pve::{
@@ -33,8 +36,8 @@ use crate::form::pve::{
     QemuDiskSizeFormatSelector,
 };
 use crate::form::{
-    delete_empty_values, flatten_property_string, property_string_add_missing_data,
-    property_string_from_parts,
+    delete_default_values, delete_empty_values, flatten_property_string,
+    property_string_add_missing_data, property_string_from_parts,
 };
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
@@ -152,13 +155,13 @@ impl Component for DiskPanelComp {
             .default(true);
 
         let io_thread_label = tr!("IO thread");
-        let io_thread_field = Checkbox::new().switch(mobile).name("_iothread");
+        let io_thread_field = Checkbox::new().switch(mobile).name(IOTHREAD_PN);
 
         let ssd_emulation_label = tr!("SSD emulation");
-        let ssd_emulation_field = Checkbox::new().switch(mobile).name("_ssd");
+        let ssd_emulation_field = Checkbox::new().switch(mobile).name(SSD_PN);
 
         let backup_label = tr!("Backup");
-        let backup_field = Checkbox::new().switch(mobile).name("_backup");
+        let backup_field = Checkbox::new().switch(mobile).name(BACKUP_PN).default(true);
 
         let skip_replication_label = tr!("Skip replication");
         let skip_replication_field = Checkbox::new()
@@ -578,17 +581,30 @@ fn assemble_device_data(
         data[DISCARD_PN] = if discard { "on" } else { "ignore" }.into();
     }
 
+    let defaults = json!({
+        DISCARD_PN: "ignore",
+        REPLICATE_PN: true,
+        READONLY_PN: false,
+        BACKUP_PN: true,
+        IOTHREAD_PN: false,
+        SSD_PN: false,
+    });
+
     if device.starts_with("ide") {
         property_string_add_missing_data::<PveQmIde>(data, &state.record, form_ctx)?;
+        delete_default_values(data, &defaults);
         property_string_from_parts::<PveQmIde>(data, device, true)?;
     } else if device.starts_with("sata") {
         property_string_add_missing_data::<QemuConfigSata>(data, &state.record, form_ctx)?;
+        delete_default_values(data, &defaults);
         property_string_from_parts::<QemuConfigSata>(data, device, true)?;
     } else if device.starts_with("scsi") {
         property_string_add_missing_data::<QemuConfigScsi>(data, &state.record, form_ctx)?;
+        delete_default_values(data, &defaults);
         property_string_from_parts::<QemuConfigScsi>(data, device, true)?;
     } else if device.starts_with("virtio") {
         property_string_add_missing_data::<QemuConfigVirtio>(data, &state.record, form_ctx)?;
+        delete_default_values(data, &defaults);
         property_string_from_parts::<QemuConfigVirtio>(data, device, true)?;
     } else {
         bail!("assemble_device_data: unsupported device type '{device}'");
