@@ -27,12 +27,14 @@ const DISCARD_PN: &'static str = "_discard";
 const READONLY_PN: &'static str = "_ro";
 const REPLICATE_PN: &'static str = "_replicate";
 
-use crate::form::delete_empty_values;
 use crate::form::pve::pve_storage_content_selector::PveStorageContentSelector;
 use crate::form::pve::{
-    flatten_property_string, parse_qemu_controller_name, property_string_add_missing_data,
-    property_string_from_parts, PveStorageSelector, QemuCacheTypeSelector, QemuControllerSelector,
+    parse_qemu_controller_name, PveStorageSelector, QemuCacheTypeSelector, QemuControllerSelector,
     QemuDiskSizeFormatSelector,
+};
+use crate::form::{
+    delete_empty_values, flatten_property_string, property_string_add_missing_data,
+    property_string_from_parts,
 };
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 

@@ -9,16 +9,15 @@ use pwt::prelude::*;
 use pwt::widget::form::{Field, Number};
 use pwt::widget::{Column, InputPanel};
 
-use crate::form::delete_empty_values;
 use crate::SchemaValidation;
 
 use pve_api_types::{QemuConfig, StorageContent};
 
 use crate::form::pve::{
-    format_hotplug_feature, format_qemu_ostype, property_string_load_hook,
-    property_string_submit_hook, BootDeviceList, HotplugFeatureSelector, PveStorageSelector,
-    QemuOstypeSelector,
+    format_hotplug_feature, format_qemu_ostype, BootDeviceList, HotplugFeatureSelector,
+    PveStorageSelector, QemuOstypeSelector,
 };
+use crate::form::{delete_empty_values, property_string_load_hook, property_string_submit_hook};
 
 use crate::pve_api_types::QemuConfigStartup;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};

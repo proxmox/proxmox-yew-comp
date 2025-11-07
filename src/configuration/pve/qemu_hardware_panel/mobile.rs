@@ -20,8 +20,9 @@ use crate::form::pve::{
     qemu_display_property, qemu_efidisk_property, qemu_kernel_scheduler_property,
     qemu_machine_property, qemu_memory_property, qemu_network_mtu_property, qemu_network_property,
     qemu_scsihw_property, qemu_sockets_cores_property, qemu_tpmstate_property,
-    qemu_unused_disk_property, qemu_vmstate_property, typed_load,
+    qemu_unused_disk_property, qemu_vmstate_property,
 };
+use crate::form::typed_load;
 use crate::pending_property_view::{
     pending_typed_load, PendingPropertyList, PendingPropertyView, PendingPropertyViewMsg,
     PendingPropertyViewState, PvePendingConfiguration, PvePendingPropertyView,
