@@ -234,7 +234,12 @@ impl PveQemuHardwarePanel {
             )
         } else {
             (
-                qemu_disk_property(Some(name.to_string()), Some(props.node.clone()), true),
+                qemu_disk_property(
+                    Some(name.to_string()),
+                    Some(props.node.clone()),
+                    props.remote.clone(),
+                    true,
+                ),
                 Fa::new("hdd-o"),
             )
         };
@@ -549,7 +554,12 @@ impl PveQemuHardwarePanel {
                 MenuItem::new(tr!("Add Hard Disk"))
                     .icon_class("fa fa-hdd-o")
                     .on_select(ctx.link().callback({
-                        let property = qemu_disk_property(None, Some(props.node.clone()), true);
+                        let property = qemu_disk_property(
+                            None,
+                            Some(props.node.clone()),
+                            props.remote.clone(),
+                            true,
+                        );
                         let async_submit = self.async_submit.clone();
                         move |_| {
                             PendingPropertyViewMsg::AddProperty(

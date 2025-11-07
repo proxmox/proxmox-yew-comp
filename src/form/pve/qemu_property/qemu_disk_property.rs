@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use std::collections::HashSet;
 
 use anyhow::{bail, Error};
@@ -5,19 +7,25 @@ use proxmox_schema::property_string::PropertyString;
 use serde_json::Value;
 
 use pwt::prelude::*;
-use pwt::widget::form::RadioButton;
+use pwt::widget::form::{Checkbox, FormContextObserver, RadioButton};
 use pwt::widget::{Container, InputPanel, Row};
 
 use pve_api_types::{
     PveQmIde, QemuConfigSata, QemuConfigScsi, QemuConfigScsiArray, QemuConfigUnused,
-    QemuConfigVirtio, StorageContent,
+    QemuConfigVirtio, StorageContent, StorageInfo,
 };
+use yew::virtual_dom::VComp;
 
 const MEDIA_TYPE: &'static str = "_media_type_";
 const BUS_DEVICE: &'static str = "_device_";
 const IMAGE_STORAGE: &'static str = "_storage_";
+const NOREPLICATE_FIELD_NAME: &'static str = "_noreplicate_";
+const DISCARD_CHECKBOX_NAME: &'static str = "_discard_checkbox_";
 
 const FILE_PN: &'static str = "_file";
+const DISCARD_PN: &'static str = "_discard";
+const READONLY_PN: &'static str = "_ro";
+const REPLICATE_PN: &'static str = "_replicate";
 
 use crate::form::delete_empty_values;
 use crate::form::pve::pve_storage_content_selector::PveStorageContentSelector;
@@ -28,114 +36,173 @@ use crate::form::pve::{
 };
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
-fn disk_input_panel(
+#[derive(Properties, Clone, PartialEq)]
+struct DiskPanel {
     name: Option<String>,
     node: Option<AttrValue>,
+    remote: Option<AttrValue>,
+
+    state: PropertyEditorState,
     mobile: bool,
-) -> RenderPropertyInputPanelFn {
-    let is_create = name.is_none();
-    RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
+}
+
+struct DiskPanelComp {
+    storage_info: Option<StorageInfo>,
+    _observer: FormContextObserver,
+}
+
+enum DiskPanelMsg {
+    FormUpdate,
+    StorageInfo(Option<StorageInfo>),
+}
+
+impl Component for DiskPanelComp {
+    type Message = DiskPanelMsg;
+    type Properties = DiskPanel;
+
+    fn create(ctx: &Context<Self>) -> Self {
+        let props = ctx.props();
+        let _observer = props
+            .state
+            .form_ctx
+            .add_listener(ctx.link().callback(|_| DiskPanelMsg::FormUpdate));
+
+        Self {
+            storage_info: None,
+            _observer,
+        }
+    }
+
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            DiskPanelMsg::StorageInfo(info) => {
+                if let Some(info) = &info {
+                    log::info!("Storage changed: {:?}", info.storage);
+                    match &info.formats {
+                        Some(formats) => {
+                            log::info!("default format: {:?}", formats.default);
+                            log::info!("supported formats: {:?}", formats.supported);
+                        }
+                        _ => (),
+                    }
+                }
+                self.storage_info = info;
+            }
+            DiskPanelMsg::FormUpdate => { /* redraw */ }
+        }
+        true
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let props = ctx.props();
+        let mobile = props.mobile;
+        let state = &props.state;
+        let form_ctx = &state.form_ctx;
+        let is_create = props.name.is_none();
+
         let used_devices = extract_used_devices(&state.record);
+        let advanced = form_ctx.get_show_advanced();
+
+        let bus_device_label = tr!("Bus/Device");
+        let bus_device_field = QemuControllerSelector::new()
+            .name(BUS_DEVICE)
+            .submit(false)
+            .exclude_devices(used_devices);
+
+        let file_info_child = {
+            let file_text = match state.record.get(FILE_PN) {
+                Some(Value::String(file)) => file.clone(),
+                _ => String::new(),
+            };
+            let size_text = match state.record.get("_size") {
+                Some(Value::String(s)) => s.clone(),
+                _ => "-".into(),
+            };
+            Row::new()
+                .key("filename_and_size")
+                .gap(1)
+                .with_child(Container::new().with_child(file_text))
+                .with_flex_spacer()
+                .with_child(Container::new().with_child(size_text))
+        };
+
+        let cache_label = tr!("Cache");
+        let cache_field = QemuCacheTypeSelector::new().name("_cache");
+
+        let storage_label = tr!("Storage");
+        let storage_field = PveStorageSelector::new(props.node.clone())
+            .remote(props.remote.clone())
+            .name(IMAGE_STORAGE)
+            .submit(false)
+            .required(true)
+            .content_types(Some(vec![StorageContent::Images]))
+            .on_change(ctx.link().callback(DiskPanelMsg::StorageInfo))
+            .mobile(mobile);
+
+        let disk_size_label = tr!("Disk size") + " (GiB)";
+        let disk_size_field = QemuDiskSizeFormatSelector::new().raw(false);
+
+        let discard_label = tr!("Discard");
+        let discard_field = Checkbox::new()
+            .switch(mobile)
+            .name(DISCARD_CHECKBOX_NAME)
+            .submit(false)
+            .default(true);
+
+        let io_thread_label = tr!("IO thread");
+        let io_thread_field = Checkbox::new().switch(mobile).name("_iothread");
+
+        let ssd_emulation_label = tr!("SSD emulation");
+        let ssd_emulation_field = Checkbox::new().switch(mobile).name("_ssd");
+
+        let backup_label = tr!("Backup");
+        let backup_field = Checkbox::new().switch(mobile).name("_backup");
+
+        let skip_replication_label = tr!("Skip replication");
+        let skip_replication_field = Checkbox::new()
+            .switch(mobile)
+            .name(NOREPLICATE_FIELD_NAME)
+            .submit(false);
+
+        let readonly_label = tr!("Read-only");
+        let readonly_field = Checkbox::new().switch(mobile).name(READONLY_PN);
 
         let mut panel = InputPanel::new()
-            .mobile(mobile)
+            .show_advanced(advanced)
+            .mobile(props.mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2);
 
         if is_create {
-            panel.add_field(
-                tr!("Bus/Device"),
-                QemuControllerSelector::new()
-                    .name(BUS_DEVICE)
-                    .submit(false)
-                    .exclude_devices(used_devices),
-            );
+            panel.add_field(bus_device_label, bus_device_field);
         } else {
-            panel.add_custom_child({
-                let file_text = match state.record.get(FILE_PN) {
-                    Some(Value::String(file)) => file.clone(),
-                    _ => String::new(),
-                };
-                let size_text = match state.record.get("_size") {
-                    Some(Value::String(s)) => s.clone(),
-                    _ => "-".into(),
-                };
-                Row::new()
-                    .key("filename_and_size")
-                    .gap(1)
-                    .with_child(Container::new().with_child(file_text))
-                    .with_flex_spacer()
-                    .with_child(Container::new().with_child(size_text))
-            });
+            panel.add_custom_child(file_info_child);
         }
 
-        panel.add_field(tr!("Cache"), QemuCacheTypeSelector::new().name("_cache"));
+        panel.add_field(cache_label, cache_field);
 
         if is_create {
-            panel.add_field(
-                tr!("Storage"),
-                PveStorageSelector::new(node.clone())
-                    .name(IMAGE_STORAGE)
-                    .submit(false)
-                    .required(true)
-                    .content_types(Some(vec![StorageContent::Images]))
-                    .mobile(mobile),
-            );
-
-            panel.add_field(
-                tr!("Disk size") + " (GiB)",
-                QemuDiskSizeFormatSelector::new().raw(false),
-            );
+            panel.add_field(storage_label, storage_field);
+            panel.add_field(disk_size_label, disk_size_field);
         }
 
-        panel.into()
+        panel.add_single_line_field(false, false, discard_label, discard_field);
+        panel.add_single_line_field(false, false, io_thread_label, io_thread_field);
 
-        /*
-        // fixme: boolean in property strings does not work currently
-        .with_child(
-            Row::new()
-                .gap(2)
-                .style("flex-wrap", "wrap")
-                .with_child(
-                    label_field(
-                        tr!("Discard"),
-                        Checkbox::new().name("_discard").default(true),
-                        true,
-                    )
-                    .class(pwt::css::JustifyContent::SpaceBetween),
-                )
-                .with_child(
-                    label_field(tr!("IO thread"), Checkbox::new().name("_iothread"), true)
-                        .class(pwt::css::JustifyContent::SpaceBetween),
-                )
-                .with_child(
-                    label_field(tr!("SSD emulation"), Checkbox::new().name("_ssd"), true)
-                        .class(pwt::css::JustifyContent::SpaceBetween),
-                )
-                .with_child(
-                    label_field(tr!("Backup"), Checkbox::new().name("_backup"), true)
-                        .class(pwt::css::JustifyContent::SpaceBetween),
-                )
-                .with_child(
-                    label_field(
-                        tr!("Skip replication"),
-                        Checkbox::new().name("_noreplicate"),
-                        true,
-                    )
-                    .class(pwt::css::JustifyContent::SpaceBetween),
-                )
-                .with_child(
-                    label_field(tr!("Read-only"), Checkbox::new().name("_readOnly"), true)
-                        .class(pwt::css::JustifyContent::SpaceBetween),
-                ),
-        )
-        */
-    })
+        panel.add_spacer(true);
+        panel.add_single_line_field(true, false, ssd_emulation_label, ssd_emulation_field);
+        panel.add_single_line_field(true, false, backup_label, backup_field);
+        panel.add_single_line_field(true, false, skip_replication_label, skip_replication_field);
+        panel.add_single_line_field(true, false, readonly_label, readonly_field);
+
+        panel.into()
+    }
 }
 
 pub fn qemu_disk_property(
     name: Option<String>,
     node: Option<AttrValue>,
+    remote: Option<AttrValue>,
     mobile: bool,
 ) -> EditableProperty {
     let mut title = tr!("Hard Disk");
@@ -144,7 +211,20 @@ pub fn qemu_disk_property(
     }
 
     EditableProperty::new(name.clone(), title)
-        .render_input_panel(disk_input_panel(name.clone(), node.clone(), mobile))
+        .advanced_checkbox(true)
+        .render_input_panel({
+            let name = name.clone();
+            move |state: PropertyEditorState| {
+                let props = DiskPanel {
+                    name: name.clone(),
+                    node: node.clone(),
+                    remote: remote.clone(),
+                    state,
+                    mobile,
+                };
+                VComp::new::<DiskPanelComp>(Rc::new(props), None).into()
+            }
+        })
         .load_hook({
             let name = name.clone();
 
@@ -196,6 +276,8 @@ pub fn qemu_disk_property(
                 }
 
                 let data = assemble_device_data(&state, &mut data, &device)?;
+                log::info!("SUBMIT1 {data}");
+
                 Ok(data)
             }
         })
@@ -455,6 +537,24 @@ fn flatten_device_data(record: &mut Value, name: &str) -> Result<(), Error> {
     } else {
         bail!("flatten_device_data: unsupported device type '{name}'");
     }
+
+    if let Some(Value::String(discard)) = record.get(DISCARD_PN) {
+        record[DISCARD_CHECKBOX_NAME] = match discard.as_str() {
+            "on" => true,
+            "ignore" => false,
+            _ => {
+                bail!("got unknown value for discard property: {discard}");
+            }
+        }
+        .into();
+    } else {
+        record[DISCARD_CHECKBOX_NAME] = false.into();
+    }
+
+    if let Some(Value::Bool(replicate)) = record.get(REPLICATE_PN) {
+        record[NOREPLICATE_FIELD_NAME] = (!replicate).into();
+    }
+
     Ok(())
 }
 
@@ -464,6 +564,18 @@ fn assemble_device_data(
     device: &str,
 ) -> Result<Value, Error> {
     let form_ctx = &state.form_ctx;
+
+    if let Some((_, _, Some(Value::Bool(no_replicate)))) =
+        form_ctx.read().get_field_data(NOREPLICATE_FIELD_NAME)
+    {
+        data[REPLICATE_PN] = (!no_replicate).into();
+    }
+    if let Some((_, _, Some(Value::Bool(discard)))) =
+        form_ctx.read().get_field_data(DISCARD_CHECKBOX_NAME)
+    {
+        data[DISCARD_PN] = if discard { "on" } else { "ignore" }.into();
+    }
+
     if device.starts_with("ide") {
         property_string_add_missing_data::<PveQmIde>(data, &state.record, form_ctx)?;
         property_string_from_parts::<PveQmIde>(data, device, true)?;
