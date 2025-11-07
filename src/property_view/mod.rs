@@ -227,8 +227,15 @@ pub fn render_loadable_panel(
     Column::new()
         .class(class)
         .with_optional_child(toolbar)
-        .with_optional_child(
-            loading.then(|| pwt::widget::Progress::new().class("pwt-delay-visibility")),
+        .style("position", "relative")
+        .with_child(
+            pwt::widget::Progress::new()
+                .class("pwt-delay-visibility")
+                .style("z-index", "1")
+                .style("position", "absolute")
+                .style("left", "0")
+                .style("right", "0")
+                .style("visibility", (!loading).then(|| "hidden")),
         )
         .with_child(panel)
         .with_optional_child(
