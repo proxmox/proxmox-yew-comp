@@ -12,7 +12,7 @@ use pwt::widget::{Container, InputPanel, Row};
 
 use pve_api_types::{
     PveQmIde, QemuConfigSata, QemuConfigScsi, QemuConfigScsiArray, QemuConfigUnused,
-    QemuConfigVirtio, StorageContent, StorageInfo,
+    QemuConfigVirtio, StorageContent, StorageInfo, StorageInfoFormatsDefault,
 };
 use yew::virtual_dom::VComp;
 
@@ -108,6 +108,14 @@ impl Component for DiskPanelComp {
         let used_devices = extract_used_devices(&state.record);
         let advanced = form_ctx.get_show_advanced();
 
+        let supported_formats = match &self.storage_info {
+            Some(StorageInfo {
+                formats: Some(formats),
+                ..
+            }) => formats.supported.clone(),
+            _ => vec![StorageInfoFormatsDefault::Raw],
+        };
+
         let bus_device_label = tr!("Bus/Device");
         let bus_device_field = QemuControllerSelector::new()
             .name(BUS_DEVICE)
@@ -145,7 +153,8 @@ impl Component for DiskPanelComp {
             .mobile(mobile);
 
         let disk_size_label = tr!("Disk size") + " (GiB)";
-        let disk_size_field = QemuDiskSizeFormatSelector::new().raw(false);
+        let disk_size_field =
+            QemuDiskSizeFormatSelector::new().supported_formats(Some(supported_formats));
 
         let discard_label = tr!("Discard");
         let discard_field = Checkbox::new()

@@ -1,5 +1,9 @@
 use std::rc::Rc;
 
+use anyhow::format_err;
+
+use pve_api_types::StorageInfoFormatsDefault;
+
 use pwt::state::Store;
 
 use pwt::prelude::*;
@@ -17,11 +21,6 @@ use yew::virtual_dom::{Key, VComp, VNode};
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct QemuDiskSizeFormatSelector {
-    /// Onyl allow to select 'raw' format
-    #[builder]
-    #[prop_or_default]
-    pub raw: bool,
-
     /// Field name used by disk size input ([f64])
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(QemuDiskSizeFormatSelector::DISK_SIZE)]
@@ -39,6 +38,10 @@ pub struct QemuDiskSizeFormatSelector {
 
     #[prop_or_default]
     label_id: Option<AttrValue>,
+
+    #[builder]
+    #[prop_or_default]
+    supported_formats: Option<Vec<StorageInfoFormatsDefault>>,
 }
 
 impl QemuDiskSizeFormatSelector {
@@ -77,22 +80,40 @@ impl QemuDiskSizeFormatComp {
     fn populate_store(&mut self, ctx: &Context<Self>) {
         let props = ctx.props();
 
-        let mut data = vec![Entry {
-            format: String::from("raw"),
-            description: tr!("Raw disk image"),
-        }];
+        let mut data = Vec::new();
 
-        if !props.raw {
-            data.extend(vec![
-                Entry {
-                    format: String::from("qcow2"),
-                    description: tr!("QEMU image format"),
-                },
-                Entry {
-                    format: String::from("vmdk"),
-                    description: tr!("VMware image format"),
-                },
-            ]);
+        if props
+            .supported_formats
+            .as_ref()
+            .map(|list| list.contains(&StorageInfoFormatsDefault::Raw))
+            .unwrap_or(true)
+        {
+            data.push(Entry {
+                format: String::from("raw"),
+                description: tr!("Raw disk image"),
+            });
+        }
+        if props
+            .supported_formats
+            .as_ref()
+            .map(|list| list.contains(&StorageInfoFormatsDefault::Qcow2))
+            .unwrap_or(true)
+        {
+            data.push(Entry {
+                format: String::from("qcow2"),
+                description: tr!("QEMU image format"),
+            });
+        }
+        if props
+            .supported_formats
+            .as_ref()
+            .map(|list| list.contains(&StorageInfoFormatsDefault::Vmdk))
+            .unwrap_or(true)
+        {
+            data.push(Entry {
+                format: String::from("vmdk"),
+                description: tr!("VMware image format"),
+            });
         }
         self.store.set_data(data);
     }
@@ -111,7 +132,7 @@ impl Component for QemuDiskSizeFormatComp {
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
-        if props.raw != old_props.raw {
+        if props.supported_formats != old_props.supported_formats {
             self.populate_store(ctx);
         }
         true
@@ -150,13 +171,21 @@ impl Component for QemuDiskSizeFormatComp {
                         .into()
                     },
                 )
-                .style("min-width", "6em")
+                .style("min-width", "8em")
                 .name(&props.disk_format_name)
                 .disabled(props.disabled)
                 .submit(false)
                 .required(true)
                 .default("raw")
-                .render_value(|v: &AttrValue| v.to_string().into()),
+                .render_value(|v: &AttrValue| v.to_string().into())
+                .validate(|(value, store): &(String, Store<Entry>)| {
+                    store
+                        .read()
+                        .iter()
+                        .find(|item| &item.format == value)
+                        .ok_or_else(|| format_err!("no such item"))
+                        .map(|_| ())
+                }),
             )
             .into()
     }
