@@ -178,28 +178,81 @@ impl Component for DiskPanelComp {
             .class(pwt::css::FlexFit)
             .padding_x(2);
 
-        if is_create {
-            panel.add_field(bus_device_label, bus_device_field);
+        if mobile {
+            if is_create {
+                panel.add_field(bus_device_label, bus_device_field);
+            } else {
+                panel.add_custom_child(file_info_child);
+            }
+
+            panel.add_field(cache_label, cache_field);
+
+            if is_create {
+                panel.add_field(storage_label, storage_field);
+                panel.add_field(disk_size_label, disk_size_field);
+            }
+
+            panel.add_single_line_field(false, false, discard_label, discard_field);
+            panel.add_single_line_field(false, false, io_thread_label, io_thread_field);
+
+            panel.add_spacer(true);
+            panel.add_single_line_field(true, false, ssd_emulation_label, ssd_emulation_field);
+            panel.add_single_line_field(true, false, backup_label, backup_field);
+            panel.add_single_line_field(
+                true,
+                false,
+                skip_replication_label,
+                skip_replication_field,
+            );
+            panel.add_single_line_field(true, false, readonly_label, readonly_field);
         } else {
-            panel.add_custom_child(file_info_child);
+            panel.set_field_width("minmax(250px, 1fr)");
+            if is_create {
+                panel.add_field(bus_device_label, bus_device_field);
+            } else {
+                panel.add_custom_child(file_info_child);
+            }
+
+            panel.add_right_field(cache_label, cache_field);
+
+            if is_create {
+                panel.add_field(storage_label, storage_field);
+                panel.add_field(disk_size_label, disk_size_field);
+            }
+
+            panel.add_right_field(discard_label, discard_field);
+            panel.add_right_field(io_thread_label, io_thread_field);
+
+            panel.add_spacer(true);
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Left,
+                true,
+                false,
+                ssd_emulation_label,
+                ssd_emulation_field,
+            );
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Right,
+                true,
+                false,
+                backup_label,
+                backup_field,
+            );
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Left,
+                true,
+                false,
+                readonly_label,
+                readonly_field,
+            );
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Right,
+                true,
+                false,
+                skip_replication_label,
+                skip_replication_field,
+            );
         }
-
-        panel.add_field(cache_label, cache_field);
-
-        if is_create {
-            panel.add_field(storage_label, storage_field);
-            panel.add_field(disk_size_label, disk_size_field);
-        }
-
-        panel.add_single_line_field(false, false, discard_label, discard_field);
-        panel.add_single_line_field(false, false, io_thread_label, io_thread_field);
-
-        panel.add_spacer(true);
-        panel.add_single_line_field(true, false, ssd_emulation_label, ssd_emulation_field);
-        panel.add_single_line_field(true, false, backup_label, backup_field);
-        panel.add_single_line_field(true, false, skip_replication_label, skip_replication_field);
-        panel.add_single_line_field(true, false, readonly_label, readonly_field);
-
         panel.into()
     }
 }
