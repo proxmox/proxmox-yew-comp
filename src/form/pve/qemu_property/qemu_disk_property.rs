@@ -108,12 +108,13 @@ impl Component for DiskPanelComp {
         let used_devices = extract_used_devices(&state.record);
         let advanced = form_ctx.get_show_advanced();
 
-        let supported_formats = match &self.storage_info {
+        let (supported_formats, select_existing) = match &self.storage_info {
             Some(StorageInfo {
                 formats: Some(formats),
+                select_existing,
                 ..
-            }) => formats.supported.clone(),
-            _ => vec![StorageInfoFormatsDefault::Raw],
+            }) => (formats.supported.clone(), select_existing.unwrap_or(false)),
+            _ => (vec![StorageInfoFormatsDefault::Raw], false),
         };
 
         let bus_device_label = tr!("Bus/Device");
@@ -151,6 +152,14 @@ impl Component for DiskPanelComp {
             .content_types(Some(vec![StorageContent::Images]))
             .on_change(ctx.link().callback(DiskPanelMsg::StorageInfo))
             .mobile(mobile);
+
+        let disk_image_label = tr!("Disk image");
+        let disk_image_field = PveStorageContentSelector::new()
+            .mobile(mobile)
+            .name(FILE_PN)
+            .node(props.node.clone())
+            .required(true)
+            .storage(self.storage_info.as_ref().map(|info| info.storage.clone()));
 
         let disk_size_label = tr!("Disk size") + " (GiB)";
         let disk_size_field =
@@ -198,7 +207,11 @@ impl Component for DiskPanelComp {
 
             if is_create {
                 panel.add_field(storage_label, storage_field);
-                panel.add_field(disk_size_label, disk_size_field);
+                if select_existing {
+                    panel.add_field(disk_image_label, disk_image_field);
+                } else {
+                    panel.add_field(disk_size_label, disk_size_field);
+                }
             }
 
             panel.add_single_line_field(false, false, discard_label, discard_field);
@@ -226,7 +239,11 @@ impl Component for DiskPanelComp {
 
             if is_create {
                 panel.add_field(storage_label, storage_field);
-                panel.add_field(disk_size_label, disk_size_field);
+                if select_existing {
+                    panel.add_field(disk_image_label, disk_image_field);
+                } else {
+                    panel.add_field(disk_size_label, disk_size_field);
+                }
             }
 
             panel.add_right_field(discard_label, discard_field);
@@ -322,29 +339,29 @@ pub fn qemu_disk_property(
                 };
 
                 if is_create {
-                    let image_storage = form_ctx.read().get_field_text(IMAGE_STORAGE);
-                    let image_size = match form_ctx
-                        .read()
-                        .get_last_valid_value(QemuDiskSizeFormatSelector::DISK_SIZE)
-                    {
-                        Some(Value::Number(size)) => size.as_f64().unwrap(),
-                        _ => bail!("got invalid disk size"),
-                    };
-                    let image = format!("{image_storage}:{image_size}");
-                    data[FILE_PN] = image.into();
+                    if data[FILE_PN].is_null() {
+                        let image_storage = form_ctx.read().get_field_text(IMAGE_STORAGE);
+                        let image_size = match form_ctx
+                            .read()
+                            .get_last_valid_value(QemuDiskSizeFormatSelector::DISK_SIZE)
+                        {
+                            Some(Value::Number(size)) => size.as_f64().unwrap(),
+                            _ => bail!("got invalid disk size"),
+                        };
+                        let image = format!("{image_storage}:{image_size}");
+                        data[FILE_PN] = image.into();
 
-                    let image_format = form_ctx
-                        .read()
-                        .get_field_text(QemuDiskSizeFormatSelector::DISK_FORMAT);
+                        let image_format = form_ctx
+                            .read()
+                            .get_field_text(QemuDiskSizeFormatSelector::DISK_FORMAT);
 
-                    if !image_format.is_empty() {
-                        data["_format"] = Value::String(image_format);
+                        if !image_format.is_empty() {
+                            data["_format"] = Value::String(image_format);
+                        }
                     }
                 }
 
                 let data = assemble_device_data(&state, &mut data, &device)?;
-                log::info!("SUBMIT1 {data}");
-
                 Ok(data)
             }
         })
