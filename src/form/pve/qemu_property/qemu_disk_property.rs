@@ -492,6 +492,7 @@ fn cdrom_input_panel(
                     .disabled(media_type != "iso")
                     .remote(remote.clone())
                     .name(IMAGE_STORAGE)
+                    .content_types(Some(vec![StorageContent::Iso]))
                     .submit(false)
                     .required(true)
                     .autoselect(true),
