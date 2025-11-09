@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use pwt::widget::form::Checkbox;
+use pwt::widget::form::{Checkbox, FormContextObserver};
 use pwt::widget::Container;
 
 use pwt::prelude::*;
@@ -32,23 +32,35 @@ struct QemuEfidiskPanel {
 }
 
 enum Msg {
+    FormUpdate,
     StorageInfo(Option<StorageInfo>),
 }
 struct QemuEfidiskPanelComp {
     storage_info: Option<StorageInfo>,
+    _observer: FormContextObserver,
 }
 
 impl Component for QemuEfidiskPanelComp {
     type Message = Msg;
     type Properties = QemuEfidiskPanel;
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self { storage_info: None }
+    fn create(ctx: &Context<Self>) -> Self {
+        let props = ctx.props();
+        let _observer = props
+            .state
+            .form_ctx
+            .add_listener(ctx.link().callback(|_| Msg::FormUpdate));
+
+        Self {
+            storage_info: None,
+            _observer,
+        }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::StorageInfo(info) => self.storage_info = info,
+            Msg::FormUpdate => { /* redraw */ }
         }
         true
     }
