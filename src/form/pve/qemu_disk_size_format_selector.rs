@@ -1,21 +1,20 @@
 use std::rc::Rc;
 
-use anyhow::format_err;
-
 use pve_api_types::StorageInfoFormatsDefault;
 
 use pwt::state::Store;
 
 use pwt::prelude::*;
-use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
-use pwt::widget::form::{Number, Selector, SelectorRenderArgs};
+use pwt::widget::form::Number;
 
-use pwt::widget::{GridPicker, Labelable, Row};
+use pwt::widget::{Labelable, Row};
 
 use pwt_macros::builder;
 
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
+
+use super::QemuDiskFormatSelector;
 
 //#[widget(comp=QemuDiskSizeFormatComp, @input)]
 #[derive(Clone, PartialEq, Properties)]
@@ -39,9 +38,15 @@ pub struct QemuDiskSizeFormatSelector {
     #[prop_or_default]
     label_id: Option<AttrValue>,
 
+    /// List of supported formats
     #[builder]
     #[prop_or_default]
     supported_formats: Option<Vec<StorageInfoFormatsDefault>>,
+
+    /// Default format
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    default_format: Option<StorageInfoFormatsDefault>,
 }
 
 impl QemuDiskSizeFormatSelector {
@@ -155,53 +160,16 @@ impl Component for QemuDiskSizeFormatComp {
                     .default(32.0),
             )
             .with_child(
-                Selector::new(
-                    self.store.clone(),
-                    move |args: &SelectorRenderArgs<Store<Entry>>| {
-                        GridPicker::new(
-                            DataTable::new(columns(), args.store.clone())
-                                .min_width(300)
-                                .show_header(false)
-                                .header_focusable(false)
-                                .class(pwt::css::FlexFit)
-                                .into(),
-                        )
-                        .selection(args.selection.clone())
-                        .on_select(args.controller.on_select_callback())
-                        .into()
-                    },
-                )
-                .style("min-width", "8em")
-                .name(&props.disk_format_name)
-                .disabled(props.disabled)
-                .submit(false)
-                .required(true)
-                .default("raw")
-                .render_value(|v: &AttrValue| v.to_string().into())
-                .validate(|(value, store): &(String, Store<Entry>)| {
-                    store
-                        .read()
-                        .iter()
-                        .find(|item| &item.format == value)
-                        .ok_or_else(|| format_err!("no such item"))
-                        .map(|_| ())
-                }),
+                QemuDiskFormatSelector::new()
+                    .name(&props.disk_format_name)
+                    .required(true)
+                    .disabled(props.disabled)
+                    .supported_formats(props.supported_formats.clone())
+                    .default(props.default_format)
+                    .submit(false),
             )
             .into()
     }
-}
-
-fn columns() -> Rc<Vec<DataTableHeader<Entry>>> {
-    Rc::new(vec![
-        DataTableColumn::new(tr!("Format"))
-            .width("8em")
-            .get_property(|entry: &Entry| &entry.format)
-            .into(),
-        DataTableColumn::new(tr!("Description"))
-            .width("15em")
-            .render(|entry: &Entry| entry.description.clone().into())
-            .into(),
-    ])
 }
 
 impl Into<VNode> for QemuDiskSizeFormatSelector {

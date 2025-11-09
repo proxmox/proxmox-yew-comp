@@ -50,6 +50,11 @@ pub struct PveStorageSelector {
     #[prop_or_default]
     pub content_types: Option<Vec<StorageContent>>,
 
+    /// Include storages with select_existing flag (e.g. iscsi)
+    #[builder]
+    #[prop_or(true)]
+    pub include_select_existing: bool,
+
     /// If set, automatically selects the first value from the store (if no default is selected)
     #[builder]
     #[prop_or(false)]
@@ -80,6 +85,7 @@ impl PveStorageSelectorComp {
         node: AttrValue,
         remote: Option<AttrValue>,
         content: Option<Vec<StorageContent>>,
+        include_select_existing: bool,
     ) -> Result<Vec<StorageInfo>, Error> {
         let url = if let Some(remote) = &remote {
             // fixme: is this url correct?
@@ -103,6 +109,10 @@ impl PveStorageSelectorComp {
 
         let mut storages: Vec<StorageInfo> = crate::http_get(url, Some(param)).await?;
 
+        if !include_select_existing {
+            storages.retain(|info| info.select_existing != Some(true));
+        }
+
         storages.sort_by(|a, b| a.storage.cmp(&b.storage));
         Ok(storages)
     }
@@ -112,12 +122,14 @@ impl PveStorageSelectorComp {
         let node = props.node.clone();
         let remote = props.remote.clone();
         let content_types = props.content_types.clone();
+        let include_select_existing = props.include_select_existing;
 
         (move || {
             Self::get_storage_list(
                 node.clone().unwrap_or("localhost".into()),
                 remote.clone(),
                 content_types.clone(),
+                include_select_existing,
             )
         })
         .into()

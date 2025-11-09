@@ -1,5 +1,3 @@
-use pwt::prelude::*;
-
 mod boot_device_list;
 pub use boot_device_list::{BootDeviceList, PveBootDeviceList};
 
@@ -17,6 +15,9 @@ pub use qemu_cpu_flags_list::QemuCpuFlags;
 
 mod qemu_cpu_model_selector;
 pub use qemu_cpu_model_selector::QemuCpuModelSelector;
+
+mod qemu_disk_format_selector;
+pub use qemu_disk_format_selector::QemuDiskFormatSelector;
 
 mod qemu_disk_size_format_selector;
 pub use qemu_disk_size_format_selector::QemuDiskSizeFormatSelector;
@@ -60,14 +61,3 @@ pub use qemu_property::{
 
 mod pve_storage_selector;
 pub use pve_storage_selector::PveStorageSelector;
-
-use pwt::widget::form::Combobox;
-
-pub fn qemu_image_format_selector() -> Combobox {
-    Combobox::from_key_value_pairs([
-        ("raw", tr!("Raw disk image") + " (raw)"),
-        ("qcow2", tr!("QEMU image format") + " (qcow2)"),
-        ("vmdk", tr!("VMware image format") + " (vmdk)"),
-    ])
-    .placeholder("raw")
-}

@@ -108,13 +108,21 @@ impl Component for DiskPanelComp {
         let used_devices = extract_used_devices(&state.record);
         let advanced = form_ctx.get_show_advanced();
 
-        let (supported_formats, select_existing) = match &self.storage_info {
+        let (supported_formats, default_format, select_existing) = match &self.storage_info {
             Some(StorageInfo {
                 formats: Some(formats),
                 select_existing,
                 ..
-            }) => (formats.supported.clone(), select_existing.unwrap_or(false)),
-            _ => (vec![StorageInfoFormatsDefault::Raw], false),
+            }) => (
+                formats.supported.clone(),
+                formats.default,
+                select_existing.unwrap_or(false),
+            ),
+            _ => (
+                vec![StorageInfoFormatsDefault::Raw],
+                StorageInfoFormatsDefault::Raw,
+                false,
+            ),
         };
 
         let bus_device_label = tr!("Bus/Device");
@@ -162,8 +170,9 @@ impl Component for DiskPanelComp {
             .storage(self.storage_info.as_ref().map(|info| info.storage.clone()));
 
         let disk_size_label = tr!("Disk size") + " (GiB)";
-        let disk_size_field =
-            QemuDiskSizeFormatSelector::new().supported_formats(Some(supported_formats));
+        let disk_size_field = QemuDiskSizeFormatSelector::new()
+            .supported_formats(Some(supported_formats))
+            .default_format(default_format);
 
         let discard_label = tr!("Discard");
         let discard_field = Checkbox::new()

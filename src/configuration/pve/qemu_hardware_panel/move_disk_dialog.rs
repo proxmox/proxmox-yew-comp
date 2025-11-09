@@ -7,7 +7,7 @@ use pwt::widget::InputPanel;
 use pve_api_types::{StorageContent, StorageInfo};
 use yew::virtual_dom::VComp;
 
-use crate::form::pve::{qemu_image_format_selector, PveStorageSelector};
+use crate::form::pve::{PveStorageSelector, QemuDiskFormatSelector};
 use crate::{PropertyEditDialog, PropertyEditorState};
 
 #[derive(PartialEq, Properties, Clone)]
@@ -52,13 +52,14 @@ impl Component for QemuMoveDiskPanelComp {
             .remote(props.remote.clone())
             .name("storage")
             .required(true)
+            .include_select_existing(false)
             .autoselect(true)
             .content_types(Some(vec![StorageContent::Images]))
             .on_change(ctx.link().callback(Msg::StorageInfo))
             .mobile(props.mobile);
 
         let format_label = tr!("Format");
-        let format_field = qemu_image_format_selector()
+        let format_field = QemuDiskFormatSelector::new()
             .name("format")
             .disabled(disable_format_selector);
 
