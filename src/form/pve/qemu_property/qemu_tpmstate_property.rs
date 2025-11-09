@@ -8,8 +8,10 @@ use pwt::widget::form::{Combobox, FormContextObserver};
 use pwt::widget::InputPanel;
 
 const IMAGE_STORAGE: &'static str = "_storage_";
+const FILE_PN: &'static str = "_file";
 
 use crate::form::property_string_from_parts;
+use crate::form::pve::pve_storage_content_selector::PveStorageContentSelector;
 use crate::form::pve::PveStorageSelector;
 use crate::{EditableProperty, PropertyEditorState};
 
@@ -59,7 +61,22 @@ impl Component for QemuTpmStatePanelComp {
         let props = ctx.props();
         let mobile = props.mobile;
 
-        InputPanel::new()
+        let select_existing = match &self.storage_info {
+            Some(StorageInfo {
+                select_existing, ..
+            }) => select_existing.unwrap_or(false),
+            _ => false,
+        };
+
+        let disk_image_label = tr!("Disk image");
+        let disk_image_field = PveStorageContentSelector::new()
+            .mobile(mobile)
+            .name(FILE_PN)
+            .node(props.node.clone())
+            .required(true)
+            .storage(self.storage_info.as_ref().map(|info| info.storage.clone()));
+
+        let mut panel = InputPanel::new()
             .mobile(mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
@@ -74,7 +91,13 @@ impl Component for QemuTpmStatePanelComp {
                     .content_types(Some(vec![StorageContent::Images]))
                     .on_change(ctx.link().callback(Msg::StorageInfo))
                     .mobile(true),
-            )
+            );
+
+        if select_existing {
+            panel.add_field(disk_image_label, disk_image_field);
+        }
+
+        panel
             .with_field(
                 tr!("Version"),
                 Combobox::new()
@@ -111,8 +134,10 @@ pub fn qemu_tpmstate_property(
 
             let storage = form_ctx.read().get_field_text(IMAGE_STORAGE);
 
-            // we use 1 here, because for tpmstate the size gets overridden from the backend
-            data["_file"] = format!("{}:1", storage).into();
+            if data[FILE_PN].is_null() {
+                // we use 1 here, because for tpmstate the size gets overridden from the backend
+                data[FILE_PN] = format!("{}:1", storage).into();
+            }
 
             property_string_from_parts::<QemuConfigTpmstate0>(&mut data, "tpmstate0", true)?;
             Ok(data)
