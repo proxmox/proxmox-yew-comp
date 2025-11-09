@@ -1,36 +1,78 @@
-use pwt::widget::form::Combobox;
+use std::rc::Rc;
+
+use pve_api_types::{QemuConfigTpmstate0, StorageContent, StorageInfo};
+use yew::virtual_dom::VComp;
 
 use pwt::prelude::*;
+use pwt::widget::form::{Combobox, FormContextObserver};
 use pwt::widget::InputPanel;
-
-use pve_api_types::{QemuConfigTpmstate0, StorageContent};
 
 const IMAGE_STORAGE: &'static str = "_storage_";
 
 use crate::form::property_string_from_parts;
 use crate::form::pve::PveStorageSelector;
+use crate::{EditableProperty, PropertyEditorState};
 
-use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
-
-fn input_panel(
+#[derive(PartialEq, Properties)]
+struct QemuTpmStatePanel {
     node: Option<AttrValue>,
     remote: Option<AttrValue>,
     mobile: bool,
-) -> RenderPropertyInputPanelFn {
-    RenderPropertyInputPanelFn::new(move |_state: PropertyEditorState| {
+    state: PropertyEditorState,
+}
+
+enum Msg {
+    FormUpdate,
+    StorageInfo(Option<StorageInfo>),
+}
+struct QemuTpmStatePanelComp {
+    storage_info: Option<StorageInfo>,
+    _observer: FormContextObserver,
+}
+
+impl Component for QemuTpmStatePanelComp {
+    type Message = Msg;
+    type Properties = QemuTpmStatePanel;
+
+    fn create(ctx: &Context<Self>) -> Self {
+        let props = ctx.props();
+        let _observer = props
+            .state
+            .form_ctx
+            .add_listener(ctx.link().callback(|_| Msg::FormUpdate));
+
+        Self {
+            storage_info: None,
+            _observer,
+        }
+    }
+
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Msg::StorageInfo(info) => self.storage_info = info,
+            Msg::FormUpdate => { /* redraw */ }
+        }
+        true
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let props = ctx.props();
+        let mobile = props.mobile;
+
         InputPanel::new()
             .mobile(mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
             .with_field(
                 tr!("Storage"),
-                PveStorageSelector::new(node.clone())
-                    .remote(remote.clone())
+                PveStorageSelector::new(props.node.clone())
+                    .remote(props.remote.clone())
                     .name(IMAGE_STORAGE)
                     .submit(false)
                     .required(true)
                     .autoselect(true)
                     .content_types(Some(vec![StorageContent::Images]))
+                    .on_change(ctx.link().callback(Msg::StorageInfo))
                     .mobile(true),
             )
             .with_field(
@@ -43,7 +85,7 @@ fn input_panel(
                     .required(true),
             )
             .into()
-    })
+    }
 }
 
 pub fn qemu_tpmstate_property(
@@ -54,7 +96,15 @@ pub fn qemu_tpmstate_property(
 ) -> EditableProperty {
     let title = tr!("TPM State");
     EditableProperty::new(name.clone(), title)
-        .render_input_panel(input_panel(node, remote, mobile))
+        .render_input_panel(move |state| {
+            let props = QemuTpmStatePanel {
+                state,
+                node: node.clone(),
+                remote: remote.clone(),
+                mobile,
+            };
+            VComp::new::<QemuTpmStatePanelComp>(Rc::new(props), None).into()
+        })
         .submit_hook(move |state: PropertyEditorState| {
             let form_ctx = &state.form_ctx;
             let mut data = form_ctx.get_submit_data();
