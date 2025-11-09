@@ -11,8 +11,7 @@ const IMAGE_STORAGE: &'static str = "_storage_";
 const FILE_PN: &'static str = "_file";
 
 use crate::form::property_string_from_parts;
-use crate::form::pve::pve_storage_content_selector::PveStorageContentSelector;
-use crate::form::pve::PveStorageSelector;
+use crate::form::pve::{PveStorageContentSelector, PveStorageSelector};
 use crate::{EditableProperty, PropertyEditorState};
 
 #[derive(PartialEq, Properties)]

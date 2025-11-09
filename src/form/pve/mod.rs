@@ -35,6 +35,7 @@ mod pve_network_selector;
 pub use pve_network_selector::PveNetworkSelector;
 
 mod pve_storage_content_selector;
+pub use pve_storage_content_selector::PveStorageContentSelector;
 
 mod pve_vlan_field;
 pub use pve_vlan_field::PveVlanField;

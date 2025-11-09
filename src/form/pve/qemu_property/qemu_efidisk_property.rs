@@ -18,8 +18,7 @@ const FILE_PN: &'static str = "_file";
 const EFITYPE_PN: &'static str = "_efitype";
 
 use crate::form::property_string_from_parts;
-use crate::form::pve::pve_storage_content_selector::PveStorageContentSelector;
-use crate::form::pve::{PveStorageSelector, QemuDiskFormatSelector};
+use crate::form::pve::{PveStorageContentSelector, PveStorageSelector, QemuDiskFormatSelector};
 
 use crate::{EditableProperty, PropertyEditorState};
 
@@ -95,7 +94,7 @@ impl Component for QemuEfidiskPanelComp {
             _ => true,
         };
 
-        // disbale selector if there is no real choice
+        // disable selector if there is no real choice
         let disable_format_selector = supported_formats.len() <= 1;
         let hide_format_selector = select_existing;
 
