@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
-use pwt::prelude::*;
-use pwt::widget::form::Checkbox;
-use pwt::widget::InputPanel;
-
-use pve_api_types::{StorageContent, StorageInfo};
+use pve_api_types::{StorageContent, StorageInfo, StorageInfoFormatsDefault};
 use yew::virtual_dom::VComp;
+
+use pwt::prelude::*;
+use pwt::widget::form::{Checkbox, FormContextObserver};
+use pwt::widget::InputPanel;
 
 use crate::form::pve::{PveStorageSelector, QemuDiskFormatSelector};
 use crate::{PropertyEditDialog, PropertyEditorState};
@@ -19,24 +19,36 @@ struct QemuMoveDiskPanel {
 }
 
 enum Msg {
+    FormUpdate,
     StorageInfo(Option<StorageInfo>),
 }
 
 struct QemuMoveDiskPanelComp {
     storage_info: Option<StorageInfo>,
+    _observer: FormContextObserver,
 }
 
 impl Component for QemuMoveDiskPanelComp {
     type Message = Msg;
     type Properties = QemuMoveDiskPanel;
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self { storage_info: None }
+    fn create(ctx: &Context<Self>) -> Self {
+        let props = ctx.props();
+        let _observer = props
+            .state
+            .form_ctx
+            .add_listener(ctx.link().callback(|_| Msg::FormUpdate));
+
+        Self {
+            storage_info: None,
+            _observer,
+        }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::StorageInfo(info) => self.storage_info = info,
+            Msg::FormUpdate => { /* redraw */ }
         }
         true
     }
@@ -44,8 +56,19 @@ impl Component for QemuMoveDiskPanelComp {
         let props = ctx.props();
         // let state = &props.state;
 
-        // fixme: detect available storage formats from self.storage_info
-        let disable_format_selector = true;
+        let (supported_formats, default_format) = match &self.storage_info {
+            Some(StorageInfo {
+                formats: Some(formats),
+                ..
+            }) => (formats.supported.clone(), formats.default),
+            _ => (
+                vec![StorageInfoFormatsDefault::Raw],
+                StorageInfoFormatsDefault::Raw,
+            ),
+        };
+
+        // disable selector if there is no real choice
+        let disable_format_selector = supported_formats.len() <= 1;
 
         let storage_label = tr!("Storage");
         let storage_field = PveStorageSelector::new(props.node.clone())
@@ -61,6 +84,8 @@ impl Component for QemuMoveDiskPanelComp {
         let format_label = tr!("Format");
         let format_field = QemuDiskFormatSelector::new()
             .name("format")
+            .supported_formats(Some(supported_formats))
+            .default(default_format)
             .disabled(disable_format_selector);
 
         let delete_source_label = tr!("Delete source");
