@@ -80,19 +80,7 @@ impl Component for DiskPanelComp {
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            DiskPanelMsg::StorageInfo(info) => {
-                if let Some(info) = &info {
-                    log::info!("Storage changed: {:?}", info.storage);
-                    match &info.formats {
-                        Some(formats) => {
-                            log::info!("default format: {:?}", formats.default);
-                            log::info!("supported formats: {:?}", formats.supported);
-                        }
-                        _ => (),
-                    }
-                }
-                self.storage_info = info;
-            }
+            DiskPanelMsg::StorageInfo(info) => self.storage_info = info,
             DiskPanelMsg::FormUpdate => { /* redraw */ }
         }
         true
