@@ -480,6 +480,7 @@ fn cdrom_input_panel(
                     .default(true)
                     .box_label(tr!("Use CD/DVD disc image file (iso)"))
                     .name(MEDIA_TYPE)
+                    .key("media-type-iso")
                     .submit(false),
             )
             .with_field(
@@ -509,12 +510,14 @@ fn cdrom_input_panel(
                 RadioButton::new("cdrom")
                     .box_label(tr!("Use physical CD/DVD Drive"))
                     .name(MEDIA_TYPE)
+                    .key("media-type-cdrom")
                     .submit(false),
             )
             .with_custom_child(
                 RadioButton::new("none")
                     .box_label(tr!("Do not use any media"))
                     .name(MEDIA_TYPE)
+                    .key("media-type-none")
                     .submit(false),
             )
             .into()
