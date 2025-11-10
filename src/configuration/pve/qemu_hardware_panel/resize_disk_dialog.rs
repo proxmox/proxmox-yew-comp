@@ -37,7 +37,7 @@ pub fn qemu_resize_disk_dialog(
             }
         })
         .renderer(move |_| {
-            let incr_label = tr!("Size IncrementX") + " (" + &tr!("GiB") + ")";
+            let incr_label = tr!("Size Increment") + " (" + &tr!("GiB") + ")";
             let incr_field = Number::<f64>::new()
                 .name("_size_increment_")
                 .default(0.0)
