@@ -5,7 +5,7 @@ use yew::prelude::*;
 
 use pwt::prelude::*;
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::{ConfirmDialog, Container, Fa, List, ListTile};
+use pwt::widget::{Column, ConfirmDialog, Container, Fa, List, ListTile};
 
 use pwt::props::{IntoOptionalInlineHtml, SubmitCallback};
 
@@ -328,7 +328,16 @@ impl PveQemuHardwarePanel {
         let menu = Menu::new().with_item({
             let link = ctx.link().clone();
 
+            let volume = record[name].as_str().unwrap_or(&name);
+
+            let message1 = tr!("Are you sure you want to delete disk {0}.", volume);
+            let message2 = tr!("This will permanently erase all data.");
+            let message = Column::new()
+                .with_child(message1)
+                .with_child(html! {<br/>})
+                .with_child(message2);
             let dialog: Html = ConfirmDialog::default()
+                .confirm_message(message)
                 .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                 .on_confirm(link.callback({
                     let name = name.to_string();
