@@ -100,6 +100,7 @@ fn socket_cores_input_panel(
                 .with_field(cores_label, cores_field)
                 .with_custom_child(
                     Row::new()
+                        .key("total-cores-display")
                         .padding_top(1)
                         .gap(PwtSpace::Em(0.5))
                         .with_child(total_label + ":")
