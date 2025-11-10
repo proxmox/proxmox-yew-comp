@@ -1,3 +1,21 @@
+rust-proxmox-yew-comp (0.6.9) trixie; urgency=medium
+
+  * qemu mobile hardware panel: improve remove disk confirm message
+  * qemu move disk dialog: enable delete source checkbox
+  * qemu machine version selector: add entries for latest version
+  * qemu machine editor: fix version property name
+  * qemu memory editor: correctly disable ballooning device
+  * qemu tpm editor: add support for with select_existing flag (e.g. iscsi)
+  * QemuDiskFormatSelector: new widget
+  * qemu cdrom editor: set correct content_types on the storage selector
+  * qemu disk editor: support storages with select_existing flag (i.e. iscsi)
+  * QemuDiskSizeFormatSelector: add supported_formats property
+  * qemu disk editor: implement desktop layout
+  * qemu disk editor: remove default values from property string
+  * proverty view: improve loading progress bar layout
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 10 Nov 2025 11:00:33 +0100
+
 rust-proxmox-yew-comp (0.6.8) trixie; urgency=medium
 
   * node info: extend NodeStatus enum to include NodeStatus from proxmox-rs
