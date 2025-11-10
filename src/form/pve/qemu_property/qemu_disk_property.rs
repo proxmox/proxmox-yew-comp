@@ -544,9 +544,13 @@ pub fn qemu_cdrom_property(
             move |mut record: Value| {
                 if let Some(name) = &name {
                     flatten_device_data(&mut record, name)?;
+                    record[BUS_DEVICE] = name.clone().into();
+                } else {
+                    let used_devices = extract_used_devices(&record);
+                    if !used_devices.contains("ide2") {
+                        record[BUS_DEVICE] = "ide2".into();
+                    }
                 }
-
-                record[BUS_DEVICE] = name.clone().into();
 
                 match record["_file"].as_str() {
                     Some("cdrom") => {
