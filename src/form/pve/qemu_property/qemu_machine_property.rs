@@ -51,6 +51,10 @@ fn placeholder() -> String {
     tr!("Default") + &format!(" ({})", QemuMachineType::I440fx)
 }
 
+fn get_version_prop_name(machine_type: String) -> String {
+    format!("_{machine_type}-version")
+}
+
 fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
@@ -73,7 +77,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             .flatten()
             .unwrap_or(QemuMachineType::I440fx);
 
-        let version_prop_name = format!("_{machine_type}-version");
+        let version_prop_name = get_version_prop_name(machine_type.to_string());
         let show_version = match form_ctx.read().get_field_data(version_prop_name) {
             Some((Value::String(version), Ok(_), _)) => {
                 if version.is_empty() || version == "pc" || version == "q35" {
@@ -88,7 +92,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 
         let add_version_selector = |panel: &mut InputPanel, ty| {
             let disabled = machine_type != ty;
-            let name = format!("_{ty}-version");
+            let name = get_version_prop_name(ty.to_string());
             let field = QemuMachineVersionSelector::new(ty)
                 .name(name)
                 .disabled(machine_type != ty)
@@ -190,7 +194,7 @@ pub fn qemu_machine_property(mobile: bool) -> EditableProperty {
             let machine_type = record["_type"].as_str().unwrap_or("");
             let machine_type = extract_machine_type(machine_type);
 
-            let version_prop_name = format!("_{machine_type}-version");
+            let version_prop_name = get_version_prop_name(machine_type.to_string());
             record[version_prop_name] = record["_type"].take();
 
             record["_extracted-type"] = machine_type.to_string().into();
@@ -204,8 +208,10 @@ pub fn qemu_machine_property(mobile: bool) -> EditableProperty {
 
                 let machine_type = form_ctx.read().get_field_text("_extracted-type");
 
-                let version_prop_name = format!("{machine_type}-version");
+                let version_prop_name = get_version_prop_name(machine_type.clone());
+
                 let mut version = form_ctx.read().get_field_text(version_prop_name);
+
                 if version.is_empty() && machine_type == "q35" {
                     version = String::from("q35");
                 }
