@@ -89,9 +89,7 @@ impl Component for QemuMoveDiskPanelComp {
             .disabled(disable_format_selector);
 
         let delete_source_label = tr!("Delete source");
-        let delete_source_field = Checkbox::new()
-            .name("delete")
-            .disabled(disable_format_selector);
+        let delete_source_field = Checkbox::new().name("delete");
 
         InputPanel::new()
             .mobile(props.mobile)
