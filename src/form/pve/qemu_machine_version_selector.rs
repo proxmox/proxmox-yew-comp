@@ -56,7 +56,23 @@ pub struct QemuMachineVersionSelectorComp {
 // We cannot use store.set_filter(), because GridPicker overwrites that
 async fn get_machine_list(machine_type: QemuMachineType) -> Result<Vec<QemuMachineInfo>, Error> {
     let url = "/nodes/localhost/capabilities/qemu/machines";
-    let model_list: Vec<QemuMachineInfo> = http_get(url, None).await?;
+
+    let mut model_list = Vec::new();
+    model_list.push(QemuMachineInfo {
+        ty: QemuMachineType::I440fx,
+        id: "pc".into(),
+        version: tr!("Latest"),
+        changes: None,
+    });
+    model_list.push(QemuMachineInfo {
+        ty: QemuMachineType::Q35,
+        id: "q35".into(),
+        version: tr!("Latest"),
+        changes: None,
+    });
+
+    model_list.extend(http_get::<Vec<QemuMachineInfo>>(url, None).await?);
+
     let model_list: Vec<QemuMachineInfo> = model_list
         .into_iter()
         .filter(|item| item.ty == machine_type)
