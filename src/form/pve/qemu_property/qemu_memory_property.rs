@@ -108,20 +108,26 @@ fn render_value(_name: &str, v: &Value, record: &Value) -> Html {
             }
         };
 
-    let balloon = record["balloon"].as_u64().unwrap_or(0);
+    let balloon = record["balloon"].as_u64();
 
     let current_hb = HumanByte::new_binary((current * 1024 * 1024) as f64);
 
-    let text = if balloon == 0 {
-        format!("{current_hb} [balloon=0]")
-    } else {
-        let balloon_hb = HumanByte::new_binary((balloon * 1024 * 1024) as f64);
-        if current > balloon {
-            format!("{balloon_hb}/{current_hb}")
-        } else {
-            current_hb.to_string()
+    let mut text = match balloon {
+        Some(0) => format!("{current_hb} [balloon=0]"),
+        Some(balloon) => {
+            let balloon_hb = HumanByte::new_binary((balloon * 1024 * 1024) as f64);
+            if current > balloon {
+                format!("{balloon_hb}/{current_hb}")
+            } else {
+                current_hb.to_string()
+            }
         }
+        None => current_hb.to_string(),
     };
+
+    if let Some(shares) = record["shares"].as_u64() {
+        text += &format!(" [shares={shares}]");
+    }
 
     text.into()
 }
@@ -143,8 +149,8 @@ pub fn qemu_memory_property(mobile: bool) -> EditableProperty {
             let mut data = form_ctx.get_submit_data();
 
             if !form_ctx.read().get_field_checked("_use_ballooning") {
-                data["balloon"] = Value::Null;
-                data["shares"] = Value::Null;
+                data["balloon"] = 0.into(); // value 0 disables ballooning
+                data["shares"] = Value::Null; // delete shares
             }
 
             property_string_from_parts::<QemuConfigMemory>(&mut data, "memory", true)?;
@@ -154,7 +160,7 @@ pub fn qemu_memory_property(mobile: bool) -> EditableProperty {
         .load_hook(|mut record| {
             flatten_property_string::<QemuConfigMemory>(&mut record, "memory")?;
 
-            let use_ballooning = record["balloon"].as_u64().is_some();
+            let use_ballooning = record["balloon"].as_u64() != Some(0);
             record["_use_ballooning"] = use_ballooning.into();
 
             if record["balloon"].is_null() {
