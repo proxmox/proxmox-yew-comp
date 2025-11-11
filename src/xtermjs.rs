@@ -76,15 +76,7 @@ pub enum ConsoleType {
 }
 
 fn xtermjs_url(console_type: &ConsoleType, node_name: &str, vnc: bool) -> String {
-    let console = match console_type {
-        ConsoleType::KVM(_vmid) => "kvm",
-        ConsoleType::LXC(_vmid) => "lxc",
-        ConsoleType::UpgradeShell => "upgrade",
-        ConsoleType::LoginShell | ConsoleType::RemotePveLoginShell(_) => "shell",
-    };
-
     let mut param = json!({
-        "console": console,
         "node": node_name,
     });
 
@@ -97,16 +89,22 @@ fn xtermjs_url(console_type: &ConsoleType, node_name: &str, vnc: bool) -> String
 
     match console_type {
         ConsoleType::KVM(vmid) => {
+            param["console"] = "kvm".into();
             param["vmid"] = (*vmid).into();
         }
         ConsoleType::LXC(vmid) => {
+            param["console"] = "lxc".into();
             param["vmid"] = (*vmid).into();
         }
-        ConsoleType::UpgradeShell => { /* no additional parameters required */ }
+        ConsoleType::UpgradeShell => {
+            param["console"] = "upgrade".into();
+        }
         ConsoleType::LoginShell => {
+            param["console"] = "shell".into();
             param["cmd"] = "login".into();
         }
         ConsoleType::RemotePveLoginShell(remote_name) => {
+            param["console"] = "shell".into();
             param["cmd"] = "login".into();
             param["remote-type"] = "pve".into();
             param["remote"] = remote_name.as_str().into();
