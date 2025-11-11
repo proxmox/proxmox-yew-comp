@@ -325,34 +325,44 @@ impl PveQemuHardwarePanel {
     ) -> ListTile {
         let props = ctx.props();
 
-        let menu = Menu::new().with_item({
-            let link = ctx.link().clone();
+        let menu = Menu::new()
+            .with_item({
+                let link = ctx.link().clone();
 
-            let volume = record[name].as_str().unwrap_or(&name);
+                let volume = record[name].as_str().unwrap_or(&name);
 
-            let message1 = tr!("Are you sure you want to delete disk {0}.", volume);
-            let message2 = tr!("This will permanently erase all data.");
-            let message = Column::new()
-                .with_child(message1)
-                .with_child(html! {<br/>})
-                .with_child(message2);
-            let dialog: Html = ConfirmDialog::default()
-                .confirm_message(message)
-                .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
-                .on_confirm(link.callback({
-                    let name = name.to_string();
-                    let async_submit = self.async_submit.clone();
-                    move |_| {
-                        PendingPropertyViewMsg::Delete(name.clone(), Some(async_submit.clone()))
-                    }
-                }))
-                .into();
+                let message1 = tr!("Are you sure you want to delete disk {0}.", volume);
+                let message2 = tr!("This will permanently erase all data.");
+                let message = Column::new()
+                    .with_child(message1)
+                    .with_child(html! {<br/>})
+                    .with_child(message2);
+                let dialog: Html = ConfirmDialog::default()
+                    .confirm_message(message)
+                    .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
+                    .on_confirm(link.callback({
+                        let name = name.to_string();
+                        let async_submit = self.async_submit.clone();
+                        move |_| {
+                            PendingPropertyViewMsg::Delete(name.clone(), Some(async_submit.clone()))
+                        }
+                    }))
+                    .into();
 
-            MenuItem::new(tr!("Delete disk")).on_select(
-                ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))),
-            )
-        });
+                MenuItem::new(tr!("Delete disk")).on_select(
+                    ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))
+                    }),
+                )
+            })
+            .with_item({
+                let name = name.to_string();
+                MenuItem::new(tr!("Move Disk")).on_select(
+                    ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))
+                    }),
+                )
+            });
 
         let menu_button: Html = MenuButton::new("")
             .class(pwt::css::ColorScheme::Neutral)
