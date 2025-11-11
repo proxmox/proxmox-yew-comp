@@ -172,6 +172,25 @@ impl ManagedField for QemuControllerSelectorField {
         true
     }
 
+    fn changed(&mut self, ctx: &ManagedFieldContext<Self>, _old_props: &Self::Properties) -> bool {
+        let props = ctx.props();
+
+        if props.exclude_devices != _old_props.exclude_devices {
+            self.validate = create_validator(ctx.props(), &self.controller);
+            if let Some(exclude_devices) = &props.exclude_devices {
+                for n in 0..QemuConfigScsiArray::MAX {
+                    let name = format!("scsi{n}");
+                    if !exclude_devices.contains(&name) {
+                        self.controller = "scsi".into();
+                        self.device_id = n.to_string();
+                        break;
+                    }
+                }
+            }
+        }
+        true
+    }
+
     fn view(&self, ctx: &ManagedFieldContext<Self>) -> Html {
         let props = ctx.props();
         let max: Option<u32> = match self.controller.as_str() {
@@ -191,12 +210,15 @@ impl ManagedField for QemuControllerSelectorField {
             items.push(AttrValue::Static("virtio"));
         }
 
+        let disabled = props.input_props.disabled;
+
         Row::new()
             .gap(1)
             .with_child(
                 Combobox::new()
                     .style("min-width", "0")
                     .required(true)
+                    .disabled(disabled)
                     .force_selection(true)
                     .value(self.controller.clone())
                     .items(Rc::new(items))
@@ -206,6 +228,7 @@ impl ManagedField for QemuControllerSelectorField {
                 Number::<u32>::new()
                     .style("min-width", "0")
                     .required(true)
+                    .disabled(disabled)
                     .submit(false)
                     .min(0)
                     .max(max)

@@ -98,6 +98,7 @@ impl Component for QemuReassignDiskPanelComp {
         let target_disk_label = tr!("Bus/Device");
         let target_disk_field = QemuControllerSelector::new()
             .name("target-disk")
+            .disabled(self.used_devices.is_none())
             .exclude_devices(self.used_devices.clone());
 
         InputPanel::new()
