@@ -52,6 +52,11 @@ pub struct PveGuestSelector {
     #[prop_or_default]
     pub guest_type: Option<PveGuestType>,
 
+    /// Exclude the specified guest
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub exclude_guest: Option<u32>,
+
     /// Include templates
     ///
     /// Some(false): do not include templates
@@ -87,6 +92,7 @@ impl PveGuestSelectorComp {
     async fn get_guest_list(
         remote: Option<AttrValue>,
         guest_type: Option<PveGuestType>,
+        exclude_guest: Option<u32>,
         templates: Option<bool>,
     ) -> Result<Vec<ClusterResource>, Error> {
         let url = if let Some(remote) = &remote {
@@ -104,6 +110,10 @@ impl PveGuestSelectorComp {
         };
 
         let mut guest_list: Vec<ClusterResource> = http_get(url, Some(param)).await?;
+
+        if let Some(exclude_guest) = exclude_guest {
+            guest_list.retain(|item| item.vmid != Some(exclude_guest));
+        }
 
         if let Some(guest_type) = guest_type {
             let resource_type = match guest_type {
@@ -130,7 +140,8 @@ impl PveGuestSelectorComp {
         let remote = props.remote.clone();
         let guest_type = props.guest_type;
         let templates = props.templates.clone();
-        (move || Self::get_guest_list(remote.clone(), guest_type, templates)).into()
+        let exclude_guest = props.exclude_guest.clone();
+        (move || Self::get_guest_list(remote.clone(), guest_type, exclude_guest, templates)).into()
     }
 }
 

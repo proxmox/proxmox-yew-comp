@@ -20,6 +20,7 @@ use crate::{PropertyEditDialog, PropertyEditorState};
 #[derive(PartialEq, Properties, Clone)]
 struct QemuReassignDiskPanel {
     node: Option<AttrValue>,
+    vmid: u32,
     state: PropertyEditorState,
     remote: Option<AttrValue>,
     mobile: bool,
@@ -92,6 +93,7 @@ impl Component for QemuReassignDiskPanelComp {
             .name("target-vmid")
             .required(true)
             .guest_type(PveGuestType::Qemu)
+            .exclude_guest(props.vmid)
             .on_change(ctx.link().callback(Msg::Target))
             .mobile(props.mobile);
 
@@ -115,6 +117,7 @@ impl Component for QemuReassignDiskPanelComp {
 pub fn qemu_reassign_disk_dialog(
     name: &str,
     node: Option<AttrValue>,
+    vmid: u32,
     remote: Option<AttrValue>,
     mobile: bool,
 ) -> PropertyEditDialog {
@@ -139,6 +142,7 @@ pub fn qemu_reassign_disk_dialog(
                 let props = QemuReassignDiskPanel {
                     state,
                     node: node.clone(),
+                    vmid,
                     remote: remote.clone(),
                     mobile,
                 };

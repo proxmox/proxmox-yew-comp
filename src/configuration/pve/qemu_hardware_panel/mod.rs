@@ -154,6 +154,7 @@ impl QemuHardwarePanel {
         qemu_reassign_disk_dialog(
             name,
             Some(self.node.clone()),
+            self.vmid,
             self.remote.clone(),
             self.mobile,
         )
