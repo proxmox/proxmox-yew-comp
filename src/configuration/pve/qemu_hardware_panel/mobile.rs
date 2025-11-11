@@ -362,6 +362,12 @@ impl PveQemuHardwarePanel {
                         PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))
                     }),
                 )
+            })
+            .with_item({
+                let name = name.to_string();
+                MenuItem::new(tr!("Reassign Disk")).on_select(ctx.link().callback(move |_| {
+                    PendingPropertyViewMsg::Custom(Msg::ReassignDisk(name.clone()))
+                }))
             });
 
         let menu_button: Html = MenuButton::new("")
