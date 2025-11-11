@@ -47,7 +47,7 @@ impl XTermJs {
     // FIXME: separate noVNC and xterm.js, this is not a nice interface!
     /// Open a new terminal window.
     pub fn open_xterm_js_viewer(console_type: ConsoleType, node_name: &str, vnc: bool) {
-        let url = xtermjs_url(console_type, node_name, vnc);
+        let url = xtermjs_url(&console_type, node_name, vnc);
         let target = "_blank";
         let features =
             "toolbar=no,location=no,status=no,menubar=no,resizable=yes,width=800,height=420";
@@ -66,20 +66,21 @@ impl XTermJs {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum ConsoleType {
     KVM(u64),
     LXC(u64),
     UpgradeShell,
     LoginShell,
+    RemotePveLoginShell(String),
 }
 
-fn xtermjs_url(console_type: ConsoleType, node_name: &str, vnc: bool) -> String {
+fn xtermjs_url(console_type: &ConsoleType, node_name: &str, vnc: bool) -> String {
     let console = match console_type {
         ConsoleType::KVM(_vmid) => "kvm",
         ConsoleType::LXC(_vmid) => "lxc",
         ConsoleType::UpgradeShell => "upgrade",
-        ConsoleType::LoginShell => "shell",
+        ConsoleType::LoginShell | ConsoleType::RemotePveLoginShell(_) => "shell",
     };
 
     let mut param = json!({
@@ -96,14 +97,19 @@ fn xtermjs_url(console_type: ConsoleType, node_name: &str, vnc: bool) -> String 
 
     match console_type {
         ConsoleType::KVM(vmid) => {
-            param["vmid"] = vmid.into();
+            param["vmid"] = (*vmid).into();
         }
         ConsoleType::LXC(vmid) => {
-            param["vmid"] = vmid.into();
+            param["vmid"] = (*vmid).into();
         }
         ConsoleType::UpgradeShell => { /* no additional parameters required */ }
         ConsoleType::LoginShell => {
             param["cmd"] = "login".into();
+        }
+        ConsoleType::RemotePveLoginShell(remote_name) => {
+            param["cmd"] = "login".into();
+            param["remote-type"] = "pve".into();
+            param["remote"] = remote_name.as_str().into();
         }
     }
 
@@ -122,7 +128,7 @@ impl Component for ProxmoxXTermJs {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
-        let url = xtermjs_url(props.console_type, &props.node_name, props.vnc);
+        let url = xtermjs_url(&props.console_type, &props.node_name, props.vnc);
         html! {<iframe class="pwt-flex-fit" src={format!("/{url}")}/>}
     }
 }
