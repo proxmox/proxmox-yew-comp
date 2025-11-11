@@ -73,6 +73,7 @@ pub enum ConsoleType {
     UpgradeShell,
     LoginShell,
     RemotePveLoginShell(String),
+    RemotePbsLoginShell(String),
 }
 
 fn xtermjs_url(console_type: &ConsoleType, node_name: &str, vnc: bool) -> String {
@@ -102,6 +103,12 @@ fn xtermjs_url(console_type: &ConsoleType, node_name: &str, vnc: bool) -> String
         ConsoleType::LoginShell => {
             param["console"] = "shell".into();
             param["cmd"] = "login".into();
+        }
+        ConsoleType::RemotePbsLoginShell(remote_name) => {
+            param["console"] = "shell".into();
+            param["cmd"] = "login".into();
+            param["remote-type"] = "pbs".into();
+            param["remote"] = remote_name.as_str().into();
         }
         ConsoleType::RemotePveLoginShell(remote_name) => {
             param["console"] = "shell".into();
