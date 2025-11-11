@@ -180,6 +180,7 @@ impl PveQemuHardwarePanel {
                 .with_item({
                     let link = ctx.link().clone();
                     let dialog: Html = SafeConfirmDialog::new(name.to_string())
+                        .mobile(true)
                         .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                         .on_confirm(link.callback({
                             let name = name.to_string();
@@ -280,6 +281,7 @@ impl PveQemuHardwarePanel {
                 (tr!("Delete device"), None)
             };
             let dialog: Html = SafeConfirmDialog::new(name.to_string())
+                .mobile(true)
                 .message(message)
                 .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                 .on_confirm(link.callback({

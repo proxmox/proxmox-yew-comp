@@ -23,6 +23,11 @@ pub struct SafeConfirmDialog {
     #[builder(IntoPropValue, into_prop_value)]
     pub title: Option<AttrValue>,
 
+    /// Layout for mobile devices.
+    #[prop_or_default]
+    #[builder]
+    pub mobile: bool,
+
     /// Submit button text.
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
@@ -109,9 +114,10 @@ impl Component for ProxmoxSafeConfirmDialog {
 
         let input_panel = InputPanel::new()
             .padding(4)
+            .mobile(props.mobile)
             .class("pwt-flex-fit")
             .label_width("300px")
-            .field_width("120px")
+            .field_width(if props.mobile { "fit-content" } else { "120px" })
             .with_custom_child(
                 html! {<span key="message" class="pwt-color-primary">{message}</span>},
             )
