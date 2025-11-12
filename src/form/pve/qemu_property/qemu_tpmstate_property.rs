@@ -73,6 +73,7 @@ impl Component for QemuTpmStatePanelComp {
             .name(FILE_PN)
             .node(props.node.clone())
             .required(true)
+            .disabled(!select_existing)
             .storage(self.storage_info.as_ref().map(|info| info.storage.clone()));
 
         let mut panel = InputPanel::new()
@@ -92,9 +93,13 @@ impl Component for QemuTpmStatePanelComp {
                     .mobile(true),
             );
 
-        if select_existing {
-            panel.add_field(disk_image_label, disk_image_field);
-        }
+        panel.add_field_with_options(
+            pwt::widget::FieldPosition::Left,
+            false,
+            !select_existing,
+            disk_image_label,
+            disk_image_field,
+        );
 
         panel
             .with_field(
