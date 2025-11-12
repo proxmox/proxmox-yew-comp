@@ -163,12 +163,15 @@ pub fn qemu_memory_property(mobile: bool) -> EditableProperty {
             let use_ballooning = record["balloon"].as_u64() != Some(0);
             record["_use_ballooning"] = use_ballooning.into();
 
-            if record["balloon"].is_null() {
-                if let Some(current_memory) = record["_current"].as_u64() {
-                    record["balloon"] = current_memory.into();
-                    record["_old_memory"] = current_memory.into();
+            if let Some(current_memory) = record["_current"].as_u64() {
+                match record["balloon"].as_u64() {
+                    Some(0) => record["balloon"] = Value::Null,
+                    Some(_) => { /* keep value */ }
+                    None => record["balloon"] = current_memory.into(),
                 }
+                record["_old_memory"] = current_memory.into();
             }
+
             Ok(record)
         })
         .on_change(|state: PropertyEditorState| {
