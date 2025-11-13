@@ -1,3 +1,18 @@
+rust-proxmox-yew-comp (0.7.0) trixie; urgency=medium
+
+  * apt package manager: fix for to old_version Option changes
+  * qemu memory editor: correctly initialize ballon value inside load_hook
+  * qemu tpmstate property: hide/disable image field instead of removing it
+  * qemu mobile hardware panel: add menus to efi and tpm disk
+  * safe confirm dialog: add mobile flag
+  * qemu mobile hardware panel: add reassign disk to unused disk menu
+  * qemu mobile hardware panel: add move disk to unused disk menu
+  * pve guest selector: add exclude guest property
+  * qemu controller selector: fix disable flag, autoselect unused device
+  * qemu cdrom editor: autoselect ide2 device
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 13 Nov 2025 11:39:59 +0100
+
 rust-proxmox-yew-comp (0.6.9) trixie; urgency=medium
 
   * qemu mobile hardware panel: improve remove disk confirm message
