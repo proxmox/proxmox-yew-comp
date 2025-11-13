@@ -1,3 +1,17 @@
+rust-proxmox-yew-comp (0.7.1) trixie; urgency=medium
+
+  * node status info: only use build date from kernel version extra info. This
+    align Yew with current PVE & PBS ExtJS UIs.
+
+  * node status panel: make power management and fingerprint buttons opt-in,
+    they are not required for all use sites.
+
+  * pve: qemu: handle recently introduced fallback enum variants. Avoiding
+    that the UI breaks if a backend gained a new enum variant that the
+    frontend does not yet know about.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 13 Nov 2025 22:16:05 +0100
+
 rust-proxmox-yew-comp (0.7.0) trixie; urgency=medium
 
   * apt package manager: fix for to old_version Option changes
