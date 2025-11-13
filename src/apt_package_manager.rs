@@ -340,7 +340,10 @@ impl ProxmoxAptPackageManager {
             DataTableHeaderGroup::new(tr!("Version"))
                 .with_child(DataTableColumn::new(tr!("current")).width("120px").render(
                     |entry: &_| match entry {
-                        TreeEntry::Package(_, info) => html! { &info.old_version },
+                        TreeEntry::Package(_, info) => match &info.old_version {
+                            Some(old_version) => html! { old_version },
+                            None => html! {},
+                        },
                         _ => html! {},
                     },
                 ))
