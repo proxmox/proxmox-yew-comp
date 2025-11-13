@@ -146,6 +146,8 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
         None => (String::new(), String::new(), String::new()),
     };
 
+    let build_date = k_version.split(['(', ')']).nth(1).unwrap_or("unknown");
+
     let boot_mode = if let Some(NodeStatus::Common(node_status)) = data {
         Some(&node_status.boot_info)
     } else {
@@ -247,7 +249,7 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
         .with_child(
             StatusRow::new(tr!("Kernel Version"))
                 .style("grid-column", "1/-1")
-                .status(format!("{} {} {}", k_sysname, k_release, k_version)),
+                .status(format!("{k_sysname} {k_release} ({build_date})")),
         )
         .with_optional_child(boot_mode.map(|m| {
             let mode = match m.mode {
