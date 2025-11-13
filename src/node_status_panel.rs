@@ -27,6 +27,14 @@ pub struct NodeStatusPanel {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     status_base_url: Option<AttrValue>,
+
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    fingerprint_button: bool,
+
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    power_management_buttons: bool,
 }
 
 impl NodeStatusPanel {
@@ -195,7 +203,7 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
             .as_ref()
             .map(|r| crate::NodeStatus::Common(r));
 
-        Panel::new()
+        let mut panel = Panel::new()
             .border(false)
             .class(FlexFit)
             .title(
@@ -206,7 +214,11 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
                     .with_child(tr!("Node Status"))
                     .into_html(),
             )
-            .with_tool(
+            .with_child(node_info(status))
+            .with_optional_child(self.error.as_ref().map(|e| error_message(&e.to_string())));
+
+        if ctx.props().power_management_buttons {
+            panel.add_tool(
                 ConfirmButton::new(tr!("Reboot"))
                     .confirm_message(tr!("Are you sure you want to reboot the node?"))
                     .on_activate(
@@ -214,8 +226,8 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
                             .callback(|_| Msg::RebootOrShutdown(NodePowerCommand::Reboot)),
                     )
                     .icon_class("fa fa-undo"),
-            )
-            .with_tool(
+            );
+            panel.add_tool(
                 ConfirmButton::new(tr!("Shutdown"))
                     .confirm_message(tr!("Are you sure you want to shut down the node?"))
                     .on_activate(
@@ -223,8 +235,11 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
                             .callback(|_| Msg::RebootOrShutdown(NodePowerCommand::Shutdown)),
                     )
                     .icon_class("fa fa-power-off"),
-            )
-            .with_tool(
+            );
+        }
+
+        if ctx.props().fingerprint_button {
+            panel.add_tool(
                 Button::new(tr!("Show Fingerprint"))
                     .icon_class("fa fa-hashtag")
                     .class(ColorScheme::Primary)
@@ -232,10 +247,10 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
                         ctx.link()
                             .change_view_callback(|_| ViewState::FingerprintDialog),
                     ),
-            )
-            .with_child(node_info(status))
-            .with_optional_child(self.error.as_ref().map(|e| error_message(&e.to_string())))
-            .into()
+            );
+        }
+
+        panel.into()
     }
 }
 
