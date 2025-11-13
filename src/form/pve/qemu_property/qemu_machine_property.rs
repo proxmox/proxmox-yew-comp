@@ -15,7 +15,7 @@ use crate::form::pve::QemuMachineVersionSelector;
 use crate::pve_api_types::QemuMachineType;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
-fn ostype_is_windows(ostype: &QemuConfigOstype) -> bool {
+fn ostype_is_windows(ostype: &QemuConfigOstype) -> Option<bool> {
     match ostype {
         QemuConfigOstype::Wxp
         | QemuConfigOstype::W2k
@@ -25,11 +25,12 @@ fn ostype_is_windows(ostype: &QemuConfigOstype) -> bool {
         | QemuConfigOstype::Win7
         | QemuConfigOstype::Win8
         | QemuConfigOstype::Win10
-        | QemuConfigOstype::Win11 => true,
+        | QemuConfigOstype::Win11 => Some(true),
         QemuConfigOstype::L24
         | QemuConfigOstype::L26
         | QemuConfigOstype::Solaris
-        | QemuConfigOstype::Other => false,
+        | QemuConfigOstype::Other => Some(false),
+        QemuConfigOstype::UnknownEnumValue(_) => None,
     }
 }
 
@@ -91,12 +92,14 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         };
 
         let add_version_selector = |panel: &mut InputPanel, ty| {
-            let disabled = machine_type != ty;
+            let is_windows = ostype_is_windows(&ostype);
+            let disabled = machine_type != ty || is_windows.is_none();
             let name = get_version_prop_name(ty.to_string());
+
             let field = QemuMachineVersionSelector::new(ty)
                 .name(name)
-                .disabled(machine_type != ty)
-                .required(ostype_is_windows(&ostype))
+                .disabled(disabled)
+                .required(is_windows.unwrap_or_default())
                 .submit(false);
             panel.add_field_with_options(
                 FieldPosition::Left,
@@ -181,8 +184,9 @@ pub fn qemu_machine_property(mobile: bool) -> EditableProperty {
                 serde_json::from_value(record["ostype"].clone()).ok();
             let ostype = ostype.unwrap_or(QemuConfigOstype::Other);
             match (v.as_str(), ostype_is_windows(&ostype)) {
-                (None | Some("pc"), true) => "pc-i440fx-5.1".into(),
-                (Some("q35"), true) => "pc-q35-5.1".into(),
+                (_, None) => format!("unknown ostype: {v}").into(),
+                (None | Some("pc"), Some(true)) => "pc-i440fx-5.1".into(),
+                (Some("q35"), Some(true)) => "pc-q35-5.1".into(),
                 (Some(machine), _) => machine.into(),
                 (None, _) => placeholder().into(),
             }

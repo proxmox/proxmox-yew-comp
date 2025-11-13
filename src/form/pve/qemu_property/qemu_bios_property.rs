@@ -59,6 +59,7 @@ pub fn qemu_bios_property(mobile: bool) -> EditableProperty {
                 Ok(bios) => match bios {
                     QemuConfigBios::Seabios => "SeaBIOS".into(),
                     QemuConfigBios::Ovmf => "OVMF (UEFI)".into(),
+                    QemuConfigBios::UnknownEnumValue(value) => format!("unknown '{value}'").into(),
                 },
                 Err(_) => v.into(),
             },

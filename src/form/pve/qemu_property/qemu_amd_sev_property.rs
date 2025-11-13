@@ -118,6 +118,7 @@ pub fn qemu_amd_sev_property(mobile: bool) -> EditableProperty {
                         PveQemuSevFmtType::Std => "AMD SEV",
                         PveQemuSevFmtType::Es => "AMD SEV-ES",
                         PveQemuSevFmtType::Snp => "AMD SEV-SNP",
+                        PveQemuSevFmtType::UnknownEnumValue(value) => &format!("unknown '{value}'"),
                     };
                     format!("{text} ({v})").into()
                 }
