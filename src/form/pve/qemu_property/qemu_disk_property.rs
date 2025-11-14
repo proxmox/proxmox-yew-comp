@@ -3,16 +3,15 @@ use std::rc::Rc;
 use std::collections::HashSet;
 
 use anyhow::{bail, Error};
-use proxmox_schema::property_string::PropertyString;
 use serde_json::{json, Value};
 
 use pwt::prelude::*;
-use pwt::widget::form::{Checkbox, FormContextObserver, RadioButton};
+use pwt::widget::form::{Checkbox, Field, FormContextObserver, RadioButton};
 use pwt::widget::{Container, InputPanel, Row};
 
 use pve_api_types::{
-    PveQmIde, QemuConfigSata, QemuConfigScsi, QemuConfigScsiArray, QemuConfigUnused,
-    QemuConfigVirtio, StorageContent, StorageInfo, StorageInfoFormatsDefault,
+    PveQmIde, QemuConfigSata, QemuConfigScsi, QemuConfigScsiArray, QemuConfigVirtio,
+    StorageContent, StorageInfo, StorageInfoFormatsDefault,
 };
 use yew::virtual_dom::VComp;
 
@@ -44,6 +43,7 @@ use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 #[derive(Properties, Clone, PartialEq)]
 struct DiskPanel {
     name: Option<String>,
+    unused_disk: Option<String>,
     node: Option<AttrValue>,
     remote: Option<AttrValue>,
 
@@ -96,10 +96,16 @@ impl Component for DiskPanelComp {
         let used_devices = extract_used_devices(&state.record);
         let advanced = form_ctx.get_show_advanced();
 
-        let bus_device = if let Some(name) = &props.name {
-            name.clone()
-        } else {
-            form_ctx.read().get_field_text(BUS_DEVICE)
+        let unused_volume = props
+            .unused_disk
+            .as_ref()
+            .map(|unused_disk| state.record[unused_disk].as_str().map(|s| s.to_string()))
+            .flatten()
+            .unwrap_or(String::new());
+
+        let bus_device = match (&props.name, &props.unused_disk) {
+            (Some(name), None) => name.clone(),
+            _ => form_ctx.read().get_field_text(BUS_DEVICE),
         };
 
         let (supported_formats, default_format, select_existing) = match &self.storage_info {
@@ -127,20 +133,24 @@ impl Component for DiskPanelComp {
             .exclude_devices(used_devices);
 
         let file_info_child = {
-            let file_text = match state.record.get(FILE_PN) {
-                Some(Value::String(file)) => file.clone(),
-                _ => String::new(),
-            };
-            let size_text = match state.record.get("_size") {
-                Some(Value::String(s)) => s.clone(),
-                _ => "-".into(),
-            };
-            Row::new()
-                .key("filename_and_size")
-                .gap(1)
-                .with_child(Container::new().with_child(file_text))
-                .with_flex_spacer()
-                .with_child(Container::new().with_child(size_text))
+            let row = Row::new().key("filename_and_size").gap(1);
+
+            if props.unused_disk.is_some() {
+                row.with_child(Container::new().with_child(&unused_volume))
+            } else {
+                let file_text = match state.record.get(FILE_PN) {
+                    Some(Value::String(file)) => file.clone(),
+                    _ => String::new(),
+                };
+                let size_text = match state.record.get("_size") {
+                    Some(Value::String(s)) => s.clone(),
+                    _ => "-".into(),
+                };
+
+                row.with_child(Container::new().with_child(file_text))
+                    .with_flex_spacer()
+                    .with_child(Container::new().with_child(size_text))
+            }
         };
 
         let cache_label = tr!("Cache");
@@ -208,10 +218,15 @@ impl Component for DiskPanelComp {
             .padding_x(2);
 
         if mobile {
-            if is_create {
+            if props.unused_disk.is_some() {
+                panel.add_custom_child(file_info_child);
                 panel.add_field(bus_device_label, bus_device_field);
             } else {
-                panel.add_custom_child(file_info_child);
+                if is_create {
+                    panel.add_field(bus_device_label, bus_device_field);
+                } else {
+                    panel.add_custom_child(file_info_child);
+                }
             }
 
             panel.add_field(cache_label, cache_field);
@@ -240,10 +255,19 @@ impl Component for DiskPanelComp {
             panel.add_single_line_field(true, false, readonly_label, readonly_field);
         } else {
             panel.set_field_width("minmax(250px, 1fr)");
-            if is_create {
+
+            if props.unused_disk.is_some() {
                 panel.add_field(bus_device_label, bus_device_field);
+                panel.add_field(
+                    disk_image_label.clone(),
+                    Field::new().read_only(true).value(unused_volume),
+                );
             } else {
-                panel.add_custom_child(file_info_child);
+                if is_create {
+                    panel.add_field(bus_device_label, bus_device_field);
+                } else {
+                    panel.add_custom_child(file_info_child);
+                }
             }
 
             panel.add_right_field(cache_label, cache_field);
@@ -306,18 +330,26 @@ pub fn qemu_disk_property(
     remote: Option<AttrValue>,
     mobile: bool,
 ) -> EditableProperty {
-    let mut title = tr!("Hard Disk");
-    if let Some(name) = name.as_deref() {
-        title = title + " (" + name + ")";
-    }
+    let (unused_disk, title) = match &name {
+        Some(name) => {
+            if name.starts_with("unused") {
+                (Some(name.clone()), tr!("Unused Disk"))
+            } else {
+                (None, tr!("Hard Disk") + " (" + &name + ")")
+            }
+        }
+        None => (None, tr!("Hard Disk")),
+    };
 
     EditableProperty::new(name.clone(), title)
         .advanced_checkbox(true)
         .render_input_panel({
             let name = name.clone();
+            let unused_disk = unused_disk.clone();
             move |state: PropertyEditorState| {
                 let props = DiskPanel {
                     name: name.clone(),
+                    unused_disk: unused_disk.clone(),
                     node: node.clone(),
                     remote: remote.clone(),
                     state,
@@ -328,34 +360,43 @@ pub fn qemu_disk_property(
         })
         .load_hook({
             let name = name.clone();
+            let unused_disk = unused_disk.clone();
 
             move |mut record: Value| {
-                if let Some(name) = &name {
-                    flatten_device_data(&mut record, name)?;
-                    record[BUS_DEVICE] = name.clone().into();
-                } else {
-                    let used_devices = extract_used_devices(&record);
-                    let default_device = first_unused_scsi_device(&used_devices);
-                    record[BUS_DEVICE] = default_device.clone().into();
-                }
+                let used_devices = extract_used_devices(&record);
+                let default_device = first_unused_scsi_device(&used_devices);
+                record[BUS_DEVICE] = default_device.clone().into();
 
+                if let Some(name) = &name {
+                    if unused_disk.is_none() {
+                        if !name.starts_with("unused") {
+                            flatten_device_data(&mut record, name)?;
+                            record[BUS_DEVICE] = name.clone().into();
+                        }
+                    }
+                }
                 Ok(record)
             }
         })
         .submit_hook({
-            let name = name.clone();
-
             move |state: PropertyEditorState| {
                 let form_ctx = &state.form_ctx;
                 let mut data = form_ctx.get_submit_data();
                 let is_create = name.is_none();
 
-                let device = match &name {
-                    Some(name) => name.clone(),
-                    None::<_> => form_ctx.read().get_field_text(BUS_DEVICE),
+                let device = match (&name, &unused_disk) {
+                    (Some(name), None) => name.clone(),
+                    _ => form_ctx.read().get_field_text(BUS_DEVICE),
                 };
 
-                if is_create {
+                if let Some(unused_disk) = &unused_disk {
+                    match state.record.get(unused_disk) {
+                        Some(Value::String(unused_volume)) => {
+                            data[FILE_PN] = unused_volume.clone().into();
+                        }
+                        _ => bail!("got invalid value for unused volume"),
+                    }
+                } else if is_create {
                     if data[FILE_PN].is_null() {
                         let image_storage = form_ctx.read().get_field_text(IMAGE_STORAGE);
                         let image_size = match form_ctx
@@ -377,65 +418,6 @@ pub fn qemu_disk_property(
                         }
                     }
                 }
-
-                let data = assemble_device_data(&state, &mut data, &device)?;
-                Ok(data)
-            }
-        })
-}
-
-fn add_unused_disk_panel(name: String, mobile: bool) -> RenderPropertyInputPanelFn {
-    RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
-        let used_devices = extract_used_devices(&state.record);
-
-        let disk_image = state
-            .record
-            .get(&name)
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
-
-        InputPanel::new()
-            .mobile(mobile)
-            .class(pwt::css::FlexFit)
-            .padding_x(2)
-            .with_custom_child(Container::new().with_child(disk_image))
-            .with_field(
-                tr!("Bus/Device"),
-                QemuControllerSelector::new()
-                    .name(BUS_DEVICE)
-                    .submit(false)
-                    .exclude_devices(used_devices),
-            )
-            .into()
-    })
-}
-
-pub fn qemu_unused_disk_property(name: &str, mobile: bool) -> EditableProperty {
-    let title = tr!("Unused Disk");
-
-    EditableProperty::new(name.to_string(), title)
-        .render_input_panel(add_unused_disk_panel(name.to_string(), mobile))
-        .load_hook({
-            // let name = name.to_string();
-            move |mut record: Value| {
-                let used_devices = extract_used_devices(&record);
-                let default_device = first_unused_scsi_device(&used_devices);
-                record[BUS_DEVICE] = default_device.clone().into();
-                Ok(record)
-            }
-        })
-        .submit_hook({
-            let name = name.to_string();
-
-            move |state: PropertyEditorState| {
-                let form_ctx = &state.form_ctx;
-                let mut data = form_ctx.get_submit_data();
-
-                let device = form_ctx.read().get_field_text(BUS_DEVICE);
-                let unused: PropertyString<QemuConfigUnused> =
-                    serde_json::from_value(state.record[&name].clone())?;
-
-                data[FILE_PN] = unused.file.clone().into();
 
                 let data = assemble_device_data(&state, &mut data, &device)?;
                 Ok(data)

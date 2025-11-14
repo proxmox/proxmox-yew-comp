@@ -20,7 +20,7 @@ use crate::form::pve::{
     qemu_display_property, qemu_efidisk_property, qemu_kernel_scheduler_property,
     qemu_machine_property, qemu_memory_property, qemu_network_mtu_property, qemu_network_property,
     qemu_scsihw_property, qemu_sockets_cores_property, qemu_tpmstate_property,
-    qemu_unused_disk_property, qemu_vmstate_property,
+    qemu_vmstate_property,
 };
 use crate::form::typed_load;
 use crate::pending_property_view::{
@@ -340,6 +340,7 @@ impl PveQemuHardwarePanel {
         record: &Value,
         pending: &Value,
     ) -> ListTile {
+        let props = ctx.props();
         let menu = self.disk_menu(ctx, name, true, false).with_item({
             let link = ctx.link().clone();
 
@@ -370,7 +371,13 @@ impl PveQemuHardwarePanel {
         });
 
         let icon = Fa::new("hdd-o");
-        let property = qemu_unused_disk_property(name, true);
+        let property = qemu_disk_property(
+            Some(name.to_string()),
+            Some(props.node.clone()),
+            props.remote.clone(),
+            true,
+        );
+
         let mut tile = self.property_tile_with_menu(
             ctx,
             record,

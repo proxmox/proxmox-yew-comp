@@ -25,7 +25,7 @@ use crate::form::pve::{
     qemu_bios_property, qemu_cdrom_property, qemu_disk_property, qemu_display_property,
     qemu_efidisk_property, qemu_machine_property, qemu_memory_property, qemu_network_property,
     qemu_scsihw_property, qemu_sockets_cores_property, qemu_tpmstate_property,
-    qemu_unused_disk_property, qemu_vmstate_property,
+    qemu_vmstate_property,
 };
 use crate::form::typed_load;
 use crate::pending_property_view::{
@@ -439,7 +439,12 @@ impl PendingPropertyView for PveQemuHardwarePanel {
 
         let push_unused_disk_property = |list: &mut Vec<_>, name: &str| {
             let icon = Fa::new("hdd-o");
-            let property = qemu_unused_disk_property(name, false);
+            let property = qemu_disk_property(
+                Some(name.to_string()),
+                Some(props.node.clone()),
+                props.remote.clone(),
+                false,
+            );
             let entry = create_entry(name, property, icon, EditAction::Add);
             list.push(entry);
         };
