@@ -96,6 +96,8 @@ impl Component for DiskPanelComp {
         let used_devices = extract_used_devices(&state.record);
         let advanced = form_ctx.get_show_advanced();
 
+        let bus_device = form_ctx.read().get_field_text(BUS_DEVICE);
+
         let (supported_formats, default_format, select_existing) = match &self.storage_info {
             Some(StorageInfo {
                 formats: Some(formats),
@@ -170,7 +172,12 @@ impl Component for DiskPanelComp {
             .default(true);
 
         let io_thread_label = tr!("IO thread");
-        let io_thread_field = Checkbox::new().switch(mobile).name(IOTHREAD_PN);
+        let io_thread_disabled =
+            !(bus_device.starts_with("scsi") || bus_device.starts_with("virtio"));
+        let io_thread_field = Checkbox::new()
+            .switch(mobile)
+            .disabled(io_thread_disabled)
+            .name(IOTHREAD_PN);
 
         let ssd_emulation_label = tr!("SSD emulation");
         let ssd_emulation_field = Checkbox::new().switch(mobile).name(SSD_PN);
