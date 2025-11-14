@@ -119,6 +119,7 @@ impl Component for DiskPanelComp {
         let bus_device_field = QemuControllerSelector::new()
             .name(BUS_DEVICE)
             .submit(false)
+            .allow_virtio(true)
             .exclude_devices(used_devices);
 
         let file_info_child = {
