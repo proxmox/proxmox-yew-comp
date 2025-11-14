@@ -1,5 +1,8 @@
 pub mod acme;
 
+mod acl_context;
+pub use acl_context::{AclContext, AclContextProvider};
+
 mod api_load_callback;
 pub use api_load_callback::{ApiLoadCallback, IntoApiLoadCallback};
 
