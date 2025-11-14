@@ -15,6 +15,7 @@ use proxmox_client::HttpApiClient;
 use proxmox_login::{ticket::Validity, Authentication, TicketResult};
 use yew::Callback;
 
+use crate::acl_context::LocalAclTree;
 use crate::{json_object_to_query, ExistingProduct, HttpClientWasm, ProjectInfo};
 
 static LAST_NOTIFY_EPOCH: AtomicU32 = AtomicU32::new(0);
@@ -129,6 +130,7 @@ async fn ticket_refresh_loop() {
                         Ok(TicketResult::Full(auth)) | Ok(TicketResult::HttpOnly(auth)) => {
                             log::info!("ticket_refresh_loop: Got ticket update.");
                             client.set_auth(auth.clone());
+                            LocalAclTree::load().await;
                         }
                         _ => { /* do nothing */ }
                     }
@@ -189,11 +191,13 @@ pub async fn http_login(
         TicketResult::Full(auth) => {
             client.set_auth(auth.clone());
             update_global_client(client);
+            LocalAclTree::load().await;
             Ok(TicketResult::Full(auth))
         }
         TicketResult::HttpOnly(auth) => {
             client.set_auth(auth.clone());
             update_global_client(client);
+            LocalAclTree::load().await;
             Ok(TicketResult::HttpOnly(auth))
         }
         challenge => Ok(challenge),
@@ -209,6 +213,7 @@ pub async fn http_login_tfa(
     let auth = client.login_tfa(challenge, request).await?;
     client.set_auth(auth.clone());
     update_global_client(client);
+    LocalAclTree::load().await;
     Ok(auth)
 }
 
