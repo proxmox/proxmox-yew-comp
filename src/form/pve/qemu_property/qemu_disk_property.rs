@@ -96,7 +96,11 @@ impl Component for DiskPanelComp {
         let used_devices = extract_used_devices(&state.record);
         let advanced = form_ctx.get_show_advanced();
 
-        let bus_device = form_ctx.read().get_field_text(BUS_DEVICE);
+        let bus_device = if let Some(name) = &props.name {
+            name.clone()
+        } else {
+            form_ctx.read().get_field_text(BUS_DEVICE)
+        };
 
         let (supported_formats, default_format, select_existing) = match &self.storage_info {
             Some(StorageInfo {
@@ -175,9 +179,11 @@ impl Component for DiskPanelComp {
         let io_thread_label = tr!("IO thread");
         let io_thread_disabled =
             !(bus_device.starts_with("scsi") || bus_device.starts_with("virtio"));
+        let io_thread_hidden = io_thread_disabled;
         let io_thread_field = Checkbox::new()
             .switch(mobile)
             .disabled(io_thread_disabled)
+            .default(true)
             .name(IOTHREAD_PN);
 
         let ssd_emulation_label = tr!("SSD emulation");
@@ -220,7 +226,7 @@ impl Component for DiskPanelComp {
             }
 
             panel.add_single_line_field(false, false, discard_label, discard_field);
-            panel.add_single_line_field(false, false, io_thread_label, io_thread_field);
+            panel.add_single_line_field(false, io_thread_hidden, io_thread_label, io_thread_field);
 
             panel.add_spacer(true);
             panel.add_single_line_field(true, false, ssd_emulation_label, ssd_emulation_field);
@@ -252,7 +258,13 @@ impl Component for DiskPanelComp {
             }
 
             panel.add_right_field(discard_label, discard_field);
-            panel.add_right_field(io_thread_label, io_thread_field);
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Right,
+                false,
+                io_thread_hidden,
+                io_thread_label,
+                io_thread_field,
+            );
 
             panel.add_spacer(true);
             panel.add_field_with_options(
@@ -678,7 +690,7 @@ fn assemble_device_data(
         REPLICATE_PN: true,
         READONLY_PN: false,
         BACKUP_PN: true,
-        IOTHREAD_PN: false,
+        IOTHREAD_PN: true,
         SSD_PN: false,
     });
 
