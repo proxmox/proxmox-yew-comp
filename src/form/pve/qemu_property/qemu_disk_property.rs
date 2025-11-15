@@ -54,11 +54,73 @@ struct DiskPanel {
 struct DiskPanelComp {
     storage_info: Option<StorageInfo>,
     _observer: FormContextObserver,
+
+    is_create: bool,
+    is_scsi: bool,
+    is_virtio: bool,
+    is_virtio_scsi_single: bool,
+    unused_volume: String,
+    used_devices: HashSet<String>,
 }
 
 enum DiskPanelMsg {
     FormUpdate,
     StorageInfo(Option<StorageInfo>),
+}
+
+impl DiskPanelComp {
+    fn update_state(&mut self, ctx: &Context<Self>) {
+        let props = ctx.props();
+        let form_ctx = &props.state.form_ctx;
+
+        let is_virtio_scsi_single = match props.state.record.get("scsihw") {
+            Some(Value::String(v)) => v == "virtio-scsi-single",
+            _ => false,
+        };
+
+        let bus_device = match (&props.name, &props.unused_disk) {
+            (Some(name), None) => name.clone(),
+            _ => match form_ctx.read().get_last_valid_value(BUS_DEVICE) {
+                Some(Value::String(last_valid)) => last_valid,
+                _ => String::new(),
+            },
+        };
+
+        let is_scsi = bus_device.starts_with("scsi");
+        let is_virtio = bus_device.starts_with("virtio");
+
+        if props.unused_disk.is_some() || props.name.is_none() {
+            // we force the iothreads value when either the
+            // is_virtio_scsi_single flag changes (can only happen after load), or
+            // the user changes the bus (and thus the is_virtio or is_scsi flag)
+            if (self.is_virtio_scsi_single != is_virtio_scsi_single)
+                || (self.is_scsi != is_scsi)
+                || (self.is_virtio != is_virtio)
+            {
+                self.is_virtio_scsi_single = is_virtio_scsi_single;
+                self.is_scsi = is_scsi;
+                self.is_virtio = is_virtio;
+
+                let iothreads = self.is_virtio || (self.is_scsi && self.is_virtio_scsi_single);
+                form_ctx
+                    .write()
+                    .set_field_value(IOTHREAD_PN, iothreads.into());
+            }
+        }
+
+        self.unused_volume = props
+            .unused_disk
+            .as_ref()
+            .map(|unused_disk| {
+                props.state.record[unused_disk]
+                    .as_str()
+                    .map(|s| s.to_string())
+            })
+            .flatten()
+            .unwrap_or(String::new());
+
+        self.used_devices = extract_used_devices(&props.state.record);
+    }
 }
 
 impl Component for DiskPanelComp {
@@ -72,17 +134,32 @@ impl Component for DiskPanelComp {
             .form_ctx
             .add_listener(ctx.link().callback(|_| DiskPanelMsg::FormUpdate));
 
+        ctx.link().send_message(DiskPanelMsg::FormUpdate);
         Self {
             storage_info: None,
             _observer,
+            is_create: props.name.is_none(),
+            is_scsi: false,
+            is_virtio: false,
+            is_virtio_scsi_single: false,
+            unused_volume: String::new(),
+            used_devices: HashSet::new(),
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             DiskPanelMsg::StorageInfo(info) => self.storage_info = info,
             DiskPanelMsg::FormUpdate => { /* redraw */ }
         }
+
+        self.update_state(ctx);
+
+        true
+    }
+
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        self.update_state(ctx);
         true
     }
 
@@ -91,22 +168,8 @@ impl Component for DiskPanelComp {
         let mobile = props.mobile;
         let state = &props.state;
         let form_ctx = &state.form_ctx;
-        let is_create = props.name.is_none();
 
-        let used_devices = extract_used_devices(&state.record);
         let advanced = form_ctx.get_show_advanced();
-
-        let unused_volume = props
-            .unused_disk
-            .as_ref()
-            .map(|unused_disk| state.record[unused_disk].as_str().map(|s| s.to_string()))
-            .flatten()
-            .unwrap_or(String::new());
-
-        let bus_device = match (&props.name, &props.unused_disk) {
-            (Some(name), None) => name.clone(),
-            _ => form_ctx.read().get_field_text(BUS_DEVICE),
-        };
 
         let (supported_formats, default_format, select_existing) = match &self.storage_info {
             Some(StorageInfo {
@@ -130,13 +193,13 @@ impl Component for DiskPanelComp {
             .name(BUS_DEVICE)
             .submit(false)
             .allow_virtio(true)
-            .exclude_devices(used_devices);
+            .exclude_devices(self.used_devices.clone()); //.on_change(ctx.link().callback(|_| DiskPanelMsg::ChangeBus));
 
         let file_info_child = {
             let row = Row::new().key("filename_and_size").gap(1);
 
             if props.unused_disk.is_some() {
-                row.with_child(Container::new().with_child(&unused_volume))
+                row.with_child(Container::new().with_child(&self.unused_volume))
             } else {
                 let file_text = match state.record.get(FILE_PN) {
                     Some(Value::String(file)) => file.clone(),
@@ -179,6 +242,9 @@ impl Component for DiskPanelComp {
             .supported_formats(Some(supported_formats))
             .default_format(default_format);
 
+        let scsi_controller_label = tr!("SCSI Controller");
+        let scsi_controller_field = Field::new().name("scsihw").submit(false).read_only(true);
+
         let discard_label = tr!("Discard");
         let discard_field = Checkbox::new()
             .switch(mobile)
@@ -187,13 +253,11 @@ impl Component for DiskPanelComp {
             .default(true);
 
         let io_thread_label = tr!("IO thread");
-        let io_thread_disabled =
-            !(bus_device.starts_with("scsi") || bus_device.starts_with("virtio"));
+        let io_thread_disabled = !(self.is_scsi || self.is_virtio);
         let io_thread_hidden = io_thread_disabled;
         let io_thread_field = Checkbox::new()
             .switch(mobile)
             .disabled(io_thread_disabled)
-            .default(true)
             .name(IOTHREAD_PN);
 
         let ssd_emulation_label = tr!("SSD emulation");
@@ -222,7 +286,7 @@ impl Component for DiskPanelComp {
                 panel.add_custom_child(file_info_child);
                 panel.add_field(bus_device_label, bus_device_field);
             } else {
-                if is_create {
+                if self.is_create {
                     panel.add_field(bus_device_label, bus_device_field);
                 } else {
                     panel.add_custom_child(file_info_child);
@@ -231,7 +295,7 @@ impl Component for DiskPanelComp {
 
             panel.add_field(cache_label, cache_field);
 
-            if is_create {
+            if self.is_create {
                 panel.add_field(storage_label, storage_field);
                 if select_existing {
                     panel.add_field(disk_image_label, disk_image_field);
@@ -260,11 +324,20 @@ impl Component for DiskPanelComp {
                 panel.add_field(bus_device_label, bus_device_field);
                 panel.add_field(
                     disk_image_label.clone(),
-                    Field::new().read_only(true).value(unused_volume),
+                    Field::new()
+                        .read_only(true)
+                        .value(self.unused_volume.clone()),
                 );
             } else {
-                if is_create {
+                if self.is_create {
                     panel.add_field(bus_device_label, bus_device_field);
+                    panel.add_field_with_options(
+                        pwt::widget::FieldPosition::Left,
+                        false,
+                        !self.is_scsi,
+                        scsi_controller_label,
+                        scsi_controller_field,
+                    );
                 } else {
                     panel.add_custom_child(file_info_child);
                 }
@@ -272,7 +345,7 @@ impl Component for DiskPanelComp {
 
             panel.add_right_field(cache_label, cache_field);
 
-            if is_create {
+            if self.is_create {
                 panel.add_field(storage_label, storage_field);
                 if select_existing {
                     panel.add_field(disk_image_label, disk_image_field);
@@ -672,7 +745,7 @@ fn assemble_device_data(
         REPLICATE_PN: true,
         READONLY_PN: false,
         BACKUP_PN: true,
-        IOTHREAD_PN: true,
+        IOTHREAD_PN: false,
         SSD_PN: false,
     });
 
