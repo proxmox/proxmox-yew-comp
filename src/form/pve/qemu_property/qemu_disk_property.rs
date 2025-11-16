@@ -97,16 +97,17 @@ impl DiskPanelComp {
                 || (self.is_scsi != is_scsi)
                 || (self.is_virtio != is_virtio)
             {
-                self.is_virtio_scsi_single = is_virtio_scsi_single;
-                self.is_scsi = is_scsi;
-                self.is_virtio = is_virtio;
+                let iothreads = is_virtio || (is_scsi && is_virtio_scsi_single);
 
-                let iothreads = self.is_virtio || (self.is_scsi && self.is_virtio_scsi_single);
                 form_ctx
                     .write()
                     .set_field_value(IOTHREAD_PN, iothreads.into());
             }
         }
+
+        self.is_virtio_scsi_single = is_virtio_scsi_single;
+        self.is_scsi = is_scsi;
+        self.is_virtio = is_virtio;
 
         self.unused_volume = props
             .unused_disk
@@ -134,7 +135,6 @@ impl Component for DiskPanelComp {
             .form_ctx
             .add_listener(ctx.link().callback(|_| DiskPanelMsg::FormUpdate));
 
-        ctx.link().send_message(DiskPanelMsg::FormUpdate);
         Self {
             storage_info: None,
             _observer,
@@ -254,6 +254,7 @@ impl Component for DiskPanelComp {
 
         let io_thread_label = tr!("IO thread");
         let io_thread_disabled = !(self.is_scsi || self.is_virtio);
+
         let io_thread_hidden = io_thread_disabled;
         let io_thread_field = Checkbox::new()
             .switch(mobile)
@@ -281,13 +282,24 @@ impl Component for DiskPanelComp {
             .class(pwt::css::FlexFit)
             .padding_x(2);
 
+        let add_bus_device_selector = |panel: &mut InputPanel| {
+            panel.add_field(bus_device_label, bus_device_field);
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Left,
+                false,
+                !self.is_scsi,
+                scsi_controller_label,
+                scsi_controller_field,
+            );
+        };
+
         if mobile {
             if props.unused_disk.is_some() {
                 panel.add_custom_child(file_info_child);
-                panel.add_field(bus_device_label, bus_device_field);
+                add_bus_device_selector(&mut panel);
             } else {
                 if self.is_create {
-                    panel.add_field(bus_device_label, bus_device_field);
+                    add_bus_device_selector(&mut panel);
                 } else {
                     panel.add_custom_child(file_info_child);
                 }
@@ -321,7 +333,7 @@ impl Component for DiskPanelComp {
             panel.set_field_width("minmax(250px, 1fr)");
 
             if props.unused_disk.is_some() {
-                panel.add_field(bus_device_label, bus_device_field);
+                add_bus_device_selector(&mut panel);
                 panel.add_field(
                     disk_image_label.clone(),
                     Field::new()
@@ -330,14 +342,7 @@ impl Component for DiskPanelComp {
                 );
             } else {
                 if self.is_create {
-                    panel.add_field(bus_device_label, bus_device_field);
-                    panel.add_field_with_options(
-                        pwt::widget::FieldPosition::Left,
-                        false,
-                        !self.is_scsi,
-                        scsi_controller_label,
-                        scsi_controller_field,
-                    );
+                    add_bus_device_selector(&mut panel);
                 } else {
                     panel.add_custom_child(file_info_child);
                 }
