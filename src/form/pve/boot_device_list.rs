@@ -269,6 +269,7 @@ impl ManagedField for PveBootDeviceField {
             self.boot_devices = extract_boot_device_list(&props.qemu_config);
             self.update_device_description(&props.qemu_config);
             add_disabled_devices(&mut self.devices, &self.boot_devices);
+            self.update_device_list(ctx.state().value.clone(), &props.qemu_config);
         }
         true
     }
