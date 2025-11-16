@@ -242,6 +242,16 @@ pub fn qemu_boot_property(mobile: bool) -> EditableProperty {
             tr!("any CD-ROM"),
             tr!("any net")
         ))
+        .renderer(|_, v, _| match v {
+            Value::String(s) => {
+                if s.trim().is_empty() {
+                    tr!("No boot device selected").into()
+                } else {
+                    s.into()
+                }
+            }
+            v => v.into(),
+        })
         .render_input_panel(move |state: PropertyEditorState| {
             Column::new()
                 .class(pwt::css::FlexFit)
