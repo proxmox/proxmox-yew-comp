@@ -46,6 +46,12 @@ pub use hotplug_feature_selector::{
     PveHotplugFeatureSelector,
 };
 
+mod lxc_property;
+pub use lxc_property::{
+    lxc_architecture_property, lxc_console_mode_property, lxc_console_property,
+    lxc_features_property, lxc_ostype_property, lxc_tty_count_property, lxc_unpriviledged_property,
+};
+
 mod qemu_property;
 pub use qemu_property::{
     extract_used_devices, qemu_acpi_property, qemu_agent_property, qemu_amd_sev_property,
