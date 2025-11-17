@@ -84,13 +84,19 @@ impl Component for LxcFeaturesComp {
                 false,
                 false,
                 "NFS",
-                Checkbox::new().name(NFS_CHECKBOX_NAME).submit(false),
+                Checkbox::new()
+                    .name(NFS_CHECKBOX_NAME)
+                    .disabled(unpriviledged)
+                    .submit(false),
             )
             .with_single_line_field(
                 false,
                 false,
                 "CIFS",
-                Checkbox::new().name(CIFS_CHECKBOX_NAME).submit(false),
+                Checkbox::new()
+                    .name(CIFS_CHECKBOX_NAME)
+                    .disabled(unpriviledged)
+                    .submit(false),
             )
             .with_single_line_field(false, false, "FUSE", Checkbox::new().name(FUSE_PN))
             .with_single_line_field(
