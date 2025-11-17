@@ -64,6 +64,22 @@ impl Component for LxcFeaturesComp {
             _ => false,
         };
 
+        let unprivileged_hint = |msg: String| {
+            if !unpriviledged {
+                format!("{msg} ({})", tr!("unprivileged only"))
+            } else {
+                msg
+            }
+        };
+
+        let privileged_hint = |msg: String| {
+            if unpriviledged {
+                format!("{msg} ({})", tr!("privileged only"))
+            } else {
+                msg
+            }
+        };
+
         let panel = InputPanel::new()
             .mobile(props.mobile)
             .class(pwt::css::FlexFit)
@@ -71,8 +87,8 @@ impl Component for LxcFeaturesComp {
             .with_single_line_field(
                 false,
                 false,
-                tr!("keyctl"),
-                Checkbox::new().name(KEYCTL_PN).disabled(!unpriviledged), // fixme: add hint
+                unprivileged_hint(tr!("keyctl")),
+                Checkbox::new().name(KEYCTL_PN).disabled(!unpriviledged),
             )
             .with_single_line_field(
                 false,
@@ -83,7 +99,7 @@ impl Component for LxcFeaturesComp {
             .with_single_line_field(
                 false,
                 false,
-                "NFS",
+                privileged_hint(String::from("NFS")),
                 Checkbox::new()
                     .name(NFS_CHECKBOX_NAME)
                     .disabled(unpriviledged)
@@ -92,7 +108,7 @@ impl Component for LxcFeaturesComp {
             .with_single_line_field(
                 false,
                 false,
-                "CIFS",
+                privileged_hint(String::from("CIFS")),
                 Checkbox::new()
                     .name(CIFS_CHECKBOX_NAME)
                     .disabled(unpriviledged)
@@ -102,8 +118,8 @@ impl Component for LxcFeaturesComp {
             .with_single_line_field(
                 false,
                 false,
-                tr!("Create Device Nodes"),
-                Checkbox::new().name(MKNOD_PN), // fixme: add experimental hint
+                tr!("Create Device Nodes") + " (" + &tr!("experimental") + ")",
+                Checkbox::new().name(MKNOD_PN),
             );
 
         panel.into()
