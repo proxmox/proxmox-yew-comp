@@ -49,7 +49,8 @@ pub use hotplug_feature_selector::{
 mod lxc_property;
 pub use lxc_property::{
     lxc_architecture_property, lxc_console_mode_property, lxc_console_property,
-    lxc_features_property, lxc_ostype_property, lxc_tty_count_property, lxc_unpriviledged_property,
+    lxc_features_property, lxc_hookscript_property, lxc_ostype_property, lxc_tty_count_property,
+    lxc_unpriviledged_property,
 };
 
 mod qemu_property;

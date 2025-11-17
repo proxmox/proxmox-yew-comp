@@ -38,6 +38,10 @@ pub fn lxc_architecture_property() -> EditableProperty {
         .placeholder("Unknown")
 }
 
+pub fn lxc_hookscript_property() -> EditableProperty {
+    EditableProperty::new("hookscript", tr!("Hookscript"))
+}
+
 pub fn lxc_tty_count_property(mobile: bool) -> EditableProperty {
     let title = tr!("TTY count");
     EditableProperty::new("tty", title.clone())

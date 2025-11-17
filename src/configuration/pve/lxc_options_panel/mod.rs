@@ -59,6 +59,7 @@ fn properties(_node: &str, _vmid: u32, mobile: bool) -> Vec<EditableProperty> {
         crate::form::pve::qemu_protection_property(mobile),
         crate::form::pve::lxc_unpriviledged_property(),
         crate::form::pve::lxc_features_property(mobile),
+        crate::form::pve::lxc_hookscript_property(),
     ]
 }
 
