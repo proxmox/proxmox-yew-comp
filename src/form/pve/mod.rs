@@ -46,11 +46,15 @@ pub use hotplug_feature_selector::{
     PveHotplugFeatureSelector,
 };
 
+mod lxc_mount_options_selector;
+pub use lxc_mount_options_selector::LxcMountOptionsSelector;
+
 mod lxc_property;
 pub use lxc_property::{
-    lxc_architecture_property, lxc_console_mode_property, lxc_console_property,
-    lxc_features_property, lxc_hookscript_property, lxc_ostype_property, lxc_tty_count_property,
-    lxc_unpriviledged_property,
+    lxc_architecture_property, lxc_console_mode_property, lxc_console_property, lxc_cores_property,
+    lxc_features_property, lxc_hookscript_property, lxc_memory_property, lxc_mount_point_property,
+    lxc_ostype_property, lxc_rootfs_property, lxc_swap_property, lxc_tty_count_property,
+    lxc_unpriviledged_property, lxc_unused_volume_property,
 };
 
 mod qemu_property;
