@@ -87,7 +87,7 @@ impl LxcResourcesPanel {
 
 #[derive(Copy, Clone, PartialEq)]
 enum EditAction {
-    None,
+    //    None,
     Edit,
     Add,
 }

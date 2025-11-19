@@ -30,7 +30,7 @@ fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {
 }
 
 fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
-    RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
+    RenderPropertyInputPanelFn::new(move |_state: PropertyEditorState| {
         let memory_label = tr!("Memory") + " (MiB)";
         let memory_field = Number::<u64>::new()
             .name(MEMORY_PN)

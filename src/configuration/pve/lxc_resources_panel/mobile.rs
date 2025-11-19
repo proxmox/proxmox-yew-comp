@@ -1,4 +1,3 @@
-use proxmox_schema::property_string::PropertyString;
 use serde_json::Value;
 
 use yew::prelude::*;
@@ -7,7 +6,7 @@ use pwt::prelude::*;
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 use pwt::widget::{Column, ConfirmDialog, Container, Fa, List, ListTile};
 
-use pwt::props::{IntoOptionalInlineHtml, IntoSorterFn, SubmitCallback};
+use pwt::props::{IntoOptionalInlineHtml, SubmitCallback};
 
 use pve_api_types::{LxcConfig, LxcConfigMpArray, LxcConfigUnusedArray};
 
@@ -31,9 +30,9 @@ type PveLxcResourcesPanelContext = Context<PvePendingPropertyView<PveLxcResource
 
 fn is_unprivileged(data: &PvePendingConfiguration) -> bool {
     let PvePendingConfiguration {
-        current,
+        current: _,
         pending,
-        keys,
+        keys: _,
     } = data;
 
     match pending["unprivileged"] {
@@ -67,7 +66,7 @@ impl PveLxcResourcesPanel {
 
         if !props.readonly {
             match edit_action {
-                EditAction::None => { /* do nothing  */ }
+                //EditAction::None => { /* do nothing  */ }
                 EditAction::Add | EditAction::Edit => {
                     list_tile.set_interactive(true);
                     list_tile.set_on_activate(ctx.link().callback({
@@ -122,12 +121,12 @@ impl PveLxcResourcesPanel {
 
     fn disk_menu(
         &self,
-        ctx: &PveLxcResourcesPanelContext,
-        name: &str,
-        with_reassign: bool,
-        with_resize: bool,
+        _ctx: &PveLxcResourcesPanelContext,
+        _name: &str,
+        _with_reassign: bool,
+        _with_resize: bool,
     ) -> Menu {
-        let mut menu = Menu::new();
+        let menu = Menu::new();
         /*
         menu.add_item({
             let name = name.to_string();
@@ -365,8 +364,7 @@ impl PendingPropertyView for PveLxcResourcesPanel {
     type Properties = LxcResourcesPanel;
     const MOBILE: bool = true;
 
-    fn create(ctx: &PveLxcResourcesPanelContext) -> Self {
-        let props = ctx.props();
+    fn create(_ctx: &PveLxcResourcesPanelContext) -> Self {
         Self {}
     }
 

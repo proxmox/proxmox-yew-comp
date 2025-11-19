@@ -12,13 +12,11 @@ use pwt::widget::{Container, Row};
 use serde_json::{json, Value};
 use yew::virtual_dom::VComp;
 
-use crate::form::pve::lxc_mount_options_selector::LxcMountOptionsMaster;
 use crate::form::pve::{LxcMountOptionsSelector, PveStorageSelector};
 use crate::form::{
     delete_default_values, flatten_property_string, property_string_add_missing_data,
     property_string_from_parts,
 };
-use crate::pve_api_types::StorageEntry;
 use crate::{EditableProperty, PropertyEditorState};
 
 const MOUNT_POINT_ID: &'static str = "_mount_point_id_";
@@ -473,7 +471,7 @@ pub fn lxc_rootfs_property(
     unprivileged: bool,
     mobile: bool,
 ) -> EditableProperty {
-    let mut title = tr!("Root Disk");
+    let title = tr!("Root Disk");
     mount_point_property(
         Some("rootfs".into()),
         title,
