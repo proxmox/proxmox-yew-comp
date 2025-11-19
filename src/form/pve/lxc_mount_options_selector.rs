@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use anyhow::Error;
-use pwt::props::PwtSpace;
+use pwt::props::{CssLength, PwtSpace};
 use serde_json::Value;
 
 use pwt::prelude::*;
@@ -134,6 +134,7 @@ impl ManagedField for LxcMountOptionsMaster {
             .into_iter()
             .map(|value| {
                 Column::new()
+                    .min_width(CssLength::Px(60.0))
                     .class(pwt::css::AlignItems::Center)
                     .gap(PwtSpace::Em(0.5))
                     .with_child(cb(value))
