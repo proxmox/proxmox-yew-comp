@@ -233,25 +233,32 @@ impl PveQemuHardwarePanel {
         let mut menu = Menu::new();
         menu.add_item({
             let name = name.to_string();
-            MenuItem::new(tr!("Move Storage")).on_select(
-                ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))),
-            )
+            MenuItem::new(tr!("Move Storage"))
+                .icon_class("fa fa-database")
+                .on_select(
+                    ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))
+                    }),
+                )
         });
         if with_reassign {
             menu.add_item({
                 let name = name.to_string();
-                MenuItem::new(tr!("Reassign Owner")).on_select(ctx.link().callback(move |_| {
-                    PendingPropertyViewMsg::Custom(Msg::ReassignDisk(name.clone()))
-                }))
+                MenuItem::new(tr!("Reassign Owner"))
+                    .icon_class("fa fa-desktop")
+                    .on_select(ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::Custom(Msg::ReassignDisk(name.clone()))
+                    }))
             });
         }
         if with_resize {
             menu.add_item({
                 let name = name.to_string();
-                MenuItem::new(tr!("Resize")).on_select(ctx.link().callback(move |_| {
-                    PendingPropertyViewMsg::Custom(Msg::ResizeDisk(name.clone()))
-                }))
+                MenuItem::new(tr!("Resize"))
+                    .icon_class("fa fa-plus")
+                    .on_select(ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::Custom(Msg::ResizeDisk(name.clone()))
+                    }))
             });
         }
         menu

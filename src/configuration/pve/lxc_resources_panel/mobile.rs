@@ -138,11 +138,11 @@ impl PveLxcResourcesPanel {
         if with_move {
             menu.add_item({
                 let name = name.to_string();
-                MenuItem::new(tr!("Move Storage")).on_select(
-                    ctx.link().callback(move |_| {
+                MenuItem::new(tr!("Move Storage"))
+                    .icon_class("fa fa-database")
+                    .on_select(ctx.link().callback(move |_| {
                         PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))
-                    }),
-                )
+                    }))
             });
         }
         menu
