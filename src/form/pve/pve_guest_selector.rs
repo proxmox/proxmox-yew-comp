@@ -22,11 +22,7 @@ use crate::http_get;
 use crate::layout::list_tile::title_subtitle_column;
 use crate::percent_encoding::percent_encode_component;
 
-#[derive(PartialEq, Clone, Copy)]
-pub enum PveGuestType {
-    Qemu,
-    Lxc,
-}
+use super::PveGuestType;
 
 #[widget(comp=PveGuestSelectorComp, @input)]
 #[derive(Clone, Properties, PartialEq)]

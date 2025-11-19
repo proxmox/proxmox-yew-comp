@@ -233,7 +233,7 @@ impl PveQemuHardwarePanel {
         let mut menu = Menu::new();
         menu.add_item({
             let name = name.to_string();
-            MenuItem::new(tr!("Move Disk")).on_select(
+            MenuItem::new(tr!("Move Storage")).on_select(
                 ctx.link()
                     .callback(move |_| PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))),
             )
@@ -241,7 +241,7 @@ impl PveQemuHardwarePanel {
         if with_reassign {
             menu.add_item({
                 let name = name.to_string();
-                MenuItem::new(tr!("Reassign Disk")).on_select(ctx.link().callback(move |_| {
+                MenuItem::new(tr!("Reassign Owner")).on_select(ctx.link().callback(move |_| {
                     PendingPropertyViewMsg::Custom(Msg::ReassignDisk(name.clone()))
                 }))
             });
@@ -249,7 +249,7 @@ impl PveQemuHardwarePanel {
         if with_resize {
             menu.add_item({
                 let name = name.to_string();
-                MenuItem::new(tr!("Resize Disk")).on_select(ctx.link().callback(move |_| {
+                MenuItem::new(tr!("Resize")).on_select(ctx.link().callback(move |_| {
                     PendingPropertyViewMsg::Custom(Msg::ResizeDisk(name.clone()))
                 }))
             });
@@ -299,7 +299,7 @@ impl PveQemuHardwarePanel {
             let link = ctx.link().clone();
             let (title, message) = if media == PveQmIdeMedia::Disk {
                 (
-                    tr!("Detach disk"),
+                    tr!("Detach"),
                     Some(tr!("Are you sure you want to detach entry {0}", name)),
                 )
             } else {

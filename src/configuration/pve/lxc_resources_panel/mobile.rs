@@ -24,6 +24,12 @@ use crate::{EditableProperty, SafeConfirmDialog};
 use super::{EditAction, LxcResourcesPanel};
 use crate::layout::card::standard_card;
 
+pub enum Msg {
+    //ResizeDisk(String),
+    //ReassignDisk(String),
+    MoveDisk(String),
+}
+
 pub struct PveLxcResourcesPanel {}
 
 type PveLxcResourcesPanelContext = Context<PvePendingPropertyView<PveLxcResourcesPanel>>;
@@ -121,22 +127,24 @@ impl PveLxcResourcesPanel {
 
     fn disk_menu(
         &self,
-        _ctx: &PveLxcResourcesPanelContext,
-        _name: &str,
+        ctx: &PveLxcResourcesPanelContext,
+        name: &str,
+        with_move: bool,
         _with_reassign: bool,
         _with_resize: bool,
     ) -> Menu {
-        let menu = Menu::new();
-        /*
-        menu.add_item({
-            let name = name.to_string();
-            MenuItem::new(tr!("Move Disk"))
-            .on_select(
-                ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))),
-            )
-        });
-        */
+        let mut menu = Menu::new();
+
+        if with_move {
+            menu.add_item({
+                let name = name.to_string();
+                MenuItem::new(tr!("Move Storage")).on_select(
+                    ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))
+                    }),
+                )
+            });
+        }
         menu
     }
 
@@ -149,7 +157,7 @@ impl PveLxcResourcesPanel {
         unprivileged: bool,
     ) -> ListTile {
         let props = ctx.props();
-        let mut menu = self.disk_menu(ctx, name, true, true);
+        let mut menu = self.disk_menu(ctx, name, true, true, true);
 
         let property = lxc_mount_point_property(
             Some(name.to_string()),
@@ -164,7 +172,7 @@ impl PveLxcResourcesPanel {
         menu.add_item({
             let link = ctx.link().clone();
 
-            let title = tr!("Detach disk");
+            let title = tr!("Detach");
             let message = tr!("Are you sure you want to detach entry {0}", name);
 
             let dialog: Html = SafeConfirmDialog::new(name.to_string())
@@ -204,7 +212,7 @@ impl PveLxcResourcesPanel {
         unprivileged: bool,
     ) -> ListTile {
         let props = ctx.props();
-        let menu = self.disk_menu(ctx, name, true, false).with_item({
+        let menu = self.disk_menu(ctx, name, false, true, false).with_item({
             let link = ctx.link().clone();
 
             let volume = record[name].as_str().unwrap_or(&name);
@@ -360,7 +368,7 @@ impl PveLxcResourcesPanel {
 }
 
 impl PendingPropertyView for PveLxcResourcesPanel {
-    type Message = ();
+    type Message = Msg;
     type Properties = LxcResourcesPanel;
     const MOBILE: bool = true;
 
@@ -381,6 +389,42 @@ impl PendingPropertyView for PveLxcResourcesPanel {
             || props.remote != old_props.remote
         {
             ctx.link().send_message(PendingPropertyViewMsg::Load);
+        }
+        true
+    }
+
+    fn update(
+        &mut self,
+        ctx: &PveLxcResourcesPanelContext,
+        view_state: &mut PendingPropertyViewState,
+        msg: Self::Message,
+    ) -> bool {
+        let props = ctx.props();
+
+        match msg {
+            /*
+            Msg::ResizeDisk(name) => {
+                let dialog = props.resize_disk_dialog(&name).on_done(
+                    ctx.link()
+                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
+                );
+                view_state.dialog = Some(dialog.into());
+            }
+              Msg::ReassignDisk(name) => {
+                  let dialog = props.reassign_disk_dialog(&name).on_done(
+                      ctx.link()
+                          .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
+                  );
+                  view_state.dialog = Some(dialog.into());
+              }
+              */
+            Msg::MoveDisk(name) => {
+                let dialog = props.move_volume_dialog(&name).on_done(
+                    ctx.link()
+                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
+                );
+                view_state.dialog = Some(dialog.into());
+            }
         }
         true
     }

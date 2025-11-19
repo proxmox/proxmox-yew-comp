@@ -7,14 +7,16 @@ use pwt::prelude::*;
 use pwt::widget::form::{Checkbox, FormContextObserver};
 use pwt::widget::InputPanel;
 
-use crate::form::pve::{PveStorageSelector, QemuDiskFormatSelector};
+use crate::form::pve::{PveGuestType, PveStorageSelector, QemuDiskFormatSelector};
 use crate::{PropertyEditDialog, PropertyEditorState};
 
 #[derive(PartialEq, Properties, Clone)]
-struct QemuMoveDiskPanel {
+struct MoveDiskPanel {
     node: Option<AttrValue>,
     state: PropertyEditorState,
     remote: Option<AttrValue>,
+    guest_type: PveGuestType,
+
     mobile: bool,
 }
 
@@ -23,14 +25,14 @@ enum Msg {
     StorageInfo(Option<StorageInfo>),
 }
 
-struct QemuMoveDiskPanelComp {
+struct MoveDiskPanelComp {
     storage_info: Option<StorageInfo>,
     _observer: FormContextObserver,
 }
 
-impl Component for QemuMoveDiskPanelComp {
+impl Component for MoveDiskPanelComp {
     type Message = Msg;
-    type Properties = QemuMoveDiskPanel;
+    type Properties = MoveDiskPanel;
 
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
@@ -70,6 +72,11 @@ impl Component for QemuMoveDiskPanelComp {
         // disable selector if there is no real choice
         let disable_format_selector = supported_formats.len() <= 1;
 
+        let content_types = match props.guest_type {
+            PveGuestType::Lxc => vec![StorageContent::Rootdir],
+            PveGuestType::Qemu => vec![StorageContent::Images],
+        };
+
         let storage_label = tr!("Storage");
         let storage_field = PveStorageSelector::new(props.node.clone())
             .remote(props.remote.clone())
@@ -77,7 +84,7 @@ impl Component for QemuMoveDiskPanelComp {
             .required(true)
             .include_select_existing(false)
             .autoselect(true)
-            .content_types(Some(vec![StorageContent::Images]))
+            .content_types(Some(content_types))
             .on_change(ctx.link().callback(Msg::StorageInfo))
             .mobile(props.mobile);
 
@@ -91,35 +98,42 @@ impl Component for QemuMoveDiskPanelComp {
         let delete_source_label = tr!("Delete source");
         let delete_source_field = Checkbox::new().name("delete");
 
-        InputPanel::new()
+        let mut panel = InputPanel::new()
             .mobile(props.mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
-            .with_field(storage_label, storage_field)
-            .with_field(format_label, format_field)
+            .with_field(storage_label, storage_field);
+
+        if props.guest_type == PveGuestType::Qemu {
+            panel.add_field(format_label, format_field)
+        }
+
+        panel
             .with_field(delete_source_label, delete_source_field)
             .into()
     }
 }
 
-pub fn qemu_move_disk_dialog(
+pub fn move_disk_dialog(
     name: &str,
     node: Option<AttrValue>,
     remote: Option<AttrValue>,
+    guest_type: PveGuestType,
     mobile: bool,
 ) -> PropertyEditDialog {
-    let title = tr!("Move Disk");
+    let title = tr!("Move Storage");
 
     let renderer = {
         let node = node.clone();
         move |state| {
-            let props = QemuMoveDiskPanel {
+            let props = MoveDiskPanel {
                 state,
                 node: node.clone(),
                 remote: remote.clone(),
+                guest_type,
                 mobile: mobile,
             };
-            VComp::new::<QemuMoveDiskPanelComp>(Rc::new(props), None).into()
+            VComp::new::<MoveDiskPanelComp>(Rc::new(props), None).into()
         }
     };
 
@@ -127,7 +141,11 @@ pub fn qemu_move_disk_dialog(
         let disk = name.to_string();
         move |state: PropertyEditorState| {
             let mut data = state.form_ctx.get_submit_data();
-            data["disk"] = disk.clone().into();
+            let pname = match guest_type {
+                PveGuestType::Qemu => "disk",
+                PveGuestType::Lxc => "volume",
+            };
+            data[pname] = disk.clone().into();
             Ok(data)
         }
     };

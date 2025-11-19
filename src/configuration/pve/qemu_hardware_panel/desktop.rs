@@ -184,7 +184,7 @@ impl PveQemuHardwarePanel {
         if let Some(name) = name {
             menu.add_item({
                 let name = name.to_string();
-                MenuItem::new(tr!("Move Disk")).on_select(
+                MenuItem::new(tr!("Move Storage")).on_select(
                     ctx.link().callback(move |_| {
                         PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))
                     }),
@@ -192,19 +192,19 @@ impl PveQemuHardwarePanel {
             });
             menu.add_item({
                 let name = name.to_string();
-                MenuItem::new(tr!("Reassign Disk")).on_select(ctx.link().callback(move |_| {
+                MenuItem::new(tr!("Reassign Owner")).on_select(ctx.link().callback(move |_| {
                     PendingPropertyViewMsg::Custom(Msg::ReassignDisk(name.clone()))
                 }))
             });
             menu.add_item({
                 let name = name.to_string();
-                MenuItem::new(tr!("Resize Disk")).on_select(ctx.link().callback(move |_| {
+                MenuItem::new(tr!("Resize")).on_select(ctx.link().callback(move |_| {
                     PendingPropertyViewMsg::Custom(Msg::ResizeDisk(name.clone()))
                 }))
             });
         }
 
-        MenuButton::new(tr!("Disk Actions"))
+        MenuButton::new(tr!("Disk Action"))
             .show_arrow(true)
             .menu(menu)
     }

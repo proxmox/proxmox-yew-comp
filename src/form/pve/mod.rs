@@ -26,7 +26,7 @@ mod qemu_display_type_selector;
 pub use qemu_display_type_selector::{format_qemu_display_type, QemuDisplayTypeSelector};
 
 mod pve_guest_selector;
-pub use pve_guest_selector::{PveGuestSelector, PveGuestType};
+pub use pve_guest_selector::PveGuestSelector;
 
 mod qemu_machine_version_selector;
 pub use qemu_machine_version_selector::QemuMachineVersionSelector;
@@ -73,3 +73,9 @@ pub use qemu_property::{
 
 mod pve_storage_selector;
 pub use pve_storage_selector::PveStorageSelector;
+
+#[derive(PartialEq, Clone, Copy)]
+pub enum PveGuestType {
+    Qemu,
+    Lxc,
+}

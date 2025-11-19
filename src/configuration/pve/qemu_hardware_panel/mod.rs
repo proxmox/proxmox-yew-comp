@@ -1,6 +1,3 @@
-mod move_disk_dialog;
-pub use move_disk_dialog::qemu_move_disk_dialog;
-
 mod reassign_disk_dialog;
 pub use reassign_disk_dialog::qemu_reassign_disk_dialog;
 
@@ -22,11 +19,14 @@ use pwt::prelude::*;
 use pwt::props::SubmitCallback;
 use pwt_macros::builder;
 
+use crate::form::pve::PveGuestType;
 use crate::form::typed_load;
 use crate::pending_property_view::PvePendingPropertyView;
 use crate::percent_encoding::percent_encode_component;
 use crate::PropertyEditDialog;
 use crate::{http_post, http_put};
+
+use super::move_disk_dialog;
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -168,10 +168,11 @@ impl QemuHardwarePanel {
     }
 
     pub(crate) fn move_disk_dialog(&self, name: &str) -> PropertyEditDialog {
-        qemu_move_disk_dialog(
+        move_disk_dialog(
             name,
             Some(self.node.clone()),
             self.remote.clone(),
+            PveGuestType::Qemu,
             self.mobile,
         )
         .loader(typed_load::<QemuConfig>(self.editor_url()))

@@ -7,13 +7,18 @@ use serde_json::Value;
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
+use pve_api_types::LxcConfig;
+
 use pwt::prelude::*;
 use pwt::props::SubmitCallback;
 use pwt_macros::builder;
 
+use crate::configuration::pve::move_disk_dialog;
+use crate::form::pve::PveGuestType;
+use crate::form::typed_load;
 use crate::pending_property_view::PvePendingPropertyView;
 use crate::percent_encoding::percent_encode_component;
-use crate::{http_post, http_put};
+use crate::{http_post, http_put, PropertyEditDialog};
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -82,6 +87,44 @@ impl LxcResourcesPanel {
                 self.vmid
             )
         }
+    }
+
+    pub(crate) fn move_volume_url(&self) -> String {
+        let name = if self.remote.is_some() {
+            "move-volume"
+        } else {
+            "move_volume"
+        };
+        if let Some(remote) = &self.remote {
+            format!(
+                "/pve/remotes/{}/lxc/{}/{name}",
+                percent_encode_component(remote),
+                self.vmid
+            )
+        } else {
+            format!(
+                "/nodes/{}/lxc/{}/{name}",
+                percent_encode_component(&self.node),
+                self.vmid
+            )
+        }
+    }
+
+    pub(crate) fn move_volume_dialog(&self, name: &str) -> PropertyEditDialog {
+        move_disk_dialog(
+            name,
+            Some(self.node.clone()),
+            self.remote.clone(),
+            PveGuestType::Lxc,
+            self.mobile,
+        )
+        .loader(typed_load::<LxcConfig>(self.editor_url()))
+        .on_submit(create_on_submit(
+            self.move_volume_url(),
+            self.on_start_command.clone(),
+            true,
+            0,
+        ))
     }
 }
 
