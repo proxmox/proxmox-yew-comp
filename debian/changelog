@@ -1,3 +1,30 @@
+rust-proxmox-yew-comp (0.7.2) trixie; urgency=medium
+
+  * qemu disk editor improvements:
+    - support virtio bus
+    - enable iothread by default just like the PVE ExtJS UI does.
+    - only allow setting iothread option when scsi or virtio bus is selected.
+    - reuse the widget for (re-)adding unused disks.
+  * qemu hardware panel: add icons to disk action menu
+  * qemu boot property: add renderer for "No boot device selected" case.
+  * qemu boot device list: update list after config change (load).
+  * add initial lxc options panel and add support for editing CT features
+    (nesting, mknod, nfs/cifs mounts, ...) including usage hints, like we have
+    in PVE's current UI.
+  * implement lxc resources panel, for now the mobile view only.
+  * lxc mount options: improve layout by setting min-width.
+  * editable property renderer: always call a configured renderer even if the
+    value is undefined, as then one can write renderers that use one of the
+    object properties for rendering in such a case.
+  * lxc resources panel: add move storage functionality.
+  * xtermjs: add support for remote (proxied) PVE and PBS shells.
+  * add ACL context components. These allow an application to provide a
+    context that components can use to check the privileges of the current
+    user, e.g., to hide/omit certain UI elements where opening it would just
+    result in an 403 Forbidden error from the API anyway.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 19 Nov 2025 20:17:50 +0100
+
 rust-proxmox-yew-comp (0.7.1) trixie; urgency=medium
 
   * node status info: only use build date from kernel version extra info. This
