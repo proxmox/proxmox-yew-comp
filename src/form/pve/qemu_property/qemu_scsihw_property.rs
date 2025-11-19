@@ -23,12 +23,17 @@ pub fn qemu_scsihw_property(mobile: bool) -> EditableProperty {
 
     EditableProperty::new(NAME, tr!("SCSI Controller Type"))
         .required(true)
-        .placeholder(placeholder.clone())
         .renderer({
             let items = items.clone();
-            move |_, v, _| match items.get(v.as_str().unwrap_or("")) {
-                Some(descr) => descr.into(),
-                None => v.into(),
+            move |_, v, _| {
+                if v.is_null() {
+                    placeholder.clone().into()
+                } else {
+                    match items.get(v.as_str().unwrap_or("")) {
+                        Some(descr) => descr.into(),
+                        None => v.into(),
+                    }
+                }
             }
         })
         .render_input_panel(move |_| {

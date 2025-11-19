@@ -16,6 +16,10 @@ use crate::form::{delete_empty_values, flatten_property_string, property_string_
 use crate::{EditableProperty, PropertyEditorState};
 
 fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {
+    if value.is_null() {
+        return tr!("Default").into();
+    }
+
     let vga: Result<PropertyString<QemuConfigVga>, _> = serde_json::from_value(value.clone());
     match vga {
         Ok(vga) => {
@@ -180,7 +184,6 @@ pub fn qemu_display_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("vga", tr!("Display"))
         .required(true)
         .advanced_checkbox(true)
-        .placeholder(tr!("Default"))
         .renderer(renderer)
         .render_input_panel(move |state: PropertyEditorState| {
             let props = StatefulPanel { state, mobile };

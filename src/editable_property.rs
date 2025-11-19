@@ -104,8 +104,15 @@ pub struct EditableProperty {
     #[builder]
     pub advanced_checkbox: bool,
 
+    /// Placeholder
+    ///
+    /// This is displayed if the value is undefined and there is no renderer function.
+    ///
+    /// If there is a renderer function, we always call that, even for undefined values.
     #[builder(IntoPropValue, into_prop_value)]
     pub placeholder: Option<AttrValue>,
+
+    /// Render function
     pub renderer: Option<RenderPropertyFn>,
 
     /// Load hook.
@@ -159,7 +166,6 @@ impl EditableProperty {
         let default = default.into_prop_value();
         let title = title.into();
         Self::new(name.clone(), title.clone())
-            .placeholder(default.map(|default| render_boolean(default)))
             .renderer(move |_name, value, _data| {
                 let text: String = match value {
                     Value::Bool(value) => render_boolean(*value),

@@ -106,23 +106,29 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 }
 
 pub fn qemu_amd_sev_property(mobile: bool) -> EditableProperty {
+    let placeholder = format!("{} ({})", tr!("Default"), tr!("Disabled"));
     EditableProperty::new("amd-sev", tr!("AMD SEV"))
         .advanced_checkbox(true)
         .required(true)
-        .placeholder(format!("{} ({})", tr!("Default"), tr!("Disabled")))
         .render_input_panel(input_panel(mobile))
-        .renderer(|_, v, _| {
-            match serde_json::from_value::<Option<PropertyString<PveQemuSevFmt>>>(v.clone()) {
-                Ok(Some(data)) => {
-                    let text = match data.ty {
-                        PveQemuSevFmtType::Std => "AMD SEV",
-                        PveQemuSevFmtType::Es => "AMD SEV-ES",
-                        PveQemuSevFmtType::Snp => "AMD SEV-SNP",
-                        PveQemuSevFmtType::UnknownEnumValue(value) => &format!("unknown '{value}'"),
-                    };
-                    format!("{text} ({v})").into()
+        .renderer(move |_, v, _| {
+            if v == &Value::Null {
+                placeholder.clone().into()
+            } else {
+                match serde_json::from_value::<Option<PropertyString<PveQemuSevFmt>>>(v.clone()) {
+                    Ok(Some(data)) => {
+                        let text = match data.ty {
+                            PveQemuSevFmtType::Std => "AMD SEV",
+                            PveQemuSevFmtType::Es => "AMD SEV-ES",
+                            PveQemuSevFmtType::Snp => "AMD SEV-SNP",
+                            PveQemuSevFmtType::UnknownEnumValue(value) => {
+                                &format!("unknown '{value}'")
+                            }
+                        };
+                        format!("{text} ({v})").into()
+                    }
+                    _ => v.into(),
                 }
-                _ => v.into(),
             }
         })
         .load_hook({

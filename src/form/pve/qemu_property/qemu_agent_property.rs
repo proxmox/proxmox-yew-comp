@@ -11,6 +11,10 @@ use crate::utils::render_boolean;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
 fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {
+    if value.is_null() {
+        return format!("{} ({})", tr!("Default"), tr!("Disabled")).into();
+    }
+
     let qga: Result<PropertyString<QemuConfigAgent>, _> = serde_json::from_value(value.clone());
 
     match qga {
@@ -108,7 +112,6 @@ pub fn qemu_agent_property(mobile: bool) -> EditableProperty {
     EditableProperty::new(name.clone(), tr!("QEMU Guest Agent"))
         .advanced_checkbox(true)
         .required(true)
-        .placeholder(format!("{} ({})", tr!("Default"), tr!("Disabled")))
         .renderer(renderer)
         .render_input_panel(input_panel(mobile))
         .load_hook(property_string_load_hook::<QemuConfigAgent>(&name))

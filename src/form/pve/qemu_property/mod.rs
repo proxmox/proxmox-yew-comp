@@ -166,10 +166,10 @@ pub fn qemu_ostype_property(mobile: bool) -> EditableProperty {
     let title = tr!("OS Type");
     EditableProperty::new("ostype", title.clone())
         .required(true)
-        .placeholder("Other")
-        .renderer(|_, v, _| match v.as_str() {
-            Some(s) => format_qemu_ostype(s).into(),
-            None => v.into(),
+        .renderer(|_, v, _| match v {
+            Value::Null => "Other".into(),
+            Value::String(s) => format_qemu_ostype(s).into(),
+            _ => v.into(),
         })
         .render_input_panel(move |_| {
             let input = QemuOstypeSelector::new()
@@ -236,13 +236,14 @@ pub fn qemu_boot_property(mobile: bool) -> EditableProperty {
                 .map(AttrValue::from)
                 .collect(),
         ))
-        .placeholder(format!(
-            "{}, {}, {}",
-            tr!("first Disk"),
-            tr!("any CD-ROM"),
-            tr!("any net")
-        ))
         .renderer(|_, v, _| match v {
+            Value::Null => format!(
+                "{}, {}, {}",
+                tr!("first Disk"),
+                tr!("any CD-ROM"),
+                tr!("any net")
+            )
+            .into(),
             Value::String(s) => {
                 if s.trim().is_empty() {
                     tr!("No boot device selected").into()
@@ -273,7 +274,6 @@ pub fn qemu_boot_property(mobile: bool) -> EditableProperty {
 
 pub fn qemu_hotplug_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("hotplug", tr!("Hotplug"))
-        .placeholder(format_hotplug_feature(&Value::Null))
         .renderer(|_, v, _| format_hotplug_feature(v).into())
         .load_hook(|mut record: Value| {
             record["hotplug"] = crate::form::pve::normalize_hotplug_value(&record["hotplug"]);

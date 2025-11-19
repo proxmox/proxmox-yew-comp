@@ -257,26 +257,28 @@ pub fn render_property_value(record: &Value, property: &EditableProperty) -> Htm
         value = None;
     }
 
-    match (value, &property.renderer) {
-        (None::<_> | Some(Value::Null), _) => {
-            let placeholder = if let Some(placeholder) = &property.placeholder {
-                placeholder.to_string().into()
-            } else {
-                String::from("-")
-            };
-            Container::new()
-                .class(pwt::css::Opacity::Half)
-                .with_child(placeholder)
-                .into()
+    if let Some(renderer) = &property.renderer {
+        renderer.apply(&render_name, value.unwrap_or(&Value::Null), record)
+    } else {
+        match value {
+            None::<_> | Some(Value::Null) => {
+                let placeholder = if let Some(placeholder) = &property.placeholder {
+                    placeholder.to_string().into()
+                } else {
+                    String::from("-")
+                };
+                Container::new()
+                    .class(pwt::css::Opacity::Half)
+                    .with_child(placeholder)
+                    .into()
+            }
+            Some(value) => match value {
+                Value::String(value) => value.clone(),
+                Value::Bool(value) => render_boolean(*value),
+                Value::Number(n) => n.to_string(),
+                v => v.to_string(),
+            }
+            .into(),
         }
-
-        (Some(value), None::<_>) => match value {
-            Value::String(value) => value.clone(),
-            Value::Bool(value) => render_boolean(*value),
-            Value::Number(n) => n.to_string(),
-            v => v.to_string(),
-        }
-        .into(),
-        (Some(value), Some(renderer)) => renderer.apply(&render_name, value, record),
     }
 }

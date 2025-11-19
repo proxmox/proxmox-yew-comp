@@ -178,7 +178,6 @@ pub fn qemu_machine_property(mobile: bool) -> EditableProperty {
     EditableProperty::new("machine", tr!("Machine"))
         .required(true)
         .advanced_checkbox(true)
-        .placeholder(placeholder())
         .renderer(move |_, v, record| {
             let ostype: Option<QemuConfigOstype> =
                 serde_json::from_value(record["ostype"].clone()).ok();

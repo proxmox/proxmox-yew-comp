@@ -29,10 +29,10 @@ pub fn lxc_unpriviledged_property() -> EditableProperty {
     EditableProperty::new("unprivileged", tr!("Unprivileged container"))
         .required(true)
         .renderer(move |_name, value, _data| match value {
+            Value::Null => render_boolean(false).into(),
             Value::Bool(value) => render_boolean(*value).into(),
             _ => value.into(),
         })
-        .placeholder(render_boolean(false))
 }
 
 pub fn lxc_ostype_property() -> EditableProperty {

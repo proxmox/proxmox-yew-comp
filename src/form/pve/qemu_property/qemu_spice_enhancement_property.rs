@@ -72,7 +72,6 @@ pub fn qemu_spice_enhancement_property(mobile: bool) -> EditableProperty {
     let name = String::from("spice_enhancements");
     EditableProperty::new(name.clone(), tr!("Spice Enhancements"))
         .required(true)
-        .placeholder(tr!("none"))
         .renderer(|_, v, _| {
             match serde_json::from_value::<Option<PropertyString<QemuConfigSpiceEnhancements>>>(
                 v.clone(),

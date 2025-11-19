@@ -3,6 +3,7 @@ use pwt::widget::form::Combobox;
 use pwt::widget::{Container, FieldPosition, InputPanel};
 
 use pve_api_types::QemuConfigBios;
+use serde_json::Value;
 
 use crate::form::delete_empty_values;
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
@@ -51,19 +52,25 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 }
 
 pub fn qemu_bios_property(mobile: bool) -> EditableProperty {
+    let placeholder = tr!("Default") + " (SeaBIOS)";
     EditableProperty::new("bios", "BIOS")
         .required(true)
-        .placeholder(tr!("Default") + " (SeaBIOS)")
-        .renderer(
-            |_, v, _| match serde_json::from_value::<QemuConfigBios>(v.clone()) {
-                Ok(bios) => match bios {
-                    QemuConfigBios::Seabios => "SeaBIOS".into(),
-                    QemuConfigBios::Ovmf => "OVMF (UEFI)".into(),
-                    QemuConfigBios::UnknownEnumValue(value) => format!("unknown '{value}'").into(),
-                },
-                Err(_) => v.into(),
-            },
-        )
+        .renderer(move |_, v, _| {
+            if v == &Value::Null {
+                placeholder.clone().into()
+            } else {
+                match serde_json::from_value::<QemuConfigBios>(v.clone()) {
+                    Ok(bios) => match bios {
+                        QemuConfigBios::Seabios => "SeaBIOS".into(),
+                        QemuConfigBios::Ovmf => "OVMF (UEFI)".into(),
+                        QemuConfigBios::UnknownEnumValue(value) => {
+                            format!("unknown '{value}'").into()
+                        }
+                    },
+                    Err(_) => v.into(),
+                }
+            }
+        })
         .render_input_panel(input_panel(mobile))
         .submit_hook(move |state: PropertyEditorState| {
             let mut data = state.get_submit_data();
