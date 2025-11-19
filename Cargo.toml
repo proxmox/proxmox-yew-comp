@@ -81,7 +81,7 @@ proxmox-auth-api = { version = "1", default-features = false, features = [
   "api-types",
 ] }
 proxmox-apt-api-types = { version = "2.0", optional = true }
-proxmox-access-control = { version = "1.1", features = ["acl"]}
+proxmox-access-control = { version = "1.3", features = ["acl"]}
 proxmox-dns-api = { version = "1", optional = true }
 proxmox-network-api = { version = "1", optional = true }
 proxmox-node-status = { version = "1", features = [] }
