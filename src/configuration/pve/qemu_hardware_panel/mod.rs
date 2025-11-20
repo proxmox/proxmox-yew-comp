@@ -1,8 +1,6 @@
 mod reassign_disk_dialog;
 pub use reassign_disk_dialog::qemu_reassign_disk_dialog;
 
-mod resize_disk_dialog;
-pub use resize_disk_dialog::qemu_resize_disk_dialog;
 use serde_json::Value;
 
 mod desktop;
@@ -26,7 +24,7 @@ use crate::percent_encoding::percent_encode_component;
 use crate::PropertyEditDialog;
 use crate::{http_post, http_put};
 
-use super::move_disk_dialog;
+use super::{move_disk_dialog, resize_disk_dialog};
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -135,7 +133,7 @@ impl QemuHardwarePanel {
     }
 
     pub(crate) fn resize_disk_dialog(&self, name: &str) -> PropertyEditDialog {
-        qemu_resize_disk_dialog(
+        resize_disk_dialog(
             name,
             Some(self.node.clone()),
             self.remote.clone(),

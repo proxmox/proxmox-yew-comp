@@ -25,7 +25,7 @@ use super::{EditAction, LxcResourcesPanel};
 use crate::layout::card::standard_card;
 
 pub enum Msg {
-    //ResizeDisk(String),
+    ResizeDisk(String),
     ReassignDisk(String),
     MoveDisk(String),
 }
@@ -131,7 +131,7 @@ impl PveLxcResourcesPanel {
         name: &str,
         with_move: bool,
         with_reassign: bool,
-        _with_resize: bool,
+        with_resize: bool,
     ) -> Menu {
         let mut menu = Menu::new();
 
@@ -157,6 +157,16 @@ impl PveLxcResourcesPanel {
             });
         }
 
+        if with_resize {
+            menu.add_item({
+                let name = name.to_string();
+                MenuItem::new(tr!("Resize"))
+                    .icon_class("fa fa-plus")
+                    .on_select(ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::Custom(Msg::ResizeDisk(name.clone()))
+                    }))
+            });
+        }
         menu
     }
 
@@ -416,14 +426,13 @@ impl PendingPropertyView for PveLxcResourcesPanel {
         let props = ctx.props();
 
         match msg {
-            /*
             Msg::ResizeDisk(name) => {
                 let dialog = props.resize_disk_dialog(&name).on_done(
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
                 view_state.dialog = Some(dialog.into());
-            }*/
+            }
             Msg::ReassignDisk(name) => {
                 let dialog = props.reassign_volume_dialog(&name).on_done(
                     ctx.link()

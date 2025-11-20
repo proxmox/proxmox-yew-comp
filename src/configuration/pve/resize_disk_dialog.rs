@@ -7,7 +7,7 @@ use pwt::widget::InputPanel;
 
 use crate::{PropertyEditDialog, PropertyEditorState};
 
-pub fn qemu_resize_disk_dialog(
+pub fn resize_disk_dialog(
     name: &str,
     _node: Option<AttrValue>,
     _remote: Option<AttrValue>,
