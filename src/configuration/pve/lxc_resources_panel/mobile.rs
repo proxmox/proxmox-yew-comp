@@ -366,6 +366,11 @@ impl PveLxcResourcesPanel {
 
     fn card_menu(&self, ctx: &PveLxcResourcesPanelContext, data: &PvePendingConfiguration) -> Html {
         let props = ctx.props();
+
+        if props.readonly {
+            return html! {};
+        }
+
         let unprivileged = is_unprivileged(data);
 
         let menu = Menu::new().with_item({
