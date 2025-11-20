@@ -184,7 +184,7 @@ impl PveLxcResourcesPanel {
                     move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
                 }))
                 .into();
-            MenuItem::new(title).on_select(
+            MenuItem::new(title).icon_class("fa fa-sign-out").on_select(
                 ctx.link()
                     .callback(move |_| PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))),
             )
@@ -212,31 +212,33 @@ impl PveLxcResourcesPanel {
         unprivileged: bool,
     ) -> ListTile {
         let props = ctx.props();
-        let menu = self.disk_menu(ctx, name, false, true, false).with_item({
-            let link = ctx.link().clone();
+        let menu =
+            self.disk_menu(ctx, name, false, true, false).with_item({
+                let link = ctx.link().clone();
 
-            let volume = record[name].as_str().unwrap_or(&name);
+                let volume = record[name].as_str().unwrap_or(&name);
 
-            let message1 = tr!("Are you sure you want to delete disk {0}.", volume);
-            let message2 = tr!("This will permanently erase all data.");
-            let message = Column::new()
-                .with_child(message1)
-                .with_child(html! {<br/>})
-                .with_child(message2);
-            let dialog: Html = ConfirmDialog::default()
-                .confirm_message(message)
-                .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
-                .on_confirm(link.callback({
-                    let name = name.to_string();
-                    move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                }))
-                .into();
+                let message1 = tr!("Are you sure you want to delete disk {0}.", volume);
+                let message2 = tr!("This will permanently erase all data.");
+                let message = Column::new()
+                    .with_child(message1)
+                    .with_child(html! {<br/>})
+                    .with_child(message2);
+                let dialog: Html = ConfirmDialog::default()
+                    .confirm_message(message)
+                    .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
+                    .on_confirm(link.callback({
+                        let name = name.to_string();
+                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
+                    }))
+                    .into();
 
-            MenuItem::new(tr!("Delete disk")).on_select(
-                ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))),
-            )
-        });
+                MenuItem::new(tr!("Delete disk"))
+                    .icon_class("fa fa-trash-o")
+                    .on_select(ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))
+                    }))
+            });
 
         let icon = Fa::new("hdd-o");
         let property = lxc_unused_volume_property(
