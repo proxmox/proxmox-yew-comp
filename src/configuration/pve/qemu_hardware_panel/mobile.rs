@@ -15,12 +15,13 @@ use pve_api_types::{
     QemuConfigVirtioArray,
 };
 
+use crate::configuration::{guest_config_url, guest_pending_url};
 use crate::form::pve::{
     qemu_bios_property, qemu_cdrom_property, qemu_cpu_flags_property, qemu_disk_property,
     qemu_display_property, qemu_efidisk_property, qemu_kernel_scheduler_property,
     qemu_machine_property, qemu_memory_property, qemu_network_mtu_property, qemu_network_property,
     qemu_scsihw_property, qemu_sockets_cores_property, qemu_tpmstate_property,
-    qemu_vmstate_property,
+    qemu_vmstate_property, PveGuestType,
 };
 use crate::form::typed_load;
 use crate::pending_property_view::{
@@ -725,9 +726,12 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             .unwrap_or(String::new());
         let user_is_root = props.remote.is_none() && username == "root@pam";
 
+        let editor_url =
+            guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Qemu);
+
         Self {
             async_submit: super::create_on_submit(
-                props.editor_url(),
+                editor_url,
                 props.on_start_command.clone(),
                 true,
                 5,
@@ -856,20 +860,21 @@ impl PendingPropertyView for PveQemuHardwarePanel {
     }
 
     fn editor_loader(props: &Self::Properties) -> Option<crate::ApiLoadCallback<Value>> {
-        let url = props.editor_url();
-        Some(typed_load::<QemuConfig>(url.clone()))
+        let url = guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Qemu);
+        Some(typed_load::<QemuConfig>(url))
     }
 
     fn pending_loader(
         props: &Self::Properties,
     ) -> Option<crate::ApiLoadCallback<PvePendingConfiguration>> {
-        let pending_url = props.pending_url();
-        Some(pending_typed_load::<QemuConfig>(pending_url.clone()))
+        let url = guest_pending_url(props.vmid, &props.node, &props.remote, PveGuestType::Qemu);
+        Some(pending_typed_load::<QemuConfig>(url))
     }
 
     fn on_submit(props: &Self::Properties) -> Option<SubmitCallback<Value>> {
+        let url = guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Qemu);
         Some(super::create_on_submit(
-            props.editor_url(),
+            url,
             props.on_start_command.clone(),
             false,
             0,

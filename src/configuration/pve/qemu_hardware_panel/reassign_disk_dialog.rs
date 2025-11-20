@@ -11,6 +11,7 @@ use pwt::prelude::*;
 use pwt::widget::InputPanel;
 use pwt::AsyncAbortGuard;
 
+use crate::configuration::guest_config_url;
 use crate::form::pve::{
     extract_used_devices, PveGuestSelector, PveGuestType, QemuControllerSelector,
 };
@@ -60,9 +61,12 @@ impl Component for QemuReassignDiskPanelComp {
                     ..
                 }) = &self.target
                 {
-                    let url = super::QemuHardwarePanel::new(node.clone(), *vmid)
-                        .remote(props.remote.clone())
-                        .editor_url();
+                    let url = guest_config_url(
+                        *vmid,
+                        &node.clone().into(),
+                        &props.remote,
+                        PveGuestType::Qemu,
+                    );
                     let link = ctx.link().clone();
                     self.load_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = http_get(&url, None).await;

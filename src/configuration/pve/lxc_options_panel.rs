@@ -7,10 +7,12 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
 
+use crate::configuration::{guest_config_url, guest_pending_url};
+use crate::form::pve::PveGuestType;
 use crate::form::typed_load;
+use crate::http_put;
 use crate::pending_property_view::{pending_typed_load, PendingPropertyGrid, PendingPropertyList};
 use crate::EditableProperty;
-use crate::{http_put, percent_encoding::percent_encode_component};
 
 use pve_api_types::LxcConfig;
 
@@ -77,33 +79,11 @@ impl Component for PveLxcOptionsPanel {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let editor_url = if let Some(remote) = &props.remote {
-            format!(
-                "/pve/remotes/{}/lxc/{}/config?state=pending",
-                percent_encode_component(remote),
-                props.vmid
-            )
-        } else {
-            format!(
-                "/nodes/{}/lxc/{}/config",
-                percent_encode_component(&props.node),
-                props.vmid
-            )
-        };
+        let editor_url =
+            guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Lxc);
 
-        let pending_url = if let Some(remote) = &props.remote {
-            format!(
-                "/pve/remotes/{}/lxc/{}/pending",
-                percent_encode_component(remote),
-                props.vmid
-            )
-        } else {
-            format!(
-                "/nodes/{}/lxc/{}/pending",
-                percent_encode_component(&props.node),
-                props.vmid
-            )
-        };
+        let pending_url =
+            guest_pending_url(props.vmid, &props.node, &props.remote, PveGuestType::Lxc);
 
         let loader = typed_load::<LxcConfig>(editor_url.clone());
 

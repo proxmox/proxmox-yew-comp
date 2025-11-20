@@ -15,6 +15,7 @@ use pwt::AsyncAbortGuard;
 
 const TARGET_MOUNT_POINT_ID: &'static str = "_target_mount_point_id_";
 
+use crate::configuration::guest_config_url;
 use crate::form::pve::{
     extract_unused_keys, extract_used_mount_points, first_unused_mount_point, PveGuestSelector,
     PveGuestType,
@@ -69,9 +70,12 @@ impl Component for LxcReassignVolumeComp {
                     ..
                 }) = &self.target
                 {
-                    let url = super::LxcResourcesPanel::new(node.clone(), *vmid)
-                        .remote(props.remote.clone())
-                        .editor_url();
+                    let url = guest_config_url(
+                        *vmid,
+                        &node.clone().into(),
+                        &props.remote,
+                        PveGuestType::Lxc,
+                    );
                     let link = ctx.link().clone();
                     self.load_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = http_get(&url, None).await;

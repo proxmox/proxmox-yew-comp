@@ -17,10 +17,10 @@ use pwt::props::SubmitCallback;
 use pwt_macros::builder;
 
 use crate::configuration::pve::{move_disk_dialog, resize_disk_dialog};
+use crate::configuration::{guest_config_url, guest_move_volume_url, guest_resize_disk_url};
 use crate::form::pve::PveGuestType;
 use crate::form::typed_load;
 use crate::pending_property_view::PvePendingPropertyView;
-use crate::percent_encoding::percent_encode_component;
 use crate::{http_post, http_put, PropertyEditDialog};
 
 #[derive(Clone, PartialEq, Properties)]
@@ -60,76 +60,10 @@ impl LxcResourcesPanel {
         })
     }
 
-    pub(crate) fn editor_url(&self) -> String {
-        if let Some(remote) = &self.remote {
-            format!(
-                "/pve/remotes/{}/lxc/{}/config?state=pending",
-                percent_encode_component(remote),
-                self.vmid
-            )
-        } else {
-            format!(
-                "/nodes/{}/lxc/{}/config",
-                percent_encode_component(&self.node),
-                self.vmid
-            )
-        }
-    }
-
-    pub(crate) fn pending_url(&self) -> String {
-        if let Some(remote) = &self.remote {
-            format!(
-                "/pve/remotes/{}/lxc/{}/pending",
-                percent_encode_component(remote),
-                self.vmid
-            )
-        } else {
-            format!(
-                "/nodes/{}/lxc/{}/pending",
-                percent_encode_component(&self.node),
-                self.vmid
-            )
-        }
-    }
-
-    pub(crate) fn resize_disk_url(&self) -> String {
-        if let Some(remote) = &self.remote {
-            format!(
-                "/pve/remotes/{}/lxc/{}/resize",
-                percent_encode_component(remote),
-                self.vmid
-            )
-        } else {
-            format!(
-                "/nodes/{}/lxc/{}/resize",
-                percent_encode_component(&self.node),
-                self.vmid
-            )
-        }
-    }
-
-    pub(crate) fn move_volume_url(&self) -> String {
-        let name = if self.remote.is_some() {
-            "move-volume"
-        } else {
-            "move_volume"
-        };
-        if let Some(remote) = &self.remote {
-            format!(
-                "/pve/remotes/{}/lxc/{}/{name}",
-                percent_encode_component(remote),
-                self.vmid
-            )
-        } else {
-            format!(
-                "/nodes/{}/lxc/{}/{name}",
-                percent_encode_component(&self.node),
-                self.vmid
-            )
-        }
-    }
-
     pub(crate) fn move_volume_dialog(&self, name: &str) -> PropertyEditDialog {
+        let editor_url = guest_config_url(self.vmid, &self.node, &self.remote, PveGuestType::Lxc);
+        let move_volume_url =
+            guest_move_volume_url(self.vmid, &self.node, &self.remote, PveGuestType::Lxc);
         move_disk_dialog(
             name,
             Some(self.node.clone()),
@@ -137,9 +71,9 @@ impl LxcResourcesPanel {
             PveGuestType::Lxc,
             self.mobile,
         )
-        .loader(typed_load::<LxcConfig>(self.editor_url()))
+        .loader(typed_load::<LxcConfig>(editor_url))
         .on_submit(create_on_submit(
-            self.move_volume_url(),
+            move_volume_url,
             self.on_start_command.clone(),
             true,
             0,
@@ -147,15 +81,18 @@ impl LxcResourcesPanel {
     }
 
     pub(crate) fn resize_disk_dialog(&self, name: &str) -> PropertyEditDialog {
+        let editor_url = guest_config_url(self.vmid, &self.node, &self.remote, PveGuestType::Lxc);
+        let resize_disk_url =
+            guest_resize_disk_url(self.vmid, &self.node, &self.remote, PveGuestType::Lxc);
         resize_disk_dialog(
             name,
             Some(self.node.clone()),
             self.remote.clone(),
             self.mobile,
         )
-        .loader(typed_load::<LxcConfig>(self.editor_url()))
+        .loader(typed_load::<LxcConfig>(editor_url))
         .on_submit(create_on_submit(
-            self.resize_disk_url(),
+            resize_disk_url,
             self.on_start_command.clone(),
             false,
             0,
@@ -163,6 +100,9 @@ impl LxcResourcesPanel {
     }
 
     pub(crate) fn reassign_volume_dialog(&self, name: &str) -> PropertyEditDialog {
+        let editor_url = guest_config_url(self.vmid, &self.node, &self.remote, PveGuestType::Lxc);
+        let move_volume_url =
+            guest_move_volume_url(self.vmid, &self.node, &self.remote, PveGuestType::Lxc);
         lxc_reassign_volume_dialog(
             name,
             Some(self.node.clone()),
@@ -170,9 +110,9 @@ impl LxcResourcesPanel {
             self.remote.clone(),
             self.mobile,
         )
-        .loader(typed_load::<LxcConfig>(self.editor_url()))
+        .loader(typed_load::<LxcConfig>(editor_url))
         .on_submit(create_on_submit(
-            self.move_volume_url(),
+            move_volume_url,
             self.on_start_command.clone(),
             true,
             0,

@@ -10,9 +10,10 @@ use pwt::props::{IntoOptionalInlineHtml, SubmitCallback};
 
 use pve_api_types::{LxcConfig, LxcConfigMpArray, LxcConfigUnusedArray};
 
+use crate::configuration::{guest_config_url, guest_pending_url};
 use crate::form::pve::{
     lxc_cores_property, lxc_memory_property, lxc_mount_point_property, lxc_rootfs_property,
-    lxc_swap_property, lxc_unused_volume_property,
+    lxc_swap_property, lxc_unused_volume_property, PveGuestType,
 };
 use crate::form::typed_load;
 use crate::pending_property_view::{
@@ -513,20 +514,21 @@ impl PendingPropertyView for PveLxcResourcesPanel {
     }
 
     fn editor_loader(props: &Self::Properties) -> Option<crate::ApiLoadCallback<Value>> {
-        let url = props.editor_url();
+        let url = guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Lxc);
         Some(typed_load::<LxcConfig>(url.clone()))
     }
 
     fn pending_loader(
         props: &Self::Properties,
     ) -> Option<crate::ApiLoadCallback<PvePendingConfiguration>> {
-        let pending_url = props.pending_url();
-        Some(pending_typed_load::<LxcConfig>(pending_url.clone()))
+        let url = guest_pending_url(props.vmid, &props.node, &props.remote, PveGuestType::Lxc);
+        Some(pending_typed_load::<LxcConfig>(url.clone()))
     }
 
     fn on_submit(props: &Self::Properties) -> Option<SubmitCallback<Value>> {
+        let url = guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Lxc);
         Some(super::create_on_submit(
-            props.editor_url(),
+            url,
             props.on_start_command.clone(),
             false,
             0,
