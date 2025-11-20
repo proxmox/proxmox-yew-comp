@@ -1,4 +1,4 @@
-//mod desktop;
+mod desktop;
 mod mobile;
 
 mod reassign_volume_dialog;
@@ -20,8 +20,14 @@ use crate::configuration::pve::{move_disk_dialog, resize_disk_dialog};
 use crate::configuration::{guest_config_url, guest_move_volume_url, guest_resize_disk_url};
 use crate::form::pve::PveGuestType;
 use crate::form::typed_load;
-use crate::pending_property_view::PvePendingPropertyView;
+use crate::pending_property_view::{PvePendingConfiguration, PvePendingPropertyView};
 use crate::{http_post, http_put, PropertyEditDialog};
+
+pub enum Msg {
+    ResizeDisk(String),
+    ReassignDisk(String),
+    MoveDisk(String),
+}
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -155,18 +161,28 @@ fn create_on_submit(
     })
 }
 
+fn is_unprivileged(data: &PvePendingConfiguration) -> bool {
+    let PvePendingConfiguration {
+        current: _,
+        pending,
+        keys: _,
+    } = data;
+
+    match pending["unprivileged"] {
+        Value::Bool(unprivileged) => unprivileged,
+        _ => false,
+    }
+}
+
 impl From<LxcResourcesPanel> for VNode {
     fn from(props: LxcResourcesPanel) -> Self {
         let comp = if props.mobile {
             VComp::new::<PvePendingPropertyView<mobile::PveLxcResourcesPanel>>(Rc::new(props), None)
         } else {
-            todo!();
-            /*
             VComp::new::<PvePendingPropertyView<desktop::PveLxcResourcesPanel>>(
                 Rc::new(props),
                 None,
             )
-            */
         };
         VNode::from(comp)
     }

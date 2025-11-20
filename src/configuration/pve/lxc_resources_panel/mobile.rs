@@ -22,31 +22,12 @@ use crate::pending_property_view::{
 };
 use crate::{EditableProperty, SafeConfirmDialog};
 
-use super::{EditAction, LxcResourcesPanel};
+use super::{is_unprivileged, EditAction, LxcResourcesPanel, Msg};
 use crate::layout::card::standard_card;
-
-pub enum Msg {
-    ResizeDisk(String),
-    ReassignDisk(String),
-    MoveDisk(String),
-}
 
 pub struct PveLxcResourcesPanel {}
 
 type PveLxcResourcesPanelContext = Context<PvePendingPropertyView<PveLxcResourcesPanel>>;
-
-fn is_unprivileged(data: &PvePendingConfiguration) -> bool {
-    let PvePendingConfiguration {
-        current: _,
-        pending,
-        keys: _,
-    } = data;
-
-    match pending["unprivileged"] {
-        Value::Bool(unprivileged) => unprivileged,
-        _ => false,
-    }
-}
 
 impl PveLxcResourcesPanel {
     fn property_tile(
