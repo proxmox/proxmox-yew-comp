@@ -6,7 +6,8 @@ pub use lxc_features_property::lxc_features_property;
 
 mod lxc_mount_point_property;
 pub use lxc_mount_point_property::{
-    lxc_mount_point_property, lxc_rootfs_property, lxc_unused_volume_property,
+    extract_used_mount_points, first_unused_mount_point, lxc_mount_point_property,
+    lxc_rootfs_property, lxc_unused_volume_property,
 };
 
 mod lxc_memory_swap_property;

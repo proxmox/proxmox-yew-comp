@@ -1,6 +1,9 @@
 //mod desktop;
 mod mobile;
 
+mod reassign_volume_dialog;
+pub use reassign_volume_dialog::lxc_reassign_volume_dialog;
+
 use std::rc::Rc;
 
 use serde_json::Value;
@@ -116,6 +119,23 @@ impl LxcResourcesPanel {
             Some(self.node.clone()),
             self.remote.clone(),
             PveGuestType::Lxc,
+            self.mobile,
+        )
+        .loader(typed_load::<LxcConfig>(self.editor_url()))
+        .on_submit(create_on_submit(
+            self.move_volume_url(),
+            self.on_start_command.clone(),
+            true,
+            0,
+        ))
+    }
+
+    pub(crate) fn reassign_volume_dialog(&self, name: &str) -> PropertyEditDialog {
+        lxc_reassign_volume_dialog(
+            name,
+            Some(self.node.clone()),
+            self.vmid,
+            self.remote.clone(),
             self.mobile,
         )
         .loader(typed_load::<LxcConfig>(self.editor_url()))

@@ -31,8 +31,8 @@ const SSD_PN: &'static str = "_ssd";
 
 use crate::form::pve::pve_storage_content_selector::PveStorageContentSelector;
 use crate::form::pve::{
-    parse_qemu_controller_name, PveStorageSelector, QemuCacheTypeSelector, QemuControllerSelector,
-    QemuDiskSizeFormatSelector,
+    parse_qemu_controller_name, parse_unused_key, PveStorageSelector, QemuCacheTypeSelector,
+    QemuControllerSelector, QemuDiskSizeFormatSelector,
 };
 use crate::form::{
     delete_default_values, delete_empty_values, flatten_property_string,
@@ -411,7 +411,12 @@ pub fn qemu_disk_property(
     let (unused_disk, title) = match &name {
         Some(name) => {
             if name.starts_with("unused") {
-                (Some(name.clone()), tr!("Unused Disk"))
+                let mut title = tr!("Unused Disk");
+                if let Some(id) = parse_unused_key(&name) {
+                    title = title + " " + &id.to_string();
+                }
+
+                (Some(name.clone()), title)
             } else {
                 (None, tr!("Hard Disk") + " (" + &name + ")")
             }

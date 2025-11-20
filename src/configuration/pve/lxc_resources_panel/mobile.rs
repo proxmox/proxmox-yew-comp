@@ -26,7 +26,7 @@ use crate::layout::card::standard_card;
 
 pub enum Msg {
     //ResizeDisk(String),
-    //ReassignDisk(String),
+    ReassignDisk(String),
     MoveDisk(String),
 }
 
@@ -130,7 +130,7 @@ impl PveLxcResourcesPanel {
         ctx: &PveLxcResourcesPanelContext,
         name: &str,
         with_move: bool,
-        _with_reassign: bool,
+        with_reassign: bool,
         _with_resize: bool,
     ) -> Menu {
         let mut menu = Menu::new();
@@ -145,6 +145,18 @@ impl PveLxcResourcesPanel {
                     }))
             });
         }
+
+        if with_reassign {
+            menu.add_item({
+                let name = name.to_string();
+                MenuItem::new(tr!("Reassign Owner"))
+                    .icon_class("fa fa-desktop")
+                    .on_select(ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::Custom(Msg::ReassignDisk(name.clone()))
+                    }))
+            });
+        }
+
         menu
     }
 
@@ -411,15 +423,15 @@ impl PendingPropertyView for PveLxcResourcesPanel {
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
                 view_state.dialog = Some(dialog.into());
+            }*/
+            Msg::ReassignDisk(name) => {
+                let dialog = props.reassign_volume_dialog(&name).on_done(
+                    ctx.link()
+                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
+                );
+                view_state.dialog = Some(dialog.into());
             }
-              Msg::ReassignDisk(name) => {
-                  let dialog = props.reassign_disk_dialog(&name).on_done(
-                      ctx.link()
-                          .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                  );
-                  view_state.dialog = Some(dialog.into());
-              }
-              */
+
             Msg::MoveDisk(name) => {
                 let dialog = props.move_volume_dialog(&name).on_done(
                     ctx.link()

@@ -12,7 +12,7 @@ use pwt::widget::{Container, Row};
 use serde_json::{json, Value};
 use yew::virtual_dom::VComp;
 
-use crate::form::pve::{LxcMountOptionsSelector, PveStorageSelector};
+use crate::form::pve::{parse_unused_key, LxcMountOptionsSelector, PveStorageSelector};
 use crate::form::{
     delete_default_values, flatten_property_string, property_string_add_missing_data,
     property_string_from_parts,
@@ -451,7 +451,10 @@ pub fn lxc_unused_volume_property(
     unprivileged: bool,
     mobile: bool,
 ) -> EditableProperty {
-    let title = tr!("Unused Volume");
+    let mut title = tr!("Unused Volume");
+    if let Some(id) = parse_unused_key(&name) {
+        title = title + " " + &id.to_string();
+    }
 
     mount_point_property(
         Some(name.clone()),
@@ -484,7 +487,7 @@ pub fn lxc_rootfs_property(
     )
 }
 
-fn extract_used_mount_points(record: &Value) -> HashSet<String> {
+pub fn extract_used_mount_points(record: &Value) -> HashSet<String> {
     let mut list = HashSet::new();
     if let Some(map) = record.as_object() {
         for key in map.keys() {
@@ -496,7 +499,7 @@ fn extract_used_mount_points(record: &Value) -> HashSet<String> {
     list
 }
 
-fn first_unused_mount_point(used_prop_names: &HashSet<String>) -> Option<usize> {
+pub fn first_unused_mount_point(used_prop_names: &HashSet<String>) -> Option<usize> {
     for n in 0..LxcConfigMpArray::MAX {
         let name = format!("mp{n}");
         if !used_prop_names.contains(&name) {
