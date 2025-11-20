@@ -31,14 +31,8 @@ use crate::pending_property_view::{
 use crate::EditableProperty;
 use crate::SafeConfirmDialog;
 
-use super::{EditAction, QemuHardwarePanel};
+use super::{EditAction, Msg, QemuHardwarePanel};
 use crate::layout::card::standard_card;
-
-pub enum Msg {
-    ResizeDisk(String),
-    ReassignDisk(String),
-    MoveDisk(String),
-}
 
 pub struct PveQemuHardwarePanel {
     async_submit: SubmitCallback<Value>,

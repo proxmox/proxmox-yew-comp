@@ -35,13 +35,7 @@ use crate::pending_property_view::{
 };
 use crate::{EditableProperty, SafeConfirmDialog};
 
-use super::{EditAction, QemuHardwarePanel};
-
-pub enum Msg {
-    ResizeDisk(String),
-    ReassignDisk(String),
-    MoveDisk(String),
-}
+use super::{EditAction, Msg, QemuHardwarePanel};
 
 #[derive(Clone, PartialEq)]
 struct HardwareEntry {

@@ -26,6 +26,12 @@ use crate::{http_post, http_put};
 
 use super::{move_disk_dialog, resize_disk_dialog};
 
+pub enum Msg {
+    ResizeDisk(String),
+    ReassignDisk(String),
+    MoveDisk(String),
+}
+
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct QemuHardwarePanel {
