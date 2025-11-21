@@ -315,7 +315,7 @@ fn mount_point_property(
 ) -> EditableProperty {
     EditableProperty::new(name.clone(), title)
         .advanced_checkbox(true)
-        .required(true)
+        .required(rootfs)
         .render_input_panel({
             let name = name.clone();
             let unused_disk = unused_disk.clone();
