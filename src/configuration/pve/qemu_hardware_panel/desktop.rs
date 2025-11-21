@@ -13,7 +13,7 @@ use pwt::widget::data_table::{
     DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
 };
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::{Button, Column, Container, Fa, Row, Toolbar};
+use pwt::widget::{Button, Column, ConfirmDialog, Container, Fa, Row, Toolbar};
 
 use pve_api_types::{
     PveQmIde, PveQmIdeMedia, QemuConfig, QemuConfigIdeArray, QemuConfigNetArray, QemuConfigSata,
@@ -37,6 +37,13 @@ use crate::{EditableProperty, SafeConfirmDialog};
 
 use super::{EditAction, Msg, QemuHardwarePanel};
 
+#[derive(Copy, Clone, PartialEq)]
+enum EntryType {
+    Other,
+    Disk,
+    Unused,
+}
+
 #[derive(Clone, PartialEq)]
 struct HardwareEntry {
     pub key: Key,
@@ -45,8 +52,8 @@ struct HardwareEntry {
     pub header: Html,
     pub content: Html,
     pub has_changes: bool,
-    pub is_disk: bool,
-    edit_action: EditAction,
+    pub entry_type: EntryType,
+    pub edit_action: EditAction,
 }
 
 impl ExtractPrimaryKey for HardwareEntry {
@@ -60,6 +67,18 @@ pub struct PveQemuHardwarePanel {
     columns: Rc<Vec<DataTableHeader<HardwareEntry>>>,
     selection: Selection,
     async_submit: SubmitCallback<Value>,
+}
+
+fn lookup_property_value(view_state: &PendingPropertyViewState, name: &str) -> Option<Value> {
+    let PvePendingConfiguration {
+        current: _,
+        pending,
+        keys: _,
+    } = match &view_state.data {
+        Some(data) => data,
+        _ => &PvePendingConfiguration::new(),
+    };
+    pending.get(name).cloned()
 }
 
 impl PveQemuHardwarePanel {
@@ -83,27 +102,52 @@ impl PveQemuHardwarePanel {
 
         let disable_revert = !(has_changes && selected_key.is_some());
 
-        let (disable_remove, remove_label, remove_message) = match &selected_record {
-            Some(record) => {
-                let disable = record.property.required;
-                let label = if record.is_disk {
-                    tr!("Detach")
-                } else {
-                    tr!("Remove")
-                };
-                let message = if record.is_disk {
-                    tr!("Detach disk")
-                } else {
-                    tr!("Delete Device")
-                };
-                (disable, label, message)
+        let (disable_remove, remove_label, remove_message) = {
+            let name = selected_key.as_deref().unwrap_or("");
+            let quoted_name = format!("'{name}'");
+            match &selected_record {
+                Some(record) => {
+                    let disable = record.property.required;
+                    let label = match record.entry_type {
+                        EntryType::Disk => tr!("Detach"),
+                        _ => tr!("Remove"),
+                    };
+                    let message: Html = match record.entry_type {
+                        EntryType::Disk => {
+                            tr!("Are you sure you want to detach entry {0}", quoted_name).into()
+                        }
+                        EntryType::Unused => {
+                            let volume = match lookup_property_value(view_state, name) {
+                                Some(Value::String(volume)) => volume.clone(),
+                                _ => quoted_name.clone(),
+                            };
+
+                            let message1 =
+                                tr!("Are you sure you want to delete volume {0}.", volume);
+                            let message2 = tr!("This will permanently erase all data.");
+                            Column::new()
+                                .with_child(message1)
+                                .with_child(html! {<br/>})
+                                .with_child(message2)
+                                .into()
+                        }
+                        _ => tr!("Are you sure you want to remove entry {0}.", quoted_name).into(),
+                    };
+                    (disable, label, message)
+                }
+                None::<_> => (true, tr!("Remove"), tr!("Remove").into()),
             }
-            None::<_> => (true, tr!("Remove"), tr!("Remove")),
         };
 
-        let disable_disk_actions = match &selected_record {
-            Some(record) => !record.is_disk,
-            None::<_> => true,
+        let entry_type = match &selected_record {
+            Some(record) => record.entry_type,
+            _ => EntryType::Other,
+        };
+
+        let disable_disk_actions = match entry_type {
+            EntryType::Other => true,
+            EntryType::Disk => false,
+            EntryType::Unused => false,
         };
 
         let toolbar = Toolbar::new()
@@ -111,21 +155,38 @@ impl PveQemuHardwarePanel {
             .class("pwt-border-bottom")
             .with_child(self.add_hardware_menu(ctx, view_state))
             .with_child(
-                Button::new(remove_label)
+                Button::new(remove_label.clone())
                     .disabled(disable_remove)
                     .on_activate({
-                        let dialog = selected_key.clone().map(|name| {
-                            SafeConfirmDialog::new(name.to_string())
-                                .message(remove_message)
-                                .on_done(
-                                    link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                                )
-                                .on_confirm(link.callback({
-                                    let name = name.to_string();
-                                    move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                                }))
-                                .into()
+                        let dialog = selected_key.clone().map(move |name| {
+                            let safe_confirm = name.starts_with("unused");
+
+                            if safe_confirm {
+                                SafeConfirmDialog::new(name.to_string())
+                                    .message(remove_message)
+                                    .submit_text(remove_label)
+                                    .on_done(
+                                        link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
+                                    )
+                                    .on_confirm(link.callback({
+                                        let name = name.to_string();
+                                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
+                                    }))
+                                    .into()
+                            } else {
+                                ConfirmDialog::default()
+                                    .confirm_message(remove_message)
+                                    .on_close(
+                                        link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
+                                    )
+                                    .on_confirm(link.callback({
+                                        let name = name.to_string();
+                                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
+                                    }))
+                                    .into()
+                            }
                         });
+
                         ctx.link()
                             .callback(move |_| PendingPropertyViewMsg::ShowDialog(dialog.clone()))
                     }),
@@ -147,7 +208,7 @@ impl PveQemuHardwarePanel {
                     }),
             )
             .with_child(
-                self.disk_actions_menu(ctx, selected_key.clone())
+                self.disk_actions_menu(ctx, selected_key.clone(), entry_type)
                     .disabled(disable_disk_actions),
             )
             .with_child(
@@ -173,13 +234,32 @@ impl PveQemuHardwarePanel {
         &self,
         ctx: &PveQemuHardwarePanelContext,
         name: Option<Key>,
+        entry_type: EntryType,
     ) -> MenuButton {
         let mut menu = Menu::new();
+
+        let mut enable_move = false;
+        let mut enable_reassign = false;
+        let mut enable_resize = false;
+
+        match entry_type {
+            EntryType::Disk => {
+                enable_move = true;
+                enable_reassign = true;
+                enable_resize = true;
+            }
+            EntryType::Unused => {
+                enable_move = true;
+                enable_reassign = true;
+            }
+            EntryType::Other => { /* do nothing  */ }
+        }
 
         if let Some(name) = name {
             menu.add_item({
                 let name = name.to_string();
                 MenuItem::new(tr!("Move Storage"))
+                    .disabled(!enable_move)
                     .icon_class("fa fa-database")
                     .on_select(ctx.link().callback(move |_| {
                         PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))
@@ -188,6 +268,7 @@ impl PveQemuHardwarePanel {
             menu.add_item({
                 let name = name.to_string();
                 MenuItem::new(tr!("Reassign Owner"))
+                    .disabled(!enable_reassign)
                     .icon_class("fa fa-desktop")
                     .on_select(ctx.link().callback(move |_| {
                         PendingPropertyViewMsg::Custom(Msg::ReassignDisk(name.clone()))
@@ -196,6 +277,7 @@ impl PveQemuHardwarePanel {
             menu.add_item({
                 let name = name.to_string();
                 MenuItem::new(tr!("Resize"))
+                    .disabled(!enable_resize)
                     .icon_class("fa fa-plus")
                     .on_select(ctx.link().callback(move |_| {
                         PendingPropertyViewMsg::Custom(Msg::ResizeDisk(name.clone()))
@@ -229,7 +311,7 @@ impl PveQemuHardwarePanel {
 
         let menu = Menu::new()
             .with_item({
-                MenuItem::new(tr!("Add Hard Disk"))
+                MenuItem::new(tr!("Hard Disk"))
                     .icon_class("fa fa-hdd-o")
                     .on_select(ctx.link().callback({
                         let property = qemu_disk_property(
@@ -248,7 +330,7 @@ impl PveQemuHardwarePanel {
                     }))
             })
             .with_item({
-                MenuItem::new(tr!("Add CD/DVD drive"))
+                MenuItem::new(tr!("CD/DVD drive"))
                     .icon_class("fa fa-cdrom")
                     .on_select(ctx.link().callback({
                         let property = qemu_cdrom_property(
@@ -261,7 +343,7 @@ impl PveQemuHardwarePanel {
                     }))
             })
             .with_item({
-                MenuItem::new(tr!("Add Network card"))
+                MenuItem::new(tr!("Network card"))
                     .icon_class("fa fa-exchange")
                     .on_select(ctx.link().callback({
                         let property = qemu_network_property(None, Some(props.node.clone()), false);
@@ -384,7 +466,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                 content: content.into(),
                 icon,
                 has_changes,
-                is_disk: false,
+                entry_type: EntryType::Other,
                 property,
                 edit_action,
             }
@@ -402,7 +484,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         };
 
         let push_disk_property = |list: &mut Vec<_>, name: &str, media| {
-            let (property, icon, is_disk) = if media == PveQmIdeMedia::Cdrom {
+            let (property, icon, entry_type) = if media == PveQmIdeMedia::Cdrom {
                 (
                     qemu_cdrom_property(
                         Some(name.to_string()),
@@ -411,7 +493,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                         false,
                     ),
                     Fa::new("cdrom"),
-                    false,
+                    EntryType::Other,
                 )
             } else {
                 (
@@ -422,11 +504,11 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                         false,
                     ),
                     Fa::new("hdd-o"),
-                    true,
+                    EntryType::Disk,
                 )
             };
             let mut entry = create_entry(name, property, icon, EditAction::Edit);
-            entry.is_disk = is_disk;
+            entry.entry_type = entry_type;
             list.push(entry);
         };
 
@@ -447,7 +529,8 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                 props.remote.clone(),
                 false,
             );
-            let entry = create_entry(name, property, icon, EditAction::Add);
+            let mut entry = create_entry(name, property, icon, EditAction::Add);
+            entry.entry_type = EntryType::Unused;
             list.push(entry);
         };
 

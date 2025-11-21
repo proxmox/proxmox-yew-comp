@@ -299,24 +299,35 @@ impl PveQemuHardwarePanel {
 
         menu.add_item({
             let link = ctx.link().clone();
-            let (title, message) = if media == PveQmIdeMedia::Disk {
+            let quoted_name = format!("'{name}'");
+
+            let (title, icon_class, message) = if media == PveQmIdeMedia::Disk {
                 (
                     tr!("Detach"),
-                    Some(tr!("Are you sure you want to detach entry {0}", name)),
+                    "fa fa-sign-out",
+                    Some(tr!(
+                        "Are you sure you want to detach entry {0}",
+                        format!("'{name}'")
+                    )),
                 )
             } else {
-                (tr!("Delete device"), None)
+                (
+                    tr!("Are you sure you want to remove entry {0}.", quoted_name).into(),
+                    "fa fa-trash-o",
+                    None,
+                )
             };
-            let dialog: Html = SafeConfirmDialog::new(name.to_string())
-                .mobile(true)
-                .message(message)
-                .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
+
+            let dialog: Html = ConfirmDialog::default()
+                .confirm_message(message)
+                .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                 .on_confirm(link.callback({
                     let name = name.to_string();
                     move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
                 }))
                 .into();
-            MenuItem::new(title).on_select(
+
+            MenuItem::new(title).icon_class(icon_class).on_select(
                 ctx.link()
                     .callback(move |_| PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))),
             )
@@ -343,34 +354,36 @@ impl PveQemuHardwarePanel {
         pending: &Value,
     ) -> ListTile {
         let props = ctx.props();
-        let menu = self.disk_menu(ctx, name, true, false).with_item({
-            let link = ctx.link().clone();
+        let menu =
+            self.disk_menu(ctx, name, true, false).with_item({
+                let link = ctx.link().clone();
 
-            let volume = record[name].as_str().unwrap_or(&name);
+                let volume = record[name].as_str().unwrap_or(&name);
 
-            let message1 = tr!("Are you sure you want to delete disk {0}.", volume);
-            let message2 = tr!("This will permanently erase all data.");
-            let message = Column::new()
-                .with_child(message1)
-                .with_child(html! {<br/>})
-                .with_child(message2);
-            let dialog: Html = ConfirmDialog::default()
-                .confirm_message(message)
-                .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
-                .on_confirm(link.callback({
-                    let name = name.to_string();
-                    let async_submit = self.async_submit.clone();
-                    move |_| {
-                        PendingPropertyViewMsg::Delete(name.clone(), Some(async_submit.clone()))
-                    }
-                }))
-                .into();
+                let message1 = tr!("Are you sure you want to delete volume {0}.", volume);
+                let message2 = tr!("This will permanently erase all data.");
+                let message: Html = Column::new()
+                    .with_child(message1)
+                    .with_child(html! {<br/>})
+                    .with_child(message2)
+                    .into();
 
-            MenuItem::new(tr!("Delete disk")).on_select(
-                ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))),
-            )
-        });
+                let dialog: Html = SafeConfirmDialog::new(name.to_string())
+                    .message(message)
+                    .submit_text(tr!("Remove"))
+                    .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
+                    .on_confirm(link.callback({
+                        let name = name.to_string();
+                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
+                    }))
+                    .into();
+
+                MenuItem::new(tr!("Delete volume"))
+                    .icon_class("fa fa-trash-o")
+                    .on_select(ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))
+                    }))
+            });
 
         let icon = Fa::new("hdd-o");
         let property = qemu_disk_property(
