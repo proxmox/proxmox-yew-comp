@@ -177,17 +177,20 @@ impl PveLxcResourcesPanel {
             let link = ctx.link().clone();
 
             let title = tr!("Detach");
-            let message = tr!("Are you sure you want to detach entry {0}", name);
+            let message = tr!(
+                "Are you sure you want to detach entry {0}",
+                format!("'{name}'")
+            );
 
-            let dialog: Html = SafeConfirmDialog::new(name.to_string())
-                .mobile(true)
-                .message(message)
-                .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
+            let dialog: Html = ConfirmDialog::default()
+                .confirm_message(message)
+                .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                 .on_confirm(link.callback({
                     let name = name.to_string();
                     move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
                 }))
                 .into();
+
             MenuItem::new(title).icon_class("fa fa-sign-out").on_select(
                 ctx.link()
                     .callback(move |_| PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))),
@@ -222,22 +225,25 @@ impl PveLxcResourcesPanel {
 
                 let volume = record[name].as_str().unwrap_or(&name);
 
-                let message1 = tr!("Are you sure you want to delete disk {0}.", volume);
+                let message1 = tr!("Are you sure you want to delete volume {0}.", volume);
                 let message2 = tr!("This will permanently erase all data.");
-                let message = Column::new()
+                let message: Html = Column::new()
                     .with_child(message1)
                     .with_child(html! {<br/>})
-                    .with_child(message2);
-                let dialog: Html = ConfirmDialog::default()
-                    .confirm_message(message)
-                    .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
+                    .with_child(message2)
+                    .into();
+
+                let dialog: Html = SafeConfirmDialog::new(name.to_string())
+                    .message(message)
+                    .submit_text(tr!("Remove"))
+                    .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                     .on_confirm(link.callback({
                         let name = name.to_string();
                         move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
                     }))
                     .into();
 
-                MenuItem::new(tr!("Delete disk"))
+                MenuItem::new(tr!("Delete volume"))
                     .icon_class("fa fa-trash-o")
                     .on_select(ctx.link().callback(move |_| {
                         PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))
