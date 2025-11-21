@@ -4,12 +4,13 @@ use yew::prelude::*;
 
 use pwt::prelude::*;
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::{Column, ConfirmDialog, Container, Fa, List, ListTile};
+use pwt::widget::{Container, Fa, List, ListTile};
 
 use pwt::props::{IntoOptionalInlineHtml, SubmitCallback};
 
 use pve_api_types::{LxcConfig, LxcConfigMpArray, LxcConfigUnusedArray};
 
+use crate::configuration::pve::guest::{confirm_delete_volume, confirm_detach_entry};
 use crate::configuration::{guest_config_url, guest_pending_url};
 use crate::form::pve::{
     lxc_cores_property, lxc_memory_property, lxc_mount_point_property, lxc_rootfs_property,
@@ -20,7 +21,7 @@ use crate::pending_property_view::{
     pending_typed_load, PendingPropertyList, PendingPropertyView, PendingPropertyViewMsg,
     PendingPropertyViewState, PvePendingConfiguration, PvePendingPropertyView,
 };
-use crate::{EditableProperty, SafeConfirmDialog};
+use crate::EditableProperty;
 
 use super::{is_unprivileged, EditAction, LxcResourcesPanel, Msg};
 use crate::layout::card::standard_card;
@@ -175,15 +176,7 @@ impl PveLxcResourcesPanel {
 
         menu.add_item({
             let link = ctx.link().clone();
-
-            let title = tr!("Detach");
-            let message = tr!(
-                "Are you sure you want to detach entry {0}",
-                format!("'{name}'")
-            );
-
-            let dialog: Html = ConfirmDialog::default()
-                .confirm_message(message)
+            let dialog: Html = confirm_detach_entry(name, true)
                 .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                 .on_confirm(link.callback({
                     let name = name.to_string();
@@ -191,10 +184,13 @@ impl PveLxcResourcesPanel {
                 }))
                 .into();
 
-            MenuItem::new(title).icon_class("fa fa-sign-out").on_select(
-                ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))),
-            )
+            MenuItem::new(tr!("Detach"))
+                .icon_class("fa fa-sign-out")
+                .on_select(
+                    ctx.link().callback(move |_| {
+                        PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))
+                    }),
+                )
         });
 
         let mut tile = self.property_tile_with_menu(
@@ -222,20 +218,8 @@ impl PveLxcResourcesPanel {
         let menu =
             self.disk_menu(ctx, name, false, true, false).with_item({
                 let link = ctx.link().clone();
-
                 let volume = record[name].as_str().unwrap_or(&name);
-
-                let message1 = tr!("Are you sure you want to delete volume {0}.", volume);
-                let message2 = tr!("This will permanently erase all data.");
-                let message: Html = Column::new()
-                    .with_child(message1)
-                    .with_child(html! {<br/>})
-                    .with_child(message2)
-                    .into();
-
-                let dialog: Html = SafeConfirmDialog::new(name.to_string())
-                    .message(message)
-                    .submit_text(tr!("Remove"))
+                let dialog: Html = confirm_delete_volume(name, volume, true)
                     .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                     .on_confirm(link.callback({
                         let name = name.to_string();

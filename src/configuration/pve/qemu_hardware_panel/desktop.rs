@@ -13,7 +13,7 @@ use pwt::widget::data_table::{
     DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
 };
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::{Button, Column, ConfirmDialog, Container, Fa, Row, Toolbar};
+use pwt::widget::{Button, Column, Container, Fa, Row, Toolbar};
 
 use pve_api_types::{
     PveQmIde, PveQmIdeMedia, QemuConfig, QemuConfigIdeArray, QemuConfigNetArray, QemuConfigSata,
@@ -21,6 +21,9 @@ use pve_api_types::{
     QemuConfigVirtioArray,
 };
 
+use crate::configuration::pve::guest::{
+    confirm_delete_volume, confirm_detach_entry, confirm_remove_entry,
+};
 use crate::configuration::{guest_config_url, guest_pending_url};
 use crate::form::pve::{
     qemu_bios_property, qemu_cdrom_property, qemu_disk_property, qemu_display_property,
@@ -33,7 +36,7 @@ use crate::pending_property_view::{
     pending_typed_load, render_pending_property_value, PendingPropertyView, PendingPropertyViewMsg,
     PendingPropertyViewState, PvePendingConfiguration, PvePendingPropertyView,
 };
-use crate::{EditableProperty, SafeConfirmDialog};
+use crate::EditableProperty;
 
 use super::{EditAction, Msg, QemuHardwarePanel};
 
@@ -102,9 +105,7 @@ impl PveQemuHardwarePanel {
 
         let disable_revert = !(has_changes && selected_key.is_some());
 
-        let (disable_remove, remove_label, remove_message) = {
-            let name = selected_key.as_deref().unwrap_or("");
-            let quoted_name = format!("'{name}'");
+        let (disable_remove, remove_label) = {
             match &selected_record {
                 Some(record) => {
                     let disable = record.property.required;
@@ -112,30 +113,9 @@ impl PveQemuHardwarePanel {
                         EntryType::Disk => tr!("Detach"),
                         _ => tr!("Remove"),
                     };
-                    let message: Html = match record.entry_type {
-                        EntryType::Disk => {
-                            tr!("Are you sure you want to detach entry {0}", quoted_name).into()
-                        }
-                        EntryType::Unused => {
-                            let volume = match lookup_property_value(view_state, name) {
-                                Some(Value::String(volume)) => volume.clone(),
-                                _ => quoted_name.clone(),
-                            };
-
-                            let message1 =
-                                tr!("Are you sure you want to delete volume {0}.", volume);
-                            let message2 = tr!("This will permanently erase all data.");
-                            Column::new()
-                                .with_child(message1)
-                                .with_child(html! {<br/>})
-                                .with_child(message2)
-                                .into()
-                        }
-                        _ => tr!("Are you sure you want to remove entry {0}.", quoted_name).into(),
-                    };
-                    (disable, label, message)
+                    (disable, label)
                 }
-                None::<_> => (true, tr!("Remove"), tr!("Remove").into()),
+                None::<_> => (true, tr!("Remove")),
             }
         };
 
@@ -149,6 +129,7 @@ impl PveQemuHardwarePanel {
             EntryType::Disk => false,
             EntryType::Unused => false,
         };
+        let on_done = link.callback(|_| PendingPropertyViewMsg::ShowDialog(None));
 
         let toolbar = Toolbar::new()
             .class("pwt-overflow-hidden")
@@ -158,35 +139,39 @@ impl PveQemuHardwarePanel {
                 Button::new(remove_label.clone())
                     .disabled(disable_remove)
                     .on_activate({
-                        let dialog = selected_key.clone().map(move |name| {
-                            let safe_confirm = name.starts_with("unused");
-
-                            if safe_confirm {
-                                SafeConfirmDialog::new(name.to_string())
-                                    .message(remove_message)
-                                    .submit_text(remove_label)
-                                    .on_done(
-                                        link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                                    )
-                                    .on_confirm(link.callback({
-                                        let name = name.to_string();
-                                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                                    }))
-                                    .into()
-                            } else {
-                                ConfirmDialog::default()
-                                    .confirm_message(remove_message)
-                                    .on_close(
-                                        link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                                    )
-                                    .on_confirm(link.callback({
-                                        let name = name.to_string();
-                                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                                    }))
-                                    .into()
+                        let dialog: Option<Html> = selected_key.clone().map(move |name| {
+                            let on_confirm = link.callback({
+                                let name = name.to_string();
+                                move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
+                            });
+                            match entry_type {
+                                EntryType::Unused => {
+                                    let volume = match lookup_property_value(view_state, &name) {
+                                        Some(Value::String(volume)) => volume.clone(),
+                                        _ => name.to_string(),
+                                    };
+                                    let on_confirm = on_confirm.clone();
+                                    confirm_delete_volume(&*name, &volume, false)
+                                        .on_done(on_done)
+                                        .on_confirm(move |_| on_confirm.emit(()))
+                                        .on_confirm(link.callback({
+                                            let name = name.to_string();
+                                            move |_| {
+                                                PendingPropertyViewMsg::Delete(name.clone(), None)
+                                            }
+                                        }))
+                                        .into()
+                                }
+                                EntryType::Disk => confirm_detach_entry(&name, false)
+                                    .on_close(on_done)
+                                    .on_confirm(on_confirm)
+                                    .into(),
+                                EntryType::Other => confirm_remove_entry(&name, false)
+                                    .on_close(on_done)
+                                    .on_confirm(on_confirm)
+                                    .into(),
                             }
                         });
-
                         ctx.link()
                             .callback(move |_| PendingPropertyViewMsg::ShowDialog(dialog.clone()))
                     }),

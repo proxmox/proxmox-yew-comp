@@ -5,7 +5,7 @@ use yew::prelude::*;
 
 use pwt::prelude::*;
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::{Column, ConfirmDialog, Container, Fa, List, ListTile};
+use pwt::widget::{Container, Fa, List, ListTile};
 
 use pwt::props::{IntoOptionalInlineHtml, SubmitCallback};
 
@@ -15,6 +15,9 @@ use pve_api_types::{
     QemuConfigVirtioArray,
 };
 
+use crate::configuration::pve::guest::{
+    confirm_delete_volume, confirm_detach_entry, confirm_remove_entry,
+};
 use crate::configuration::{guest_config_url, guest_pending_url};
 use crate::form::pve::{
     qemu_bios_property, qemu_cdrom_property, qemu_cpu_flags_property, qemu_disk_property,
@@ -299,33 +302,30 @@ impl PveQemuHardwarePanel {
 
         menu.add_item({
             let link = ctx.link().clone();
-            let quoted_name = format!("'{name}'");
 
-            let (title, icon_class, message) = if media == PveQmIdeMedia::Disk {
-                (
-                    tr!("Detach"),
-                    "fa fa-sign-out",
-                    Some(tr!(
-                        "Are you sure you want to detach entry {0}",
-                        format!("'{name}'")
-                    )),
-                )
+            let on_done = link.callback(|_| PendingPropertyViewMsg::ShowDialog(None));
+            let on_confirm = link.callback({
+                let name = name.to_string();
+                move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
+            });
+
+            let (title, icon_class) = if media == PveQmIdeMedia::Disk {
+                (tr!("Detach"), "fa fa-sign-out")
             } else {
-                (
-                    tr!("Are you sure you want to remove entry {0}.", quoted_name).into(),
-                    "fa fa-trash-o",
-                    None,
-                )
+                (tr!("Remove"), "fa fa-trash-o")
             };
 
-            let dialog: Html = ConfirmDialog::default()
-                .confirm_message(message)
-                .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
-                .on_confirm(link.callback({
-                    let name = name.to_string();
-                    move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                }))
-                .into();
+            let dialog: Html = if media == PveQmIdeMedia::Disk {
+                confirm_detach_entry(name, true)
+                    .on_close(on_done)
+                    .on_confirm(on_confirm)
+                    .into()
+            } else {
+                confirm_remove_entry(name, true)
+                    .on_close(on_done)
+                    .on_confirm(on_confirm)
+                    .into()
+            };
 
             MenuItem::new(title).icon_class(icon_class).on_select(
                 ctx.link()
@@ -359,18 +359,7 @@ impl PveQemuHardwarePanel {
                 let link = ctx.link().clone();
 
                 let volume = record[name].as_str().unwrap_or(&name);
-
-                let message1 = tr!("Are you sure you want to delete volume {0}.", volume);
-                let message2 = tr!("This will permanently erase all data.");
-                let message: Html = Column::new()
-                    .with_child(message1)
-                    .with_child(html! {<br/>})
-                    .with_child(message2)
-                    .into();
-
-                let dialog: Html = SafeConfirmDialog::new(name.to_string())
-                    .message(message)
-                    .submit_text(tr!("Remove"))
+                let dialog: Html = confirm_delete_volume(name, volume, true)
                     .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                     .on_confirm(link.callback({
                         let name = name.to_string();
@@ -417,13 +406,7 @@ impl PveQemuHardwarePanel {
         let name = property.get_name().cloned().unwrap();
         let menu = self.disk_menu(ctx, &name, false, false).with_item({
             let link = ctx.link().clone();
-
-            let message = tr!(
-                "Are you sure you want to remove entry {0}.",
-                format!("\"{}\"", property.title)
-            );
-            let dialog: Html = ConfirmDialog::default()
-                .confirm_message(message)
+            let dialog: Html = confirm_remove_entry(&name, true)
                 .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                 .on_confirm(link.callback({
                     let name = name.to_string();

@@ -9,13 +9,16 @@ use serde_json::Value;
 use pwt::prelude::*;
 use pwt::widget::data_table::DataTableColumn;
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::{Button, Column, ConfirmDialog, Container, Fa, Row, Toolbar};
+use pwt::widget::{Button, Column, Container, Fa, Row, Toolbar};
 
 use pwt::props::{ExtractPrimaryKey, SubmitCallback};
 
 use pve_api_types::{LxcConfig, LxcConfigMpArray, LxcConfigUnusedArray};
 use yew::virtual_dom::Key;
 
+use crate::configuration::pve::guest::{
+    confirm_delete_volume, confirm_detach_entry, confirm_remove_entry,
+};
 use crate::configuration::pve::lxc_resources_panel::is_unprivileged;
 use crate::configuration::{guest_config_url, guest_pending_url};
 use crate::form::pve::{
@@ -27,7 +30,7 @@ use crate::pending_property_view::{
     pending_typed_load, render_pending_property_value, PendingPropertyView, PendingPropertyViewMsg,
     PendingPropertyViewState, PvePendingConfiguration, PvePendingPropertyView,
 };
-use crate::{EditableProperty, SafeConfirmDialog};
+use crate::EditableProperty;
 
 use super::{EditAction, LxcResourcesPanel, Msg};
 
@@ -98,9 +101,7 @@ impl PveLxcResourcesPanel {
 
         let disable_revert = !(has_changes && selected_key.is_some());
 
-        let (disable_remove, remove_label, remove_message) = {
-            let name = selected_key.as_deref().unwrap_or("");
-            let quoted_name = format!("'{name}'");
+        let (disable_remove, remove_label) = {
             match &selected_record {
                 Some(record) => {
                     let disable = record.property.required;
@@ -108,31 +109,9 @@ impl PveLxcResourcesPanel {
                         EntryType::MountPoint => tr!("Detach"),
                         _ => tr!("Remove"),
                     };
-
-                    let message: Html = match record.entry_type {
-                        EntryType::MountPoint => {
-                            tr!("Are you sure you want to detach entry {0}", quoted_name).into()
-                        }
-                        EntryType::Unused => {
-                            let volume = match lookup_property_value(view_state, name) {
-                                Some(Value::String(volume)) => volume.clone(),
-                                _ => quoted_name.clone(),
-                            };
-
-                            let message1 =
-                                tr!("Are you sure you want to delete volume {0}.", volume);
-                            let message2 = tr!("This will permanently erase all data.");
-                            Column::new()
-                                .with_child(message1)
-                                .with_child(html! {<br/>})
-                                .with_child(message2)
-                                .into()
-                        }
-                        _ => tr!("Delete Device").into(),
-                    };
-                    (disable, label, message)
+                    (disable, label)
                 }
-                None::<_> => (true, tr!("Remove"), tr!("Remove").into()),
+                None::<_> => (true, tr!("Remove")),
             }
         };
 
@@ -148,6 +127,8 @@ impl PveLxcResourcesPanel {
             EntryType::Unused => false,
         };
 
+        let on_done = link.callback(|_| PendingPropertyViewMsg::ShowDialog(None));
+
         let toolbar = Toolbar::new()
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
@@ -157,31 +138,33 @@ impl PveLxcResourcesPanel {
                     .disabled(disable_remove)
                     .on_activate({
                         let dialog = selected_key.clone().map(move |name| {
-                            let safe_confirm = name.starts_with("unused");
+                            let on_confirm = link.callback({
+                                let name = name.to_string();
+                                move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
+                            });
 
-                            if safe_confirm {
-                                SafeConfirmDialog::new(name.to_string())
-                                    .message(remove_message)
-                                    .submit_text(remove_label)
-                                    .on_done(
-                                        link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                                    )
-                                    .on_confirm(link.callback({
-                                        let name = name.to_string();
-                                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                                    }))
-                                    .into()
-                            } else {
-                                ConfirmDialog::default()
-                                    .confirm_message(remove_message)
-                                    .on_close(
-                                        link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                                    )
-                                    .on_confirm(link.callback({
-                                        let name = name.to_string();
-                                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                                    }))
-                                    .into()
+                            match entry_type {
+                                EntryType::Unused => {
+                                    let volume = match lookup_property_value(view_state, &name) {
+                                        Some(Value::String(volume)) => volume.clone(),
+                                        _ => name.to_string(),
+                                    };
+                                    confirm_delete_volume(&*name, &volume, false)
+                                        .on_done(on_done)
+                                        .on_confirm({
+                                            let on_confirm = on_confirm.clone();
+                                            move |_| on_confirm.emit(())
+                                        })
+                                        .into()
+                                }
+                                EntryType::MountPoint => confirm_detach_entry(&name, false)
+                                    .on_close(on_done)
+                                    .on_confirm(on_confirm)
+                                    .into(),
+                                _ => confirm_remove_entry(&name, false)
+                                    .on_close(on_done)
+                                    .on_confirm(on_confirm)
+                                    .into(),
                             }
                         });
 
