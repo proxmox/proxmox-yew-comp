@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use anyhow::Error;
 
-use pwt::props::RenderFn;
+use pwt::props::{IntoOptionalInlineHtml, RenderFn};
 use pwt::widget::InputPanel;
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
@@ -54,8 +54,7 @@ pub struct SafeConfirmDialog {
 
     /// The message.
     #[prop_or_default]
-    #[builder(IntoPropValue, into_prop_value)]
-    pub message: Option<AttrValue>,
+    pub message: Option<Html>,
 
     /// The user needs to input this text to confirm the action.
     pub verify_id: AttrValue,
@@ -65,6 +64,16 @@ impl SafeConfirmDialog {
         yew::props!(Self {
             verify_id: verify_id.into(),
         })
+    }
+    /// Builder style method to set the message text.
+    pub fn message(mut self, msg: impl IntoOptionalInlineHtml) -> Self {
+        self.set_message(msg);
+        self
+    }
+
+    /// Method to set the message text.
+    pub fn set_message(&mut self, msg: impl IntoOptionalInlineHtml) {
+        self.message = msg.into_optional_inline_html();
     }
 
     pub fn renderer(mut self, renderer: impl 'static + Fn(&FormContext) -> Html) -> Self {
@@ -108,9 +117,8 @@ impl Component for ProxmoxSafeConfirmDialog {
 
         let message = props
             .message
-            .as_ref()
-            .map(|m| m.to_string())
-            .unwrap_or(default_confirm_remove_message(Some(&*verify_id)));
+            .clone()
+            .unwrap_or(default_confirm_remove_message(Some(&*verify_id)).into());
 
         let input_panel = InputPanel::new()
             .padding(4)
