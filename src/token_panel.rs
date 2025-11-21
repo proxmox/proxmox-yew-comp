@@ -219,7 +219,7 @@ impl LoadableComponent for ProxmoxTokenView {
         match msg {
             Msg::Refresh => true,
             Msg::Remove => {
-                let Some(record) = self.get_selected_record() else {
+                let Some(record) = self.store.selected_record(&self.selection) else {
                     return false;
                 };
 
@@ -244,7 +244,7 @@ impl LoadableComponent for ProxmoxTokenView {
                 false
             }
             Msg::Regenerate => {
-                let Some(record) = self.get_selected_record() else {
+                let Some(record) = self.store.selected_record(&self.selection) else {
                     return false;
                 };
                 let user = record.tokenid.user().to_string();
@@ -303,12 +303,6 @@ impl LoadableComponent for ProxmoxTokenView {
 }
 
 impl ProxmoxTokenView {
-    fn get_selected_record(&self) -> Option<ApiToken> {
-        self.selection
-            .selected_key()
-            .and_then(|key| self.store.read().lookup_record(&key).cloned())
-    }
-
     fn create_show_permissions_dialog(
         &self,
         ctx: &LoadableComponentContext<Self>,
