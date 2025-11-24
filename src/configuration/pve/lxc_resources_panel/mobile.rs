@@ -220,7 +220,7 @@ impl PveLxcResourcesPanel {
                 let link = ctx.link().clone();
                 let volume = record[name].as_str().unwrap_or(&name);
                 let dialog: Html = confirm_delete_volume(name, volume, true)
-                    .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
+                    .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
                     .on_confirm(link.callback({
                         let name = name.to_string();
                         move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
