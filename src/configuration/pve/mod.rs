@@ -17,3 +17,6 @@ mod qemu_hardware_panel;
 pub use qemu_hardware_panel::QemuHardwarePanel;
 
 pub mod guest;
+
+mod lxc_dns_panel;
+pub use lxc_dns_panel::LxcDnsPanel;
