@@ -260,45 +260,121 @@ impl Component for MountPointComp {
             .class(pwt::css::FlexFit)
             .mobile(mobile)
             .show_advanced(advanced)
-            .padding_x(2);
+            .padding_x(2)
+            .padding_bottom(1); // avoid scrollbar
 
-        if props.unused_disk.is_some() {
-            panel.add_custom_child(file_info_child);
-            panel.add_field(mount_point_id_label, mount_point_id_field);
-        } else {
-            if self.is_create {
-                panel.add_field(mount_point_id_label, mount_point_id_field);
-                panel.add_field(storage_label, storage_field);
-                panel.add_field(disk_size_label, disk_size_field);
-            } else {
+        if mobile {
+            if props.unused_disk.is_some() {
                 panel.add_custom_child(file_info_child);
+                panel.add_field(mount_point_id_label, mount_point_id_field);
+            } else {
+                if self.is_create {
+                    panel.add_field(mount_point_id_label, mount_point_id_field);
+                    panel.add_field(storage_label, storage_field);
+                    panel.add_field(disk_size_label, disk_size_field);
+                } else {
+                    panel.add_custom_child(file_info_child);
+                }
             }
+
+            if !props.rootfs {
+                panel.add_field(mount_path_label, mount_path_field);
+                panel.add_single_line_field(false, false, backup_label, backup_field);
+            }
+
+            panel.add_spacer(true);
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Left,
+                true,
+                false,
+                acl_label,
+                acl_field,
+            );
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Left,
+                true,
+                false,
+                mount_options_label,
+                mount_options_field,
+            );
+            panel.add_single_line_field(true, false, quota_label, quota_field);
+            panel.add_single_line_field(
+                true,
+                false,
+                skip_replication_label,
+                skip_replication_field,
+            );
+            panel.add_single_line_field(true, false, readonly_label, readonly_field);
+        } else {
+            if props.unused_disk.is_some() {
+                panel.add_field(mount_point_id_label, mount_point_id_field);
+                panel.add_custom_child(file_info_child);
+            } else {
+                if self.is_create {
+                    panel.add_field(mount_point_id_label, mount_point_id_field);
+                    panel.add_field(storage_label, storage_field);
+                    panel.add_field(disk_size_label, disk_size_field);
+                } else {
+                    panel.add_custom_child(file_info_child);
+                }
+            }
+
+            if !props.rootfs {
+                panel.add_field_with_options(
+                    pwt::widget::FieldPosition::Right,
+                    false,
+                    false,
+                    mount_path_label,
+                    mount_path_field,
+                );
+                panel.add_field_with_options(
+                    pwt::widget::FieldPosition::Right,
+                    false,
+                    false,
+                    backup_label,
+                    backup_field,
+                );
+            }
+
+            panel.add_spacer(true);
+
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Left,
+                true,
+                false,
+                quota_label,
+                quota_field,
+            );
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Right,
+                true,
+                false,
+                acl_label,
+                acl_field,
+            );
+
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Left,
+                true,
+                false,
+                readonly_label,
+                readonly_field,
+            );
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Right,
+                true,
+                false,
+                skip_replication_label,
+                skip_replication_field,
+            );
+            panel.add_field_with_options(
+                pwt::widget::FieldPosition::Large,
+                true,
+                false,
+                mount_options_label,
+                mount_options_field,
+            );
         }
-
-        if !props.rootfs {
-            panel.add_field(mount_path_label, mount_path_field);
-            panel.add_single_line_field(false, false, backup_label, backup_field);
-        }
-
-        panel.add_spacer(true);
-        panel.add_field_with_options(
-            pwt::widget::FieldPosition::Left,
-            true,
-            false,
-            acl_label,
-            acl_field,
-        );
-        panel.add_field_with_options(
-            pwt::widget::FieldPosition::Left,
-            true,
-            false,
-            mount_options_label,
-            mount_options_field,
-        );
-        panel.add_single_line_field(true, false, quota_label, quota_field);
-        panel.add_single_line_field(true, false, skip_replication_label, skip_replication_field);
-        panel.add_single_line_field(true, false, readonly_label, readonly_field);
-
         panel.into()
     }
 }
