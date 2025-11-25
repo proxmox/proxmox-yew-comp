@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use pwt::props::SubmitCallback;
 use serde_json::Value;
 
 use yew::html::IntoPropValue;
@@ -33,6 +34,11 @@ pub struct LxcOptionsPanel {
     #[prop_or_default]
     #[builder]
     pub mobile: bool,
+
+    /// Read-only view - hide toolbar and all buttons/menus to edit content.
+    #[prop_or_default]
+    #[builder]
+    pub readonly: bool,
 }
 
 impl LxcOptionsPanel {
@@ -87,10 +93,12 @@ impl Component for PveLxcOptionsPanel {
 
         let loader = typed_load::<LxcConfig>(editor_url.clone());
 
-        let on_submit = move |value: Value| {
-            let editor_url = editor_url.clone();
-            async move { http_put(editor_url.clone(), Some(value.clone())).await }
-        };
+        let on_submit = (!props.readonly).then(|| {
+            SubmitCallback::new(move |value: Value| {
+                let editor_url = editor_url.clone();
+                async move { http_put(editor_url.clone(), Some(value.clone())).await }
+            })
+        });
         if props.mobile {
             PendingPropertyList::new(Rc::clone(&self.properties))
                 .class(pwt::css::FlexFit)
