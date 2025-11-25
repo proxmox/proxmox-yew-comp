@@ -38,6 +38,11 @@ pub struct LxcNetworkPanel {
     #[prop_or_default]
     #[builder]
     pub mobile: bool,
+
+    /// Read-only view - hide toolbar and all buttons/menus to edit content.
+    #[prop_or_default]
+    #[builder]
+    pub readonly: bool,
 }
 
 impl LxcNetworkPanel {
@@ -137,6 +142,8 @@ impl LoadableComponent for LxcNetworkComp {
     }
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
+        let props = ctx.props();
+        let readonly = props.readonly;
         let link = ctx.link();
         DataTable::new(Rc::clone(&self.columns), self.store.clone())
             .class(pwt::css::FlexFit)
@@ -144,7 +151,9 @@ impl LoadableComponent for LxcNetworkComp {
             .striped(true)
             .virtual_scroll(false)
             .on_row_dblclick(move |_: &mut _| {
-                link.change_view(Some(ViewState::Edit));
+                if !readonly {
+                    link.change_view(Some(ViewState::Edit));
+                }
             })
             .into()
     }
