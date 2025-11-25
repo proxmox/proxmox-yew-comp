@@ -15,7 +15,8 @@ pub struct BasicRealmInfo {
     #[serde(rename = "type")]
     pub ty: String,
     /// True if it is the default realm
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "proxmox_serde::perl::deserialize_bool")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
