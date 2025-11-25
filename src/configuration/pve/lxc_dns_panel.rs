@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use pve_api_types::LxcConfig;
+use pwt::props::SubmitCallback;
 use serde_json::Value;
 
 use yew::html::IntoPropValue;
@@ -29,6 +30,11 @@ pub struct LxcDnsPanel {
     #[prop_or_default]
     #[builder]
     pub mobile: bool,
+
+    /// Read-only view - hide toolbar and all buttons/menus to edit content.
+    #[prop_or_default]
+    #[builder]
+    pub readonly: bool,
 }
 
 impl LxcDnsPanel {
@@ -73,10 +79,12 @@ impl Component for LxcDnsComp {
         let pending_url =
             guest_pending_url(props.vmid, &props.node, &props.remote, PveGuestType::Lxc);
 
-        let on_submit = move |value: Value| {
-            let url = editor_url.clone();
-            async move { http_put(url.clone(), Some(value.clone())).await }
-        };
+        let on_submit = (!props.readonly).then(|| {
+            SubmitCallback::new(move |value: Value| {
+                let url = editor_url.clone();
+                async move { http_put(url.clone(), Some(value.clone())).await }
+            })
+        });
         if props.mobile {
             PendingPropertyList::new(Rc::clone(&self.properties))
                 .class(pwt::css::FlexFit)
