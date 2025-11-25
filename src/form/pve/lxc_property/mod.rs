@@ -176,7 +176,7 @@ pub fn lxc_console_mode_property(mobile: bool) -> EditableProperty {
 }
 
 pub fn lxc_hostname_property(vmid: u32, mobile: bool) -> EditableProperty {
-    let title = tr!("Hostame");
+    let title = tr!("Hostname");
     EditableProperty::new("hostname", title.clone())
         .required(true)
         .placeholder(format!("CT{}", vmid))
