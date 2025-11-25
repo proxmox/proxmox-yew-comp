@@ -20,3 +20,6 @@ pub mod guest;
 
 mod lxc_dns_panel;
 pub use lxc_dns_panel::LxcDnsPanel;
+
+mod lxc_network_panel;
+pub use lxc_network_panel::LxcNetworkPanel;
