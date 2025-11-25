@@ -235,7 +235,7 @@ fn columns() -> Rc<Vec<DataTableHeader<NetworkEntry>>> {
         DataTableColumn::new(tr!("CIDR"))
             .width("minmax(150px,1fr)")
             .render(move |item: &NetworkEntry| {
-                render_two_lines(item.config.ip.as_ref(), item.config.ip.as_ref())
+                render_two_lines(item.config.ip.as_ref(), item.config.ip6.as_ref())
             })
             .into(),
         DataTableColumn::new(tr!("Gateway"))
