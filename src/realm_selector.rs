@@ -80,7 +80,10 @@ impl ProxmoxRealmSelector {
 
         match response {
             Ok(data) => Msg::LoadComplete(data.data),
-            Err(_) => Msg::LoadFailed,
+            Err(e) => {
+                log::error!("could not load realms: {e:?}");
+                Msg::LoadFailed
+            }
         }
     }
 }
