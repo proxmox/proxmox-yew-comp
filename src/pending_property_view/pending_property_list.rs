@@ -62,7 +62,7 @@ impl PendingPropertyList {
         pending: &Value,
         property: &EditableProperty,
         trailing: impl IntoOptionalInlineHtml,
-        on_revert: Callback<Event>,
+        on_revert: Option<Callback<Event>>,
     ) -> ListTile {
         Self::render_list_tile_internal(current, pending, property, None, trailing, on_revert)
     }
@@ -76,7 +76,7 @@ impl PendingPropertyList {
         property: &EditableProperty,
         icon: Fa,
         trailing: impl IntoOptionalInlineHtml,
-        on_revert: Callback<Event>,
+        on_revert: Option<Callback<Event>>,
     ) -> ListTile {
         Self::render_list_tile_internal(current, pending, property, Some(icon), trailing, on_revert)
     }
@@ -88,14 +88,16 @@ impl PendingPropertyList {
         property: &EditableProperty,
         icon: Option<Fa>,
         trailing: impl IntoOptionalInlineHtml,
-        on_revert: Callback<Event>,
+        on_revert: Option<Callback<Event>>,
     ) -> ListTile {
         let (value, new_value) =
             crate::pending_property_view::render_pending_property_value(current, pending, property);
 
-        let revert: Html = ActionIcon::new("fa fa-undo")
-            .on_activate(on_revert.clone())
-            .into();
+        let revert: Option<Html> = on_revert.map(|on_revert| {
+            ActionIcon::new("fa fa-undo")
+                .on_activate(on_revert.clone())
+                .into()
+        });
 
         if let Some(new_value) = new_value {
             let subtitle = html! {<><div>{value}</div><div style="line-height: 1.4em;" class="pwt-color-warning">{new_value}</div></>};
@@ -105,7 +107,7 @@ impl PendingPropertyList {
                 .gap(1)
                 .with_child(title_subtitle_column(property.title.clone(), subtitle))
                 .with_flex_spacer()
-                .with_child(revert)
+                .with_optional_child(revert)
                 .with_optional_child(trailing.into_optional_inline_html())
                 .into();
 
@@ -149,17 +151,16 @@ impl PvePendingPropertyList {
         let props = ctx.props();
         let readonly = props.on_submit.is_none();
 
-        let list_tile = if read_only {
-            PendingPropertyList::render_list_tile(current, pending, property, (), ())
-        } else {
-            let on_revert = Callback::from({
+        let on_revert = (!readonly).then(|| {
+            Callback::from({
                 ctx.link().callback({
                     let property = property.clone();
                     move |_: Event| PendingPropertyViewMsg::RevertProperty(property.clone())
                 })
-            });
-            PendingPropertyList::render_list_tile(current, pending, property, (), on_revert)
-        };
+            })
+        });
+        let list_tile =
+            PendingPropertyList::render_list_tile(current, pending, property, (), on_revert);
 
         if !readonly && property.render_input_panel.is_some() {
             list_tile

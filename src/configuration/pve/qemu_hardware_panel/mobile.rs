@@ -64,10 +64,13 @@ impl PveQemuHardwarePanel {
     ) -> ListTile {
         let props = ctx.props();
 
-        let on_revert = Callback::from({
-            let property = property.clone();
-            ctx.link()
-                .callback(move |_: Event| PendingPropertyViewMsg::RevertProperty(property.clone()))
+        let on_revert = (!props.readonly).then(|| {
+            Callback::from({
+                let property = property.clone();
+                ctx.link().callback(move |_: Event| {
+                    PendingPropertyViewMsg::RevertProperty(property.clone())
+                })
+            })
         });
 
         let mut list_tile = PendingPropertyList::render_icon_list_tile(
