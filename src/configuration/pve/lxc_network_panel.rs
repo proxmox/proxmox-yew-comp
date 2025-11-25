@@ -7,6 +7,7 @@ use proxmox_schema::property_string::PropertyString;
 use pve_api_types::{LxcConfig, LxcConfigNet};
 
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
+use pwt::widget::{Column, Container, Fa, List, ListTile};
 use serde_json::Value;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
@@ -145,17 +146,42 @@ impl LoadableComponent for LxcNetworkComp {
         let props = ctx.props();
         let readonly = props.readonly;
         let link = ctx.link();
-        DataTable::new(Rc::clone(&self.columns), self.store.clone())
-            .class(pwt::css::FlexFit)
-            .selection(self.selection.clone())
-            .striped(true)
-            .virtual_scroll(false)
-            .on_row_dblclick(move |_: &mut _| {
+
+        if props.mobile {
+            let mut tiles = Vec::new();
+
+            let guard = self.store.read();
+            let data = guard.data();
+
+            for item in data {
+                let mut tile = render_list_tile(item);
+
                 if !readonly {
-                    link.change_view(Some(ViewState::Edit));
+                    tile.set_interactive(true);
+                    let link = link.clone();
+                    tile.set_on_activate(move |_| link.change_view(Some(ViewState::Edit)))
                 }
-            })
-            .into()
+                tiles.push(tile)
+            }
+
+            List::from_tiles(tiles)
+                .class(pwt::css::FlexFit)
+                .grid_template_columns("auto 1fr")
+                .into()
+        } else {
+            DataTable::new(Rc::clone(&self.columns), self.store.clone())
+                .class(pwt::css::FlexFit)
+                .selection(self.selection.clone())
+                .striped(true)
+                .virtual_scroll(false)
+                .show_header(!props.mobile)
+                .on_row_dblclick(move |_: &mut _| {
+                    if !readonly {
+                        link.change_view(Some(ViewState::Edit));
+                    }
+                })
+                .into()
+        }
     }
 
     fn dialog_view(
@@ -186,6 +212,82 @@ fn render_two_lines(
         (None, Some(line2)) => html! {line2},
         _ => html! {},
     }
+}
+
+fn render_list_tile(item: &NetworkEntry) -> ListTile {
+    let mut title = format!("{}: {}", item.key, item.config.name);
+
+    if let Some(bridge) = &item.config.bridge {
+        title += &format!(" ({bridge})");
+    }
+
+    let mut options = Vec::new();
+
+    if let Some(hwaddr) = &item.config.hwaddr {
+        options.push(hwaddr.clone());
+    }
+
+    if let Some(tag) = &item.config.tag {
+        options.push(format!("[tag={tag}]"));
+    }
+
+    let mut column = Column::new().gap(1).style("min-width", "140px").with_child(
+        Container::new()
+            .class("pwt-font-size-title-medium")
+            .style("overflow-wrap", "anywhere")
+            .key("title")
+            .with_child(title),
+    );
+
+    let mut add_text_line = |text: String| {
+        column.add_child(
+            Container::new()
+                .class("pwt-font-size-title-small")
+                .style("overflow-wrap", "anywhere")
+                .key("title")
+                .with_child(text),
+        );
+    };
+
+    if let Some(ip) = &item.config.ip {
+        let text = if ip.contains('/') {
+            ip.clone()
+        } else {
+            format!("ip: {ip}")
+        };
+        add_text_line(text);
+    }
+
+    if let Some(ip6) = &item.config.ip6 {
+        let text = if ip6.contains('/') {
+            ip6.clone()
+        } else {
+            format!("ip6: {ip6}")
+        };
+        add_text_line(text);
+    }
+
+    let down = item.config.link_down.unwrap_or(false);
+    let firewall = item.config.firewall.unwrap_or(false);
+    let icon_class = if down {
+        "ban"
+    } else if firewall {
+        "shield"
+    } else {
+        "exchange"
+    };
+
+    let icon = Fa::new(icon_class)
+        .large_2x()
+        .fixed_width()
+        .class(pwt::css::AlignSelf::Center);
+
+    ListTile::new()
+        .class(pwt::css::AlignItems::Center)
+        .class("pwt-column-gap-2")
+        .border_bottom(true)
+        .with_child(icon)
+        .with_child(column)
 }
 
 fn columns() -> Rc<Vec<DataTableHeader<NetworkEntry>>> {
