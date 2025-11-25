@@ -146,17 +146,22 @@ impl PvePendingPropertyList {
         pending: &Value,
         property: &EditableProperty,
     ) -> ListTile {
-        let on_revert = Callback::from({
-            ctx.link().callback({
-                let property = property.clone();
-                move |_: Event| PendingPropertyViewMsg::RevertProperty(property.clone())
-            })
-        });
+        let props = ctx.props();
+        let readonly = props.on_submit.is_none();
 
-        let list_tile =
-            PendingPropertyList::render_list_tile(current, pending, property, (), on_revert);
+        let list_tile = if read_only {
+            PendingPropertyList::render_list_tile(current, pending, property, (), ())
+        } else {
+            let on_revert = Callback::from({
+                ctx.link().callback({
+                    let property = property.clone();
+                    move |_: Event| PendingPropertyViewMsg::RevertProperty(property.clone())
+                })
+            });
+            PendingPropertyList::render_list_tile(current, pending, property, (), on_revert)
+        };
 
-        if property.render_input_panel.is_some() {
+        if !readonly && property.render_input_panel.is_some() {
             list_tile
                 .interactive(true)
                 .on_activate(ctx.link().callback({

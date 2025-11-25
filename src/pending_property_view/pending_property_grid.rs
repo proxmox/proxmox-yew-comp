@@ -245,6 +245,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
         view_state: &PendingPropertyViewState,
     ) -> Html {
         let props = ctx.props();
+        let readonly = props.on_submit.is_none();
 
         let table = DataTable::new(self.columns.clone(), self.store.clone())
             .class(pwt::css::FlexFit)
@@ -259,8 +260,11 @@ impl PendingPropertyView for PvePendingPropertyGrid {
                         .read()
                         .lookup_record(&event.record_key)
                         .map(|r| r.property.clone());
-                    if let Some(property) = property {
-                        link.send_message(PendingPropertyViewMsg::EditProperty(property, None));
+
+                    if !readonly {
+                        if let Some(property) = property {
+                            link.send_message(PendingPropertyViewMsg::EditProperty(property, None));
+                        }
                     }
                 }
             })
@@ -273,8 +277,12 @@ impl PendingPropertyView for PvePendingPropertyGrid {
                             .read()
                             .lookup_record(&event.record_key)
                             .map(|r| r.property.clone());
-                        if let Some(property) = property {
-                            link.send_message(PendingPropertyViewMsg::EditProperty(property, None));
+                        if !readonly {
+                            if let Some(property) = property {
+                                link.send_message(PendingPropertyViewMsg::EditProperty(
+                                    property, None,
+                                ));
+                            }
                         }
                     }
                 }
@@ -282,19 +290,12 @@ impl PendingPropertyView for PvePendingPropertyGrid {
             .into();
 
         let loading = view_state.loading();
-        let toolbar = self.toolbar(ctx);
+        let toolbar = (!readonly).then(|| self.toolbar(ctx));
         let class = props.class.clone();
         let dialog = view_state.dialog.clone();
         let error = view_state.error.clone();
 
-        crate::property_view::render_loadable_panel(
-            class,
-            table,
-            Some(toolbar),
-            dialog,
-            loading,
-            error,
-        )
+        crate::property_view::render_loadable_panel(class, table, toolbar, dialog, loading, error)
     }
 }
 
