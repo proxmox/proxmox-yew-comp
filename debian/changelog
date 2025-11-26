@@ -1,3 +1,23 @@
+rust-proxmox-yew-comp (0.7.3) trixie; urgency=medium
+
+  * lxc resources panel:
+    - add more icons to menu entries.
+    - add reassign volume dialog.
+    - add resize disk dialog.
+    - do not display card menu in readonly mode
+  * lxc mount point property: this option is only required if it's the rootfs.
+  * lxc mount point editor: add desktop layout.
+  * add lxc dns panel.
+  * add lxc network panel (read-only).
+  * pending property view: implement read-only mode.
+  * qemu options panel: add read-only property.
+  * qemu options panel: add read-only property.
+  * realm selector: log load errors to make debugging easier.
+  * token panel: remove top border on toolbar.
+  * adapt to type rename in pve-api-types.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 26 Nov 2025 22:09:51 +0100
+
 rust-proxmox-yew-comp (0.7.2) trixie; urgency=medium
 
   * qemu disk editor improvements:
