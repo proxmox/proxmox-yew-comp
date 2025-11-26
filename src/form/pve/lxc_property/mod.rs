@@ -16,6 +16,9 @@ pub use lxc_mount_point_property::{
 mod lxc_memory_swap_property;
 pub use lxc_memory_swap_property::{lxc_memory_property, lxc_swap_property};
 
+mod lxc_network_property;
+pub use lxc_network_property::lxc_network_property;
+
 use proxmox_schema::{ApiType, ObjectSchema, Schema};
 use pve_api_types::LxcConfig;
 

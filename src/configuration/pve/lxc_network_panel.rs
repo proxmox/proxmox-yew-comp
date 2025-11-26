@@ -6,23 +6,25 @@ use anyhow::Error;
 use proxmox_schema::property_string::PropertyString;
 use pve_api_types::{LxcConfig, LxcConfigNet};
 
-use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
+use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
 use pwt::widget::{Column, Container, Fa, List, ListTile};
 use serde_json::Value;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::props::ExtractPrimaryKey;
+use pwt::props::{ExtractPrimaryKey, SubmitCallback};
 use pwt::state::{Selection, Store};
 
 use pwt_macros::builder;
 
-use crate::LoadableComponentMaster;
+use crate::form::pve::lxc_network_property;
+use crate::form::typed_load;
 use crate::{
     configuration::guest_config_url, form::pve::PveGuestType, LoadableComponent,
     LoadableComponentContext,
 };
+use crate::{http_put, LoadableComponentMaster, PropertyEditDialog};
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -70,7 +72,7 @@ impl ExtractPrimaryKey for NetworkEntry {
 #[derive(PartialEq)]
 pub enum ViewState {
     // Add,
-    Edit,
+    Edit(Key),
 }
 
 pub enum Msg {
@@ -84,13 +86,45 @@ pub struct LxcNetworkComp {
 }
 
 impl LxcNetworkComp {
-    fn get_selected_record(&self) -> Option<NetworkEntry> {
-        let selected_key = self.selection.selected_key();
-        let mut selected_record = None;
-        if let Some(key) = &selected_key {
-            selected_record = self.store.read().lookup_record(key).cloned();
+    /*
+        fn get_selected_record(&self) -> Option<NetworkEntry> {
+            let selected_key = self.selection.selected_key();
+            let mut selected_record = None;
+            if let Some(key) = &selected_key {
+                selected_record = self.store.read().lookup_record(key).cloned();
+            }
+            selected_record
         }
-        selected_record
+    */
+
+    fn edit_dialog(&self, ctx: &LoadableComponentContext<Self>, name: String) -> Html {
+        let props = ctx.props();
+        let link = ctx.link();
+
+        let property = lxc_network_property(
+            Some(props.node.clone()),
+            props.remote.clone(),
+            Some(name),
+            props.mobile,
+        );
+
+        let url = guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Lxc);
+        let loader = typed_load::<LxcConfig>(url.clone());
+        let on_submit = (!props.readonly).then(|| {
+            SubmitCallback::new(move |value: Value| {
+                let url = url.clone();
+                async move { http_put(url.clone(), Some(value.clone())).await }
+            })
+        });
+        PropertyEditDialog::from(property.clone())
+            .mobile(props.mobile)
+            .on_done(move |_| {
+                link.change_view(None);
+                link.send_reload();
+            })
+            .loader(loader)
+            .on_submit(on_submit)
+            .into()
     }
 }
 
@@ -128,6 +162,8 @@ impl LoadableComponent for LxcNetworkComp {
         let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::SelectionChange));
         let store = Store::new().on_change(ctx.link().callback(|_| Msg::Redraw));
 
+        ctx.link().repeated_load(3000);
+
         Self {
             store,
             selection,
@@ -159,7 +195,10 @@ impl LoadableComponent for LxcNetworkComp {
                 if !readonly {
                     tile.set_interactive(true);
                     let link = link.clone();
-                    tile.set_on_activate(move |_| link.change_view(Some(ViewState::Edit)))
+                    let key = item.extract_key();
+                    tile.set_on_activate(move |_| {
+                        link.change_view(Some(ViewState::Edit(key.clone())))
+                    })
                 }
                 tiles.push(tile)
             }
@@ -175,9 +214,10 @@ impl LoadableComponent for LxcNetworkComp {
                 .striped(true)
                 .virtual_scroll(false)
                 .show_header(!props.mobile)
-                .on_row_dblclick(move |_: &mut _| {
+                .on_row_dblclick(move |event: &mut DataTableMouseEvent| {
                     if !readonly {
-                        link.change_view(Some(ViewState::Edit));
+                        let key: Key = event.record_key.clone();
+                        link.change_view(Some(ViewState::Edit(key)));
                     }
                 })
                 .into()
@@ -186,15 +226,12 @@ impl LoadableComponent for LxcNetworkComp {
 
     fn dialog_view(
         &self,
-        _ctx: &LoadableComponentContext<Self>,
+        ctx: &LoadableComponentContext<Self>,
         view_state: &Self::ViewState,
     ) -> Option<Html> {
         match view_state {
             //ViewState::Add => None,
-            ViewState::Edit => match self.get_selected_record() {
-                None => None,
-                Some(_record) => None,
-            },
+            ViewState::Edit(key) => Some(self.edit_dialog(ctx, key.to_string())),
         }
     }
 }
@@ -267,6 +304,7 @@ fn render_list_tile(item: &NetworkEntry) -> ListTile {
         add_text_line(text);
     }
 
+    log::info!("DOWN {:?}", item.config.link_down);
     let down = item.config.link_down.unwrap_or(false);
     let firewall = item.config.firewall.unwrap_or(false);
     let icon_class = if down {
