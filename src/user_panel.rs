@@ -69,11 +69,13 @@ async fn create_user(form_ctx: FormContext) -> Result<(), Error> {
 async fn update_user(form_ctx: FormContext) -> Result<(), Error> {
     let mut data = form_ctx.get_submit_data();
 
-    let expire = form_ctx.read().get_field_text("expire");
-    if let Ok(epoch) = proxmox_time::parse_rfc3339(&expire) {
-        data["expire"] = epoch.into();
-    } else {
-        data["expire"] = 0i64.into();
+    if Some(true) == form_ctx.read().is_field_dirty("expire") {
+        let expire = form_ctx.read().get_field_text("expire");
+        if let Ok(epoch) = proxmox_time::parse_rfc3339(&expire) {
+            data["expire"] = epoch.into();
+        } else {
+            data["expire"] = 0i64.into();
+        }
     }
 
     let data = delete_empty_values(&data, &["firstname", "lastname", "email", "comment"], true);
