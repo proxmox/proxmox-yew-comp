@@ -22,7 +22,7 @@ use pwt::AsyncAbortGuard;
 use pwt::{prelude::*, AsyncPool};
 
 use crate::{http_get_full, ApiLoadCallback, EditableProperty, PropertyEditDialog};
-use pve_api_types::QemuPendingConfigValue;
+use pve_api_types::PendingConfigValue;
 
 /// Pending configuration data
 ///
@@ -45,7 +45,7 @@ impl PvePendingConfiguration {
         }
     }
 
-    pub fn from_config_array(data: Vec<QemuPendingConfigValue>) -> Self {
+    pub fn from_config_array(data: Vec<PendingConfigValue>) -> Self {
         let (current, pending, keys) = pve_pending_config_array_to_objects(data);
         Self {
             current,
@@ -77,7 +77,7 @@ pub fn pending_typed_load<T: DeserializeOwned + Serialize>(
 
 /// Note: PVE API sometime return numbers as string, and bool as 1/0
 pub fn pve_pending_config_array_to_objects_typed<T: DeserializeOwned + Serialize>(
-    data: Vec<QemuPendingConfigValue>,
+    data: Vec<PendingConfigValue>,
 ) -> Result<PvePendingConfiguration, Error> {
     let (current, pending, keys) = pve_pending_config_array_to_objects(data);
 
@@ -376,7 +376,7 @@ pub fn render_pending_property_value(
 /// Returns 2 Objects, containing current and pending configuration,
 /// and the set of contained configuration keys.
 pub fn pve_pending_config_array_to_objects(
-    data: Vec<QemuPendingConfigValue>,
+    data: Vec<PendingConfigValue>,
 ) -> (Value, Value, HashSet<String>) {
     let mut current = serde_json::Map::new();
     let mut pending = serde_json::Map::new();
