@@ -178,7 +178,6 @@ impl LoadableComponent for ProxmoxTokenView {
             .class("pwt-w-100")
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
-            .border_top(true)
             .with_child(
                 Button::new(tr!("Add"))
                     .on_activate(link.change_view_callback(|_| Some(ViewState::AddToken))),
