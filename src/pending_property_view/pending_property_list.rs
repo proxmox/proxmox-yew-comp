@@ -199,6 +199,19 @@ impl PendingPropertyView for PvePendingPropertyList {
         Self {}
     }
 
+    fn changed(
+        &mut self,
+        ctx: &Context<PvePendingPropertyView<Self>>,
+        _view_state: &mut PendingPropertyViewState,
+        old_props: &Self::Properties,
+    ) -> bool {
+        let props = ctx.props();
+        if props.pending_loader != old_props.pending_loader {
+            ctx.link().send_message(PendingPropertyViewMsg::Load);
+        }
+        true
+    }
+
     fn view(
         &self,
         ctx: &Context<PvePendingPropertyView<Self>>,

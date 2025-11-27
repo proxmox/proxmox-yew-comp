@@ -236,6 +236,11 @@ impl PendingPropertyView for PvePendingPropertyGrid {
         if props.properties != old_props.properties {
             self.update_data(ctx, view_state);
         }
+
+        if props.pending_loader != old_props.pending_loader {
+            ctx.link().send_message(PendingPropertyViewMsg::Load);
+        }
+
         true
     }
 
