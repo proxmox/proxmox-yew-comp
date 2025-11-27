@@ -178,6 +178,22 @@ impl LoadableComponent for LxcNetworkComp {
         }
     }
 
+    fn changed(
+        &mut self,
+        ctx: &LoadableComponentContext<Self>,
+        old_props: &Self::Properties,
+    ) -> bool {
+        let props = ctx.props();
+
+        if !(props.vmid == old_props.vmid
+            && props.node == old_props.node
+            && props.remote == old_props.remote)
+        {
+            ctx.link().send_reload();
+        }
+        true
+    }
+
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let props = ctx.props();
         let readonly = props.readonly;
