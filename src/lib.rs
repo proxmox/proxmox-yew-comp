@@ -136,7 +136,7 @@ mod rrd_timeframe_selector;
 pub use rrd_timeframe_selector::{RRDTimeframe, RRDTimeframeSelector};
 
 mod firewall;
-pub use firewall::{EditFirewallOptions, FirewallContext};
+pub use firewall::{EditFirewallOptions, FirewallContext, FirewallRules};
 
 mod running_tasks;
 pub use running_tasks::{ProxmoxRunningTasks, RunningTasks};
