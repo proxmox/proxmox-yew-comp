@@ -135,6 +135,9 @@ mod rrd_timeframe_selector;
 #[cfg(feature = "rrd")]
 pub use rrd_timeframe_selector::{RRDTimeframe, RRDTimeframeSelector};
 
+mod firewall;
+pub use firewall::FirewallContext;
+
 mod running_tasks;
 pub use running_tasks::{ProxmoxRunningTasks, RunningTasks};
 
