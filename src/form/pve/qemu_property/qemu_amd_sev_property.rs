@@ -11,6 +11,16 @@ use pwt::widget::{Container, FieldPosition, InputPanel};
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
+const AMD_SEV_PN: &'static str = "amd-sev";
+const TYPE_PN: &'static str = "_type";
+const NO_DEBUG_PN: &'static str = "_no-debug";
+const NO_KEY_SHARING_PN: &'static str = "_no-key-sharing";
+
+const DEBUG_FIELD_NAME: &'static str = "_debug";
+const KEY_SHARING_FIELD_NAME: &'static str = "_key-sharing";
+const ALLOW_SMT_FIELD_NAME: &'static str = "_allow-smt";
+const KERNEL_HASHES_FIELD_NAME: &'static str = "_kernel-hashes";
+
 fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {
         let form_ctx = state.form_ctx;
@@ -18,7 +28,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 
         let hint = |msg: String| Container::new().class("pwt-color-warning").with_child(msg);
 
-        let amd_sev_type = form_ctx.read().get_field_text("_type");
+        let amd_sev_type = form_ctx.read().get_field_text(TYPE_PN);
         let snp_enabled = amd_sev_type == "snp";
         let sev_enabled = !amd_sev_type.is_empty();
 
@@ -28,7 +38,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             ("es", "AMD SEV-ES (highly experimental)"),
             ("snp", "AMD SEV-SNP (highly experimental)"),
         ])
-        .name("_type")
+        .name(TYPE_PN)
         .force_selection(true)
         .placeholder(format!("{} ({})", tr!("Default"), tr!("Disabled")));
 
@@ -38,7 +48,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             .switch(mobile)
             .disabled(!sev_enabled)
             .submit(false)
-            .name("_debug");
+            .name(DEBUG_FIELD_NAME);
 
         let key_sharing_hidden = !advanced || !sev_enabled || snp_enabled;
         let key_sharing_label = tr!("Allow Key-Sharing");
@@ -46,7 +56,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             .switch(mobile)
             .disabled(!sev_enabled || snp_enabled)
             .submit(false)
-            .name("_key-sharing");
+            .name(KEY_SHARING_FIELD_NAME);
 
         let allow_smt_hidden = !advanced || !snp_enabled;
         let allow_smt_label = tr!("Allow SMT");
@@ -55,14 +65,14 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             .disabled(!snp_enabled)
             .default(true)
             .submit(false)
-            .name("_allow-smt");
+            .name(ALLOW_SMT_FIELD_NAME);
 
         let kernel_hashes_hidden = !advanced || !sev_enabled;
         let kernel_hashes_label = tr!("Enable Kernel Hashes");
         let kernel_hashes_field = Checkbox::new()
             .switch(mobile)
             .disabled(!sev_enabled)
-            .name("_kernel-hashes")
+            .name(KERNEL_HASHES_FIELD_NAME)
             .submit(false);
 
         let hint1 = hint(tr!(
@@ -107,7 +117,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 
 pub fn qemu_amd_sev_property(mobile: bool) -> EditableProperty {
     let placeholder = format!("{} ({})", tr!("Default"), tr!("Disabled"));
-    EditableProperty::new("amd-sev", tr!("AMD SEV"))
+    EditableProperty::new(AMD_SEV_PN, tr!("AMD SEV"))
         .advanced_checkbox(true)
         .required(true)
         .render_input_panel(input_panel(mobile))
@@ -133,13 +143,13 @@ pub fn qemu_amd_sev_property(mobile: bool) -> EditableProperty {
         })
         .load_hook({
             move |mut record| {
-                flatten_property_string::<PveQemuSevFmt>(&mut record, "amd-sev")?;
+                flatten_property_string::<PveQemuSevFmt>(&mut record, AMD_SEV_PN)?;
 
-                let no_debug = record["_no-debug"].as_bool().unwrap_or(false);
-                record["_debug"] = (!no_debug).into();
+                let no_debug = record[NO_DEBUG_PN].as_bool().unwrap_or(false);
+                record[DEBUG_FIELD_NAME] = (!no_debug).into();
 
-                let no_key_sharing = record["_no-key-sharing"].as_bool().unwrap_or(false);
-                record["_key-sharing"] = (!no_key_sharing).into();
+                let no_key_sharing = record[NO_KEY_SHARING_PN].as_bool().unwrap_or(false);
+                record[KEY_SHARING_FIELD_NAME] = (!no_key_sharing).into();
 
                 Ok(record)
             }
@@ -148,35 +158,35 @@ pub fn qemu_amd_sev_property(mobile: bool) -> EditableProperty {
             move |state: PropertyEditorState| {
                 let form_ctx = state.form_ctx;
                 let mut form_data = form_ctx.get_submit_data();
-                let ty = match form_data.get("_type") {
+                let ty = match form_data.get(TYPE_PN) {
                     Some(Value::String(ty)) => ty.clone(),
                     _ => String::new(),
                 };
                 if ty.is_empty() {
-                    return Ok(json!({"delete": [ "amd-sev" ] }));
+                    return Ok(json!({"delete": [ AMD_SEV_PN ] }));
                 }
 
-                let debug = form_ctx.read().get_field_checked("_debug");
+                let debug = form_ctx.read().get_field_checked(DEBUG_FIELD_NAME);
                 if !debug {
-                    form_data["_no-debug"] = true.into();
+                    form_data[NO_DEBUG_PN] = true.into();
                 }
 
-                let key_sharing = form_ctx.read().get_field_checked("_key-sharing");
+                let key_sharing = form_ctx.read().get_field_checked(KEY_SHARING_FIELD_NAME);
                 if !key_sharing && ty != "snp" {
-                    form_data["_no-key-sharing"] = true.into();
+                    form_data[NO_KEY_SHARING_PN] = true.into();
                 }
 
-                let allow_smt = form_ctx.read().get_field_checked("_allow-smt");
+                let allow_smt = form_ctx.read().get_field_checked(ALLOW_SMT_FIELD_NAME);
                 if !allow_smt && ty == "snp" {
-                    form_data["_allow-smt"] = false.into();
+                    form_data[ALLOW_SMT_FIELD_NAME] = false.into();
                 }
 
-                if form_ctx.read().get_field_checked("_kernel-hashes") {
-                    form_data["_kernel-hashes"] = true.into();
+                if form_ctx.read().get_field_checked(KERNEL_HASHES_FIELD_NAME) {
+                    form_data[KERNEL_HASHES_FIELD_NAME] = true.into();
                 }
 
-                property_string_from_parts::<PveQemuSevFmt>(&mut form_data, "amd-sev", true)?;
-                let form_data = delete_empty_values(&form_data, &["amd-sev"], false);
+                property_string_from_parts::<PveQemuSevFmt>(&mut form_data, AMD_SEV_PN, true)?;
+                let form_data = delete_empty_values(&form_data, &[AMD_SEV_PN], false);
                 Ok(form_data)
             }
         })
