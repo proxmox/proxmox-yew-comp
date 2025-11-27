@@ -31,6 +31,9 @@ pub use qemu_display_property::qemu_display_property;
 mod qemu_efidisk_property;
 pub use qemu_efidisk_property::qemu_efidisk_property;
 
+mod qemu_intel_tdx_property;
+pub use qemu_intel_tdx_property::qemu_intel_tdx_property;
+
 mod qemu_machine_property;
 pub use qemu_machine_property::qemu_machine_property;
 
