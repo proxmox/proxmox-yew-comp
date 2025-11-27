@@ -1,3 +1,16 @@
+rust-proxmox-yew-comp (0.7.4) trixie; urgency=medium
+
+  * pending property view: trigger reload on property change.
+  * lxc network panel: trigger reload on property change.
+  * add lxc network property editor.
+  * lxc network panel: implement mobile layout.
+  * lxc dns panel: add read-only property.
+  * lxc network panel: add read-only property.
+  * lxc options panel: add read-only property.
+  * pve network selector: add remote property.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 27 Nov 2025 11:58:26 +0100
+
 rust-proxmox-yew-comp (0.7.3) trixie; urgency=medium
 
   * lxc resources panel:
