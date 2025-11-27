@@ -1,3 +1,12 @@
+rust-proxmox-yew-comp (0.7.5) trixie; urgency=medium
+
+  * qemu options panel: add Intel TDX property editor
+  * add components for PVE firewall rules and options.
+  * apt repositories: add 'status_only' property to allow hiding the
+    repository list.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 27 Nov 2025 22:21:48 +0100
+
 rust-proxmox-yew-comp (0.7.4) trixie; urgency=medium
 
   * pending property view: trigger reload on property change.
