@@ -41,6 +41,11 @@ pub struct PveNetworkSelector {
     #[prop_or_default]
     pub node: Option<AttrValue>,
 
+    /// Use Proxmox Datacenter Manager API endpoints
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub remote: Option<AttrValue>,
+
     /// The interface types to list
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(Some(ListNetworksType::AnyBridge))]
@@ -61,9 +66,20 @@ pub struct PveNetworkSelectorComp {
 impl PveNetworkSelectorComp {
     async fn get_network_list(
         node: AttrValue,
+        remote: Option<AttrValue>,
         ty: Option<ListNetworksType>,
     ) -> Result<Vec<NetworkInterface>, Error> {
-        let url = format!("/nodes/{}/network", percent_encode_component(&node));
+        let url = if let Some(remote) = &remote {
+            // fixme: is this url correct?
+            format!(
+                "/pve/remotes/{}/nodes/{}/network",
+                percent_encode_component(&node),
+                percent_encode_component(remote),
+            )
+        } else {
+            format!("/nodes/{}/network", percent_encode_component(&node))
+        };
+
         let param = match ty {
             Some(ty) => Some(json!({"type": ty})),
             None => None,
@@ -77,9 +93,10 @@ impl PveNetworkSelectorComp {
     fn create_load_callback(ctx: &yew::Context<Self>) -> LoadCallback<Vec<NetworkInterface>> {
         let props = ctx.props();
         let node = props.node.clone().unwrap_or(AttrValue::from("localhost"));
+        let remote = props.remote.clone();
         let ty = props.interface_type;
 
-        (move || Self::get_network_list(node.clone(), ty)).into()
+        (move || Self::get_network_list(node.clone(), remote.clone(), ty)).into()
     }
 }
 
