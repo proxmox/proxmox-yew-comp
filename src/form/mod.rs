@@ -88,6 +88,76 @@ pub fn typed_load<T: DeserializeOwned + Serialize>(
     .url(url_cloned)
 }
 
+/// Get a nested field schema from a parent schema by traversing a path
+///
+/// This function recursively traverses through Object schemas and PropertyString schemas
+/// to find the nested field schema at the given path.
+///
+/// # Arguments
+/// * `s` - The parent schema to traverse
+/// * `field` - A vector of field names representing the path to traverse
+///
+/// # Returns
+/// The schema at the specified path, or the input schema if the path cannot be traversed
+pub fn get_field_schema(s: &'static Schema, mut field: Vec<&str>) -> &'static Schema {
+    let Some(looking_for) = field.first() else {
+        return s;
+    };
+
+    if let Schema::Object(s) = s {
+        for (name, _, ss) in s.properties() {
+            if *looking_for == *name {
+                field.remove(0);
+                return get_field_schema(ss, field);
+            }
+        }
+    }
+    if let Schema::String(s) = s {
+        if let Some(proxmox_schema::ApiStringFormat::PropertyString(pss)) = s.format {
+            return get_field_schema(pss, field);
+        }
+    }
+    s
+}
+
+/// Extract the the placeholder for a fields from a schema
+pub fn placeholder_from_schema(schema: &'static proxmox_schema::Schema) -> String {
+    if let proxmox_schema::Schema::String(s) = schema {
+        if let Some(v) = s.default {
+            return v.to_string();
+        }
+    }
+    if let proxmox_schema::Schema::Integer(s) = schema {
+        if let Some(v) = s.default {
+            return v.to_string();
+        }
+    }
+    if let proxmox_schema::Schema::Number(s) = schema {
+        if let Some(v) = s.default {
+            return v.to_string();
+        }
+    }
+    "".to_string()
+}
+
+/// Extract the enum varian items from a schema
+///
+/// Can be used to populate items for a combobox
+pub fn enum_items_from_schema(
+    schema: &'static proxmox_schema::Schema,
+) -> Vec<pwt::prelude::AttrValue> {
+    if let proxmox_schema::Schema::String(s) = schema {
+        if let Some(proxmox_schema::ApiStringFormat::Enum(e)) = s.format {
+            let items: Vec<pwt::prelude::AttrValue> = e
+                .iter()
+                .map(|entry| entry.value.to_string().into())
+                .collect();
+            return items;
+        }
+    }
+    vec![]
+}
+
 /// Convert a property string to separate properties
 ///
 /// This is useful for use in an [`crate::PropertyEditDialog`] when editing parts of a property string.
