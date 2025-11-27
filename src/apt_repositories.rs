@@ -47,6 +47,11 @@ pub struct AptRepositories {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     pub product: Option<ExistingProduct>,
+
+    /// Show status message table only.
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub status_only: bool,
 }
 
 impl Default for AptRepositories {
@@ -545,7 +550,25 @@ impl LoadableComponent for ProxmoxAptRepositories {
         }
     }
 
+    fn changed(
+        &mut self,
+        ctx: &LoadableComponentContext<Self>,
+        old_props: &Self::Properties,
+    ) -> bool {
+        let props = ctx.props();
+
+        if props.base_url != old_props.base_url || props.product != old_props.product {
+            ctx.link().send_reload();
+            true
+        } else {
+            false
+        }
+    }
+
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+        if ctx.props().status_only {
+            return None;
+        }
         let selected_record = self.selected_record();
 
         let toolbar = Toolbar::new()
@@ -581,19 +604,23 @@ impl LoadableComponent for ProxmoxAptRepositories {
         Some(toolbar.into())
     }
 
-    fn main_view(&self, _ctx: &LoadableComponentContext<Self>) -> Html {
+    fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
+        let status = DataTable::new(self.status_columns.clone(), self.status_store.clone())
+            .class("pwt-flex-fit")
+            .show_header(false)
+            .striped(false)
+            .borderless(true);
+
+        if ctx.props().status_only {
+            return status.into();
+        }
+
         let table = DataTable::new(self.columns.clone(), self.tree_store.clone())
             .selection(self.selection.clone())
             .class("pwt-flex-fit pwt-border-top")
             .striped(false);
 
         let mut panel = Column::new().class("pwt-flex-fit");
-
-        let status = DataTable::new(self.status_columns.clone(), self.status_store.clone())
-            .class("pwt-flex-fit")
-            .show_header(false)
-            .striped(false)
-            .borderless(true);
 
         panel.add_child(Row::new().padding(4).with_child(status));
 
