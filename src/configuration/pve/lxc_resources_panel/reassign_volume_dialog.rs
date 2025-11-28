@@ -14,6 +14,7 @@ use pwt::widget::InputPanel;
 use pwt::AsyncAbortGuard;
 
 const TARGET_MOUNT_POINT_ID: &'static str = "_target_mount_point_id_";
+const TARGET_VMID_PN: &'static str = "target-vmid";
 
 use crate::configuration::guest_config_url;
 use crate::form::pve::{
@@ -136,12 +137,13 @@ impl Component for LxcReassignVolumeComp {
         let target_vmid_label = tr!("Target Guest");
         let target_vmid_field = PveGuestSelector::new()
             .remote(props.remote.clone())
-            .name("target-vmid")
+            .name(TARGET_VMID_PN)
             .required(true)
             .guest_type(PveGuestType::Lxc)
             .exclude_guest(props.vmid)
             .on_change(ctx.link().callback(Msg::Target))
-            .mobile(props.mobile);
+            .mobile(props.mobile)
+            .submit(false);
 
         let target_mount_point_label = if props.unused {
             tr!("Add as unused volume")
@@ -163,6 +165,7 @@ impl Component for LxcReassignVolumeComp {
             .field_width((!props.mobile).then(|| "300px"))
             .class(pwt::css::FlexFit)
             .padding_x(2)
+            .padding_bottom(1) // avoid scrollbar
             .with_field(target_vmid_label, target_vmid_field)
             .with_field(target_mount_point_label, target_mount_point_field)
             .into()
@@ -190,6 +193,9 @@ pub fn lxc_reassign_volume_dialog(
                 let form_ctx = &state.form_ctx;
                 let mut data = form_ctx.get_submit_data();
                 let id = form_ctx.read().get_field_text(TARGET_MOUNT_POINT_ID);
+
+                let target_vmid = form_ctx.read().get_field_text(TARGET_VMID_PN);
+                data[TARGET_VMID_PN] = target_vmid.parse::<u32>()?.into();
 
                 data["volume"] = disk.clone().into();
 

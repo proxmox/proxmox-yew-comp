@@ -18,6 +18,8 @@ use crate::form::pve::{
 use crate::http_get;
 use crate::{PropertyEditDialog, PropertyEditorState};
 
+const TARGET_VMID_PN: &'static str = "target-vmid";
+
 #[derive(PartialEq, Properties, Clone)]
 struct QemuReassignDiskPanel {
     node: Option<AttrValue>,
@@ -94,12 +96,13 @@ impl Component for QemuReassignDiskPanelComp {
         let target_vmid_label = tr!("Target Guest");
         let target_vmid_field = PveGuestSelector::new()
             .remote(props.remote.clone())
-            .name("target-vmid")
+            .name(TARGET_VMID_PN)
             .required(true)
             .guest_type(PveGuestType::Qemu)
             .exclude_guest(props.vmid)
             .on_change(ctx.link().callback(Msg::Target))
-            .mobile(props.mobile);
+            .mobile(props.mobile)
+            .submit(false);
 
         let target_disk_label = tr!("Bus/Device");
         let target_disk_field = QemuControllerSelector::new()
@@ -112,6 +115,7 @@ impl Component for QemuReassignDiskPanelComp {
             .field_width((!props.mobile).then(|| "300px"))
             .class(pwt::css::FlexFit)
             .padding_x(2)
+            .padding_bottom(1) // avoid scrollbar
             .with_field(target_vmid_label, target_vmid_field)
             .with_field(target_disk_label, target_disk_field)
             .into()
@@ -135,6 +139,9 @@ pub fn qemu_reassign_disk_dialog(
             let disk = name.to_string();
             move |state: PropertyEditorState| {
                 let mut data = state.form_ctx.get_submit_data();
+
+                let target_vmid = state.form_ctx.read().get_field_text(TARGET_VMID_PN);
+                data[TARGET_VMID_PN] = target_vmid.parse::<u32>()?.into();
 
                 data["disk"] = disk.clone().into();
                 Ok(data)
