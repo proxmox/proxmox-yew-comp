@@ -74,22 +74,23 @@ impl PvePropertyGrid {
             .and_then(|key| self.store.read().lookup_record(key).cloned());
         let property = selected_record.as_ref().map(|r| r.property.clone());
 
+        let disable_edit = match &property {
+            Some(property) => property.render_input_panel.is_none(),
+            None => false,
+        };
+
         let toolbar = Toolbar::new()
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
-            .with_child(
-                Button::new(tr!("Edit"))
-                    .disabled(selected_key.is_none())
-                    .onclick({
-                        let property = property.clone();
-                        let link = link.clone();
-                        move |_| {
-                            if let Some(property) = &property {
-                                link.send_message(PropertyViewMsg::EditProperty(property.clone()));
-                            }
-                        }
-                    }),
-            );
+            .with_child(Button::new(tr!("Edit")).disabled(disable_edit).onclick({
+                let property = property.clone();
+                let link = link.clone();
+                move |_| {
+                    if let Some(property) = &property {
+                        link.send_message(PropertyViewMsg::EditProperty(property.clone()));
+                    }
+                }
+            }));
 
         toolbar.into()
     }

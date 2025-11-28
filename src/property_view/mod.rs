@@ -155,6 +155,9 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
             }
             PropertyViewMsg::Select(_key) => { /* just redraw */ }
             PropertyViewMsg::EditProperty(property) => {
+                if property.render_input_panel.is_none() {
+                    return false;
+                }
                 let dialog = PropertyEditDialog::from(property.clone())
                     .mobile(T::MOBILE)
                     .on_done(ctx.link().callback(|_| PropertyViewMsg::ShowDialog(None)))

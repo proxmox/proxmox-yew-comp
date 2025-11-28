@@ -290,6 +290,9 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 }
             }
             PendingPropertyViewMsg::EditProperty(property, on_submit) => {
+                if property.render_input_panel.is_none() {
+                    return false;
+                }
                 let dialog = PropertyEditDialog::from(property.clone())
                     .mobile(T::MOBILE)
                     .on_done(

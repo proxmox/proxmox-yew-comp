@@ -85,27 +85,28 @@ impl PvePendingPropertyGrid {
 
         let property = selected_record.as_ref().map(|r| r.property.clone());
 
+        let disable_edit = match &property {
+            Some(property) => property.render_input_panel.is_none(),
+            None => false,
+        };
+
         let disable_revert = !(has_changes && selected_key.is_some());
 
         let toolbar = Toolbar::new()
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
-            .with_child(
-                Button::new(tr!("Edit"))
-                    .disabled(selected_key.is_none())
-                    .onclick({
-                        let link = link.clone();
-                        let property = property.clone();
-                        move |_| {
-                            if let Some(property) = &property {
-                                link.send_message(PendingPropertyViewMsg::EditProperty(
-                                    property.clone(),
-                                    None,
-                                ));
-                            }
-                        }
-                    }),
-            )
+            .with_child(Button::new(tr!("Edit")).disabled(disable_edit).onclick({
+                let link = link.clone();
+                let property = property.clone();
+                move |_| {
+                    if let Some(property) = &property {
+                        link.send_message(PendingPropertyViewMsg::EditProperty(
+                            property.clone(),
+                            None,
+                        ));
+                    }
+                }
+            }))
             .with_child(
                 Button::new(tr!("Revert"))
                     .disabled(disable_revert)
