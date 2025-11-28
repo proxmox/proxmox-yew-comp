@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use anyhow::Error;
-use serde_json::{json, Value};
+use serde_json::json;
 
 use pve_api_types::{ClusterResource, ClusterResourceKind, ClusterResourceType};
 
