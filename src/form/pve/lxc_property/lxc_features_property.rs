@@ -84,6 +84,8 @@ impl Component for LxcFeaturesComp {
             .mobile(props.mobile)
             .class(pwt::css::FlexFit)
             .padding_x(2)
+            .padding_bottom(1) // avoid scrollbar
+            .label_width((!props.mobile).then(|| "max-content"))
             .with_single_line_field(
                 false,
                 false,
