@@ -5,10 +5,10 @@ use std::rc::Rc;
 use anyhow::Error;
 use proxmox_schema::property_string::PropertyString;
 use pve_api_types::{LxcConfig, LxcConfigNet};
+use serde_json::{json, Value};
 
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
-use pwt::widget::{Column, Container, Fa, List, ListTile};
-use serde_json::Value;
+use pwt::widget::{Button, Column, Container, Fa, List, ListTile, Toolbar};
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
 
@@ -24,7 +24,7 @@ use crate::{
     configuration::guest_config_url, form::pve::PveGuestType, LoadableComponent,
     LoadableComponentContext,
 };
-use crate::{http_put, LoadableComponentMaster, PropertyEditDialog};
+use crate::{http_put, ConfirmButton, LoadableComponentMaster, PropertyEditDialog};
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -71,14 +71,16 @@ impl ExtractPrimaryKey for NetworkEntry {
 
 #[derive(PartialEq)]
 pub enum ViewState {
-    // Add,
+    Add,
     Edit(Key),
 }
 
 pub enum Msg {
     Redraw,
     SelectionChange,
+    Remove(Key),
 }
+
 pub struct LxcNetworkComp {
     columns: Rc<Vec<DataTableHeader<NetworkEntry>>>,
     store: Store<NetworkEntry>,
@@ -86,25 +88,14 @@ pub struct LxcNetworkComp {
 }
 
 impl LxcNetworkComp {
-    /*
-        fn get_selected_record(&self) -> Option<NetworkEntry> {
-            let selected_key = self.selection.selected_key();
-            let mut selected_record = None;
-            if let Some(key) = &selected_key {
-                selected_record = self.store.read().lookup_record(key).cloned();
-            }
-            selected_record
-        }
-    */
-
-    fn edit_dialog(&self, ctx: &LoadableComponentContext<Self>, name: String) -> Html {
+    fn edit_dialog(&self, ctx: &LoadableComponentContext<Self>, name: Option<String>) -> Html {
         let props = ctx.props();
         let link = ctx.link();
 
         let property = lxc_network_property(
             Some(props.node.clone()),
             props.remote.clone(),
-            Some(name),
+            name,
             props.mobile,
         );
 
@@ -171,10 +162,25 @@ impl LoadableComponent for LxcNetworkComp {
         }
     }
 
-    fn update(&mut self, _ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
+        let props = ctx.props();
+        let link = ctx.link();
         match msg {
             Msg::SelectionChange => true,
             Msg::Redraw => true,
+            Msg::Remove(key) => {
+                let url =
+                    guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Lxc);
+
+                link.clone().spawn(async move {
+                    let param = json!({ "delete": [ key.to_string() ]});
+                    let result: Result<(), _> = crate::http_put(&url, Some(param)).await;
+                    if let Err(err) = result {
+                        link.show_error(tr!("Remove network failed"), err, true);
+                    }
+                });
+                true
+            }
         }
     }
 
@@ -192,6 +198,56 @@ impl LoadableComponent for LxcNetworkComp {
             ctx.link().send_reload();
         }
         true
+    }
+
+    fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+        let props = ctx.props();
+        let link = ctx.link();
+
+        if props.mobile || props.readonly {
+            return None;
+        }
+
+        let selected_key = self.selection.selected_key();
+        let disable_edit = selected_key.is_none();
+        let disable_remove = selected_key.is_none();
+
+        let toolbar = Toolbar::new()
+            .class("pwt-overflow-hidden")
+            .class("pwt-border-bottom")
+            .with_child(Button::new(tr!("Add")).onclick({
+                let link = link.clone();
+                move |_| link.change_view(Some(ViewState::Add))
+            }))
+            .with_child({
+                let msg = match &selected_key {
+                    Some(key) => Some(super::guest::confirm_remove_message(&key.to_string())),
+                    None => None,
+                };
+                ConfirmButton::new(tr!("Remove"))
+                    .disabled(disable_remove)
+                    .confirm_message(msg)
+                    .on_activate({
+                        let link = link.clone();
+                        let key = selected_key.clone();
+                        move |_| {
+                            if let Some(key) = &key {
+                                link.send_message(Msg::Remove(key.clone()))
+                            }
+                        }
+                    })
+            })
+            .with_child(Button::new(tr!("Edit")).disabled(disable_edit).onclick({
+                let link = link.clone();
+                let key = selected_key.clone();
+                move |_| {
+                    if let Some(key) = &key {
+                        link.change_view(Some(ViewState::Edit(key.clone())))
+                    }
+                }
+            }));
+
+        Some(toolbar.into())
     }
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
@@ -246,8 +302,8 @@ impl LoadableComponent for LxcNetworkComp {
         view_state: &Self::ViewState,
     ) -> Option<Html> {
         match view_state {
-            //ViewState::Add => None,
-            ViewState::Edit(key) => Some(self.edit_dialog(ctx, key.to_string())),
+            ViewState::Add => Some(self.edit_dialog(ctx, None)),
+            ViewState::Edit(key) => Some(self.edit_dialog(ctx, Some(key.to_string()))),
         }
     }
 }

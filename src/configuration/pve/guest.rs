@@ -9,11 +9,15 @@ pub fn confirm_detach_entry(name: &str, _mobile: bool) -> ConfirmDialog {
     ConfirmDialog::default().confirm_message(message)
 }
 
-pub fn confirm_remove_entry(name: &str, _mobile: bool) -> ConfirmDialog {
-    let message = tr!(
+pub fn confirm_remove_message(name: &str) -> String {
+    tr!(
         "Are you sure you want to remove entry {0}",
         format!("'{name}'")
-    );
+    )
+}
+
+pub fn confirm_remove_entry(name: &str, _mobile: bool) -> ConfirmDialog {
+    let message = confirm_remove_message(name);
     ConfirmDialog::default().confirm_message(message)
 }
 
