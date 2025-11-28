@@ -163,20 +163,19 @@ impl LoadableComponent for ProxmoxNotesView {
     }
     fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
         let props = ctx.props();
-        let toolbar = Toolbar::new()
-            .class("pwt-w-100")
-            .class("pwt-overflow-hidden")
-            .class("pwt-border-bottom")
-            .with_child(
-                Button::new(tr!("Edit"))
-                    .disabled(props.on_submit.is_none())
-                    .onclick(
+        props.on_submit.is_some().then_some(
+            Toolbar::new()
+                .class("pwt-w-100")
+                .class("pwt-overflow-hidden")
+                .class("pwt-border-bottom")
+                .with_child(
+                    Button::new(tr!("Edit")).on_activate(
                         ctx.link()
                             .change_view_callback(|_| Some(ViewState::EditNotes)),
                     ),
-            );
-
-        Some(toolbar.into())
+                )
+                .into(),
+        )
     }
 
     fn main_view(&self, _ctx: &LoadableComponentContext<Self>) -> Html {
