@@ -75,6 +75,8 @@ pub use qemu_property::{
     qemu_vmstatestorage_property,
 };
 
+pub mod firewall_property;
+
 mod pve_storage_selector;
 pub use pve_storage_selector::PveStorageSelector;
 use serde_json::Value;

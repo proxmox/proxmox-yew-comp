@@ -23,3 +23,12 @@ pub use lxc_dns_panel::LxcDnsPanel;
 
 mod lxc_network_panel;
 pub use lxc_network_panel::LxcNetworkPanel;
+
+mod firewall_options_cluster_panel;
+pub use firewall_options_cluster_panel::FirewallOptionsClusterPanel;
+
+mod firewall_options_guest_panel;
+pub use firewall_options_guest_panel::FirewallOptionsGuestPanel;
+
+mod firewall_options_node_panel;
+pub use firewall_options_node_panel::FirewallOptionsNodePanel;
