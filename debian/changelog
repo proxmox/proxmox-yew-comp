@@ -1,3 +1,15 @@
+rust-proxmox-yew-comp (0.7.6) trixie; urgency=medium
+
+  * property view: disable edit if the property has no input panel defined.
+  * lxc feature selector: improve desktop layout.
+  * re-assign disk/volume: send target-vmid as number as the PDM API requires
+    the correct type, whereas PVE also accepts strings.
+  * lxc network panel: add toolbar.
+  * apt: support unknown repo handle fallback variant as stop-gap for forward
+    and backward compatibility.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 01 Dec 2025 00:32:10 +0100
+
 rust-proxmox-yew-comp (0.7.5) trixie; urgency=medium
 
   * qemu options panel: add Intel TDX property editor
