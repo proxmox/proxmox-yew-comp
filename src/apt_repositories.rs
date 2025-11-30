@@ -147,6 +147,9 @@ fn update_status_store(
             Enterprise => has_enterprise = true,
             NoSubscription => has_no_subscription = true,
             Test => has_test = true,
+            APTRepositoryHandle::UnknownEnumValue(s) => {
+                log::warn!("encountered unknown APT repository handle {s}");
+            },
         }
     }
 
