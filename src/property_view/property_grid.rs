@@ -21,7 +21,7 @@ use pwt_macros::builder;
 use crate::EditableProperty;
 
 use super::{
-    PropertyGridRecord, PropertyView, PropertyViewMsg, PropertyViewState, PvePropertyView,
+    PropertyGridRecord, PropertyView, PropertyViewScopeExt, PropertyViewState, PvePropertyView,
 };
 
 /// Render object properties as [DataTable] grid (for desktop style UI)
@@ -95,7 +95,7 @@ impl PvePropertyGrid {
                 let link = link.clone();
                 move |_| {
                     if let Some(property) = &property {
-                        link.send_message(PropertyViewMsg::EditProperty(property.clone()));
+                        link.send_edit_property(property.clone());
                     }
                 }
             }));
@@ -138,7 +138,7 @@ impl PropertyView for PvePropertyGrid {
             let link = ctx.link().clone();
             move |selection: Selection| {
                 let selected_key = selection.selected_key();
-                link.send_message(PropertyViewMsg::Select(selected_key.clone()));
+                link.send_custom_message(()); // redraw
                 if let Some(on_select) = &on_select {
                     on_select.emit(selected_key);
                 }
@@ -211,7 +211,7 @@ impl PropertyView for PvePropertyGrid {
                         .map(|r| r.property.clone());
                     if !readonly {
                         if let Some(property) = property {
-                            link.send_message(PropertyViewMsg::EditProperty(property));
+                            link.send_edit_property(property);
                         }
                     }
                 }
@@ -227,7 +227,7 @@ impl PropertyView for PvePropertyGrid {
                             .map(|r| r.property.clone());
                         if !readonly {
                             if let Some(property) = property {
-                                link.send_message(PropertyViewMsg::EditProperty(property));
+                                link.send_edit_property(property);
                             }
                         }
                     }

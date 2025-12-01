@@ -9,6 +9,7 @@ pub use property_list::PropertyList;
 use gloo_timers::callback::Timeout;
 use serde_json::Value;
 
+use yew::html::Scope;
 use yew::virtual_dom::Key;
 
 use pwt::prelude::*;
@@ -41,6 +42,33 @@ pub enum PropertyViewMsg<M> {
     EditProperty(EditableProperty),
     Select(Option<Key>),
     Custom(M),
+}
+
+pub trait PropertyViewScopeExt<M> {
+    fn send_custom_message(&self, msg: M);
+    fn send_reload(&self);
+    fn send_show_dialog(&self, dialog: Option<Html>);
+    fn send_edit_property(&self, property: EditableProperty);
+}
+
+impl<M, T: 'static + PropertyView<Message = M>> PropertyViewScopeExt<M>
+    for Scope<PvePropertyView<T>>
+{
+    fn send_custom_message(&self, msg: M) {
+        self.send_message(PropertyViewMsg::Custom(msg));
+    }
+
+    fn send_reload(&self) {
+        self.send_message(PropertyViewMsg::Load);
+    }
+
+    fn send_show_dialog(&self, dialog: Option<Html>) {
+        self.send_message(PropertyViewMsg::ShowDialog(dialog));
+    }
+
+    fn send_edit_property(&self, property: EditableProperty) {
+        self.send_message(PropertyViewMsg::EditProperty(property));
+    }
 }
 
 pub trait PropertyView: DerefMut<Target = PropertyViewState> {
