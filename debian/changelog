@@ -1,3 +1,10 @@
+rust-proxmox-yew-comp (0.7.8) trixie; urgency=medium
+
+  * apt repo: add subscription_url widget property to allow overriding for
+    PDM.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 01 Dec 2025 21:30:02 +0100
+
 rust-proxmox-yew-comp (0.7.7) trixie; urgency=medium
 
   * add PVE host and guest firewall options panel.
