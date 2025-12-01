@@ -181,13 +181,20 @@ pub fn nf_conntrack_max_poperty(mobile: bool) -> EditableProperty {
         .render_input_panel(move |_| {
             let field = Number::<u64>::new()
                 .name("nf_conntrack_max")
+                .min(32768)
                 .placeholder(tr!("Default"));
             InputPanel::new()
                 .mobile(mobile)
                 .class(pwt::css::FlexFit)
                 .padding_x(2)
+                .padding_bottom(1) // avoid scrollbar
                 .with_field(title.clone(), field)
                 .into()
+        })
+        .submit_hook(move |state: PropertyEditorState| {
+            let data = state.form_ctx.get_submit_data();
+            let data = delete_empty_values(&data, &["nf_conntrack_max"], true);
+            Ok(data)
         })
 }
 
@@ -204,6 +211,7 @@ pub fn nf_timeout_established_poperty(mobile: bool) -> EditableProperty {
                 .mobile(mobile)
                 .class(pwt::css::FlexFit)
                 .padding_x(2)
+                .padding_bottom(1) // avoid scrollbar
                 .with_field(title.clone(), field)
                 .into()
         })
