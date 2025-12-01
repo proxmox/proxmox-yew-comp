@@ -5,6 +5,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use anyhow::Error;
+use serde_json::Value;
 
 use yew::html::IntoEventCallback;
 use yew::html::IntoPropValue;
@@ -17,8 +18,11 @@ use pwt::widget::data_table::{
     DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader, DataTableHeaderGroup,
 };
 use pwt::widget::{Button, Container, Toolbar, Tooltip};
+use pwt::AsyncPool;
 
 use crate::percent_encoding::percent_encode_component;
+use crate::subscription_alert::subscription_is_active;
+use crate::SubscriptionAlert;
 use crate::{
     DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster, XTermJs,
 };
@@ -56,6 +60,11 @@ pub struct AptPackageManager {
     #[prop_or_default]
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     pub on_upgrade: Option<Callback<()>>,
+
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The base url for the subscription check
+    pub subscription_url: Option<AttrValue>,
 }
 
 impl Default for AptPackageManager {
@@ -142,12 +151,14 @@ fn update_list_to_tree(updates: &[APTUpdateInfo]) -> SlabTree<TreeEntry> {
 #[derive(Clone, PartialEq)]
 pub enum ViewState {
     ShowChangelog(String),
+    ShowSubscriptionPopup,
 }
 
 pub struct ProxmoxAptPackageManager {
     tree_store: TreeStore<TreeEntry>,
     selection: Selection,
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
+    async_pool: AsyncPool,
 }
 
 impl LoadableComponent for ProxmoxAptPackageManager {
@@ -164,7 +175,31 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             tree_store,
             selection,
             columns,
+            async_pool: AsyncPool::new(),
         }
+    }
+
+    fn update(&mut self, ctx: &LoadableComponentContext<Self>, _msg: Self::Message) -> bool {
+        let link = ctx.link().clone();
+        let props = ctx.props();
+        let url = props
+            .clone()
+            .subscription_url
+            .unwrap_or("/nodes/localhost/subscription".into());
+        let task_base_url = props.task_base_url.clone();
+        let command = format!("{}/update", props.base_url);
+        self.async_pool.spawn(async move {
+            let data = crate::http_get::<Value>(url.as_str(), None).await;
+            let is_active = subscription_is_active(&Some(data));
+
+            if is_active {
+                link.task_base_url(task_base_url);
+                link.start_task(&command, None, false);
+            } else {
+                link.change_view(Some(ViewState::ShowSubscriptionPopup));
+            }
+        });
+        true
     }
 
     fn load(
@@ -211,13 +246,20 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             .class("pwt-w-100")
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
-            .with_child(Button::new(tr!("Refresh")).onclick({
+            .with_child(Button::new(tr!("Refresh")).on_activate({
                 let link = ctx.link();
-
+                let sub_check = props.subscription_url.is_some();
                 link.task_base_url(props.task_base_url.clone());
 
                 let command = format!("{}/update", props.base_url);
-                move |_| link.start_task(&command, None, false)
+
+                move |_| {
+                    if sub_check {
+                        link.send_message(());
+                    } else {
+                        link.start_task(&command, None, false);
+                    }
+                }
             }))
             .with_child(
                 Button::new(tr!("Upgrade"))
@@ -262,6 +304,21 @@ impl LoadableComponent for ProxmoxAptPackageManager {
         match view_state {
             ViewState::ShowChangelog(package) => {
                 Some(self.create_show_changelog_dialog(ctx, package))
+            }
+            ViewState::ShowSubscriptionPopup => {
+                let link = ctx.link().clone();
+                let props = ctx.props();
+                let task_base_url = props.task_base_url.clone();
+                let command = format!("{}/update", props.base_url);
+                Some(
+                    SubscriptionAlert::new("notfound")
+                        .on_close(move |_| {
+                            link.change_view(None);
+                            link.task_base_url(task_base_url.clone());
+                            link.start_task(&command, None, false);
+                        })
+                        .into(),
+                )
             }
         }
     }
