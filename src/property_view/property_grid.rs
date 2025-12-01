@@ -180,6 +180,7 @@ impl PropertyView for PvePropertyGrid {
 
     fn view(&self, ctx: &Context<PvePropertyView<Self>>, view_state: &PropertyViewState) -> Html {
         let props = ctx.props();
+        let readonly = props.on_submit.is_none();
 
         let table = DataTable::new(self.columns.clone(), self.store.clone())
             .class(pwt::css::FlexFit)
@@ -194,8 +195,10 @@ impl PropertyView for PvePropertyGrid {
                         .read()
                         .lookup_record(&event.record_key)
                         .map(|r| r.property.clone());
-                    if let Some(property) = property {
-                        link.send_message(PropertyViewMsg::EditProperty(property));
+                    if !readonly {
+                        if let Some(property) = property {
+                            link.send_message(PropertyViewMsg::EditProperty(property));
+                        }
                     }
                 }
             })
@@ -208,8 +211,10 @@ impl PropertyView for PvePropertyGrid {
                             .read()
                             .lookup_record(&event.record_key)
                             .map(|r| r.property.clone());
-                        if let Some(property) = property {
-                            link.send_message(PropertyViewMsg::EditProperty(property));
+                        if !readonly {
+                            if let Some(property) = property {
+                                link.send_message(PropertyViewMsg::EditProperty(property));
+                            }
                         }
                     }
                 }
@@ -217,12 +222,12 @@ impl PropertyView for PvePropertyGrid {
             .into();
 
         let loading = view_state.loading();
-        let toolbar = self.toolbar(ctx);
+        let toolbar = (!readonly).then(|| self.toolbar(ctx));
         let class = props.class.clone();
         let dialog = view_state.dialog.clone();
         let error = view_state.error.clone();
 
-        super::render_loadable_panel(class, table, Some(toolbar), dialog, loading, error)
+        super::render_loadable_panel(class, table, toolbar, dialog, loading, error)
     }
 }
 
