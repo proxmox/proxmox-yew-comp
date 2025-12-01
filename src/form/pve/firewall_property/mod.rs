@@ -88,79 +88,50 @@ pub fn nftables_property(mobile: bool) -> EditableProperty {
         .required(true)
 }
 
-pub fn log_level_in_property(mobile: bool) -> EditableProperty {
-    let title = tr!("Input log level");
-    EditableProperty::new("log_level_in", title.clone())
+pub fn log_level_property(name: &str, title: String, mobile: bool) -> EditableProperty {
+    let name = name.to_string();
+    EditableProperty::new(name.clone(), title.clone())
         .required(true)
-        .render_input_panel(move |_| {
-            let log_level_field = LogLevelSelector::new().name("log_level_in");
-            InputPanel::new()
-                .mobile(mobile)
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .with_field(title.clone(), log_level_field)
-                .into()
+        .placeholder("nolog")
+        .render_input_panel({
+            let name = name.clone();
+            move |_| {
+                let log_level_field = LogLevelSelector::new()
+                    .name(name.clone())
+                    .submit_empty(true);
+                InputPanel::new()
+                    .mobile(mobile)
+                    .class(pwt::css::FlexFit)
+                    .padding_x(2)
+                    .with_field(title.clone(), log_level_field)
+                    .into()
+            }
         })
+        .submit_hook(move |state: PropertyEditorState| {
+            let data = state.form_ctx.get_submit_data();
+            let data = delete_empty_values(&data, &[&name], false);
+            Ok(data)
+        })
+}
+
+pub fn log_level_in_property(mobile: bool) -> EditableProperty {
+    log_level_property("log_level_in", tr!("Input log level"), mobile)
 }
 
 pub fn log_level_out_property(mobile: bool) -> EditableProperty {
-    let title = tr!("Output log level");
-    EditableProperty::new("log_level_out", title.clone())
-        .required(true)
-        .render_input_panel(move |_| {
-            let log_level_field = LogLevelSelector::new().name("log_level_out");
-            InputPanel::new()
-                .mobile(mobile)
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .with_field(title.clone(), log_level_field)
-                .into()
-        })
+    log_level_property("log_level_out", tr!("Output log level"), mobile)
 }
 
 pub fn log_level_forward_property(mobile: bool) -> EditableProperty {
-    let title = tr!("Forward log level");
-    EditableProperty::new("log_level_forward", title.clone())
-        .required(true)
-        .render_input_panel(move |_| {
-            let log_level_field = LogLevelSelector::new().name("log_level_forward");
-            InputPanel::new()
-                .mobile(mobile)
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .with_field(title.clone(), log_level_field)
-                .into()
-        })
+    log_level_property("log_level_forward", tr!("Forward log level"), mobile)
 }
 
 pub fn tcp_flags_log_level_property(mobile: bool) -> EditableProperty {
-    let title = tr!("TCP Flags Log Level");
-    EditableProperty::new("tcp_flags_log_level", title.clone())
-        .required(true)
-        .render_input_panel(move |_| {
-            let log_level_field = LogLevelSelector::new().name("tcp_flags_log_level");
-            InputPanel::new()
-                .mobile(mobile)
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .with_field(title.clone(), log_level_field)
-                .into()
-        })
+    log_level_property("tcp_flags_log_level", tr!("TCP Flags Log Level"), mobile)
 }
 
 pub fn smurf_log_level_property(mobile: bool) -> EditableProperty {
-    let title = tr!("SMURF Log Level");
-    EditableProperty::new("smurf_log_level", title.clone())
-        .required(true)
-        .render_input_panel(move |_| {
-            let log_level_field = LogLevelSelector::new().name("smurf_log_level");
-            InputPanel::new()
-                .mobile(mobile)
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .with_field(title.clone(), log_level_field)
-                .into()
-        })
+    log_level_property("smurf_log_level", tr!("SMURF Log Level"), mobile)
 }
 
 fn policy_poperty(name: &str, title: String, placeholder: &str, mobile: bool) -> EditableProperty {
