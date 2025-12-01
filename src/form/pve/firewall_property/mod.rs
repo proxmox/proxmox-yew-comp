@@ -12,6 +12,7 @@ use pwt::widget::form::{Combobox, Number};
 use pwt::widget::InputPanel;
 use serde_json::{json, Value};
 
+use crate::form::delete_empty_values;
 use crate::{EditableProperty, PropertyEditorState};
 
 fn policy_combobox(with_reject: bool) -> Combobox {
@@ -19,7 +20,7 @@ fn policy_combobox(with_reject: bool) -> Combobox {
     if with_reject {
         items.push(("REJECT", tr!("Reject")));
     }
-    Combobox::from_key_value_pairs(items)
+    Combobox::from_key_value_pairs(items).submit_empty(true)
 }
 
 pub fn enable_property(mobile: bool) -> EditableProperty {
@@ -162,61 +163,43 @@ pub fn smurf_log_level_property(mobile: bool) -> EditableProperty {
         })
 }
 
-pub fn input_policy_poperty(mobile: bool) -> EditableProperty {
-    let title = tr!("Input Policy");
-    let placeholder = "DROP";
-    EditableProperty::new("policy_in", title.clone())
+fn policy_poperty(name: &str, title: String, placeholder: &str, mobile: bool) -> EditableProperty {
+    let name = name.to_string();
+    let placeholder = placeholder.to_string();
+    EditableProperty::new(name.clone(), title.clone())
         .required(true)
-        .placeholder(placeholder)
-        .render_input_panel(move |_| {
-            let input_policy_field = policy_combobox(true)
-                .name("policy_in")
-                .placeholder(placeholder);
-            InputPanel::new()
-                .mobile(mobile)
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .with_field(title.clone(), input_policy_field)
-                .into()
+        .placeholder(placeholder.clone())
+        .render_input_panel({
+            let name = name.clone();
+            move |_| {
+                let input_policy_field = policy_combobox(true)
+                    .name(name.clone())
+                    .placeholder(placeholder.clone());
+                InputPanel::new()
+                    .mobile(mobile)
+                    .class(pwt::css::FlexFit)
+                    .padding_x(2)
+                    .with_field(title.clone(), input_policy_field)
+                    .into()
+            }
         })
+        .submit_hook(move |state: PropertyEditorState| {
+            let data = state.form_ctx.get_submit_data();
+            let data = delete_empty_values(&data, &[&name], false);
+            Ok(data)
+        })
+}
+
+pub fn input_policy_poperty(mobile: bool) -> EditableProperty {
+    policy_poperty("policy_in", tr!("Input Policy"), "DROP", mobile)
 }
 
 pub fn output_policy_poperty(mobile: bool) -> EditableProperty {
-    let title = tr!("Output Policy");
-    let placeholder = "ACCEPT";
-    EditableProperty::new("policy_out", title.clone())
-        .required(true)
-        .placeholder(placeholder)
-        .render_input_panel(move |_| {
-            let output_policy_field = policy_combobox(true)
-                .name("policy_out")
-                .placeholder(placeholder);
-            InputPanel::new()
-                .mobile(mobile)
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .with_field(title.clone(), output_policy_field)
-                .into()
-        })
+    policy_poperty("policy_out", tr!("Output Policy"), "ACCEPT", mobile)
 }
 
 pub fn forward_policy_poperty(mobile: bool) -> EditableProperty {
-    let title = tr!("Forward Policy");
-    let placeholder = "ACCEPT";
-    EditableProperty::new("policy_forward", title.clone())
-        .required(true)
-        .placeholder(placeholder)
-        .render_input_panel(move |_| {
-            let forward_policy_field = policy_combobox(false)
-                .name("policy_forward")
-                .placeholder(placeholder);
-            InputPanel::new()
-                .mobile(mobile)
-                .class(pwt::css::FlexFit)
-                .padding_x(2)
-                .with_field(title.clone(), forward_policy_field)
-                .into()
-        })
+    policy_poperty("policy_forward", tr!("Forward Policy"), "ACCEPT", mobile)
 }
 
 pub fn nf_conntrack_max_poperty(mobile: bool) -> EditableProperty {
