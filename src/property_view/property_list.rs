@@ -61,10 +61,13 @@ impl PvePropertyList {
         record: &Value,
         property: &EditableProperty,
     ) -> ListTile {
+        let props = ctx.props();
+        let readonly = props.on_submit.is_none();
+
         let value_text = super::render_property_value(record, property);
         let list_tile = form_list_tile(property.title.clone(), value_text, ());
 
-        if property.render_input_panel.is_some() {
+        if !readonly && property.render_input_panel.is_some() {
             list_tile
                 .interactive(true)
                 .on_activate(ctx.link().callback({
