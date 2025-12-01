@@ -164,10 +164,14 @@ pub fn smurf_log_level_property(mobile: bool) -> EditableProperty {
 
 pub fn input_policy_poperty(mobile: bool) -> EditableProperty {
     let title = tr!("Input Policy");
+    let placeholder = "DROP";
     EditableProperty::new("policy_in", title.clone())
         .required(true)
+        .placeholder(placeholder)
         .render_input_panel(move |_| {
-            let input_policy_field = policy_combobox(true).name("policy_in").placeholder("DROP");
+            let input_policy_field = policy_combobox(true)
+                .name("policy_in")
+                .placeholder(placeholder);
             InputPanel::new()
                 .mobile(mobile)
                 .class(pwt::css::FlexFit)
@@ -179,12 +183,14 @@ pub fn input_policy_poperty(mobile: bool) -> EditableProperty {
 
 pub fn output_policy_poperty(mobile: bool) -> EditableProperty {
     let title = tr!("Output Policy");
+    let placeholder = "ACCEPT";
     EditableProperty::new("policy_out", title.clone())
         .required(true)
+        .placeholder(placeholder)
         .render_input_panel(move |_| {
             let output_policy_field = policy_combobox(true)
                 .name("policy_out")
-                .placeholder("ACCEPT");
+                .placeholder(placeholder);
             InputPanel::new()
                 .mobile(mobile)
                 .class(pwt::css::FlexFit)
@@ -196,12 +202,14 @@ pub fn output_policy_poperty(mobile: bool) -> EditableProperty {
 
 pub fn forward_policy_poperty(mobile: bool) -> EditableProperty {
     let title = tr!("Forward Policy");
+    let placeholder = "ACCEPT";
     EditableProperty::new("policy_forward", title.clone())
         .required(true)
+        .placeholder(placeholder)
         .render_input_panel(move |_| {
             let forward_policy_field = policy_combobox(false)
                 .name("policy_forward")
-                .placeholder("ACCEPT");
+                .placeholder(placeholder);
             InputPanel::new()
                 .mobile(mobile)
                 .class(pwt::css::FlexFit)
