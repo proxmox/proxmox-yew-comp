@@ -181,7 +181,7 @@ mod submit_value_callback;
 pub use submit_value_callback::{IntoSubmitValueCallback, SubmitValueCallback};
 
 mod subscription_alert;
-pub use subscription_alert::{ProxmoxSubscriptionAlert, SubscriptionAlert};
+pub use subscription_alert::{subscription_is_active, ProxmoxSubscriptionAlert, SubscriptionAlert};
 
 mod subscription_panel;
 pub use subscription_panel::{ProxmoxSubscriptionPanel, SubscriptionPanel};

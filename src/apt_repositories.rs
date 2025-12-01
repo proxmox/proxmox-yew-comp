@@ -19,6 +19,7 @@ use pwt::widget::data_table::{
 };
 use pwt::widget::{Button, Column, Container, Fa, Row, Toolbar, Tooltip};
 
+use crate::subscription_alert::subscription_is_active;
 use crate::{
     EditWindow, ExistingProduct, LoadableComponent, LoadableComponentContext,
     LoadableComponentMaster, ProjectInfo, SubscriptionAlert,
@@ -694,12 +695,7 @@ fn standard_repo_info(
 
 impl ProxmoxAptRepositories {
     fn active_subscription(&self) -> bool {
-        match &self.subscription_status {
-            Some(Ok(data)) => {
-                data["status"].as_str().map(|s| s.to_lowercase()).as_deref() == Some("active")
-            }
-            _ => false,
-        }
+        subscription_is_active(&self.subscription_status)
     }
 
     fn create_show_subscription_dialog(

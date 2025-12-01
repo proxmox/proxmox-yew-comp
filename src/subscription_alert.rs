@@ -1,5 +1,8 @@
 use std::rc::Rc;
 
+use anyhow::Error;
+use serde_json::Value;
+
 use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
@@ -61,5 +64,15 @@ impl From<SubscriptionAlert> for VNode {
     fn from(val: SubscriptionAlert) -> Self {
         let comp = VComp::new::<ProxmoxSubscriptionAlert>(Rc::new(val), None);
         VNode::from(comp)
+    }
+}
+
+/// Check if the result of the subscription check returned an active subscription
+pub fn subscription_is_active(result: &Option<Result<Value, Error>>) -> bool {
+    match result {
+        Some(Ok(data)) => {
+            data["status"].as_str().map(|s| s.to_lowercase()).as_deref() == Some("active")
+        }
+        _ => false,
     }
 }
