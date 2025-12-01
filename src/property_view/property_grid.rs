@@ -27,6 +27,10 @@ use super::{
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct PropertyGrid {
+    /// Yew component key
+    #[prop_or_default]
+    pub key: Option<Key>,
+
     /// CSS class
     #[prop_or_default]
     pub class: Classes,
@@ -55,6 +59,7 @@ impl PropertyGrid {
         yew::props!(Self { properties })
     }
 
+    pwt::impl_yew_std_props_builder!();
     pwt::impl_class_prop_builder!();
 }
 
@@ -223,7 +228,8 @@ impl PropertyView for PvePropertyGrid {
 
 impl From<PropertyGrid> for VNode {
     fn from(props: PropertyGrid) -> Self {
-        let comp = VComp::new::<PvePropertyView<PvePropertyGrid>>(Rc::new(props), None);
+        let key = props.key.clone();
+        let comp = VComp::new::<PvePropertyView<PvePropertyGrid>>(Rc::new(props), key);
         VNode::from(comp)
     }
 }

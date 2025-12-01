@@ -29,6 +29,10 @@ use super::{
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct PendingPropertyGrid {
+    /// Yew component key
+    #[prop_or_default]
+    pub key: Option<Key>,
+
     /// CSS class
     #[prop_or_default]
     pub class: Classes,
@@ -61,6 +65,7 @@ impl PendingPropertyGrid {
     pub fn new(properties: Rc<Vec<EditableProperty>>) -> Self {
         yew::props!(Self { properties })
     }
+    pwt::impl_yew_std_props_builder!();
     pwt::impl_class_prop_builder!();
 }
 
@@ -307,8 +312,9 @@ impl PendingPropertyView for PvePendingPropertyGrid {
 
 impl From<PendingPropertyGrid> for VNode {
     fn from(props: PendingPropertyGrid) -> Self {
+        let key = props.key.clone();
         let comp =
-            VComp::new::<PvePendingPropertyView<PvePendingPropertyGrid>>(Rc::new(props), None);
+            VComp::new::<PvePendingPropertyView<PvePendingPropertyGrid>>(Rc::new(props), key);
         VNode::from(comp)
     }
 }

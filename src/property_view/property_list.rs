@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use serde_json::Value;
 
-use yew::virtual_dom::{VComp, VNode};
+use yew::virtual_dom::{Key, VComp, VNode};
 
 use pwt::prelude::*;
 use pwt::props::{IntoSubmitCallback, SubmitCallback};
@@ -21,6 +21,10 @@ use super::{PropertyView, PropertyViewMsg, PropertyViewState, PvePropertyView};
 #[derive(Properties, Clone, PartialEq)]
 #[builder]
 pub struct PropertyList {
+    /// Yew component key
+    #[prop_or_default]
+    pub key: Option<Key>,
+
     /// CSS class
     #[prop_or_default]
     pub class: Classes,
@@ -44,6 +48,7 @@ impl PropertyList {
         yew::props!(Self { properties })
     }
 
+    pwt::impl_yew_std_props_builder!();
     pwt::impl_class_prop_builder!();
 }
 
@@ -139,7 +144,8 @@ impl PropertyView for PvePropertyList {
 
 impl From<PropertyList> for VNode {
     fn from(props: PropertyList) -> Self {
-        let comp = VComp::new::<PvePropertyView<PvePropertyList>>(Rc::new(props), None);
+        let key = props.key.clone();
+        let comp = VComp::new::<PvePropertyView<PvePropertyList>>(Rc::new(props), key);
         VNode::from(comp)
     }
 }

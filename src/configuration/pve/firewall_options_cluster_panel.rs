@@ -112,12 +112,14 @@ impl Component for FirewallOptionsClusterComp {
 
         if props.mobile {
             PropertyList::new(Rc::clone(&self.properties))
+                .key(props.url())
                 .class(pwt::css::FlexFit)
                 .loader(self.loader.clone())
                 .on_submit(self.on_submit.clone())
                 .into()
         } else {
             PropertyGrid::new(Rc::clone(&self.properties))
+                .key(props.url())
                 .class(pwt::css::FlexFit)
                 .loader(self.loader.clone())
                 .on_submit(self.on_submit.clone())
