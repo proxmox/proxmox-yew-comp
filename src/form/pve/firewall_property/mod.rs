@@ -175,12 +175,13 @@ pub fn forward_policy_poperty(mobile: bool) -> EditableProperty {
 
 pub fn nf_conntrack_max_poperty(mobile: bool) -> EditableProperty {
     let title = tr!("Connection Tracking Max");
-    EditableProperty::new("nf_conntrack_max", title.clone())
+    const NAME: &'static str = "nf_conntrack_max";
+    EditableProperty::new(NAME, title.clone())
         .required(true)
         .placeholder(tr!("Default"))
         .render_input_panel(move |_| {
             let field = Number::<u64>::new()
-                .name("nf_conntrack_max")
+                .name(NAME)
                 .min(32768)
                 .placeholder(tr!("Default"));
             InputPanel::new()
@@ -193,19 +194,21 @@ pub fn nf_conntrack_max_poperty(mobile: bool) -> EditableProperty {
         })
         .submit_hook(move |state: PropertyEditorState| {
             let data = state.form_ctx.get_submit_data();
-            let data = delete_empty_values(&data, &["nf_conntrack_max"], true);
+            let data = delete_empty_values(&data, &[NAME], true);
             Ok(data)
         })
 }
 
 pub fn nf_timeout_established_poperty(mobile: bool) -> EditableProperty {
+    const NAME: &'static str = "nf_conntrack_tcp_timeout_established";
     let title = tr!("TCP Timeout Established");
-    EditableProperty::new("nf_conntrack_tcp_timeout_established", title.clone())
+    EditableProperty::new(NAME, title.clone())
         .required(true)
         .placeholder(tr!("Default"))
         .render_input_panel(move |_| {
             let field = Number::<u64>::new()
-                .name("nf_conntrack_tcp_timeout_established")
+                .name(NAME)
+                .min(7875)
                 .placeholder(tr!("Default"));
             InputPanel::new()
                 .mobile(mobile)
@@ -214,5 +217,10 @@ pub fn nf_timeout_established_poperty(mobile: bool) -> EditableProperty {
                 .padding_bottom(1) // avoid scrollbar
                 .with_field(title.clone(), field)
                 .into()
+        })
+        .submit_hook(move |state: PropertyEditorState| {
+            let data = state.form_ctx.get_submit_data();
+            let data = delete_empty_values(&data, &[NAME], true);
+            Ok(data)
         })
 }
