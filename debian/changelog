@@ -1,3 +1,11 @@
+rust-proxmox-yew-comp (0.7.7) trixie; urgency=medium
+
+  * add PVE host and guest firewall options panel.
+
+  * apt package manager: add optional subscription check on 'Refresh' button.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 01 Dec 2025 19:48:52 +0100
+
 rust-proxmox-yew-comp (0.7.6) trixie; urgency=medium
 
   * property view: disable edit if the property has no input panel defined.
