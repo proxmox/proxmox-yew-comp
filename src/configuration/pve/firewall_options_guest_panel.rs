@@ -77,11 +77,13 @@ impl FirewallOptionsGuestPanel {
         typed_load::<GuestFirewallOptions>(&url)
     }
 
-    fn on_submit(&self) -> SubmitCallback<Value> {
-        let url = self.url();
-        SubmitCallback::new(move |value: Value| {
-            let url = url.clone();
-            async move { crate::http_put(url.clone(), Some(value.clone())).await }
+    fn on_submit(&self) -> Option<SubmitCallback<Value>> {
+        (!self.readonly).then(|| {
+            let url = self.url();
+            SubmitCallback::new(move |value: Value| {
+                let url = url.clone();
+                async move { crate::http_put(url.clone(), Some(value.clone())).await }
+            })
         })
     }
 }
@@ -89,7 +91,7 @@ impl FirewallOptionsGuestPanel {
 pub struct FirewallOptionsGuestComp {
     properties: Rc<Vec<EditableProperty>>,
     loader: ApiLoadCallback<Value>,
-    on_submit: SubmitCallback<Value>,
+    on_submit: Option<SubmitCallback<Value>>,
 }
 
 fn properties(mobile: bool) -> Vec<EditableProperty> {
