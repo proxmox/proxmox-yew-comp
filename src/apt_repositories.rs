@@ -42,7 +42,8 @@ async fn apt_configuration(base_url: AttrValue) -> Result<APTRepositoriesResult,
 pub struct AptRepositories {
     #[prop_or("/nodes/localhost/apt".into())]
     #[builder(IntoPropValue, into_prop_value)]
-    /// The base url for
+    /// The base url for the APT endpoint. It's expected that there is a `repositories` endpoint
+    /// available below this URL.
     pub base_url: AttrValue,
     /// The Product
     #[builder(IntoPropValue, into_prop_value)]
