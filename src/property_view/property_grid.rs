@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use pwt::state::{Selection, Store};
@@ -64,6 +65,8 @@ impl PropertyGrid {
 }
 
 struct PvePropertyGrid {
+    view_state: PropertyViewState,
+
     store: Store<PropertyGridRecord>,
     columns: Rc<Vec<DataTableHeader<PropertyGridRecord>>>,
     selection: Selection,
@@ -101,6 +104,20 @@ impl PvePropertyGrid {
     }
 }
 
+impl Deref for PvePropertyGrid {
+    type Target = PropertyViewState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.view_state
+    }
+}
+
+impl DerefMut for PvePropertyGrid {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.view_state
+    }
+}
+
 impl PropertyView for PvePropertyGrid {
     type Properties = PropertyGrid;
     type Message = ();
@@ -129,20 +146,17 @@ impl PropertyView for PvePropertyGrid {
         });
 
         Self {
+            view_state: PropertyViewState::default(),
             store: Store::new(),
             columns: property_grid_columns(),
             selection,
         }
     }
 
-    fn update_data(
-        &mut self,
-        ctx: &Context<PvePropertyView<Self>>,
-        view_state: &mut PropertyViewState,
-    ) {
+    fn update_data(&mut self, ctx: &Context<PvePropertyView<Self>>) {
         let props = ctx.props();
 
-        let record = match &view_state.data {
+        let record = match &self.data {
             Some(data) => data.clone(),
             _ => Value::Null,
         };
@@ -178,7 +192,7 @@ impl PropertyView for PvePropertyGrid {
         self.store.set_data(rows);
     }
 
-    fn view(&self, ctx: &Context<PvePropertyView<Self>>, view_state: &PropertyViewState) -> Html {
+    fn view(&self, ctx: &Context<PvePropertyView<Self>>) -> Html {
         let props = ctx.props();
         let readonly = props.on_submit.is_none();
 
@@ -221,11 +235,11 @@ impl PropertyView for PvePropertyGrid {
             })
             .into();
 
-        let loading = view_state.loading();
+        let loading = self.loading();
         let toolbar = (!readonly).then(|| self.toolbar(ctx));
         let class = props.class.clone();
-        let dialog = view_state.dialog.clone();
-        let error = view_state.error.clone();
+        let dialog = self.dialog.clone();
+        let error = self.error.clone();
 
         super::render_loadable_panel(class, table, toolbar, dialog, loading, error)
     }

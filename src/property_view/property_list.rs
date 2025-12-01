@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use serde_json::Value;
@@ -52,7 +53,23 @@ impl PropertyList {
     pwt::impl_class_prop_builder!();
 }
 
-pub struct PvePropertyList {}
+pub struct PvePropertyList {
+    view_state: PropertyViewState,
+}
+
+impl Deref for PvePropertyList {
+    type Target = PropertyViewState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.view_state
+    }
+}
+
+impl DerefMut for PvePropertyList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.view_state
+    }
+}
 
 impl PvePropertyList {
     fn property_tile(
@@ -97,15 +114,17 @@ impl PropertyView for PvePropertyList {
     where
         Self: 'static + Sized,
     {
-        Self {}
+        Self {
+            view_state: PropertyViewState::default(),
+        }
     }
 
-    fn view(&self, ctx: &Context<PvePropertyView<Self>>, view_state: &PropertyViewState) -> Html {
+    fn view(&self, ctx: &Context<PvePropertyView<Self>>) -> Html {
         let props = ctx.props();
 
         let mut tiles: Vec<ListTile> = Vec::new();
 
-        let record = match &view_state.data {
+        let record = match &self.data {
             Some(data) => data.clone(),
             _ => Value::Null,
         };
@@ -135,11 +154,11 @@ impl PropertyView for PvePropertyList {
             .class(pwt::css::FlexFit)
             .into();
 
-        let loading = view_state.loading();
+        let loading = self.loading();
 
         let class = props.class.clone();
-        let dialog = view_state.dialog.clone();
-        let error = view_state.error.clone();
+        let dialog = self.dialog.clone();
+        let error = self.error.clone();
 
         super::render_loadable_panel(class, panel, None, dialog, loading, error)
     }

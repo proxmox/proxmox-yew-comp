@@ -1,3 +1,5 @@
+use std::ops::DerefMut;
+
 mod property_grid;
 pub use property_grid::{property_grid_columns, PropertyGrid};
 
@@ -41,7 +43,7 @@ pub enum PropertyViewMsg<M> {
     Custom(M),
 }
 
-pub trait PropertyView {
+pub trait PropertyView: DerefMut<Target = PropertyViewState> {
     type Properties: Properties;
     type Message;
     const MOBILE: bool;
@@ -55,12 +57,7 @@ pub trait PropertyView {
         Self: 'static + Sized;
 
     #[allow(unused_variables)]
-    fn update(
-        &mut self,
-        ctx: &Context<PvePropertyView<Self>>,
-        view_state: &mut PropertyViewState,
-        msg: Self::Message,
-    ) -> bool
+    fn update(&mut self, ctx: &Context<PvePropertyView<Self>>, msg: Self::Message) -> bool
     where
         Self: 'static + Sized,
     {
@@ -71,7 +68,6 @@ pub trait PropertyView {
     fn changed(
         &mut self,
         ctx: &Context<PvePropertyView<Self>>,
-        view_state: &mut PropertyViewState,
         old_props: &Self::Properties,
     ) -> bool
     where
@@ -81,20 +77,18 @@ pub trait PropertyView {
     }
 
     #[allow(unused_variables)]
-    fn update_data(
-        &mut self,
-        ctx: &Context<PvePropertyView<Self>>,
-        view_state: &mut PropertyViewState,
-    ) where
+    fn update_data(&mut self, ctx: &Context<PvePropertyView<Self>>)
+    where
         Self: 'static + Sized,
     {
     }
 
-    fn view(&self, ctx: &Context<PvePropertyView<Self>>, view_state: &PropertyViewState) -> Html
+    fn view(&self, ctx: &Context<PvePropertyView<Self>>) -> Html
     where
         Self: 'static + Sized;
 }
 
+#[derive(Default)]
 pub struct PropertyViewState {
     pub data: Option<Value>,
     pub error: Option<String>,
@@ -104,7 +98,7 @@ pub struct PropertyViewState {
 }
 
 impl PropertyViewState {
-    pub fn update(&mut self, result: Result<Value, String>) {
+    pub fn set_load_result(&mut self, result: Result<Value, String>) {
         match result {
             Ok(data) => {
                 self.error = None;
@@ -122,8 +116,7 @@ impl PropertyViewState {
 }
 
 pub struct PvePropertyView<T> {
-    view_state: PropertyViewState,
-    child_state: T,
+    state: T,
 }
 
 impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
@@ -133,25 +126,17 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link().send_message(PropertyViewMsg::Load);
 
-        let mut me = Self {
-            view_state: PropertyViewState {
-                data: None,
-                error: None,
-                reload_timeout: None,
-                load_guard: None,
-                dialog: None,
-            },
-            child_state: T::create(ctx),
-        };
-        me.child_state.update_data(ctx, &mut me.view_state);
-        me
+        let mut state = T::create(ctx);
+        state.update_data(ctx);
+
+        Self { state }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
             PropertyViewMsg::Custom(custom) => {
-                return self.child_state.update(ctx, &mut self.view_state, custom);
+                return self.state.update(ctx, custom);
             }
             PropertyViewMsg::Select(_key) => { /* just redraw */ }
             PropertyViewMsg::EditProperty(property) => {
@@ -164,13 +149,13 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
                     .loader(T::loader(props))
                     .on_submit(T::on_submit(props))
                     .into();
-                self.view_state.dialog = Some(dialog);
+                self.state.dialog = Some(dialog);
             }
             PropertyViewMsg::Load => {
-                self.view_state.reload_timeout = None;
+                self.state.reload_timeout = None;
                 let link = ctx.link().clone();
                 if let Some(loader) = T::loader(props) {
-                    self.view_state.load_guard = Some(AsyncAbortGuard::spawn(async move {
+                    self.state.load_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = loader.apply().await;
                         let data = match result {
                             Ok(result) => Ok(result.data),
@@ -181,38 +166,30 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
                 }
             }
             PropertyViewMsg::LoadResult(result) => {
-                self.view_state.update(result);
+                self.state.set_load_result(result);
 
-                self.child_state.update_data(ctx, &mut self.view_state);
+                self.state.update_data(ctx);
                 let link = ctx.link().clone();
-                self.view_state.reload_timeout = Some(Timeout::new(3000, move || {
+                self.state.reload_timeout = Some(Timeout::new(3000, move || {
                     link.send_message(PropertyViewMsg::Load);
                 }));
             }
             PropertyViewMsg::ShowDialog(dialog) => {
-                if dialog.is_none() && self.view_state.reload_timeout.is_some() {
+                if dialog.is_none() && self.state.reload_timeout.is_some() {
                     ctx.link().send_message(PropertyViewMsg::Load);
                 }
-                self.view_state.dialog = dialog;
+                self.state.dialog = dialog;
             }
         }
         true
     }
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
-        self.child_state
-            .changed(ctx, &mut self.view_state, old_props)
-        /*
-        let props = ctx.props();
-         if T::properties(props) != T::properties(old_props) {
-             self.child_state.update_data(ctx, &mut self.view_state);
-         }
-         true
-         */
+        self.state.changed(ctx, old_props)
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        self.child_state.view(ctx, &self.view_state)
+        self.state.view(ctx)
     }
 }
 
