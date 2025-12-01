@@ -76,7 +76,7 @@ pub struct FirewallOptionsClusterComp {
 
 fn properties(mobile: bool) -> Vec<EditableProperty> {
     vec![
-        firewall_property::enable_property(mobile),
+        firewall_property::cluster_enable_property(mobile),
         firewall_property::ebtables_property(mobile),
         firewall_property::log_ratelimit_property(mobile),
         firewall_property::input_policy_poperty(mobile),

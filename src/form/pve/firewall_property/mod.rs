@@ -10,8 +10,9 @@ pub use log_level_selector::LogLevelSelector;
 use pwt::prelude::*;
 use pwt::widget::form::{Combobox, Number};
 use pwt::widget::InputPanel;
+use serde_json::{json, Value};
 
-use crate::EditableProperty;
+use crate::{EditableProperty, PropertyEditorState};
 
 fn policy_combobox(with_reject: bool) -> Combobox {
     let mut items = vec![("ACCEPT", tr!("Accept")), ("DROP", tr!("Drop"))];
@@ -23,6 +24,30 @@ fn policy_combobox(with_reject: bool) -> Combobox {
 
 pub fn enable_property(mobile: bool) -> EditableProperty {
     EditableProperty::new_bool("enable", tr!("Enable Firewall"), false, mobile).required(true)
+}
+
+/// cluster wide enable firewall (stored as integer instead of bool)
+pub fn cluster_enable_property(mobile: bool) -> EditableProperty {
+    EditableProperty::new_bool("enable", tr!("Enable Firewall"), false, mobile)
+        .required(true)
+        .load_hook(|mut record: Value| {
+            let enable = match record["enable"].as_u64() {
+                Some(n) if n == 0 => false,
+                Some(_) => true,
+                None => false,
+            };
+            record["enable"] = Value::Bool(enable);
+            Ok(record)
+        })
+        .submit_hook(|state: PropertyEditorState| {
+            let form_ctx = state.form_ctx;
+            let enable = match form_ctx.read().get_field_checked("enable") {
+                true => 1,
+                false => 0,
+            };
+
+            Ok(json!({ "enable": enable }))
+        })
 }
 
 pub fn ebtables_property(mobile: bool) -> EditableProperty {
