@@ -150,7 +150,7 @@ fn update_status_store(
             Test => has_test = true,
             APTRepositoryHandle::UnknownEnumValue(s) => {
                 log::warn!("encountered unknown APT repository handle {s}");
-            },
+            }
         }
     }
 
