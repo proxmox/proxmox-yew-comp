@@ -45,6 +45,12 @@ pub struct AptRepositories {
     /// The base url for the APT endpoint. It's expected that there is a `repositories` endpoint
     /// available below this URL.
     pub base_url: AttrValue,
+
+    #[prop_or("/nodes/localhost/subscription".into())]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The subscription url for the getting the nodes subscription status.
+    pub subscription_url: AttrValue,
+
     /// The Product
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
@@ -435,9 +441,12 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Refresh));
         let status_columns = Self::status_columns(ctx);
 
+        let subscription_url = ctx.props().subscription_url.clone();
+
         let link = ctx.link();
         link.send_future(async move {
-            let data = crate::http_get("/nodes/localhost/subscription", None).await;
+            // TODO: also reload this in load, not only create?!
+            let data = crate::http_get(subscription_url.to_string(), None).await;
             Msg::SubscriptionInfo(data)
         });
 
