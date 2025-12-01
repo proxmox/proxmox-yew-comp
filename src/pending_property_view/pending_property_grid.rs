@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use serde_json::Value;
@@ -70,9 +71,25 @@ impl PendingPropertyGrid {
 }
 
 pub struct PvePendingPropertyGrid {
+    view_state: PendingPropertyViewState,
+
     store: Store<PropertyGridRecord>,
     columns: Rc<Vec<DataTableHeader<PropertyGridRecord>>>,
     selection: Selection,
+}
+
+impl Deref for PvePendingPropertyGrid {
+    type Target = PendingPropertyViewState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.view_state
+    }
+}
+
+impl DerefMut for PvePendingPropertyGrid {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.view_state
+    }
 }
 
 impl PvePendingPropertyGrid {
@@ -167,24 +184,21 @@ impl PendingPropertyView for PvePendingPropertyGrid {
         });
 
         Self {
+            view_state: PendingPropertyViewState::default(),
             store: Store::new(),
             columns: property_grid_columns(),
             selection,
         }
     }
 
-    fn update_data(
-        &mut self,
-        ctx: &Context<super::PvePendingPropertyView<Self>>,
-        view_state: &mut PendingPropertyViewState,
-    ) {
+    fn update_data(&mut self, ctx: &Context<super::PvePendingPropertyView<Self>>) {
         let props = ctx.props();
 
         let PvePendingConfiguration {
             current,
             pending,
             keys,
-        } = match &view_state.data {
+        } = match &self.data {
             Some(data) => data,
             _ => &PvePendingConfiguration::new(),
         };
@@ -235,12 +249,11 @@ impl PendingPropertyView for PvePendingPropertyGrid {
     fn changed(
         &mut self,
         ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &mut PendingPropertyViewState,
         old_props: &Self::Properties,
     ) -> bool {
         let props = ctx.props();
         if props.properties != old_props.properties {
-            self.update_data(ctx, view_state);
+            self.update_data(ctx);
         }
 
         if props.pending_loader != old_props.pending_loader {
@@ -250,11 +263,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
         true
     }
 
-    fn view(
-        &self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn view(&self, ctx: &Context<PvePendingPropertyView<Self>>) -> Html {
         let props = ctx.props();
         let readonly = props.on_submit.is_none();
 
@@ -300,11 +309,11 @@ impl PendingPropertyView for PvePendingPropertyGrid {
             })
             .into();
 
-        let loading = view_state.loading();
+        let loading = self.loading();
         let toolbar = (!readonly).then(|| self.toolbar(ctx));
         let class = props.class.clone();
-        let dialog = view_state.dialog.clone();
-        let error = view_state.error.clone();
+        let dialog = self.dialog.clone();
+        let error = self.error.clone();
 
         crate::property_view::render_loadable_panel(class, table, toolbar, dialog, loading, error)
     }

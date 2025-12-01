@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use proxmox_schema::property_string::PropertyString;
 use serde_json::Value;
 
@@ -38,6 +40,8 @@ use super::{EditAction, Msg, QemuHardwarePanel};
 use crate::layout::card::standard_card;
 
 pub struct PveQemuHardwarePanel {
+    view_state: PendingPropertyViewState,
+
     async_submit: SubmitCallback<Value>,
 
     memory_property: EditableProperty,
@@ -49,6 +53,20 @@ pub struct PveQemuHardwarePanel {
     machine_property: EditableProperty,
     scsihw_property: EditableProperty,
     vmstate_property: EditableProperty,
+}
+
+impl Deref for PveQemuHardwarePanel {
+    type Target = PendingPropertyViewState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.view_state
+    }
+}
+
+impl DerefMut for PveQemuHardwarePanel {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.view_state
+    }
 }
 
 impl PveQemuHardwarePanel {
@@ -723,6 +741,8 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Qemu);
 
         Self {
+            view_state: PendingPropertyViewState::default(),
+
             async_submit: super::create_on_submit(
                 editor_url,
                 props.on_start_command.clone(),
@@ -746,12 +766,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         }
     }
 
-    fn changed(
-        &mut self,
-        ctx: &PveQemuHardwarePanelContext,
-        _view_state: &mut PendingPropertyViewState,
-        old_props: &Self::Properties,
-    ) -> bool {
+    fn changed(&mut self, ctx: &PveQemuHardwarePanelContext, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
 
         if props.node != old_props.node
@@ -763,12 +778,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         true
     }
 
-    fn update(
-        &mut self,
-        ctx: &PveQemuHardwarePanelContext,
-        view_state: &mut PendingPropertyViewState,
-        msg: Self::Message,
-    ) -> bool {
+    fn update(&mut self, ctx: &PveQemuHardwarePanelContext, msg: Self::Message) -> bool {
         let props = ctx.props();
 
         match msg {
@@ -777,42 +787,31 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
             Msg::ReassignDisk(name) => {
                 let dialog = props.reassign_disk_dialog(&name).on_done(
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
             Msg::MoveDisk(name) => {
                 let dialog = props.move_disk_dialog(&name).on_done(
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
         }
         true
     }
 
-    fn view(
-        &self,
-        ctx: &PveQemuHardwarePanelContext,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn view(&self, ctx: &PveQemuHardwarePanelContext) -> Html {
         let title = tr!("Hardware");
         let min_height = 200;
 
-        let PendingPropertyViewState {
-            data,
-            error,
-            dialog,
-            ..
-        } = view_state;
-
-        let card = match (data, &error) {
+        let card = match (&self.data, &self.error) {
             (None::<_>, None::<_>) => standard_card(title, (), ())
                 .class(pwt::css::Display::Flex)
                 .class(pwt::css::FlexDirection::Column)
@@ -849,7 +848,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                 standard_card(title, (), card_menu).with_child(self.view_list(ctx, data))
             }
         };
-        card.with_optional_child(dialog.clone()).into()
+        card.with_optional_child(self.dialog.clone()).into()
     }
 
     fn editor_loader(props: &Self::Properties) -> Option<crate::ApiLoadCallback<Value>> {

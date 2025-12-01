@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use serde_json::Value;
@@ -143,7 +144,23 @@ impl PendingPropertyList {
     }
 }
 
-pub struct PvePendingPropertyList {}
+pub struct PvePendingPropertyList {
+    view_state: PendingPropertyViewState,
+}
+
+impl Deref for PvePendingPropertyList {
+    type Target = PendingPropertyViewState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.view_state
+    }
+}
+
+impl DerefMut for PvePendingPropertyList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.view_state
+    }
+}
 
 impl PvePendingPropertyList {
     fn property_tile(
@@ -201,13 +218,14 @@ impl PendingPropertyView for PvePendingPropertyList {
     }
 
     fn create(_ctx: &Context<PvePendingPropertyView<Self>>) -> Self {
-        Self {}
+        Self {
+            view_state: PendingPropertyViewState::default(),
+        }
     }
 
     fn changed(
         &mut self,
         ctx: &Context<PvePendingPropertyView<Self>>,
-        _view_state: &mut PendingPropertyViewState,
         old_props: &Self::Properties,
     ) -> bool {
         let props = ctx.props();
@@ -217,11 +235,7 @@ impl PendingPropertyView for PvePendingPropertyList {
         true
     }
 
-    fn view(
-        &self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn view(&self, ctx: &Context<PvePendingPropertyView<Self>>) -> Html {
         let props = ctx.props();
 
         let mut tiles: Vec<ListTile> = Vec::new();
@@ -230,7 +244,7 @@ impl PendingPropertyView for PvePendingPropertyList {
             current,
             pending,
             keys,
-        } = match &view_state.data {
+        } = match &self.data {
             Some(data) => data,
             _ => &PvePendingConfiguration::new(),
         };
@@ -256,11 +270,11 @@ impl PendingPropertyView for PvePendingPropertyList {
             .class(pwt::css::FlexFit)
             .into();
 
-        let loading = view_state.loading();
+        let loading = self.loading();
 
         let class = props.class.clone();
-        let dialog = view_state.dialog.clone();
-        let error = view_state.error.clone();
+        let dialog = self.dialog.clone();
+        let error = self.error.clone();
 
         crate::property_view::render_loadable_panel(class, panel, None, dialog, loading, error)
     }

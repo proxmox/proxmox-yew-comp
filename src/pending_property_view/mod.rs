@@ -5,6 +5,7 @@ mod pending_property_list;
 pub use pending_property_list::PendingPropertyList;
 
 use std::collections::HashSet;
+use std::ops::DerefMut;
 
 use anyhow::Error;
 use gloo_timers::callback::Timeout;
@@ -107,7 +108,18 @@ pub enum PendingPropertyViewMsg<M> {
     Custom(M),
 }
 
-pub trait PendingPropertyView {
+#[derive(Default)]
+pub struct PendingPropertyViewState {
+    pub data: Option<PvePendingConfiguration>,
+    pub error: Option<String>,
+    pub reload_timeout: Option<Timeout>,
+    pub load_guard: Option<AsyncAbortGuard>,
+    pub revert_guard: Option<AsyncAbortGuard>,
+    pub async_pool: AsyncPool,
+    pub dialog: Option<Html>,
+}
+
+pub trait PendingPropertyView: DerefMut<Target = PendingPropertyViewState> {
     type Properties: Properties;
     type Message;
 
@@ -125,12 +137,7 @@ pub trait PendingPropertyView {
         Self: 'static + Sized;
 
     #[allow(unused_variables)]
-    fn update(
-        &mut self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &mut PendingPropertyViewState,
-        msg: Self::Message,
-    ) -> bool
+    fn update(&mut self, ctx: &Context<PvePendingPropertyView<Self>>, msg: Self::Message) -> bool
     where
         Self: 'static + Sized,
     {
@@ -141,7 +148,6 @@ pub trait PendingPropertyView {
     fn changed(
         &mut self,
         ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &mut PendingPropertyViewState,
         old_props: &Self::Properties,
     ) -> bool
     where
@@ -151,36 +157,19 @@ pub trait PendingPropertyView {
     }
 
     #[allow(unused_variables)]
-    fn update_data(
-        &mut self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &mut PendingPropertyViewState,
-    ) where
+    fn update_data(&mut self, ctx: &Context<PvePendingPropertyView<Self>>)
+    where
         Self: 'static + Sized,
     {
     }
 
-    fn view(
-        &self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &PendingPropertyViewState,
-    ) -> Html
+    fn view(&self, ctx: &Context<PvePendingPropertyView<Self>>) -> Html
     where
         Self: 'static + Sized;
 }
 
-pub struct PendingPropertyViewState {
-    pub data: Option<PvePendingConfiguration>,
-    pub error: Option<String>,
-    pub reload_timeout: Option<Timeout>,
-    pub load_guard: Option<AsyncAbortGuard>,
-    pub revert_guard: Option<AsyncAbortGuard>,
-    pub async_pool: AsyncPool,
-    pub dialog: Option<Html>,
-}
-
 impl PendingPropertyViewState {
-    pub fn update(&mut self, result: Result<PvePendingConfiguration, String>) {
+    pub fn set_load_result(&mut self, result: Result<PvePendingConfiguration, String>) {
         match result {
             Ok(data) => {
                 self.error = None;
@@ -198,8 +187,7 @@ impl PendingPropertyViewState {
 }
 
 pub struct PvePendingPropertyView<T> {
-    view_state: PendingPropertyViewState,
-    child_state: T,
+    state: T,
 }
 
 impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
@@ -208,35 +196,23 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
 
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link().send_message(PendingPropertyViewMsg::Load);
-
-        let mut me = Self {
-            view_state: PendingPropertyViewState {
-                data: None,
-                error: None,
-                reload_timeout: None,
-                load_guard: None,
-                revert_guard: None,
-                async_pool: AsyncPool::new(),
-                dialog: None,
-            },
-            child_state: T::create(ctx),
-        };
-        me.child_state.update_data(ctx, &mut me.view_state);
-        me
+        let mut state = T::create(ctx);
+        state.update_data(ctx);
+        Self { state }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
             PendingPropertyViewMsg::Custom(custom) => {
-                return self.child_state.update(ctx, &mut self.view_state, custom);
+                return self.state.update(ctx, custom);
             }
             PendingPropertyViewMsg::Select(_key) => { /* just redraw */ }
             PendingPropertyViewMsg::Delete(name, on_submit) => {
                 let link = ctx.link().clone();
                 if let Some(on_submit) = on_submit.or_else(|| T::on_submit(props)) {
                     let param = json!({ "delete": [ name ] });
-                    self.view_state.async_pool.spawn(async move {
+                    self.state.async_pool.spawn(async move {
                         let result = on_submit.apply(param).await;
                         link.send_message(PendingPropertyViewMsg::CommandResult(
                             result,
@@ -262,7 +238,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 };
                 if let Some(on_submit) = T::on_submit(props) {
                     let param = json!({ "revert": keys });
-                    self.view_state.revert_guard = Some(AsyncAbortGuard::spawn(async move {
+                    self.state.revert_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = on_submit.apply(param).await;
                         link.send_message(PendingPropertyViewMsg::CommandResult(result, tr!("")));
                     }));
@@ -275,7 +251,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                             SnackBar::new().message(message + " - " + &err.to_string()),
                         );
                     } else {
-                        self.view_state.dialog = Some(
+                        self.state.dialog = Some(
                             AlertDialog::new(message + " - " + &err.to_string())
                                 .on_close(
                                     ctx.link()
@@ -285,7 +261,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                         );
                     }
                 }
-                if self.view_state.reload_timeout.is_some() {
+                if self.state.reload_timeout.is_some() {
                     ctx.link().send_message(PendingPropertyViewMsg::Load);
                 }
             }
@@ -302,7 +278,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                     .loader(T::editor_loader(props))
                     .on_submit(on_submit.or_else(|| T::on_submit(props)))
                     .into();
-                self.view_state.dialog = Some(dialog);
+                self.state.dialog = Some(dialog);
             }
             PendingPropertyViewMsg::AddProperty(property, on_submit) => {
                 let dialog = PropertyEditDialog::from(property.clone())
@@ -315,13 +291,13 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                     .loader(T::editor_loader(props))
                     .on_submit(on_submit.or_else(|| T::on_submit(props)))
                     .into();
-                self.view_state.dialog = Some(dialog);
+                self.state.dialog = Some(dialog);
             }
             PendingPropertyViewMsg::Load => {
-                self.view_state.reload_timeout = None;
+                self.state.reload_timeout = None;
                 let link = ctx.link().clone();
                 if let Some(loader) = T::pending_loader(props) {
-                    self.view_state.load_guard = Some(AsyncAbortGuard::spawn(async move {
+                    self.state.load_guard = Some(AsyncAbortGuard::spawn(async move {
                         let result = loader.apply().await;
                         let data = match result {
                             Ok(result) => Ok(result.data),
@@ -332,30 +308,29 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
                 }
             }
             PendingPropertyViewMsg::LoadResult(result) => {
-                self.view_state.update(result);
-                self.child_state.update_data(ctx, &mut self.view_state);
+                self.state.set_load_result(result);
+                self.state.update_data(ctx);
                 let link = ctx.link().clone();
-                self.view_state.reload_timeout = Some(Timeout::new(3000, move || {
+                self.state.reload_timeout = Some(Timeout::new(3000, move || {
                     link.send_message(PendingPropertyViewMsg::Load);
                 }));
             }
             PendingPropertyViewMsg::ShowDialog(dialog) => {
-                if dialog.is_none() && self.view_state.reload_timeout.is_some() {
+                if dialog.is_none() && self.state.reload_timeout.is_some() {
                     ctx.link().send_message(PendingPropertyViewMsg::Load);
                 }
-                self.view_state.dialog = dialog;
+                self.state.dialog = dialog;
             }
         }
         true
     }
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
-        self.child_state
-            .changed(ctx, &mut self.view_state, old_props)
+        self.state.changed(ctx, old_props)
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        self.child_state.view(ctx, &self.view_state)
+        self.state.view(ctx)
     }
 }
 

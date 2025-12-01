@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use proxmox_schema::property_string::PropertyString;
@@ -66,30 +67,42 @@ impl ExtractPrimaryKey for HardwareEntry {
 }
 
 pub struct PveQemuHardwarePanel {
+    view_state: PendingPropertyViewState,
+
     store: Store<HardwareEntry>,
     columns: Rc<Vec<DataTableHeader<HardwareEntry>>>,
     selection: Selection,
     async_submit: SubmitCallback<Value>,
 }
 
-fn lookup_property_value(view_state: &PendingPropertyViewState, name: &str) -> Option<Value> {
-    let PvePendingConfiguration {
-        current: _,
-        pending,
-        keys: _,
-    } = match &view_state.data {
-        Some(data) => data,
-        _ => &PvePendingConfiguration::new(),
-    };
-    pending.get(name).cloned()
+impl Deref for PveQemuHardwarePanel {
+    type Target = PendingPropertyViewState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.view_state
+    }
+}
+
+impl DerefMut for PveQemuHardwarePanel {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.view_state
+    }
 }
 
 impl PveQemuHardwarePanel {
-    fn toolbar(
-        &self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn lookup_property_value(&self, name: &str) -> Option<Value> {
+        let PvePendingConfiguration {
+            current: _,
+            pending,
+            keys: _,
+        } = match &self.data {
+            Some(data) => data,
+            _ => &PvePendingConfiguration::new(),
+        };
+        pending.get(name).cloned()
+    }
+
+    fn toolbar(&self, ctx: &Context<PvePendingPropertyView<Self>>) -> Html {
         let link = ctx.link();
 
         let selected_key = self.selection.selected_key();
@@ -134,7 +147,7 @@ impl PveQemuHardwarePanel {
         let toolbar = Toolbar::new()
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
-            .with_child(self.add_hardware_menu(ctx, view_state))
+            .with_child(self.add_hardware_menu(ctx))
             .with_child(
                 Button::new(remove_label.clone())
                     .disabled(disable_remove)
@@ -146,7 +159,7 @@ impl PveQemuHardwarePanel {
                             });
                             match entry_type {
                                 EntryType::Unused => {
-                                    let volume = match lookup_property_value(view_state, &name) {
+                                    let volume = match self.lookup_property_value(&name) {
                                         Some(Value::String(volume)) => volume.clone(),
                                         _ => name.to_string(),
                                     };
@@ -275,18 +288,14 @@ impl PveQemuHardwarePanel {
             .menu(menu)
     }
 
-    fn add_hardware_menu(
-        &self,
-        ctx: &PveQemuHardwarePanelContext,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn add_hardware_menu(&self, ctx: &PveQemuHardwarePanelContext) -> Html {
         let props = ctx.props();
 
         let PvePendingConfiguration {
             current: _,
             pending,
             keys: _,
-        } = match &view_state.data {
+        } = match &self.data {
             Some(data) => data,
             _ => &PvePendingConfiguration::new(),
         };
@@ -392,6 +401,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Qemu);
 
         Self {
+            view_state: PendingPropertyViewState::default(),
             store: Store::new(),
             columns: columns(),
             selection,
@@ -404,11 +414,8 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         }
     }
 
-    fn update_data(
-        &mut self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &mut PendingPropertyViewState,
-    ) where
+    fn update_data(&mut self, ctx: &Context<PvePendingPropertyView<Self>>)
+    where
         Self: 'static + Sized,
     {
         let props = ctx.props();
@@ -423,7 +430,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             current,
             pending,
             keys,
-        } = match &view_state.data {
+        } = match &self.data {
             Some(data) => data,
             _ => &PvePendingConfiguration::new(),
         };
@@ -666,12 +673,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         self.store.set_data(list);
     }
 
-    fn changed(
-        &mut self,
-        ctx: &PveQemuHardwarePanelContext,
-        _view_state: &mut PendingPropertyViewState,
-        old_props: &Self::Properties,
-    ) -> bool {
+    fn changed(&mut self, ctx: &PveQemuHardwarePanelContext, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
 
         if props.node != old_props.node
@@ -683,12 +685,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         true
     }
 
-    fn update(
-        &mut self,
-        ctx: &PveQemuHardwarePanelContext,
-        view_state: &mut PendingPropertyViewState,
-        msg: Self::Message,
-    ) -> bool {
+    fn update(&mut self, ctx: &PveQemuHardwarePanelContext, msg: Self::Message) -> bool {
         let props = ctx.props();
 
         match msg {
@@ -697,31 +694,27 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
             Msg::ReassignDisk(name) => {
                 let dialog = props.reassign_disk_dialog(&name).on_done(
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
             Msg::MoveDisk(name) => {
                 let dialog = props.move_disk_dialog(&name).on_done(
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
         }
         true
     }
 
-    fn view(
-        &self,
-        ctx: &PveQemuHardwarePanelContext,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn view(&self, ctx: &PveQemuHardwarePanelContext) -> Html {
         let props = ctx.props();
 
         let mut table = DataTable::new(self.columns.clone(), self.store.clone())
@@ -773,11 +766,11 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         }
 
         let table = table.into();
-        let loading = view_state.loading();
-        let toolbar = (!props.readonly).then(|| self.toolbar(ctx, view_state));
+        let loading = self.loading();
+        let toolbar = (!props.readonly).then(|| self.toolbar(ctx));
         let class = classes!(pwt::css::FlexFit);
-        let dialog = view_state.dialog.clone();
-        let error = view_state.error.clone();
+        let dialog = self.dialog.clone();
+        let error = self.error.clone();
 
         crate::property_view::render_loadable_panel(class, table, toolbar, dialog, loading, error)
     }

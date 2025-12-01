@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use pwt::state::{Selection, Store};
@@ -61,31 +62,43 @@ impl ExtractPrimaryKey for ResourceEntry {
 }
 
 pub struct PveLxcResourcesPanel {
+    view_state: PendingPropertyViewState,
+
     store: Store<ResourceEntry>,
     columns: Rc<Vec<DataTableHeader<ResourceEntry>>>,
     selection: Selection,
 }
 
-type PveLxcResourcesPanelContext = Context<PvePendingPropertyView<PveLxcResourcesPanel>>;
+impl Deref for PveLxcResourcesPanel {
+    type Target = PendingPropertyViewState;
 
-fn lookup_property_value(view_state: &PendingPropertyViewState, name: &str) -> Option<Value> {
-    let PvePendingConfiguration {
-        current: _,
-        pending,
-        keys: _,
-    } = match &view_state.data {
-        Some(data) => data,
-        _ => &PvePendingConfiguration::new(),
-    };
-    pending.get(name).cloned()
+    fn deref(&self) -> &Self::Target {
+        &self.view_state
+    }
 }
 
+impl DerefMut for PveLxcResourcesPanel {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.view_state
+    }
+}
+
+type PveLxcResourcesPanelContext = Context<PvePendingPropertyView<PveLxcResourcesPanel>>;
+
 impl PveLxcResourcesPanel {
-    fn toolbar(
-        &self,
-        ctx: &PveLxcResourcesPanelContext,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn lookup_property_value(&self, name: &str) -> Option<Value> {
+        let PvePendingConfiguration {
+            current: _,
+            pending,
+            keys: _,
+        } = match &self.data {
+            Some(data) => data,
+            _ => &PvePendingConfiguration::new(),
+        };
+        pending.get(name).cloned()
+    }
+
+    fn toolbar(&self, ctx: &PveLxcResourcesPanelContext) -> Html {
         let link = ctx.link();
 
         let selected_key = self.selection.selected_key();
@@ -132,7 +145,7 @@ impl PveLxcResourcesPanel {
         let toolbar = Toolbar::new()
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
-            .with_child(self.add_resources_menu(ctx, view_state))
+            .with_child(self.add_resources_menu(ctx))
             .with_child(
                 Button::new(remove_label.clone())
                     .disabled(disable_remove)
@@ -145,7 +158,7 @@ impl PveLxcResourcesPanel {
 
                             match entry_type {
                                 EntryType::Unused => {
-                                    let volume = match lookup_property_value(view_state, &name) {
+                                    let volume = match self.lookup_property_value(&name) {
                                         Some(Value::String(volume)) => volume.clone(),
                                         _ => name.to_string(),
                                     };
@@ -274,14 +287,10 @@ impl PveLxcResourcesPanel {
             .menu(menu)
     }
 
-    fn add_resources_menu(
-        &self,
-        ctx: &PveLxcResourcesPanelContext,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn add_resources_menu(&self, ctx: &PveLxcResourcesPanelContext) -> Html {
         let props = ctx.props();
 
-        let unprivileged = match &view_state.data {
+        let unprivileged = match &self.data {
             Some(data) => is_unprivileged(data),
             None => false,
         };
@@ -323,18 +332,14 @@ impl PendingPropertyView for PveLxcResourcesPanel {
         });
 
         Self {
+            view_state: PendingPropertyViewState::default(),
             store: Store::new(),
             columns: columns(),
             selection,
         }
     }
 
-    fn changed(
-        &mut self,
-        ctx: &PveLxcResourcesPanelContext,
-        _view_state: &mut PendingPropertyViewState,
-        old_props: &Self::Properties,
-    ) -> bool {
+    fn changed(&mut self, ctx: &PveLxcResourcesPanelContext, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
 
         if props.node != old_props.node
@@ -346,12 +351,7 @@ impl PendingPropertyView for PveLxcResourcesPanel {
         true
     }
 
-    fn update(
-        &mut self,
-        ctx: &PveLxcResourcesPanelContext,
-        view_state: &mut PendingPropertyViewState,
-        msg: Self::Message,
-    ) -> bool {
+    fn update(&mut self, ctx: &PveLxcResourcesPanelContext, msg: Self::Message) -> bool {
         let props = ctx.props();
 
         match msg {
@@ -360,14 +360,14 @@ impl PendingPropertyView for PveLxcResourcesPanel {
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
             Msg::ReassignDisk(name) => {
                 let dialog = props.reassign_volume_dialog(&name).on_done(
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
 
             Msg::MoveDisk(name) => {
@@ -375,21 +375,17 @@ impl PendingPropertyView for PveLxcResourcesPanel {
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
         }
         true
     }
 
-    fn update_data(
-        &mut self,
-        ctx: &Context<PvePendingPropertyView<Self>>,
-        view_state: &mut PendingPropertyViewState,
-    ) {
+    fn update_data(&mut self, ctx: &Context<PvePendingPropertyView<Self>>) {
         let props = ctx.props();
         let mut list: Vec<ResourceEntry> = Vec::new();
 
-        let unprivileged = match &view_state.data {
+        let unprivileged = match &self.data {
             Some(data) => is_unprivileged(data),
             None => true,
         };
@@ -398,7 +394,7 @@ impl PendingPropertyView for PveLxcResourcesPanel {
             current,
             pending,
             keys,
-        } = match &view_state.data {
+        } = match &self.data {
             Some(data) => data,
             _ => &PvePendingConfiguration::new(),
         };
@@ -525,11 +521,7 @@ impl PendingPropertyView for PveLxcResourcesPanel {
         self.store.set_data(list);
     }
 
-    fn view(
-        &self,
-        ctx: &PveLxcResourcesPanelContext,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn view(&self, ctx: &PveLxcResourcesPanelContext) -> Html {
         let props = ctx.props();
 
         let mut table = DataTable::new(self.columns.clone(), self.store.clone())
@@ -581,11 +573,11 @@ impl PendingPropertyView for PveLxcResourcesPanel {
         }
 
         let table = table.into();
-        let loading = view_state.loading();
-        let toolbar = (!props.readonly).then(|| self.toolbar(ctx, view_state));
+        let loading = self.loading();
+        let toolbar = (!props.readonly).then(|| self.toolbar(ctx));
         let class = classes!(pwt::css::FlexFit);
-        let dialog = view_state.dialog.clone();
-        let error = view_state.error.clone();
+        let dialog = self.dialog.clone();
+        let error = self.error.clone();
 
         crate::property_view::render_loadable_panel(class, table, toolbar, dialog, loading, error)
     }

@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use serde_json::Value;
 
 use yew::prelude::*;
@@ -26,7 +28,23 @@ use crate::EditableProperty;
 use super::{is_unprivileged, EditAction, LxcResourcesPanel, Msg};
 use crate::layout::card::standard_card;
 
-pub struct PveLxcResourcesPanel {}
+pub struct PveLxcResourcesPanel {
+    view_state: PendingPropertyViewState,
+}
+
+impl Deref for PveLxcResourcesPanel {
+    type Target = PendingPropertyViewState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.view_state
+    }
+}
+
+impl DerefMut for PveLxcResourcesPanel {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.view_state
+    }
+}
 
 type PveLxcResourcesPanelContext = Context<PvePendingPropertyView<PveLxcResourcesPanel>>;
 
@@ -377,15 +395,12 @@ impl PendingPropertyView for PveLxcResourcesPanel {
     const MOBILE: bool = true;
 
     fn create(_ctx: &PveLxcResourcesPanelContext) -> Self {
-        Self {}
+        Self {
+            view_state: PendingPropertyViewState::default(),
+        }
     }
 
-    fn changed(
-        &mut self,
-        ctx: &PveLxcResourcesPanelContext,
-        _view_state: &mut PendingPropertyViewState,
-        old_props: &Self::Properties,
-    ) -> bool {
+    fn changed(&mut self, ctx: &PveLxcResourcesPanelContext, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
 
         if props.node != old_props.node
@@ -397,12 +412,7 @@ impl PendingPropertyView for PveLxcResourcesPanel {
         true
     }
 
-    fn update(
-        &mut self,
-        ctx: &PveLxcResourcesPanelContext,
-        view_state: &mut PendingPropertyViewState,
-        msg: Self::Message,
-    ) -> bool {
+    fn update(&mut self, ctx: &PveLxcResourcesPanelContext, msg: Self::Message) -> bool {
         let props = ctx.props();
 
         match msg {
@@ -411,14 +421,14 @@ impl PendingPropertyView for PveLxcResourcesPanel {
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
             Msg::ReassignDisk(name) => {
                 let dialog = props.reassign_volume_dialog(&name).on_done(
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
 
             Msg::MoveDisk(name) => {
@@ -426,28 +436,17 @@ impl PendingPropertyView for PveLxcResourcesPanel {
                     ctx.link()
                         .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
                 );
-                view_state.dialog = Some(dialog.into());
+                self.dialog = Some(dialog.into());
             }
         }
         true
     }
 
-    fn view(
-        &self,
-        ctx: &PveLxcResourcesPanelContext,
-        view_state: &PendingPropertyViewState,
-    ) -> Html {
+    fn view(&self, ctx: &PveLxcResourcesPanelContext) -> Html {
         let title = tr!("Resources");
         let min_height = 200;
 
-        let PendingPropertyViewState {
-            data,
-            error,
-            dialog,
-            ..
-        } = view_state;
-
-        let card = match (data, &error) {
+        let card = match (&self.data, &self.error) {
             (None::<_>, None::<_>) => standard_card(title, (), ())
                 .class(pwt::css::Display::Flex)
                 .class(pwt::css::FlexDirection::Column)
@@ -484,7 +483,7 @@ impl PendingPropertyView for PveLxcResourcesPanel {
                 standard_card(title, (), card_menu).with_child(self.view_list(ctx, data))
             }
         };
-        card.with_optional_child(dialog.clone()).into()
+        card.with_optional_child(self.dialog.clone()).into()
     }
 
     fn editor_loader(props: &Self::Properties) -> Option<crate::ApiLoadCallback<Value>> {
