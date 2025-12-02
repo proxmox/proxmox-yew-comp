@@ -13,15 +13,24 @@ use crate::pending_property_view::{pending_typed_load, PendingPropertyGrid, Pend
 use crate::EditableProperty;
 use crate::{http_put, percent_encoding::percent_encode_component};
 
+use proxmox_deb_version::Version;
 use pve_api_types::QemuConfig;
 
 use pwt_macros::builder;
+
+// newest known pve-manager version we care for
+const NEWEST_KNOWN_VERSION: &str = "9.1.2";
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct QemuOptionsPanel {
     vmid: u32,
     node: AttrValue,
+
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The nodes pve-manager version, used to feature gate some entries
+    pve_manager_version: Option<Version>,
 
     /// Use Proxmox Datacenter Manager API endpoints
     #[builder(IntoPropValue, into_prop_value)]
@@ -52,8 +61,13 @@ pub struct PveQemuOptionsPanel {
     properties: Rc<Vec<EditableProperty>>,
 }
 
-fn properties(node: &str, vmid: u32, mobile: bool) -> Vec<EditableProperty> {
-    vec![
+fn properties(
+    node: &str,
+    vmid: u32,
+    pve_manager_version: Option<Version>,
+    mobile: bool,
+) -> Vec<EditableProperty> {
+    let mut properties = vec![
         crate::form::pve::qemu_name_property(vmid, mobile),
         crate::form::pve::qemu_onboot_property(mobile),
         crate::form::pve::qemu_startup_property(mobile),
@@ -72,8 +86,15 @@ fn properties(node: &str, vmid: u32, mobile: bool) -> Vec<EditableProperty> {
         crate::form::pve::qemu_spice_enhancement_property(mobile),
         crate::form::pve::qemu_vmstatestorage_property(node, mobile),
         crate::form::pve::qemu_amd_sev_property(mobile),
-        crate::form::pve::qemu_intel_tdx_property(mobile),
-    ]
+    ];
+
+    let version = pve_manager_version.unwrap_or(Version::new(NEWEST_KNOWN_VERSION, None));
+
+    if version >= Version::new("9.1", None) {
+        properties.push(crate::form::pve::qemu_intel_tdx_property(mobile));
+    }
+
+    properties
 }
 
 impl Component for PveQemuOptionsPanel {
@@ -82,8 +103,9 @@ impl Component for PveQemuOptionsPanel {
 
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
+        let version = props.pve_manager_version.clone();
         Self {
-            properties: Rc::new(properties(&props.node, props.vmid, props.mobile)),
+            properties: Rc::new(properties(&props.node, props.vmid, version, props.mobile)),
         }
     }
 
