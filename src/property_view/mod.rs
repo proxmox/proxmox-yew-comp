@@ -40,13 +40,14 @@ pub enum PropertyViewMsg<M> {
     LoadResult(Result<Value, String>),
     ShowDialog(Option<Html>),
     EditProperty(EditableProperty),
-    Select(Option<Key>),
+    Redraw,
     Custom(M),
 }
 
 pub trait PropertyViewScopeExt<M> {
     fn send_custom_message(&self, msg: M);
     fn send_reload(&self);
+    fn send_redraw(&self);
     fn send_show_dialog(&self, dialog: Option<Html>);
     fn send_edit_property(&self, property: EditableProperty);
 }
@@ -60,6 +61,10 @@ impl<M, T: 'static + PropertyView<Message = M>> PropertyViewScopeExt<M>
 
     fn send_reload(&self) {
         self.send_message(PropertyViewMsg::Load);
+    }
+
+    fn send_redraw(&self) {
+        self.send_message(PropertyViewMsg::Redraw);
     }
 
     fn send_show_dialog(&self, dialog: Option<Html>) {
@@ -166,7 +171,7 @@ impl<T: 'static + PropertyView> Component for PvePropertyView<T> {
             PropertyViewMsg::Custom(custom) => {
                 return self.state.update(ctx, custom);
             }
-            PropertyViewMsg::Select(_key) => { /* just redraw */ }
+            PropertyViewMsg::Redraw => { /* just redraw */ }
             PropertyViewMsg::EditProperty(property) => {
                 if property.render_input_panel.is_none() {
                     return false;
