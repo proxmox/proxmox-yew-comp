@@ -12,6 +12,7 @@ use yew::virtual_dom::{VComp, VNode};
 
 use pve_api_types::LxcConfig;
 
+use proxmox_deb_version::Version;
 use pwt::prelude::*;
 use pwt::props::SubmitCallback;
 use pwt_macros::builder;
@@ -34,6 +35,11 @@ pub enum Msg {
 pub struct LxcResourcesPanel {
     vmid: u32,
     node: AttrValue,
+
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The nodes pve-manager version, used to feature gate some entries
+    pve_manager_version: Option<Version>,
 
     /// Use Proxmox Datacenter Manager API endpoints
     #[builder(IntoPropValue, into_prop_value)]

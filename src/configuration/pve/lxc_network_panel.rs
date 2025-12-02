@@ -12,6 +12,7 @@ use pwt::widget::{Button, Column, Container, Fa, List, ListTile, Toolbar};
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{Key, VComp, VNode};
 
+use proxmox_deb_version::Version;
 use pwt::prelude::*;
 use pwt::props::{ExtractPrimaryKey, SubmitCallback};
 use pwt::state::{Selection, Store};
@@ -31,6 +32,11 @@ use crate::{http_put, ConfirmButton, LoadableComponentMaster, PropertyEditDialog
 pub struct LxcNetworkPanel {
     vmid: u32,
     node: AttrValue,
+
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The nodes pve-manager version, used to feature gate some entries
+    pve_manager_version: Option<Version>,
 
     /// Use Proxmox Datacenter Manager API endpoints
     #[builder(IntoPropValue, into_prop_value)]

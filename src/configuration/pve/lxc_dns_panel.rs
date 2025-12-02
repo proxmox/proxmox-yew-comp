@@ -7,6 +7,7 @@ use serde_json::Value;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
+use proxmox_deb_version::Version;
 use pwt::prelude::*;
 use pwt_macros::builder;
 
@@ -20,6 +21,11 @@ use crate::{http_put, EditableProperty};
 pub struct LxcDnsPanel {
     vmid: u32,
     node: AttrValue,
+
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The nodes pve-manager version, used to feature gate some entries
+    pve_manager_version: Option<Version>,
 
     /// Use Proxmox Datacenter Manager API endpoints
     #[builder(IntoPropValue, into_prop_value)]

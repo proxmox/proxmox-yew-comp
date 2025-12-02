@@ -6,6 +6,7 @@ use serde_json::Value;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
 
+use proxmox_deb_version::Version;
 use pwt::prelude::*;
 
 use crate::configuration::{guest_config_url, guest_pending_url};
@@ -19,11 +20,19 @@ use pve_api_types::LxcConfig;
 
 use pwt_macros::builder;
 
+// newest known pve-manager version we care for
+const NEWEST_KNOWN_VERSION: &str = "9.1.2";
+
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
 pub struct LxcOptionsPanel {
     vmid: u32,
     node: AttrValue,
+
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// The nodes pve-manager version, used to feature gate some entries
+    pve_manager_version: Option<Version>,
 
     /// Use Proxmox Datacenter Manager API endpoints
     #[builder(IntoPropValue, into_prop_value)]
@@ -54,8 +63,13 @@ pub struct PveLxcOptionsPanel {
     properties: Rc<Vec<EditableProperty>>,
 }
 
-fn properties(_node: &str, _vmid: u32, mobile: bool) -> Vec<EditableProperty> {
-    vec![
+fn properties(
+    _node: &str,
+    _vmid: u32,
+    pve_manager_version: Option<Version>,
+    mobile: bool,
+) -> Vec<EditableProperty> {
+    let mut properties = vec![
         //crate::form::pve::Lxc_name_property(vmid, mobile),
         crate::form::pve::qemu_onboot_property(mobile),
         crate::form::pve::qemu_startup_property(mobile),
@@ -68,7 +82,16 @@ fn properties(_node: &str, _vmid: u32, mobile: bool) -> Vec<EditableProperty> {
         crate::form::pve::lxc_unpriviledged_property(),
         crate::form::pve::lxc_features_property(mobile),
         crate::form::pve::lxc_hookscript_property(),
-    ]
+    ];
+
+    let version = pve_manager_version.unwrap_or(Version::new(NEWEST_KNOWN_VERSION, None));
+
+    if version >= Version::new("9.1", None) {
+        properties.push(crate::form::pve::lxc_entrypoint_property());
+        properties.push(crate::form::pve::lxc_env_property());
+    }
+
+    properties
 }
 
 impl Component for PveLxcOptionsPanel {
@@ -77,8 +100,9 @@ impl Component for PveLxcOptionsPanel {
 
     fn create(ctx: &Context<Self>) -> Self {
         let props = ctx.props();
+        let version = props.pve_manager_version.clone();
         Self {
-            properties: Rc::new(properties(&props.node, props.vmid, props.mobile)),
+            properties: Rc::new(properties(&props.node, props.vmid, version, props.mobile)),
         }
     }
 

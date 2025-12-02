@@ -119,6 +119,17 @@ pub fn lxc_hookscript_property() -> EditableProperty {
     EditableProperty::new("hookscript", tr!("Hookscript"))
 }
 
+pub fn lxc_entrypoint_property() -> EditableProperty {
+    EditableProperty::new("entrypoint", tr!("Entrypoint"))
+}
+
+pub fn lxc_env_property() -> EditableProperty {
+    EditableProperty::new("env", tr!("Environment")).renderer(|_name, value, _data| match value {
+        Value::String(env) => env.split('\0').collect::<Vec<_>>().join(" ").into(),
+        _ => value.into(),
+    })
+}
+
 pub fn lxc_tty_count_property(mobile: bool) -> EditableProperty {
     let title = tr!("TTY count");
     EditableProperty::new("tty", title.clone())

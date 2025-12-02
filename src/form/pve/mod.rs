@@ -54,11 +54,11 @@ pub use lxc_mount_options_selector::LxcMountOptionsSelector;
 mod lxc_property;
 pub use lxc_property::{
     extract_used_mount_points, first_unused_mount_point, lxc_architecture_property,
-    lxc_console_mode_property, lxc_console_property, lxc_cores_property, lxc_features_property,
-    lxc_hookscript_property, lxc_hostname_property, lxc_memory_property, lxc_mount_point_property,
-    lxc_nameserver_property, lxc_network_property, lxc_ostype_property, lxc_rootfs_property,
-    lxc_searchdomain_property, lxc_swap_property, lxc_tty_count_property,
-    lxc_unpriviledged_property, lxc_unused_volume_property,
+    lxc_console_mode_property, lxc_console_property, lxc_cores_property, lxc_entrypoint_property,
+    lxc_env_property, lxc_features_property, lxc_hookscript_property, lxc_hostname_property,
+    lxc_memory_property, lxc_mount_point_property, lxc_nameserver_property, lxc_network_property,
+    lxc_ostype_property, lxc_rootfs_property, lxc_searchdomain_property, lxc_swap_property,
+    lxc_tty_count_property, lxc_unpriviledged_property, lxc_unused_volume_property,
 };
 
 mod qemu_property;
