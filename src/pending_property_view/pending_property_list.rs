@@ -17,8 +17,8 @@ use crate::layout::list_tile::title_subtitle_column;
 use crate::EditableProperty;
 
 use super::{
-    PendingPropertyView, PendingPropertyViewMsg, PendingPropertyViewState, PvePendingConfiguration,
-    PvePendingPropertyView,
+    PendingPropertyView, PendingPropertyViewScopeExt, PendingPropertyViewState,
+    PvePendingConfiguration, PvePendingPropertyView,
 };
 
 /// Render a list of pending changes ([PvePendingConfiguration])
@@ -175,22 +175,20 @@ impl PvePendingPropertyList {
 
         let on_revert = (!readonly).then(|| {
             Callback::from({
-                ctx.link().callback({
-                    let property = property.clone();
-                    move |_: Event| PendingPropertyViewMsg::RevertProperty(property.clone())
-                })
+                let link = ctx.link().clone();
+                let property = property.clone();
+                move |_: Event| link.send_revert_property(property.clone())
             })
         });
         let list_tile =
             PendingPropertyList::render_list_tile(current, pending, property, (), on_revert);
 
         if !readonly && property.render_input_panel.is_some() {
-            list_tile
-                .interactive(true)
-                .on_activate(ctx.link().callback({
-                    let property = property.clone();
-                    move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
-                }))
+            list_tile.interactive(true).on_activate({
+                let link = ctx.link().clone();
+                let property = property.clone();
+                move |_| link.send_edit_property(property.clone(), None)
+            })
         } else {
             list_tile
         }
@@ -230,7 +228,7 @@ impl PendingPropertyView for PvePendingPropertyList {
     ) -> bool {
         let props = ctx.props();
         if props.pending_loader != old_props.pending_loader {
-            ctx.link().send_message(PendingPropertyViewMsg::Load);
+            ctx.link().send_reload();
         }
         true
     }

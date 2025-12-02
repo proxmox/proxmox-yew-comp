@@ -27,6 +27,7 @@ pub enum Msg {
     ResizeDisk(String),
     ReassignDisk(String),
     MoveDisk(String),
+    Redraw,
 }
 
 #[derive(Clone, PartialEq, Properties)]

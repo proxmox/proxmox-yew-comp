@@ -22,8 +22,8 @@ use crate::property_view::{property_grid_columns, PropertyGridRecord};
 use crate::EditableProperty;
 
 use super::{
-    PendingPropertyView, PendingPropertyViewMsg, PendingPropertyViewState, PvePendingConfiguration,
-    PvePendingPropertyView,
+    PendingPropertyView, PendingPropertyViewScopeExt, PendingPropertyViewState,
+    PvePendingConfiguration, PvePendingPropertyView,
 };
 
 /// Render a list of pending changes ([`Vec<QemuPendingConfigValue>`])
@@ -122,10 +122,7 @@ impl PvePendingPropertyGrid {
                 let property = property.clone();
                 move |_| {
                     if let Some(property) = &property {
-                        link.send_message(PendingPropertyViewMsg::EditProperty(
-                            property.clone(),
-                            None,
-                        ));
+                        link.send_edit_property(property.clone(), None);
                     }
                 }
             }))
@@ -137,9 +134,7 @@ impl PvePendingPropertyGrid {
                         let property = property.clone();
                         move |_| {
                             if let Some(property) = &property {
-                                link.send_message(PendingPropertyViewMsg::RevertProperty(
-                                    property.clone(),
-                                ));
+                                link.send_revert_property(property.clone());
                             }
                         }
                     }),
@@ -176,7 +171,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
             let link = ctx.link().clone();
             move |selection: Selection| {
                 let selected_key = selection.selected_key();
-                link.send_message(PendingPropertyViewMsg::Select(selected_key.clone()));
+                link.send_custom_message(()); // redraw
                 if let Some(on_select) = &on_select {
                     on_select.emit(selected_key);
                 }
@@ -257,7 +252,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
         }
 
         if props.pending_loader != old_props.pending_loader {
-            ctx.link().send_message(PendingPropertyViewMsg::Load);
+            ctx.link().send_reload();
         }
 
         true
@@ -283,7 +278,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
 
                     if !readonly {
                         if let Some(property) = property {
-                            link.send_message(PendingPropertyViewMsg::EditProperty(property, None));
+                            link.send_edit_property(property, None);
                         }
                     }
                 }
@@ -299,9 +294,7 @@ impl PendingPropertyView for PvePendingPropertyGrid {
                             .map(|r| r.property.clone());
                         if !readonly {
                             if let Some(property) = property {
-                                link.send_message(PendingPropertyViewMsg::EditProperty(
-                                    property, None,
-                                ));
+                                link.send_edit_property(property, None);
                             }
                         }
                     }

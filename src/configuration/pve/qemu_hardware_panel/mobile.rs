@@ -30,7 +30,7 @@ use crate::form::pve::{
 };
 use crate::form::typed_load;
 use crate::pending_property_view::{
-    pending_typed_load, PendingPropertyList, PendingPropertyView, PendingPropertyViewMsg,
+    pending_typed_load, PendingPropertyList, PendingPropertyView, PendingPropertyViewScopeExt,
     PendingPropertyViewState, PvePendingConfiguration, PvePendingPropertyView,
 };
 use crate::EditableProperty;
@@ -84,10 +84,9 @@ impl PveQemuHardwarePanel {
 
         let on_revert = (!props.readonly).then(|| {
             Callback::from({
+                let link = ctx.link().clone();
                 let property = property.clone();
-                ctx.link().callback(move |_: Event| {
-                    PendingPropertyViewMsg::RevertProperty(property.clone())
-                })
+                move |_: Event| link.send_revert_property(property.clone())
             })
         });
 
@@ -100,16 +99,17 @@ impl PveQemuHardwarePanel {
                 EditAction::None => { /* do nothing  */ }
                 EditAction::Add | EditAction::Edit => {
                     list_tile.set_interactive(true);
-                    list_tile.set_on_activate(ctx.link().callback({
+                    list_tile.set_on_activate({
+                        let link = ctx.link().clone();
                         let property = property.clone();
                         move |_| {
                             if edit_action == EditAction::Edit {
-                                PendingPropertyViewMsg::EditProperty(property.clone(), None)
+                                link.send_edit_property(property.clone(), None);
                             } else {
-                                PendingPropertyViewMsg::AddProperty(property.clone(), None)
+                                link.send_add_property(property.clone(), None);
                             }
                         }
-                    }));
+                    });
                 }
             }
         }
@@ -157,26 +157,25 @@ impl PveQemuHardwarePanel {
         pending: &Value,
     ) -> ListTile {
         let menu = Menu::new()
-            .with_item(MenuItem::new(&self.sockets_cores_property.title).on_select(
-                ctx.link().callback({
-                    let property = self.sockets_cores_property.clone();
-                    move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
-                }),
-            ))
             .with_item(
-                MenuItem::new(&self.kernel_scheduler_property.title).on_select(
-                    ctx.link().callback({
-                        let property = self.kernel_scheduler_property.clone();
-                        move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
-                    }),
-                ),
-            )
-            .with_item(MenuItem::new(&self.cpu_flags_property.title).on_select(
-                ctx.link().callback({
-                    let property = self.cpu_flags_property.clone();
-                    move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
+                MenuItem::new(&self.sockets_cores_property.title).on_select({
+                    let link = ctx.link().clone();
+                    let property = self.sockets_cores_property.clone();
+                    move |_| link.send_edit_property(property.clone(), None)
                 }),
-            ));
+            )
+            .with_item(
+                MenuItem::new(&self.kernel_scheduler_property.title).on_select({
+                    let link = ctx.link().clone();
+                    let property = self.kernel_scheduler_property.clone();
+                    move |_| link.send_edit_property(property.clone(), None)
+                }),
+            )
+            .with_item(MenuItem::new(&self.cpu_flags_property.title).on_select({
+                let link = ctx.link().clone();
+                let property = self.cpu_flags_property.clone();
+                move |_| link.send_edit_property(property.clone(), None)
+            }));
 
         self.property_tile_with_menu(
             ctx,
@@ -202,34 +201,35 @@ impl PveQemuHardwarePanel {
         let mtu_property =
             qemu_network_mtu_property(Some(name.to_string()), Some(props.node.clone()), true);
 
-        let menu =
-            Menu::new()
-                .with_item(
-                    MenuItem::new(&network_property.title).on_select(ctx.link().callback({
-                        let property = network_property.clone();
-                        move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
-                    })),
-                )
-                .with_item(
-                    MenuItem::new(&mtu_property.title).on_select(ctx.link().callback({
-                        let property = mtu_property.clone();
-                        move |_| PendingPropertyViewMsg::EditProperty(property.clone(), None)
-                    })),
-                )
-                .with_item({
+        let menu = Menu::new()
+            .with_item(MenuItem::new(&network_property.title).on_select({
+                let link = ctx.link().clone();
+                let property = network_property.clone();
+                move |_| link.send_edit_property(property.clone(), None)
+            }))
+            .with_item(MenuItem::new(&mtu_property.title).on_select({
+                let link = ctx.link().clone();
+                let property = mtu_property.clone();
+                move |_| link.send_edit_property(property.clone(), None)
+            }))
+            .with_item({
+                let dialog: Html = SafeConfirmDialog::new(name.to_string())
+                    .mobile(true)
+                    .on_done({
+                        let link = ctx.link().clone();
+                        move |_| link.send_show_dialog(None)
+                    })
+                    .on_confirm({
+                        let link = ctx.link().clone();
+                        let name = name.to_string();
+                        move |_| link.send_delete(&name, None)
+                    })
+                    .into();
+                MenuItem::new(tr!("Delete device")).on_select({
                     let link = ctx.link().clone();
-                    let dialog: Html = SafeConfirmDialog::new(name.to_string())
-                        .mobile(true)
-                        .on_done(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
-                        .on_confirm(link.callback({
-                            let name = name.to_string();
-                            move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                        }))
-                        .into();
-                    MenuItem::new(tr!("Delete device")).on_select(ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))
-                    }))
-                });
+                    move |_| link.send_show_dialog(Some(dialog.clone()))
+                })
+            });
 
         self.property_tile_with_menu(
             ctx,
@@ -255,9 +255,8 @@ impl PveQemuHardwarePanel {
             MenuItem::new(tr!("Move Storage"))
                 .icon_class("fa fa-database")
                 .on_select(
-                    ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))
-                    }),
+                    ctx.link()
+                        .custom_callback(move |_| Msg::MoveDisk(name.clone())),
                 )
         });
         if with_reassign {
@@ -265,9 +264,10 @@ impl PveQemuHardwarePanel {
                 let name = name.to_string();
                 MenuItem::new(tr!("Reassign Owner"))
                     .icon_class("fa fa-desktop")
-                    .on_select(ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::Custom(Msg::ReassignDisk(name.clone()))
-                    }))
+                    .on_select(
+                        ctx.link()
+                            .custom_callback(move |_| Msg::ReassignDisk(name.clone())),
+                    )
             });
         }
         if with_resize {
@@ -275,9 +275,10 @@ impl PveQemuHardwarePanel {
                 let name = name.to_string();
                 MenuItem::new(tr!("Resize"))
                     .icon_class("fa fa-plus")
-                    .on_select(ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::Custom(Msg::ResizeDisk(name.clone()))
-                    }))
+                    .on_select(
+                        ctx.link()
+                            .custom_callback(move |_| Msg::ResizeDisk(name.clone())),
+                    )
             });
         }
         menu
@@ -322,13 +323,15 @@ impl PveQemuHardwarePanel {
         };
 
         menu.add_item({
-            let link = ctx.link().clone();
-
-            let on_done = link.callback(|_| PendingPropertyViewMsg::ShowDialog(None));
-            let on_confirm = link.callback({
+            let on_done = {
+                let link = ctx.link().clone();
+                move |_| link.send_show_dialog(None)
+            };
+            let on_confirm = {
+                let link = ctx.link().clone();
                 let name = name.to_string();
-                move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-            });
+                move |_| link.send_delete(&name, None)
+            };
 
             let (title, icon_class) = if media == PveQmIdeMedia::Disk {
                 (tr!("Detach"), "fa fa-sign-out")
@@ -348,10 +351,10 @@ impl PveQemuHardwarePanel {
                     .into()
             };
 
-            MenuItem::new(title).icon_class(icon_class).on_select(
-                ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))),
-            )
+            MenuItem::new(title).icon_class(icon_class).on_select({
+                let link = ctx.link().clone();
+                move |_| link.send_show_dialog(Some(dialog.clone()))
+            })
         });
 
         let mut tile = self.property_tile_with_menu(
@@ -375,25 +378,27 @@ impl PveQemuHardwarePanel {
         pending: &Value,
     ) -> ListTile {
         let props = ctx.props();
-        let menu =
-            self.disk_menu(ctx, name, true, false).with_item({
-                let link = ctx.link().clone();
+        let menu = self.disk_menu(ctx, name, true, false).with_item({
+            let volume = record[name].as_str().unwrap_or(&name);
+            let dialog: Html = confirm_delete_volume(name, volume, true)
+                .on_close({
+                    let link = ctx.link().clone();
+                    move |_| link.send_show_dialog(None)
+                })
+                .on_confirm({
+                    let link = ctx.link().clone();
+                    let name = name.to_string();
+                    move |_| link.send_delete(&name, None)
+                })
+                .into();
 
-                let volume = record[name].as_str().unwrap_or(&name);
-                let dialog: Html = confirm_delete_volume(name, volume, true)
-                    .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
-                    .on_confirm(link.callback({
-                        let name = name.to_string();
-                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                    }))
-                    .into();
-
-                MenuItem::new(tr!("Delete volume"))
-                    .icon_class("fa fa-trash-o")
-                    .on_select(ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))
-                    }))
-            });
+            MenuItem::new(tr!("Delete volume"))
+                .icon_class("fa fa-trash-o")
+                .on_select({
+                    let link = ctx.link().clone();
+                    move |_| link.send_show_dialog(Some(dialog.clone()))
+                })
+        });
 
         let icon = Fa::new("hdd-o");
         let property = qemu_disk_property(
@@ -426,22 +431,23 @@ impl PveQemuHardwarePanel {
     ) -> ListTile {
         let name = property.get_name().cloned().unwrap();
         let menu = self.disk_menu(ctx, &name, false, false).with_item({
-            let link = ctx.link().clone();
             let dialog: Html = confirm_remove_entry(&name, true)
-                .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
-                .on_confirm(link.callback({
+                .on_close({
+                    let link = ctx.link().clone();
+                    move |_| link.send_show_dialog(None)
+                })
+                .on_confirm({
+                    let link = ctx.link().clone();
                     let name = name.to_string();
                     let async_submit = self.async_submit.clone();
-                    move |_| {
-                        PendingPropertyViewMsg::Delete(name.clone(), Some(async_submit.clone()))
-                    }
-                }))
+                    move |_| link.send_delete(&name, Some(async_submit.clone()))
+                })
                 .into();
 
-            MenuItem::new(tr!("Delete disk")).on_select(
-                ctx.link()
-                    .callback(move |_| PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))),
-            )
+            MenuItem::new(tr!("Delete disk")).on_select({
+                let link = ctx.link().clone();
+                move |_| link.send_show_dialog(Some(dialog.clone()))
+            })
         });
 
         let icon = Fa::new("hdd-o");
@@ -646,7 +652,8 @@ impl PveQemuHardwarePanel {
             .with_item({
                 MenuItem::new(tr!("Add Hard Disk"))
                     .icon_class("fa fa-hdd-o")
-                    .on_select(ctx.link().callback({
+                    .on_select({
+                        let link = ctx.link().clone();
                         let property = qemu_disk_property(
                             None,
                             Some(props.node.clone()),
@@ -655,61 +662,62 @@ impl PveQemuHardwarePanel {
                         );
                         let async_submit = self.async_submit.clone();
                         move |_| {
-                            PendingPropertyViewMsg::AddProperty(
-                                property.clone(),
-                                Some(async_submit.clone()),
-                            )
+                            link.send_add_property(property.clone(), Some(async_submit.clone()))
                         }
-                    }))
+                    })
             })
             .with_item({
                 MenuItem::new(tr!("Add CD/DVD drive"))
                     .icon_class("fa fa-cdrom")
-                    .on_select(ctx.link().callback({
+                    .on_select({
+                        let link = ctx.link().clone();
                         let property = qemu_cdrom_property(
                             None,
                             Some(props.node.clone()),
                             props.remote.clone(),
                             true,
                         );
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
-                    }))
+                        move |_| link.send_add_property(property.clone(), None)
+                    })
             })
             .with_item({
                 MenuItem::new(tr!("Add Network card"))
                     .icon_class("fa fa-exchange")
-                    .on_select(ctx.link().callback({
+                    .on_select({
+                        let link = ctx.link().clone();
                         let property = qemu_network_property(None, Some(props.node.clone()), true);
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
-                    }))
+                        move |_| link.send_add_property(property.clone(), None)
+                    })
             })
             .with_item({
                 MenuItem::new(tr!("EFI Disk"))
                     .icon_class("fa fa-hdd-o")
                     .disabled(has_efidisk)
-                    .on_select(ctx.link().callback({
+                    .on_select({
+                        let link = ctx.link().clone();
                         let property = qemu_efidisk_property(
                             None,
                             Some(props.node.clone()),
                             props.remote.clone(),
                             true,
                         );
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
-                    }))
+                        move |_| link.send_add_property(property.clone(), None)
+                    })
             })
             .with_item({
                 MenuItem::new(tr!("TPM State"))
                     .icon_class("fa fa-hdd-o")
                     .disabled(has_tpmstate)
-                    .on_select(ctx.link().callback({
+                    .on_select({
+                        let link = ctx.link().clone();
                         let property = qemu_tpmstate_property(
                             None,
                             Some(props.node.clone()),
                             props.remote.clone(),
                             true,
                         );
-                        move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
-                    }))
+                        move |_| link.send_add_property(property.clone(), None)
+                    })
             });
 
         MenuButton::new("")
@@ -773,7 +781,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
             || props.vmid != old_props.vmid
             || props.remote != old_props.remote
         {
-            ctx.link().send_message(PendingPropertyViewMsg::Load);
+            ctx.link().send_reload();
         }
         true
     }
@@ -781,28 +789,25 @@ impl PendingPropertyView for PveQemuHardwarePanel {
     fn update(&mut self, ctx: &PveQemuHardwarePanelContext, msg: Self::Message) -> bool {
         let props = ctx.props();
 
+        let on_done = {
+            let link = ctx.link().clone();
+            move |_| link.send_show_dialog(None)
+        };
+
         match msg {
             Msg::ResizeDisk(name) => {
-                let dialog = props.resize_disk_dialog(&name).on_done(
-                    ctx.link()
-                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                );
+                let dialog = props.resize_disk_dialog(&name).on_done(on_done.clone());
                 self.dialog = Some(dialog.into());
             }
             Msg::ReassignDisk(name) => {
-                let dialog = props.reassign_disk_dialog(&name).on_done(
-                    ctx.link()
-                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                );
+                let dialog = props.reassign_disk_dialog(&name).on_done(on_done.clone());
                 self.dialog = Some(dialog.into());
             }
             Msg::MoveDisk(name) => {
-                let dialog = props.move_disk_dialog(&name).on_done(
-                    ctx.link()
-                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                );
+                let dialog = props.move_disk_dialog(&name).on_done(on_done.clone());
                 self.dialog = Some(dialog.into());
             }
+            Msg::Redraw => {}
         }
         true
     }

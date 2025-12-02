@@ -3,6 +3,7 @@ pub use pending_property_grid::PendingPropertyGrid;
 
 mod pending_property_list;
 pub use pending_property_list::PendingPropertyList;
+use yew::html::Scope;
 
 use std::collections::HashSet;
 use std::ops::DerefMut;
@@ -106,6 +107,85 @@ pub enum PendingPropertyViewMsg<M> {
     Delete(String, Option<SubmitCallback<Value>>),
     Select(Option<Key>),
     Custom(M),
+}
+
+pub trait PendingPropertyViewScopeExt<M> {
+    fn send_custom_message(&self, msg: M);
+    fn send_reload(&self);
+    fn send_show_dialog(&self, dialog: Option<Html>);
+    fn send_revert_property(&self, property: EditableProperty);
+    fn send_delete(&self, property_name: &str, on_submit: Option<SubmitCallback<Value>>);
+    fn send_add_property(
+        &self,
+        property: EditableProperty,
+        on_submit: Option<SubmitCallback<Value>>,
+    );
+    fn send_edit_property(
+        &self,
+        property: EditableProperty,
+        on_submit: Option<SubmitCallback<Value>>,
+    );
+
+    fn custom_callback<F, IN>(&self, function: F) -> Callback<IN>
+    where
+        M: Into<M>,
+        F: Fn(IN) -> M + 'static;
+}
+
+impl<M, T: 'static + PendingPropertyView<Message = M>> PendingPropertyViewScopeExt<M>
+    for Scope<PvePendingPropertyView<T>>
+{
+    fn send_custom_message(&self, msg: M) {
+        self.send_message(PendingPropertyViewMsg::Custom(msg));
+    }
+
+    fn custom_callback<F, IN>(&self, function: F) -> Callback<IN>
+    where
+        M: Into<M>,
+        F: Fn(IN) -> M + 'static,
+    {
+        let scope = self.clone();
+        let closure = move |input| {
+            let output = function(input);
+            scope.send_custom_message(output);
+        };
+        Callback::from(closure)
+    }
+
+    fn send_reload(&self) {
+        self.send_message(PendingPropertyViewMsg::Load);
+    }
+
+    fn send_show_dialog(&self, dialog: Option<Html>) {
+        self.send_message(PendingPropertyViewMsg::ShowDialog(dialog));
+    }
+
+    fn send_revert_property(&self, property: EditableProperty) {
+        self.send_message(PendingPropertyViewMsg::RevertProperty(property));
+    }
+
+    fn send_delete(&self, property_name: &str, on_submit: Option<SubmitCallback<Value>>) {
+        self.send_message(PendingPropertyViewMsg::Delete(
+            property_name.to_string(),
+            on_submit,
+        ));
+    }
+
+    fn send_add_property(
+        &self,
+        property: EditableProperty,
+        on_submit: Option<SubmitCallback<Value>>,
+    ) {
+        self.send_message(PendingPropertyViewMsg::AddProperty(property, on_submit));
+    }
+
+    fn send_edit_property(
+        &self,
+        property: EditableProperty,
+        on_submit: Option<SubmitCallback<Value>>,
+    ) {
+        self.send_message(PendingPropertyViewMsg::EditProperty(property, on_submit));
+    }
 }
 
 #[derive(Default)]

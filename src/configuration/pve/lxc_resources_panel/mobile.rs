@@ -20,7 +20,7 @@ use crate::form::pve::{
 };
 use crate::form::typed_load;
 use crate::pending_property_view::{
-    pending_typed_load, PendingPropertyList, PendingPropertyView, PendingPropertyViewMsg,
+    pending_typed_load, PendingPropertyList, PendingPropertyView, PendingPropertyViewScopeExt,
     PendingPropertyViewState, PvePendingConfiguration, PvePendingPropertyView,
 };
 use crate::EditableProperty;
@@ -63,10 +63,9 @@ impl PveLxcResourcesPanel {
 
         let on_revert = (!props.readonly).then(|| {
             Callback::from({
+                let link = ctx.link().clone();
                 let property = property.clone();
-                ctx.link().callback(move |_: Event| {
-                    PendingPropertyViewMsg::RevertProperty(property.clone())
-                })
+                move |_: Event| link.send_revert_property(property.clone())
             })
         });
 
@@ -79,16 +78,17 @@ impl PveLxcResourcesPanel {
                 //EditAction::None => { /* do nothing  */ }
                 EditAction::Add | EditAction::Edit => {
                     list_tile.set_interactive(true);
-                    list_tile.set_on_activate(ctx.link().callback({
+                    list_tile.set_on_activate({
+                        let link = ctx.link().clone();
                         let property = property.clone();
                         move |_| {
                             if edit_action == EditAction::Edit {
-                                PendingPropertyViewMsg::EditProperty(property.clone(), None)
+                                link.send_edit_property(property.clone(), None);
                             } else {
-                                PendingPropertyViewMsg::AddProperty(property.clone(), None)
+                                link.send_add_property(property.clone(), None);
                             }
                         }
-                    }));
+                    });
                 }
             }
         }
@@ -144,9 +144,10 @@ impl PveLxcResourcesPanel {
                 let name = name.to_string();
                 MenuItem::new(tr!("Move Storage"))
                     .icon_class("fa fa-database")
-                    .on_select(ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::Custom(Msg::MoveDisk(name.clone()))
-                    }))
+                    .on_select(
+                        ctx.link()
+                            .custom_callback(move |_| Msg::MoveDisk(name.clone())),
+                    )
             });
         }
 
@@ -155,9 +156,10 @@ impl PveLxcResourcesPanel {
                 let name = name.to_string();
                 MenuItem::new(tr!("Reassign Owner"))
                     .icon_class("fa fa-desktop")
-                    .on_select(ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::Custom(Msg::ReassignDisk(name.clone()))
-                    }))
+                    .on_select(
+                        ctx.link()
+                            .custom_callback(move |_| Msg::ReassignDisk(name.clone())),
+                    )
             });
         }
 
@@ -166,9 +168,10 @@ impl PveLxcResourcesPanel {
                 let name = name.to_string();
                 MenuItem::new(tr!("Resize"))
                     .icon_class("fa fa-plus")
-                    .on_select(ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::Custom(Msg::ResizeDisk(name.clone()))
-                    }))
+                    .on_select(
+                        ctx.link()
+                            .custom_callback(move |_| Msg::ResizeDisk(name.clone())),
+                    )
             });
         }
         menu
@@ -196,22 +199,24 @@ impl PveLxcResourcesPanel {
         let icon = Fa::new("hdd-o");
 
         menu.add_item({
-            let link = ctx.link().clone();
             let dialog: Html = confirm_detach_entry(name, true)
-                .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
-                .on_confirm(link.callback({
+                .on_close({
+                    let link = ctx.link().clone();
+                    move |_| link.send_show_dialog(None)
+                })
+                .on_confirm({
+                    let link = ctx.link().clone();
                     let name = name.to_string();
-                    move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                }))
+                    move |_| link.send_delete(&name, None)
+                })
                 .into();
 
             MenuItem::new(tr!("Detach"))
                 .icon_class("fa fa-sign-out")
-                .on_select(
-                    ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))
-                    }),
-                )
+                .on_select({
+                    let link = ctx.link().clone();
+                    move |_| link.send_show_dialog(Some(dialog.clone()))
+                })
         });
 
         let mut tile = self.property_tile_with_menu(
@@ -236,24 +241,27 @@ impl PveLxcResourcesPanel {
         unprivileged: bool,
     ) -> ListTile {
         let props = ctx.props();
-        let menu =
-            self.disk_menu(ctx, name, false, true, false).with_item({
-                let link = ctx.link().clone();
-                let volume = record[name].as_str().unwrap_or(&name);
-                let dialog: Html = confirm_delete_volume(name, volume, true)
-                    .on_close(link.callback(|_| PendingPropertyViewMsg::ShowDialog(None)))
-                    .on_confirm(link.callback({
-                        let name = name.to_string();
-                        move |_| PendingPropertyViewMsg::Delete(name.clone(), None)
-                    }))
-                    .into();
+        let menu = self.disk_menu(ctx, name, false, true, false).with_item({
+            let volume = record[name].as_str().unwrap_or(&name);
+            let dialog: Html = confirm_delete_volume(name, volume, true)
+                .on_close({
+                    let link = ctx.link().clone();
+                    move |_| link.send_show_dialog(None)
+                })
+                .on_confirm({
+                    let link = ctx.link().clone();
+                    let name = name.to_string();
+                    move |_| link.send_delete(&name, None)
+                })
+                .into();
 
-                MenuItem::new(tr!("Delete volume"))
-                    .icon_class("fa fa-trash-o")
-                    .on_select(ctx.link().callback(move |_| {
-                        PendingPropertyViewMsg::ShowDialog(Some(dialog.clone()))
-                    }))
-            });
+            MenuItem::new(tr!("Delete volume"))
+                .icon_class("fa fa-trash-o")
+                .on_select({
+                    let link = ctx.link().clone();
+                    move |_| link.send_show_dialog(Some(dialog.clone()))
+                })
+        });
 
         let icon = Fa::new("hdd-o");
         let property = lxc_unused_volume_property(
@@ -369,7 +377,8 @@ impl PveLxcResourcesPanel {
         let menu = Menu::new().with_item({
             MenuItem::new(tr!("Add Mount Point"))
                 .icon_class("fa fa-hdd-o")
-                .on_select(ctx.link().callback({
+                .on_select({
+                    let link = ctx.link().clone();
                     let property = lxc_mount_point_property(
                         None,
                         Some(props.node.clone()),
@@ -377,8 +386,8 @@ impl PveLxcResourcesPanel {
                         unprivileged,
                         true,
                     );
-                    move |_| PendingPropertyViewMsg::AddProperty(property.clone(), None)
-                }))
+                    move |_| link.send_add_property(property.clone(), None)
+                })
         });
 
         MenuButton::new("")
@@ -407,7 +416,7 @@ impl PendingPropertyView for PveLxcResourcesPanel {
             || props.vmid != old_props.vmid
             || props.remote != old_props.remote
         {
-            ctx.link().send_message(PendingPropertyViewMsg::Load);
+            ctx.link().send_reload();
         }
         true
     }
@@ -415,29 +424,25 @@ impl PendingPropertyView for PveLxcResourcesPanel {
     fn update(&mut self, ctx: &PveLxcResourcesPanelContext, msg: Self::Message) -> bool {
         let props = ctx.props();
 
+        let on_done = {
+            let link = ctx.link().clone();
+            move |_| link.send_show_dialog(None)
+        };
+
         match msg {
             Msg::ResizeDisk(name) => {
-                let dialog = props.resize_disk_dialog(&name).on_done(
-                    ctx.link()
-                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                );
+                let dialog = props.resize_disk_dialog(&name).on_done(on_done.clone());
                 self.dialog = Some(dialog.into());
             }
             Msg::ReassignDisk(name) => {
-                let dialog = props.reassign_volume_dialog(&name).on_done(
-                    ctx.link()
-                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                );
+                let dialog = props.reassign_volume_dialog(&name).on_done(on_done.clone());
                 self.dialog = Some(dialog.into());
             }
-
             Msg::MoveDisk(name) => {
-                let dialog = props.move_volume_dialog(&name).on_done(
-                    ctx.link()
-                        .callback(|_| PendingPropertyViewMsg::ShowDialog(None)),
-                );
+                let dialog = props.move_volume_dialog(&name).on_done(on_done.clone());
                 self.dialog = Some(dialog.into());
             }
+            Msg::Redraw => {}
         }
         true
     }
