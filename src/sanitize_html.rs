@@ -99,10 +99,11 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str) -> Result<(), Err
 pub fn sanitize_html(text: &str) -> Result<String, Error> {
     let location = gloo_utils::window().location();
     let origin = location.origin().unwrap_or_default();
+    let wrapped = format!("<div>{}</div>", text);
 
     let dom_parser = web_sys::DomParser::new().map_err(convert_js_error)?;
     let doc = dom_parser
-        .parse_from_string(text, web_sys::SupportedType::TextHtml)
+        .parse_from_string(&wrapped, web_sys::SupportedType::TextHtml)
         .map_err(convert_js_error)?;
 
     if let Some(body) = doc.body() {
