@@ -705,7 +705,7 @@ fn standard_repo_info(
 
 impl ProxmoxAptRepositories {
     fn active_subscription(&self) -> bool {
-        subscription_is_active(&self.subscription_status)
+        subscription_is_active(self.subscription_status.as_ref())
     }
 
     fn create_show_subscription_dialog(

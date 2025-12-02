@@ -198,7 +198,7 @@ impl LoadableComponent for ProxmoxAptPackageManager {
                 let command = format!("{}/update", props.base_url);
                 self.async_pool.spawn(async move {
                     let data = crate::http_get::<Value>(url.as_str(), None).await;
-                    let is_active = subscription_is_active(&Some(data));
+                    let is_active = subscription_is_active(Some(&data));
 
                     if is_active {
                         link.task_base_url(task_base_url);

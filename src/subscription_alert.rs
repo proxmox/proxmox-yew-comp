@@ -68,7 +68,7 @@ impl From<SubscriptionAlert> for VNode {
 }
 
 /// Check if the result of the subscription check returned an active subscription
-pub fn subscription_is_active(result: &Option<Result<Value, Error>>) -> bool {
+pub fn subscription_is_active(result: Option<&Result<Value, Error>>) -> bool {
     match result {
         Some(Ok(data)) => {
             data["status"].as_str().map(|s| s.to_lowercase()).as_deref() == Some("active")
