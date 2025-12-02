@@ -154,6 +154,12 @@ pub enum ViewState {
     ShowSubscriptionPopup,
 }
 
+/// Messages for [`ProxmoxAptManager::update`]
+pub enum Msg {
+    CheckSubscription,
+    SelectionChange,
+}
+
 pub struct ProxmoxAptPackageManager {
     tree_store: TreeStore<TreeEntry>,
     selection: Selection,
@@ -163,13 +169,13 @@ pub struct ProxmoxAptPackageManager {
 
 impl LoadableComponent for ProxmoxAptPackageManager {
     type Properties = AptPackageManager;
-    type Message = ();
+    type Message = Msg;
     type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let tree_store = TreeStore::new().view_root(false);
         let columns = Self::columns(ctx, tree_store.clone());
-        let selection = Selection::new().on_select(ctx.link().callback(|_| ()));
+        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::SelectionChange));
 
         Self {
             tree_store,
@@ -179,27 +185,32 @@ impl LoadableComponent for ProxmoxAptPackageManager {
         }
     }
 
-    fn update(&mut self, ctx: &LoadableComponentContext<Self>, _msg: Self::Message) -> bool {
-        let link = ctx.link().clone();
-        let props = ctx.props();
-        let url = props
-            .clone()
-            .subscription_url
-            .unwrap_or("/nodes/localhost/subscription".into());
-        let task_base_url = props.task_base_url.clone();
-        let command = format!("{}/update", props.base_url);
-        self.async_pool.spawn(async move {
-            let data = crate::http_get::<Value>(url.as_str(), None).await;
-            let is_active = subscription_is_active(&Some(data));
+    fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Msg::CheckSubscription => {
+                let link = ctx.link().clone();
+                let props = ctx.props();
+                let url = props
+                    .clone()
+                    .subscription_url
+                    .unwrap_or("/nodes/localhost/subscription".into());
+                let task_base_url = props.task_base_url.clone();
+                let command = format!("{}/update", props.base_url);
+                self.async_pool.spawn(async move {
+                    let data = crate::http_get::<Value>(url.as_str(), None).await;
+                    let is_active = subscription_is_active(&Some(data));
 
-            if is_active {
-                link.task_base_url(task_base_url);
-                link.start_task(&command, None, false);
-            } else {
-                link.change_view(Some(ViewState::ShowSubscriptionPopup));
+                    if is_active {
+                        link.task_base_url(task_base_url);
+                        link.start_task(&command, None, false);
+                    } else {
+                        link.change_view(Some(ViewState::ShowSubscriptionPopup));
+                    }
+                });
+                true
             }
-        });
-        true
+            Msg::SelectionChange => true,
+        }
     }
 
     fn load(
@@ -255,7 +266,7 @@ impl LoadableComponent for ProxmoxAptPackageManager {
 
                 move |_| {
                     if sub_check {
-                        link.send_message(());
+                        link.send_message(Msg::CheckSubscription);
                     } else {
                         link.start_task(&command, None, false);
                     }
