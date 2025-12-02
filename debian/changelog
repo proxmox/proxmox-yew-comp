@@ -1,3 +1,21 @@
+rust-proxmox-yew-comp (0.7.9) trixie; urgency=medium
+
+  * user panel: update user expiration only if it changed to allow
+    self-service for users without generic user-edit permissions.
+
+  * notes edit: hide toolbar when editing is not possible.
+
+  * sanitize html: don't fail on html comments nodes.
+
+  * apt package manager: add distinct message type to avoid spurious
+    subscription popups when selecting pending updates.
+
+  * pve: qemu: options/hardware: prepare and use version feature gating.
+
+  * pve: lxc panels: prepare/add version feature gating.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 02 Dec 2025 12:32:10 +0100
+
 rust-proxmox-yew-comp (0.7.8) trixie; urgency=medium
 
   * apt repo: add subscription_url widget property to allow overriding for
