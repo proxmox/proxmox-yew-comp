@@ -807,7 +807,6 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                 let dialog = props.move_disk_dialog(&name).on_done(on_done.clone());
                 self.dialog = Some(dialog.into());
             }
-            Msg::Redraw => {}
         }
         true
     }

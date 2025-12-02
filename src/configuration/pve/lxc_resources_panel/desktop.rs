@@ -327,7 +327,10 @@ impl PendingPropertyView for PveLxcResourcesPanel {
     const MOBILE: bool = false;
 
     fn create(ctx: &PveLxcResourcesPanelContext) -> Self {
-        let selection = Selection::new().on_select(ctx.link().custom_callback(|_| Msg::Redraw));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
 
         Self {
             view_state: PendingPropertyViewState::default(),
@@ -368,7 +371,6 @@ impl PendingPropertyView for PveLxcResourcesPanel {
                 let dialog = props.move_volume_dialog(&name).on_done(on_done.clone());
                 self.dialog = Some(dialog.into());
             }
-            Msg::Redraw => {}
         }
         true
     }

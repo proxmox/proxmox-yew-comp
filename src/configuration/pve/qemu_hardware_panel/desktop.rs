@@ -394,7 +394,10 @@ impl PendingPropertyView for PveQemuHardwarePanel {
 
     fn create(ctx: &PveQemuHardwarePanelContext) -> Self {
         let props = ctx.props();
-        let selection = Selection::new().on_select(ctx.link().custom_callback(|_| Msg::Redraw));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
 
         let editor_url =
             guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Qemu);
@@ -705,7 +708,6 @@ impl PendingPropertyView for PveQemuHardwarePanel {
                 let dialog = props.move_disk_dialog(&name).on_done(on_done.clone());
                 self.dialog = Some(dialog.into());
             }
-            Msg::Redraw => {}
         }
         true
     }

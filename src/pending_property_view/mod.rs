@@ -15,7 +15,6 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use proxmox_client::ApiResponseData;
-use yew::virtual_dom::Key;
 
 use pwt::props::SubmitCallback;
 use pwt::touch::{SnackBar, SnackBarContextExt};
@@ -105,13 +104,14 @@ pub enum PendingPropertyViewMsg<M> {
     RevertProperty(EditableProperty),
     CommandResult(Result<(), Error>, String),
     Delete(String, Option<SubmitCallback<Value>>),
-    Select(Option<Key>),
+    Redraw,
     Custom(M),
 }
 
 pub trait PendingPropertyViewScopeExt<M> {
     fn send_custom_message(&self, msg: M);
     fn send_reload(&self);
+    fn send_redraw(&self);
     fn send_show_dialog(&self, dialog: Option<Html>);
     fn send_revert_property(&self, property: EditableProperty);
     fn send_delete(&self, property_name: &str, on_submit: Option<SubmitCallback<Value>>);
@@ -154,6 +154,10 @@ impl<M, T: 'static + PendingPropertyView<Message = M>> PendingPropertyViewScopeE
 
     fn send_reload(&self) {
         self.send_message(PendingPropertyViewMsg::Load);
+    }
+
+    fn send_redraw(&self) {
+        self.send_message(PendingPropertyViewMsg::Redraw);
     }
 
     fn send_show_dialog(&self, dialog: Option<Html>) {
@@ -287,7 +291,7 @@ impl<T: 'static + PendingPropertyView> Component for PvePendingPropertyView<T> {
             PendingPropertyViewMsg::Custom(custom) => {
                 return self.state.update(ctx, custom);
             }
-            PendingPropertyViewMsg::Select(_key) => { /* just redraw */ }
+            PendingPropertyViewMsg::Redraw => { /* just redraw */ }
             PendingPropertyViewMsg::Delete(name, on_submit) => {
                 let link = ctx.link().clone();
                 if let Some(on_submit) = on_submit.or_else(|| T::on_submit(props)) {
