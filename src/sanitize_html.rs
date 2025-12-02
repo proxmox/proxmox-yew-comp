@@ -27,6 +27,7 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str) -> Result<(), Err
     let node_type = node.node_type();
 
     match node_type {
+        8 => Ok(()), /* HTML Comment Node */
         3 => Ok(()), /* Text Node */
         1 => {
             /*  Element Node */
