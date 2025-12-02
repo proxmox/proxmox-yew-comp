@@ -170,8 +170,8 @@ Provides:
  librust-proxmox-yew-comp-0+default-dev (= ${binary:Version}),
  librust-proxmox-yew-comp-0.7-dev (= ${binary:Version}),
  librust-proxmox-yew-comp-0.7+default-dev (= ${binary:Version}),
- librust-proxmox-yew-comp-0.7.9-dev (= ${binary:Version}),
- librust-proxmox-yew-comp-0.7.9+default-dev (= ${binary:Version})
+ librust-proxmox-yew-comp-0.7.10-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.7.10+default-dev (= ${binary:Version})
 Description: Rust crate "proxmox-yew-comp" - Rust source code
  Source code for Debianized Rust crate "proxmox-yew-comp"
 
@@ -186,7 +186,7 @@ Depends:
 Provides:
  librust-proxmox-yew-comp-0+apt-dev (= ${binary:Version}),
  librust-proxmox-yew-comp-0.7+apt-dev (= ${binary:Version}),
- librust-proxmox-yew-comp-0.7.9+apt-dev (= ${binary:Version})
+ librust-proxmox-yew-comp-0.7.10+apt-dev (= ${binary:Version})
 Description: Rust crate "proxmox-yew-comp" - feature "apt"
  This metapackage enables feature "apt" for the Rust proxmox-yew-comp crate, by
  pulling in any additional dependencies needed by that feature.
@@ -201,7 +201,7 @@ Depends:
 Provides:
  librust-proxmox-yew-comp-0+dns-dev (= ${binary:Version}),
  librust-proxmox-yew-comp-0.7+dns-dev (= ${binary:Version}),
- librust-proxmox-yew-comp-0.7.9+dns-dev (= ${binary:Version})
+ librust-proxmox-yew-comp-0.7.10+dns-dev (= ${binary:Version})
 Description: Rust crate "proxmox-yew-comp" - feature "dns"
  This metapackage enables feature "dns" for the Rust proxmox-yew-comp crate, by
  pulling in any additional dependencies needed by that feature.
@@ -216,7 +216,7 @@ Depends:
 Provides:
  librust-proxmox-yew-comp-0+network-dev (= ${binary:Version}),
  librust-proxmox-yew-comp-0.7+network-dev (= ${binary:Version}),
- librust-proxmox-yew-comp-0.7.9+network-dev (= ${binary:Version})
+ librust-proxmox-yew-comp-0.7.10+network-dev (= ${binary:Version})
 Description: Rust crate "proxmox-yew-comp" - feature "network"
  This metapackage enables feature "network" for the Rust proxmox-yew-comp crate,
  by pulling in any additional dependencies needed by that feature.
@@ -231,7 +231,7 @@ Depends:
 Provides:
  librust-proxmox-yew-comp-0+rrd-dev (= ${binary:Version}),
  librust-proxmox-yew-comp-0.7+rrd-dev (= ${binary:Version}),
- librust-proxmox-yew-comp-0.7.9+rrd-dev (= ${binary:Version})
+ librust-proxmox-yew-comp-0.7.10+rrd-dev (= ${binary:Version})
 Description: Rust crate "proxmox-yew-comp" - feature "rrd"
  This metapackage enables feature "rrd" for the Rust proxmox-yew-comp crate, by
  pulling in any additional dependencies needed by that feature.

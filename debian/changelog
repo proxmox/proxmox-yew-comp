@@ -1,3 +1,12 @@
+rust-proxmox-yew-comp (0.7.10) trixie; urgency=medium
+
+  * subscription check: move reference inside option for slightly  more
+    ergonomic function signature.
+
+  * subscriptions: expose subscription_icon.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 02 Dec 2025 16:34:35 +0100
+
 rust-proxmox-yew-comp (0.7.9) trixie; urgency=medium
 
   * user panel: update user expiration only if it changed to allow
