@@ -1,3 +1,9 @@
+rust-proxmox-yew-comp (0.7.12) trixie; urgency=medium
+
+  * pve: firewall: make the node enable option default to true.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 03 Dec 2025 15:56:35 +0100
+
 rust-proxmox-yew-comp (0.7.11) trixie; urgency=medium
 
   * apt package manager: add property for custom subscription alert message.
