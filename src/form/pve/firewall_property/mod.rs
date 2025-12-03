@@ -27,6 +27,10 @@ pub fn enable_property(mobile: bool) -> EditableProperty {
     EditableProperty::new_bool("enable", tr!("Enable Firewall"), false, mobile).required(true)
 }
 
+pub fn enable_node_property(mobile: bool) -> EditableProperty {
+    EditableProperty::new_bool("enable", tr!("Enable Firewall"), true, mobile).required(true)
+}
+
 /// cluster wide enable firewall (stored as integer instead of bool)
 pub fn cluster_enable_property(mobile: bool) -> EditableProperty {
     EditableProperty::new_bool("enable", tr!("Enable Firewall"), false, mobile)

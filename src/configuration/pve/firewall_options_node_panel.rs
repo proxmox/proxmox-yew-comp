@@ -84,7 +84,7 @@ pub struct FirewallOptionsNodeComp {
 
 fn properties(mobile: bool) -> Vec<EditableProperty> {
     vec![
-        firewall_property::enable_property(mobile),
+        firewall_property::enable_node_property(mobile),
         firewall_property::nosmurfs_property(mobile),
         firewall_property::tcpflags_property(mobile),
         firewall_property::ndp_property(mobile),
