@@ -17,7 +17,7 @@ use pwt::state::{Selection, SlabTree, TreeStore};
 use pwt::widget::data_table::{
     DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader, DataTableHeaderGroup,
 };
-use pwt::widget::{Button, Container, Toolbar, Tooltip};
+use pwt::widget::{AlertDialog, Button, Container, Toolbar, Tooltip};
 use pwt::AsyncPool;
 
 use crate::percent_encoding::percent_encode_component;
@@ -61,10 +61,16 @@ pub struct AptPackageManager {
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     pub on_upgrade: Option<Callback<()>>,
 
+    // todo refactor url+message into a struct like EditableProperty
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
     /// The base url for the subscription check
     pub subscription_url: Option<AttrValue>,
+
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    /// Custom subscription dialog title and message
+    pub subscription_message: Option<(String, Html)>,
 }
 
 impl Default for AptPackageManager {
@@ -321,15 +327,19 @@ impl LoadableComponent for ProxmoxAptPackageManager {
                 let props = ctx.props();
                 let task_base_url = props.task_base_url.clone();
                 let command = format!("{}/update", props.base_url);
-                Some(
-                    SubscriptionAlert::new("notfound")
-                        .on_close(move |_| {
-                            link.change_view(None);
-                            link.task_base_url(task_base_url.clone());
-                            link.start_task(&command, None, false);
-                        })
-                        .into(),
-                )
+                let on_close = move |_| {
+                    link.change_view(None);
+                    link.task_base_url(task_base_url.clone());
+                    link.start_task(&command, None, false);
+                };
+                Some(if let Some(msg) = props.subscription_message.clone() {
+                    AlertDialog::new(msg.1)
+                        .title(msg.0)
+                        .on_close(on_close)
+                        .into()
+                } else {
+                    SubscriptionAlert::new("notfound").on_close(on_close).into()
+                })
             }
         }
     }
