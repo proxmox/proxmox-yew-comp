@@ -253,9 +253,9 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
         )
         .with_optional_child(boot_mode.map(|m| {
             let mode = match m.mode {
-                BootMode::Efi => tr!("Legacy BIOS"),
-                BootMode::LegacyBios if m.secureboot => tr!("UEFI (Secure Boot Enabled)"),
-                BootMode::LegacyBios => tr!("UEFI"),
+                BootMode::LegacyBios => tr!("Legacy BIOS"),
+                BootMode::Efi if m.secureboot => tr!("UEFI (Secure Boot Enabled)"),
+                BootMode::Efi => tr!("UEFI"),
             };
             StatusRow::new(tr!("Boot Mode"))
                 .style("grid-column", "1/-1")
