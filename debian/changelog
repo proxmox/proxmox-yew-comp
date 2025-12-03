@@ -1,3 +1,15 @@
+rust-proxmox-yew-comp (0.7.11) trixie; urgency=medium
+
+  * apt package manager: add property for custom subscription alert message.
+
+  * sanitize html: add a `div` wrapper element around the notes content to
+    ensure that top-level meta elements do not get moved to the DOM head node
+    and then vanish.
+
+  * node info: fix displaying boot mode.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 03 Dec 2025 14:00:54 +0100
+
 rust-proxmox-yew-comp (0.7.10) trixie; urgency=medium
 
   * subscription check: move reference inside option for slightly  more
