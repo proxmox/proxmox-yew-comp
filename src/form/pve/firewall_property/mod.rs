@@ -84,7 +84,7 @@ pub fn tcpflags_property(mobile: bool) -> EditableProperty {
 }
 
 pub fn nosmurfs_property(mobile: bool) -> EditableProperty {
-    EditableProperty::new_bool("nosmurfs", tr!("SMURFS filter"), false, mobile).required(true)
+    EditableProperty::new_bool("nosmurfs", tr!("SMURFS filter"), true, mobile).required(true)
 }
 
 pub fn nftables_property(mobile: bool) -> EditableProperty {
