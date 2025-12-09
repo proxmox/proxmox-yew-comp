@@ -160,7 +160,7 @@ async fn update_item(form_ctx: FormContext, base_url: String) -> Result<(), Erro
 
     let data = format_sync_and_default_options(&mut data);
 
-    let data = delete_empty_values(
+    let mut data = delete_empty_values(
         &data,
         &[
             "server2",
@@ -175,6 +175,26 @@ async fn update_item(form_ctx: FormContext, base_url: String) -> Result<(), Erro
         ],
         true,
     );
+
+    let anonymous_search = form_ctx
+        .read()
+        .get_field_value("anonymous_search")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+
+    if anonymous_search {
+        if let Some(data) = data.as_object_mut() {
+            data.remove("bind-dn");
+            data.remove("password");
+        }
+
+        if let Some(vec) = data["delete"].as_array_mut() {
+            vec.push("bind-dn".into());
+            vec.push("password".into());
+        } else {
+            data["delete"] = ["bind-dn", "password"].into();
+        }
+    }
 
     let name = form_ctx.read().get_field_text("realm");
 
