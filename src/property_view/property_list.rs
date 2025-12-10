@@ -1,4 +1,3 @@
-use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use serde_json::Value;
@@ -57,19 +56,7 @@ pub struct PvePropertyList {
     view_state: PropertyViewState,
 }
 
-impl Deref for PvePropertyList {
-    type Target = PropertyViewState;
-
-    fn deref(&self) -> &Self::Target {
-        &self.view_state
-    }
-}
-
-impl DerefMut for PvePropertyList {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.view_state
-    }
-}
+crate::impl_deref_mut_property!(PvePropertyList, view_state, PropertyViewState);
 
 impl PvePropertyList {
     fn property_tile(

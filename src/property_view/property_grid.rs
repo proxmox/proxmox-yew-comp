@@ -1,4 +1,3 @@
-use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use pwt::state::{Selection, Store};
@@ -104,19 +103,7 @@ impl PvePropertyGrid {
     }
 }
 
-impl Deref for PvePropertyGrid {
-    type Target = PropertyViewState;
-
-    fn deref(&self) -> &Self::Target {
-        &self.view_state
-    }
-}
-
-impl DerefMut for PvePropertyGrid {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.view_state
-    }
-}
+crate::impl_deref_mut_property!(PvePropertyGrid, view_state, PropertyViewState);
 
 impl PropertyView for PvePropertyGrid {
     type Properties = PropertyGrid;

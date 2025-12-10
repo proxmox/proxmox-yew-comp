@@ -1,4 +1,3 @@
-use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use serde_json::Value;
@@ -78,19 +77,7 @@ pub struct PvePendingPropertyGrid {
     selection: Selection,
 }
 
-impl Deref for PvePendingPropertyGrid {
-    type Target = PendingPropertyViewState;
-
-    fn deref(&self) -> &Self::Target {
-        &self.view_state
-    }
-}
-
-impl DerefMut for PvePendingPropertyGrid {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.view_state
-    }
-}
+crate::impl_deref_mut_property!(PvePendingPropertyGrid, view_state, PendingPropertyViewState);
 
 impl PvePendingPropertyGrid {
     fn toolbar(&self, ctx: &Context<PvePendingPropertyView<Self>>) -> Html {
