@@ -9,7 +9,7 @@ use yew::virtual_dom::{VComp, VNode};
 use pwt::dom::align::{align_to, AlignOptions};
 use pwt::dom::DomSizeObserver;
 use pwt::prelude::*;
-use pwt::props::{IntoOptionalTextRenderFn, TextRenderFn};
+use pwt::props::{IntoOptionalRenderFn, RenderFn};
 use pwt::state::optional_rc_ptr_eq;
 use pwt::widget::{Button, Container, Panel};
 
@@ -52,7 +52,7 @@ pub struct RRDGraph {
     pub binary: bool,
 
     #[prop_or_default]
-    pub render_value: Option<TextRenderFn<f64>>,
+    pub render_value: Option<RenderFn<f64, String>>,
 }
 
 impl RRDGraph {
@@ -95,8 +95,8 @@ impl RRDGraph {
         self.class.push(class);
     }
 
-    pub fn render_value(mut self, renderer: impl IntoOptionalTextRenderFn<f64>) -> Self {
-        self.render_value = renderer.into_optional_text_render_fn();
+    pub fn render_value(mut self, renderer: impl IntoOptionalRenderFn<f64, String>) -> Self {
+        self.render_value = renderer.into_optional_render_fn();
         self
     }
 }
