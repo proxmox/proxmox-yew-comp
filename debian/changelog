@@ -1,3 +1,12 @@
+rust-proxmox-yew-comp (0.8.0) trixie; urgency=medium
+
+  * Encapsulate the component state (loading, error, view_state) into a new
+    `LoadableComponentState` struct. Instead of `LoadableComponentMaster`
+    managing the state externally, the concrete components now own their
+    `LoadableComponentState`.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 10 Dec 2025 12:14:38 +0100
+
 rust-proxmox-yew-comp (0.7.12) trixie; urgency=medium
 
   * pve: firewall: make the node enable option default to true.
