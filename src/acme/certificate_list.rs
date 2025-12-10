@@ -18,8 +18,9 @@ use pwt::widget::{Button, Container, Dialog, FileButton, MessageBox, Toolbar};
 use crate::common_api_types::CertificateInfo;
 use crate::utils::render_epoch;
 use crate::{
-    ConfirmButton, EditWindow, KVGrid, KVGridRow, LoadableComponent, LoadableComponentContext,
-    LoadableComponentMaster,
+    impl_deref_mut_property, ConfirmButton, EditWindow, KVGrid, KVGridRow, LoadableComponent,
+    LoadableComponentContext, LoadableComponentMaster, LoadableComponentScopeExt,
+    LoadableComponentState,
 };
 
 async fn upload_custom_certificate(form_ctx: FormContext) -> Result<(), Error> {
@@ -46,10 +47,6 @@ impl CertificateList {
     }
 }
 
-pub enum Msg {
-    Redraw,
-}
-
 #[derive(PartialEq)]
 pub enum ViewState {
     CertificateView(Rc<Value>),
@@ -59,24 +56,35 @@ pub enum ViewState {
 
 #[doc(hidden)]
 pub struct ProxmoxCertificateList {
+    state: LoadableComponentState<ViewState>,
     selection: Selection,
     store: Store<CertificateInfo>,
     columns: Rc<Vec<DataTableHeader<CertificateInfo>>>,
     rows: Rc<Vec<KVGridRow>>,
 }
 
+impl_deref_mut_property!(
+    ProxmoxCertificateList,
+    state,
+    LoadableComponentState<ViewState>
+);
+
 impl LoadableComponent for ProxmoxCertificateList {
     type Properties = CertificateList;
-    type Message = Msg;
+    type Message = ();
     type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Redraw));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
         let store =
             Store::with_extract_key(|record: &CertificateInfo| Key::from(record.filename.clone()));
         let columns = Rc::new(columns());
         let rows = Rc::new(rows());
         Self {
+            state: LoadableComponentState::new(),
             selection,
             store,
             columns,
@@ -121,7 +129,7 @@ impl LoadableComponent for ProxmoxCertificateList {
                         "proxy.pem"
                     ))
                     .on_activate({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         move |_| {
                             let link = link.clone();
                             let command_path = "/nodes/localhost/certificates/custom".to_string();
@@ -145,7 +153,7 @@ impl LoadableComponent for ProxmoxCertificateList {
                     .disabled(selected_cert.is_none())
                     .onclick({
                         let selected_cert = selected_cert.clone();
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         move |_| {
                             if let Some(selected_cert) = &selected_cert {
                                 let cert_data: Value =
@@ -167,7 +175,7 @@ impl LoadableComponent for ProxmoxCertificateList {
             .selection(self.selection.clone())
             .on_row_dblclick({
                 let store = self.store.clone();
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 move |event: &mut DataTableMouseEvent| {
                     let key = &event.record_key;
                     if let Some(selected_cert) = store.read().lookup_record(key).cloned() {
@@ -226,10 +234,10 @@ async fn update_field_from_file(
 
 impl ProxmoxCertificateList {
     fn create_upload_custom_certificate(&self, ctx: &LoadableComponentContext<Self>) -> Html {
-        let link = ctx.link();
+        let link = ctx.link().clone();
         EditWindow::new(tr!("Upload Custom Certificate"))
             .width(600)
-            .on_close(ctx.link().change_view_callback(|_| None))
+            .on_close(link.change_view_callback(|_| None))
             .submit_text(tr!("Upload"))
             .renderer(move |form_ctx: &FormContext| {
                 Form::new()
@@ -287,7 +295,7 @@ impl ProxmoxCertificateList {
                     .into()
             })
             .on_submit({
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 move |form_ctx: FormContext| {
                     let link = link.clone();
                     async move {

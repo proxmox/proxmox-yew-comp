@@ -9,19 +9,20 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use yew::virtual_dom::{Key, VComp, VNode};
 
+use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader, DataTableMouseEvent};
 use pwt::widget::form::{DisplayField, Field, FormContext, Number, TextArea};
 use pwt::widget::{Button, InputPanel, Toolbar};
-use pwt::{prelude::*, AsyncPool};
 
 use pwt_macros::builder;
 
 use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
 use crate::{
-    http_get, ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,
-    LoadableComponentLink, LoadableComponentMaster,
+    http_get, impl_deref_mut_property, ConfirmButton, EditWindow, LoadableComponent,
+    LoadableComponentContext, LoadableComponentMaster, LoadableComponentScope,
+    LoadableComponentScopeExt, LoadableComponentState,
 };
 
 use super::{AcmeChallengeSchemaItem, AcmeChallengeSelector};
@@ -81,13 +82,19 @@ struct ChallengeSchemaInfo {
 
 #[doc(hidden)]
 pub struct ProxmoxAcmePluginsPanel {
+    state: LoadableComponentState<ViewState>,
     selection: Selection,
     store: Store<PluginConfig>,
     columns: Rc<Vec<DataTableHeader<PluginConfig>>>,
     challenge_schema: Option<AcmeChallengeSchemaItem>,
     schema_info: ChallengeSchemaInfo,
-    async_pool: AsyncPool,
 }
+
+impl_deref_mut_property!(
+    ProxmoxAcmePluginsPanel,
+    state,
+    LoadableComponentState<ViewState>
+);
 
 #[derive(PartialEq)]
 pub enum ViewState {
@@ -96,7 +103,6 @@ pub enum ViewState {
 }
 
 pub enum Msg {
-    Redraw,
     CloseDialog,
     Add,
     Edit(Key),
@@ -126,7 +132,10 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
     type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Redraw));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
         let store =
             Store::with_extract_key(|record: &PluginConfig| Key::from(record.plugin.clone()));
 
@@ -136,6 +145,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
         ctx.link().send_message(Msg::LoadChallengeSchemaList);
 
         Self {
+            state: LoadableComponentState::new(),
             selection,
             store,
             columns,
@@ -144,7 +154,6 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                 schema_name_map,
                 store: Store::new(),
             },
-            async_pool: AsyncPool::new(),
         }
     }
 
@@ -164,7 +173,6 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Redraw => true,
             Msg::Add => {
                 self.challenge_schema = None;
                 ctx.link().change_view(Some(ViewState::Add));
@@ -217,8 +225,8 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             }
             Msg::LoadChallengeSchemaList => {
                 let url = ctx.props().challenge_shema_url.clone();
-                let link = ctx.link();
-                self.async_pool.spawn(async move {
+                let link = ctx.link().clone();
+                self.spawn(async move {
                     let result = http_get(&*url, None).await;
                     link.send_message(Msg::UpdateChallengeSchemaList(result));
                 });
@@ -241,7 +249,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                     );
                     let command_future = crate::http_delete(command_path, None);
                     let link = ctx.link().clone();
-                    self.async_pool.spawn(async move {
+                    self.spawn(async move {
                         match command_future.await {
                             Ok(()) => {
                                 link.send_reload();
@@ -270,7 +278,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
                 Button::new(tr!("Edit"))
                     .disabled(selected_key.is_none())
                     .onclick({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         let selected_key = selected_key.clone();
                         move |_| {
                             if let Some(selected_key) = &selected_key {
@@ -297,7 +305,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             .selection(self.selection.clone())
             .on_row_dblclick({
                 let store = self.store.clone();
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 move |event: &mut DataTableMouseEvent| {
                     let key = &event.record_key;
                     if store.read().lookup_record(key).is_some() {
@@ -372,7 +380,7 @@ impl ProxmoxAcmePluginsPanel {
     }
 
     fn dns_plugin_input_panel(
-        link: &LoadableComponentLink<Self>,
+        link: &LoadableComponentScope<Self>,
         form_ctx: &FormContext,
         id: Option<&str>,
         challenge_schema: Option<&AcmeChallengeSchemaItem>,
@@ -498,7 +506,7 @@ impl ProxmoxAcmePluginsPanel {
             .on_done(ctx.link().callback(|_| Msg::CloseDialog))
             .renderer({
                 let id = id.to_owned();
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 let challenge_schema = self.challenge_schema.clone();
                 let challenge_store = self.schema_info.store.clone();
                 move |form_ctx: &FormContext| {
@@ -534,7 +542,7 @@ impl ProxmoxAcmePluginsPanel {
         EditWindow::new(tr!("Add") + ": " + &tr!("ACME DNS Plugin"))
             .on_done(ctx.link().callback(|_| Msg::CloseDialog))
             .renderer({
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 let challenge_schema = self.challenge_schema.clone();
                 let challenge_store = self.schema_info.store.clone();
                 move |form_ctx: &FormContext| {

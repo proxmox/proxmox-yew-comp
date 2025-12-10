@@ -18,13 +18,14 @@ use pwt::widget::data_table::{
     DataTable, DataTableCellRenderArgs, DataTableColumn, DataTableHeader, DataTableHeaderGroup,
 };
 use pwt::widget::{AlertDialog, Button, Container, Toolbar, Tooltip};
-use pwt::AsyncPool;
 
 use crate::percent_encoding::percent_encode_component;
 use crate::subscription_alert::subscription_is_active;
+use crate::LoadableComponentState;
 use crate::SubscriptionAlert;
 use crate::{
-    DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster, XTermJs,
+    DataViewWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
+    LoadableComponentScopeExt, XTermJs,
 };
 use proxmox_apt_api_types::APTUpdateInfo;
 
@@ -163,15 +164,20 @@ pub enum ViewState {
 /// Messages for [`ProxmoxAptManager::update`]
 pub enum Msg {
     CheckSubscription,
-    SelectionChange,
 }
 
 pub struct ProxmoxAptPackageManager {
+    state: LoadableComponentState<ViewState>,
     tree_store: TreeStore<TreeEntry>,
     selection: Selection,
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
-    async_pool: AsyncPool,
 }
+
+crate::impl_deref_mut_property!(
+    ProxmoxAptPackageManager,
+    state,
+    LoadableComponentState<ViewState>
+);
 
 impl LoadableComponent for ProxmoxAptPackageManager {
     type Properties = AptPackageManager;
@@ -179,15 +185,22 @@ impl LoadableComponent for ProxmoxAptPackageManager {
     type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
+        let props = ctx.props();
         let tree_store = TreeStore::new().view_root(false);
         let columns = Self::columns(ctx, tree_store.clone());
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::SelectionChange));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
+
+        let mut state = LoadableComponentState::new();
+        state.set_task_base_url(props.task_base_url.clone());
 
         Self {
+            state,
             tree_store,
             selection,
             columns,
-            async_pool: AsyncPool::new(),
         }
     }
 
@@ -200,14 +213,12 @@ impl LoadableComponent for ProxmoxAptPackageManager {
                     .clone()
                     .subscription_url
                     .unwrap_or("/nodes/localhost/subscription".into());
-                let task_base_url = props.task_base_url.clone();
                 let command = format!("{}/update", props.base_url);
-                self.async_pool.spawn(async move {
+                self.spawn(async move {
                     let data = crate::http_get::<Value>(url.as_str(), None).await;
                     let is_active = subscription_is_active(Some(&data));
 
                     if is_active {
-                        link.task_base_url(task_base_url);
                         link.start_task(&command, None, false);
                     } else {
                         link.change_view(Some(ViewState::ShowSubscriptionPopup));
@@ -215,7 +226,6 @@ impl LoadableComponent for ProxmoxAptPackageManager {
                 });
                 true
             }
-            Msg::SelectionChange => true,
         }
     }
 
@@ -264,9 +274,8 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
             .with_child(Button::new(tr!("Refresh")).on_activate({
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 let sub_check = props.subscription_url.is_some();
-                link.task_base_url(props.task_base_url.clone());
 
                 let command = format!("{}/update", props.base_url);
 
@@ -287,7 +296,7 @@ impl LoadableComponent for ProxmoxAptPackageManager {
                 Button::new(tr!("Changelog"))
                     .disabled(selected_package.is_none())
                     .onclick({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         let view = selected_package
                             .as_ref()
                             .map(|p| ViewState::ShowChangelog(p.clone()));
@@ -296,8 +305,8 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             )
             .with_flex_spacer()
             .with_child({
-                let loading = ctx.loading();
-                let link = ctx.link();
+                let loading = self.loading();
+                let link = ctx.link().clone();
                 Button::refresh(loading).onclick(move |_| link.send_reload())
             });
 
@@ -325,11 +334,9 @@ impl LoadableComponent for ProxmoxAptPackageManager {
             ViewState::ShowSubscriptionPopup => {
                 let link = ctx.link().clone();
                 let props = ctx.props();
-                let task_base_url = props.task_base_url.clone();
                 let command = format!("{}/update", props.base_url);
                 let on_close = move |_| {
                     link.change_view(None);
-                    link.task_base_url(task_base_url.clone());
                     link.start_task(&command, None, false);
                 };
                 Some(if let Some(msg) = props.subscription_message.clone() {
@@ -350,6 +357,8 @@ impl LoadableComponent for ProxmoxAptPackageManager {
         old_props: &Self::Properties,
     ) -> bool {
         let props = ctx.props();
+
+        self.set_task_base_url(props.task_base_url.clone());
 
         if props.base_url != old_props.base_url || props.task_base_url != old_props.task_base_url {
             ctx.link().send_reload();

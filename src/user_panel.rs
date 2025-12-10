@@ -23,8 +23,9 @@ use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::{epoch_to_input_value, render_epoch_short};
 use crate::{
-    EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
-    PermissionPanel, RealmSelector, SchemaValidation,
+    impl_deref_mut_property, EditWindow, LoadableComponent, LoadableComponentContext,
+    LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState, PermissionPanel,
+    RealmSelector, SchemaValidation,
 };
 
 async fn load_user_list() -> Result<Vec<UserWithTokens>, Error> {
@@ -111,14 +112,16 @@ pub enum ViewState {
 }
 
 pub enum Msg {
-    SelectionChange,
     RemoveItem,
 }
 
 pub struct ProxmoxUserPanel {
+    state: LoadableComponentState<ViewState>,
     store: Store<UserWithTokens>,
     selection: Selection,
 }
+
+impl_deref_mut_property!(ProxmoxUserPanel, state, LoadableComponentState<ViewState>);
 
 impl LoadableComponent for ProxmoxUserPanel {
     type Message = Msg;
@@ -142,17 +145,23 @@ impl LoadableComponent for ProxmoxUserPanel {
             Key::from(record.user.userid.as_str())
         });
 
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::SelectionChange));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
 
-        Self { store, selection }
+        Self {
+            state: LoadableComponentState::new(),
+            store,
+            selection,
+        }
     }
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::SelectionChange => true,
             Msg::RemoveItem => {
                 if let Some(key) = self.selection.selected_key() {
-                    let link = ctx.link();
+                    let link = ctx.link().clone();
                     link.clone().spawn(async move {
                         if let Err(err) = delete_user(key).await {
                             link.show_error(tr!("Unable to delete user"), err, true);
@@ -206,8 +215,8 @@ impl LoadableComponent for ProxmoxUserPanel {
             )
             .with_flex_spacer()
             .with_child({
-                let loading = ctx.loading();
-                let link = ctx.link();
+                let loading = self.loading();
+                let link = ctx.link().clone();
                 Button::refresh(loading).onclick(move |_| link.send_reload())
             });
 
@@ -215,7 +224,7 @@ impl LoadableComponent for ProxmoxUserPanel {
     }
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
-        let link = ctx.link();
+        let link = ctx.link().clone();
         DataTable::new(columns(), self.store.clone())
             .class("pwt-flex-fill pwt-overflow-auto")
             .selection(self.selection.clone())

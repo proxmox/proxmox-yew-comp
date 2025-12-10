@@ -19,8 +19,10 @@ use pwt_macros::builder;
 use crate::common_api_types::{create_acme_config_string, parse_acme_config_string, AcmeConfig};
 use crate::common_api_types::{create_acme_domain_string, parse_acme_domain_string, AcmeDomain};
 use crate::percent_encoding::percent_encode_component;
-use crate::{ConfirmButton, EditWindow};
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::{impl_deref_mut_property, ConfirmButton, EditWindow, LoadableComponentState};
+use crate::{
+    LoadableComponent, LoadableComponentContext, LoadableComponentMaster, LoadableComponentScopeExt,
+};
 
 use super::{AcmeAccountSelector, AcmeChallengeTypeSelector, AcmePluginSelector};
 
@@ -54,14 +56,20 @@ impl AcmeDomainsPanel {
 
 #[doc(hidden)]
 pub struct ProxmoxAcmeDomainsPanel {
+    state: LoadableComponentState<ViewState>,
     selection: Selection,
     store: Store<AcmeDomainEntry>,
     columns: Rc<Vec<DataTableHeader<AcmeDomainEntry>>>,
     acme_account: Option<AcmeConfig>,
 }
 
+impl_deref_mut_property!(
+    ProxmoxAcmeDomainsPanel,
+    state,
+    LoadableComponentState<ViewState>
+);
+
 pub enum Msg {
-    Redraw,
     AcmeAccount(Option<AcmeConfig>),
 }
 
@@ -78,7 +86,10 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
     type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Redraw));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
         let store = Store::with_extract_key(|record: &AcmeDomainEntry| {
             Key::from(record.config_key.clone())
         });
@@ -109,6 +120,7 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
         ctx.link().repeated_load(3000);
 
         Self {
+            state: LoadableComponentState::new(),
             selection,
             store,
             columns,
@@ -122,7 +134,7 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let store = self.store.clone();
         let url = ctx.props().url.clone();
-        let link = ctx.link();
+        let link = ctx.link().clone();
         Box::pin(async move {
             let data: Value = crate::http_get(&*url, None).await?;
 
@@ -157,7 +169,6 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
 
     fn update(&mut self, _ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Redraw => true,
             Msg::AcmeAccount(acme_account) => {
                 self.acme_account = acme_account;
                 true
@@ -179,7 +190,7 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
                 Button::new(tr!("Edit"))
                     .disabled(selected_key.is_none())
                     .onclick({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         let selected_key = selected_key.clone();
                         move |_| {
                             if let Some(selected_key) = &selected_key {
@@ -192,7 +203,7 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
                 ConfirmButton::remove_entry(selected_key.as_deref().unwrap_or("").to_string())
                     .disabled(selected_key.is_none())
                     .on_activate({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         let url = ctx.props().url.clone();
                         let selected_key = selected_key.clone();
                         move |_| {
@@ -238,7 +249,7 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
                 </div>}
             })
             .with_child(Button::new(tr!("Order Certificate Now")).onclick({
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 move |_| {
                     let command_path = "/nodes/localhost/certificates/acme/certificate";
                     link.start_task(command_path, None, false);
@@ -253,7 +264,7 @@ impl LoadableComponent for ProxmoxAcmeDomainsPanel {
             .class("pwt-flex-fit")
             .selection(self.selection.clone())
             .on_row_dblclick({
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 move |event: &mut DataTableMouseEvent| {
                     let key = &event.record_key;
                     link.change_view(Some(ViewState::Edit(key.clone())));

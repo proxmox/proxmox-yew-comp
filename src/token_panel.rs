@@ -25,7 +25,8 @@ use crate::utils::{
 };
 use crate::{
     AuthidSelector, ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,
-    LoadableComponentLink, LoadableComponentMaster, PermissionPanel,
+    LoadableComponentMaster, LoadableComponentScope, LoadableComponentScopeExt,
+    LoadableComponentState, PermissionPanel,
 };
 
 async fn load_api_tokens() -> Result<Vec<ApiToken>, Error> {
@@ -37,7 +38,7 @@ async fn load_api_tokens() -> Result<Vec<ApiToken>, Error> {
 
 async fn create_token(
     form_ctx: FormContext,
-    link: LoadableComponentLink<ProxmoxTokenView>,
+    link: LoadableComponentScope<ProxmoxTokenView>,
 ) -> Result<(), Error> {
     let mut data = form_ctx.get_submit_data();
 
@@ -118,16 +119,18 @@ enum ViewState {
 }
 
 enum Msg {
-    Refresh,
     Remove,
     Regenerate,
 }
 
 struct ProxmoxTokenView {
+    state: LoadableComponentState<ViewState>,
     selection: Selection,
     store: Store<ApiToken>,
     columns: Rc<Vec<DataTableHeader<ApiToken>>>,
 }
+
+crate::impl_deref_mut_property!(ProxmoxTokenView, state, LoadableComponentState<ViewState>);
 
 fn token_api_url(user: &str, tokenname: &str) -> String {
     format!(
@@ -146,11 +149,15 @@ impl LoadableComponent for ProxmoxTokenView {
         let link = ctx.link();
         link.repeated_load(5000);
 
-        let selection = Selection::new().on_select(link.callback(|_| Msg::Refresh));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
         let store =
             Store::with_extract_key(|record: &ApiToken| Key::from(record.tokenid.to_string()));
 
         Self {
+            state: LoadableComponentState::new(),
             selection,
             store,
             columns: columns(),
@@ -217,7 +224,6 @@ impl LoadableComponent for ProxmoxTokenView {
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Refresh => true,
             Msg::Remove => {
                 let Some(record) = self.store.selected_record(&self.selection) else {
                     return false;
@@ -230,7 +236,7 @@ impl LoadableComponent for ProxmoxTokenView {
                 };
 
                 let url = token_api_url(&user, tokenname.as_str());
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 link.clone().spawn(async move {
                     match crate::http_delete(url, None).await {
                         Ok(()) => {
@@ -271,7 +277,7 @@ impl LoadableComponent for ProxmoxTokenView {
     }
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
-        let link = ctx.link();
+        let link = ctx.link().clone();
 
         DataTable::new(self.columns.clone(), self.store.clone())
             .class("pwt-flex-fit")

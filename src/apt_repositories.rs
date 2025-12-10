@@ -22,7 +22,8 @@ use pwt::widget::{Button, Column, Container, Fa, Row, Toolbar, Tooltip};
 use crate::subscription_alert::subscription_is_active;
 use crate::{
     EditWindow, ExistingProduct, LoadableComponent, LoadableComponentContext,
-    LoadableComponentMaster, ProjectInfo, SubscriptionAlert,
+    LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState, ProjectInfo,
+    SubscriptionAlert,
 };
 
 use pwt_macros::builder;
@@ -406,7 +407,6 @@ fn apt_configuration_to_tree(config: &APTRepositoriesResult) -> SlabTree<TreeEnt
 }
 
 pub enum Msg {
-    Refresh,
     ToggleEnable,
     UpdateStatus(APTRepositoriesResult),
     SubscriptionInfo(Result<Value, Error>),
@@ -419,6 +419,7 @@ pub enum ViewState {
 }
 
 pub struct ProxmoxAptRepositories {
+    state: LoadableComponentState<ViewState>,
     tree_store: TreeStore<TreeEntry>,
     selection: Selection,
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
@@ -430,6 +431,12 @@ pub struct ProxmoxAptRepositories {
     status_columns: Rc<Vec<DataTableHeader<StatusLine>>>,
 }
 
+crate::impl_deref_mut_property!(
+    ProxmoxAptRepositories,
+    state,
+    LoadableComponentState<ViewState>
+);
+
 impl LoadableComponent for ProxmoxAptRepositories {
     type Properties = AptRepositories;
     type Message = Msg;
@@ -438,19 +445,27 @@ impl LoadableComponent for ProxmoxAptRepositories {
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let tree_store = TreeStore::new().view_root(false);
         let columns = Self::columns(ctx, tree_store.clone());
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Refresh));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
         let status_columns = Self::status_columns(ctx);
 
         let subscription_url = ctx.props().subscription_url.clone();
 
-        let link = ctx.link();
-        link.send_future(async move {
-            // TODO: also reload this in load, not only create?!
-            let data = crate::http_get(subscription_url.to_string(), None).await;
-            Msg::SubscriptionInfo(data)
+        let state = LoadableComponentState::new();
+
+        state.spawn({
+            let link = ctx.link().clone();
+            async move {
+                // TODO: also reload this in load, not only create?!
+                let data = crate::http_get(subscription_url.to_string(), None).await;
+                link.send_message(Msg::SubscriptionInfo(data));
+            }
         });
 
         Self {
+            state,
             tree_store,
             selection,
             columns,
@@ -470,7 +485,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
         let props = ctx.props();
         let base_url = props.base_url.clone();
         let tree_store = self.tree_store.clone();
-        let link = ctx.link();
+        let link = ctx.link().clone();
 
         Box::pin(async move {
             let config = apt_configuration(base_url.clone()).await?;
@@ -484,7 +499,6 @@ impl LoadableComponent for ProxmoxAptRepositories {
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
-            Msg::Refresh => true,
             Msg::SubscriptionInfo(status) => {
                 self.subscription_status = Some(status);
                 if let Some(config) = &self.config {
@@ -547,7 +561,7 @@ impl LoadableComponent for ProxmoxAptRepositories {
                     });
                     // fixme: add digest to protect against concurrent changes
                     let url = format!("{}/repositories", props.base_url);
-                    let link = ctx.link();
+                    let link = ctx.link().clone();
                     link.clone().spawn(async move {
                         match crate::http_post(url, Some(param)).await {
                             Ok(()) => {
@@ -610,8 +624,8 @@ impl LoadableComponent for ProxmoxAptRepositories {
             })
             .with_flex_spacer()
             .with_child({
-                let loading = ctx.loading();
-                let link = ctx.link();
+                let loading = self.loading();
+                let link = ctx.link().clone();
                 Button::refresh(loading).onclick(move |_| link.send_reload())
             });
 

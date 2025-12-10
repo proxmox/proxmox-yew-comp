@@ -23,9 +23,12 @@ use crate::form::pve::lxc_network_property;
 use crate::form::typed_load;
 use crate::{
     configuration::guest_config_url, form::pve::PveGuestType, LoadableComponent,
-    LoadableComponentContext,
+    LoadableComponentContext, LoadableComponentScopeExt,
 };
-use crate::{http_put, ConfirmButton, LoadableComponentMaster, PropertyEditDialog};
+use crate::{
+    http_put, impl_deref_mut_property, ConfirmButton, LoadableComponentMaster,
+    LoadableComponentState, PropertyEditDialog,
+};
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -82,21 +85,23 @@ pub enum ViewState {
 }
 
 pub enum Msg {
-    Redraw,
     SelectionChange,
     Remove(Key),
 }
 
 pub struct LxcNetworkComp {
+    state: LoadableComponentState<ViewState>,
     columns: Rc<Vec<DataTableHeader<NetworkEntry>>>,
     store: Store<NetworkEntry>,
     selection: Selection,
 }
 
+impl_deref_mut_property!(LxcNetworkComp, state, LoadableComponentState<ViewState>);
+
 impl LxcNetworkComp {
     fn edit_dialog(&self, ctx: &LoadableComponentContext<Self>, name: Option<String>) -> Html {
         let props = ctx.props();
-        let link = ctx.link();
+        let link = ctx.link().clone();
 
         let property = lxc_network_property(
             Some(props.node.clone()),
@@ -157,11 +162,15 @@ impl LoadableComponent for LxcNetworkComp {
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::SelectionChange));
-        let store = Store::new().on_change(ctx.link().callback(|_| Msg::Redraw));
+        let store = Store::new().on_change({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
 
         ctx.link().repeated_load(3000);
 
         Self {
+            state: LoadableComponentState::new(),
             store,
             selection,
             columns: columns(),
@@ -170,15 +179,14 @@ impl LoadableComponent for LxcNetworkComp {
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
-        let link = ctx.link();
+        let link = ctx.link().clone();
         match msg {
             Msg::SelectionChange => true,
-            Msg::Redraw => true,
             Msg::Remove(key) => {
                 let url =
                     guest_config_url(props.vmid, &props.node, &props.remote, PveGuestType::Lxc);
 
-                link.clone().spawn(async move {
+                self.spawn(async move {
                     let param = json!({ "delete": [ key.to_string() ]});
                     let result: Result<(), _> = crate::http_put(&url, Some(param)).await;
                     if let Err(err) = result {
@@ -259,7 +267,7 @@ impl LoadableComponent for LxcNetworkComp {
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let props = ctx.props();
         let readonly = props.readonly;
-        let link = ctx.link();
+        let link = ctx.link().clone();
 
         if props.mobile {
             let mut tiles = Vec::new();

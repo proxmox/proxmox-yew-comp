@@ -12,8 +12,13 @@ use pwt::widget::form::{Field, FormContext};
 use pwt::widget::{Button, Container, InputPanel, Toolbar};
 
 use crate::utils::render_epoch;
-use crate::{ConfirmButton, DataViewWindow, EditWindow, KVGrid, KVGridRow, ProjectInfo};
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::{
+    ConfirmButton, DataViewWindow, EditWindow, KVGrid, KVGridRow, LoadableComponentState,
+    ProjectInfo,
+};
+use crate::{
+    LoadableComponent, LoadableComponentContext, LoadableComponentMaster, LoadableComponentScopeExt,
+};
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct SubscriptionPanel {
@@ -38,20 +43,26 @@ pub enum ViewState {
     SystemReport,
 }
 
-pub enum Msg {}
-
 pub struct ProxmoxSubscriptionPanel {
+    state: LoadableComponentState<ViewState>,
     rows: Rc<Vec<KVGridRow>>,
     data: Rc<RefCell<Rc<Value>>>,
 }
 
+crate::impl_deref_mut_property!(
+    ProxmoxSubscriptionPanel,
+    state,
+    LoadableComponentState<ViewState>
+);
+
 impl LoadableComponent for ProxmoxSubscriptionPanel {
-    type Message = Msg;
+    type Message = ();
     type Properties = SubscriptionPanel;
     type ViewState = ViewState;
 
     fn create(_ctx: &LoadableComponentContext<Self>) -> Self {
         Self {
+            state: LoadableComponentState::new(),
             rows: Rc::new(rows()),
             data: Rc::new(RefCell::new(Rc::new(Value::Null))),
         }
@@ -59,7 +70,7 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
 
     fn load(
         &self,
-        ctx: &crate::LoadableComponentContext<Self>,
+        ctx: &Context<LoadableComponentMaster<Self>>,
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let data = self.data.clone();
         let base_url = ctx.props().base_url.to_string();
@@ -70,7 +81,7 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
         })
     }
 
-    fn toolbar(&self, ctx: &LoadableComponentContext<Self>) -> Option<Html> {
+    fn toolbar(&self, ctx: &Context<LoadableComponentMaster<Self>>) -> Option<Html> {
         let toolbar = Toolbar::new()
             .class("pwt-overflow-hidden")
             .with_child(
@@ -85,7 +96,7 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                 Button::new(tr!("Check"))
                     .icon_class("fa fa-check-square-o")
                     .onclick({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         let base_url = ctx.props().base_url.to_string();
                         move |_| {
                             link.spawn({
@@ -112,7 +123,7 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
                         html! {tr!("Are you sure you want to remove the subscription key?")},
                     )
                     .on_activate({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         let base_url = ctx.props().base_url.to_string();
                         move |_| {
                             link.spawn({
@@ -141,8 +152,8 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
             )
             .with_flex_spacer()
             .with_child({
-                let loading = ctx.loading();
-                let link = ctx.link();
+                let loading = self.loading();
+                let link = ctx.link().clone();
                 Button::refresh(loading).onclick(move |_| link.send_reload())
             });
 

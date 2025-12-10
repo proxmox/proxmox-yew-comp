@@ -17,7 +17,7 @@ use proxmox_client::ApiResponseData;
 
 use crate::{
     ApiLoadCallback, EditWindow, LoadableComponent, LoadableComponentContext,
-    LoadableComponentMaster, Markdown,
+    LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState, Markdown,
 };
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
@@ -107,9 +107,12 @@ pub enum Msg {
 
 #[doc(hidden)]
 pub struct ProxmoxNotesView {
+    state: LoadableComponentState<ViewState>,
     data: NotesWithDigest,
     edit_window_loader: ApiLoadCallback<Value>,
 }
+
+crate::impl_deref_mut_property!(ProxmoxNotesView, state, LoadableComponentState<ViewState>);
 
 impl LoadableComponent for ProxmoxNotesView {
     type Properties = NotesView;
@@ -130,6 +133,7 @@ impl LoadableComponent for ProxmoxNotesView {
             }
         });
         Self {
+            state: LoadableComponentState::new(),
             data: NotesWithDigest {
                 notes: String::new(),
                 digest: None,
@@ -143,7 +147,7 @@ impl LoadableComponent for ProxmoxNotesView {
         ctx: &LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let loader = ctx.props().loader.clone();
-        let link = ctx.link();
+        let link = ctx.link().clone();
         Box::pin(async move {
             let resp = loader.apply().await?;
             let notes = resp.data;
@@ -169,10 +173,8 @@ impl LoadableComponent for ProxmoxNotesView {
                 .class("pwt-overflow-hidden")
                 .class("pwt-border-bottom")
                 .with_child(
-                    Button::new(tr!("Edit")).on_activate(
-                        ctx.link()
-                            .change_view_callback(|_| Some(ViewState::EditNotes)),
-                    ),
+                    Button::new(tr!("Edit"))
+                        .on_activate(ctx.link().change_view_callback(|_| ViewState::EditNotes)),
                 )
                 .into(),
         )

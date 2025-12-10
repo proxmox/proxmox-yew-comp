@@ -26,7 +26,10 @@ use pbs_api_types::TaskListItem;
 
 use pwt_macros::builder;
 
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, TaskViewer};
+use crate::{
+    LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
+    LoadableComponentScopeExt, LoadableComponentState, TaskViewer,
+};
 
 use super::{TaskStatusSelector, TaskTypeSelector};
 
@@ -98,7 +101,6 @@ pub enum ViewDialog {
 }
 
 pub enum Msg {
-    Redraw,
     ToggleFilter,
     LoadBatch(bool), // fresh load
     LoadFinished,
@@ -106,6 +108,7 @@ pub enum Msg {
     ShowTask,
 }
 pub struct ProxmoxTasks {
+    state: LoadableComponentState<ViewDialog>,
     selection: Selection,
     store: Store<TaskListItem>,
     show_filter: PersistentState<bool>,
@@ -116,6 +119,8 @@ pub struct ProxmoxTasks {
     load_timeout: Option<Timeout>,
     columns: Rc<Vec<DataTableHeader<TaskListItem>>>,
 }
+
+crate::impl_deref_mut_property!(ProxmoxTasks, state, LoadableComponentState<ViewDialog>);
 
 impl ProxmoxTasks {
     fn columns(ctx: &LoadableComponentContext<Self>) -> Rc<Vec<DataTableHeader<TaskListItem>>> {
@@ -169,7 +174,10 @@ impl LoadableComponent for ProxmoxTasks {
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let link = ctx.link();
-        let selection = Selection::new().on_select(link.callback(|_| Msg::Redraw));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
         let store = Store::with_extract_key(|item: &TaskListItem| Key::from(item.upid.clone()));
 
         let filter_form_context =
@@ -194,6 +202,7 @@ impl LoadableComponent for ProxmoxTasks {
         });
 
         Self {
+            state: LoadableComponentState::new(),
             selection,
             store,
             show_filter: PersistentState::new("ProxmoxTasksShowFilter"),
@@ -293,7 +302,6 @@ impl LoadableComponent for ProxmoxTasks {
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Redraw => true,
             Msg::ToggleFilter => {
                 self.show_filter.update(!*self.show_filter);
                 true
@@ -304,7 +312,7 @@ impl LoadableComponent for ProxmoxTasks {
                     return false;
                 }
                 let filter_params = form_context.get_submit_data();
-                if ctx.loading() && self.last_filter == filter_params {
+                if self.loading() && self.last_filter == filter_params {
                     return false;
                 }
 
@@ -384,8 +392,8 @@ impl LoadableComponent for ProxmoxTasks {
                     .onclick(ctx.link().callback(|_| Msg::ToggleFilter)),
             )
             .with_child({
-                let loading = ctx.loading();
-                let link = ctx.link();
+                let loading = self.loading();
+                let link = ctx.link().clone();
                 Button::refresh(loading).onclick(move |_| link.send_message(Msg::LoadBatch(true)))
             });
 
@@ -441,7 +449,7 @@ impl LoadableComponent for ProxmoxTasks {
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let columns = self.columns.clone();
-        let link = ctx.link();
+        let link = ctx.link().clone();
 
         DataTable::new(columns, self.store.clone())
             .class("pwt-flex-fit")

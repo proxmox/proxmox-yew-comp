@@ -18,7 +18,7 @@ use pwt::widget::data_table::{
 
 use pwt_macros::builder;
 
-use crate::{http_get, LoadableComponent, LoadableComponentMaster};
+use crate::{http_get, LoadableComponent, LoadableComponentMaster, LoadableComponentState};
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -46,9 +46,12 @@ impl PermissionPanel {
     }
 }
 pub struct ProxmoxPermissionPanel {
+    state: LoadableComponentState<()>,
     store: TreeStore<PermissionInfo>,
     columns: Rc<Vec<DataTableHeader<PermissionInfo>>>,
 }
+
+crate::impl_deref_mut_property!(ProxmoxPermissionPanel, state, LoadableComponentState<()>);
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 enum PermissionInfo {
@@ -113,15 +116,19 @@ impl LoadableComponent for ProxmoxPermissionPanel {
     type Message = ();
     type ViewState = ();
 
-    fn create(_ctx: &crate::LoadableComponentContext<Self>) -> Self {
+    fn create(_ctx: &Context<LoadableComponentMaster<Self>>) -> Self {
         let store = TreeStore::new();
         let columns = Rc::new(columns(&store));
-        Self { store, columns }
+        Self {
+            state: LoadableComponentState::new(),
+            store,
+            columns,
+        }
     }
 
     fn load(
         &self,
-        ctx: &crate::LoadableComponentContext<Self>,
+        ctx: &Context<LoadableComponentMaster<Self>>,
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let props = ctx.props();
         let base_url = props.base_url.clone();
@@ -151,7 +158,7 @@ impl LoadableComponent for ProxmoxPermissionPanel {
         })
     }
 
-    fn main_view(&self, _ctx: &crate::LoadableComponentContext<Self>) -> Html {
+    fn main_view(&self, _ctx: &Context<LoadableComponentMaster<Self>>) -> Html {
         DataTable::new(Rc::clone(&self.columns), self.store.clone())
             .class("pwt-flex-fit")
             .into()

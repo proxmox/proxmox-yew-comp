@@ -16,7 +16,10 @@ use pwt::widget::{Button, Mask, Toolbar};
 
 use pwt_macros::builder;
 
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::{
+    impl_deref_mut_property, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
+    LoadableComponentScopeExt, LoadableComponentState,
+};
 
 use proxmox_tfa::{TfaType, TfaUser};
 
@@ -87,7 +90,6 @@ impl TfaView {
 }
 
 pub enum Msg {
-    Redraw,
     Edit,
     Remove(Option<String>),
     RemoveResult(Result<(), Error>),
@@ -104,10 +106,13 @@ pub enum ViewState {
 
 #[doc(hidden)]
 pub struct ProxmoxTfaView {
+    state: LoadableComponentState<ViewState>,
     selection: Selection,
     store: Store<TfaEntry>,
     removing: bool,
 }
+
+impl_deref_mut_property!(ProxmoxTfaView, state, LoadableComponentState<ViewState>);
 
 impl ProxmoxTfaView {
     fn get_selected_record(&self) -> Option<TfaEntry> {
@@ -127,8 +132,12 @@ impl LoadableComponent for ProxmoxTfaView {
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let store = Store::new();
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Redraw));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
         Self {
+            state: LoadableComponentState::new(),
             store,
             selection,
             removing: false,
@@ -177,7 +186,6 @@ impl LoadableComponent for ProxmoxTfaView {
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
-            Msg::Redraw => true,
             Msg::Edit => {
                 let info = match self.get_selected_record() {
                     Some(info) => info,
@@ -204,8 +212,8 @@ impl LoadableComponent for ProxmoxTfaView {
                 // fixme: ask use if he really wants to remove
                 let link = ctx.link().clone();
                 let base_url = props.base_url.clone();
-                link.send_future(async move {
-                    Msg::RemoveResult(
+                self.spawn(async move {
+                    link.send_message(Msg::RemoveResult(
                         delete_item(
                             base_url,
                             info.user_id.clone(),
@@ -213,7 +221,7 @@ impl LoadableComponent for ProxmoxTfaView {
                             password,
                         )
                         .await,
-                    )
+                    ))
                 });
 
                 false
@@ -282,8 +290,8 @@ impl LoadableComponent for ProxmoxTfaView {
             )
             .with_flex_spacer()
             .with_child({
-                let loading = ctx.loading();
-                let link = ctx.link();
+                let loading = self.loading();
+                let link = ctx.link().clone();
                 Button::refresh(loading).onclick(move |_| link.send_reload())
             });
 
@@ -296,7 +304,7 @@ impl LoadableComponent for ProxmoxTfaView {
             .selection(self.selection.clone())
             .class("pwt-flex-fit")
             .on_row_dblclick({
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 move |_: &mut _| link.send_message(Msg::Edit)
             });
         Mask::new(view).visible(self.removing).into()
@@ -314,7 +322,7 @@ impl LoadableComponent for ProxmoxTfaView {
                 TfaConfirmRemove::new(info)
                     .on_close(ctx.link().change_view_callback(|_| None))
                     .on_confirm({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         move |password| link.send_message(Msg::Remove(password))
                     })
                     .into()

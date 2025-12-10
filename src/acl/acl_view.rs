@@ -24,7 +24,9 @@ use proxmox_access_control::types::{AclListItem, AclUgidType};
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::render_boolean;
 use crate::{
-    ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
+    impl_deref_mut_property, ConfirmButton, EditWindow, LoadableComponent,
+    LoadableComponentContext, LoadableComponentMaster, LoadableComponentScopeExt,
+    LoadableComponentState,
 };
 
 use super::acl_edit::AclEditWindow;
@@ -95,14 +97,16 @@ enum ViewState {
 }
 
 enum Msg {
-    Reload,
     Remove,
 }
 
 struct ProxmoxAclView {
+    state: LoadableComponentState<ViewState>,
     selection: Selection,
     store: Store<AclListItem>,
 }
+
+impl_deref_mut_property!(ProxmoxAclView, state, LoadableComponentState<ViewState>);
 
 impl ProxmoxAclView {
     fn colmuns() -> Rc<Vec<DataTableHeader<AclListItem>>> {
@@ -141,14 +145,21 @@ impl LoadableComponent for ProxmoxAclView {
         let link = ctx.link();
         link.repeated_load(5000);
 
-        let selection = Selection::new().on_select(link.callback(|_| Msg::Reload));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
 
         let store = Store::with_extract_key(|record: &AclListItem| {
             let acl_id = format!("{} for {} - {}", record.path, record.ugid, record.roleid);
             Key::from(acl_id)
         });
 
-        Self { selection, store }
+        Self {
+            state: LoadableComponentState::new(),
+            selection,
+            store,
+        }
     }
 
     fn load(
@@ -211,14 +222,13 @@ impl LoadableComponent for ProxmoxAclView {
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Reload => true,
             Msg::Remove => {
                 if let Some(key) = self.selection.selected_key() {
                     if let Some(record) = self.store.read().lookup_record(&key).cloned() {
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         let url = ctx.props().acl_api_endpoint.to_owned();
 
-                        link.clone().spawn(async move {
+                        self.spawn(async move {
                             let data = match record.ugid_type {
                                 AclUgidType::User => json!({
                                     "delete": true,

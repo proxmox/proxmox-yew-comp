@@ -15,8 +15,9 @@ use crate::common_api_types::AcmeAccountInfo;
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::render_url;
 use crate::{
-    ConfirmButton, DataViewWindow, LoadableComponent, LoadableComponentContext,
-    LoadableComponentMaster,
+    impl_deref_mut_property, ConfirmButton, DataViewWindow, LoadableComponent,
+    LoadableComponentContext, LoadableComponentMaster, LoadableComponentScopeExt,
+    LoadableComponentState,
 };
 
 use super::AcmeRegisterAccount;
@@ -44,14 +45,17 @@ impl AcmeAccountsPanel {
 
 #[doc(hidden)]
 pub struct ProxmoxAcmeAccountsPanel {
+    state: LoadableComponentState<ViewState>,
     selection: Selection,
     store: Store<AcmeAccountEntry>,
     columns: Rc<Vec<DataTableHeader<AcmeAccountEntry>>>,
 }
 
-pub enum Msg {
-    Redraw,
-}
+impl_deref_mut_property!(
+    ProxmoxAcmeAccountsPanel,
+    state,
+    LoadableComponentState<ViewState>
+);
 
 #[derive(PartialEq)]
 pub enum ViewState {
@@ -61,11 +65,14 @@ pub enum ViewState {
 
 impl LoadableComponent for ProxmoxAcmeAccountsPanel {
     type Properties = AcmeAccountsPanel;
-    type Message = Msg;
+    type Message = ();
     type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Redraw));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
         let store =
             Store::with_extract_key(|record: &AcmeAccountEntry| Key::from(record.name.clone()));
 
@@ -77,6 +84,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
             .into()]);
 
         Self {
+            state: LoadableComponentState::new(),
             selection,
             store,
             columns,
@@ -110,7 +118,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
                 Button::new(tr!("View"))
                     .disabled(selected_key.is_none())
                     .onclick({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         let selected_key = selected_key.clone();
                         move |_| {
                             if let Some(selected_key) = &selected_key {
@@ -123,7 +131,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
                 ConfirmButton::remove_entry(selected_key.as_deref().unwrap_or("").to_string())
                     .disabled(selected_key.is_none())
                     .on_activate({
-                        let link = ctx.link();
+                        let link = ctx.link().clone();
                         let selected_key = selected_key.clone();
 
                         move |_| {
@@ -159,7 +167,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
             .selection(self.selection.clone())
             .on_row_dblclick({
                 let selection = self.selection.clone();
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 move |_: &mut _| {
                     if let Some(selected_key) = selection.selected_key() {
                         link.change_view(Some(ViewState::View(selected_key.clone())));

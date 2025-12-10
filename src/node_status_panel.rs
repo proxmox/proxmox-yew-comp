@@ -17,7 +17,7 @@ use proxmox_node_status::{NodePowerCommand, NodeStatus};
 use crate::utils::copy_text_to_clipboard;
 use crate::{
     http_get, http_post, node_info, ConfirmButton, LoadableComponent, LoadableComponentContext,
-    LoadableComponentMaster,
+    LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState,
 };
 
 #[derive(Properties, Clone, PartialEq)]
@@ -53,7 +53,6 @@ enum Msg {
     Error(Error),
     Loaded(Rc<NodeStatus>),
     RebootOrShutdown(NodePowerCommand),
-    Reload,
 }
 
 #[derive(PartialEq)]
@@ -62,9 +61,16 @@ enum ViewState {
 }
 
 struct ProxmoxNodeStatusPanel {
+    state: LoadableComponentState<ViewState>,
     node_status: Option<Rc<NodeStatus>>,
     error: Option<Error>,
 }
+
+crate::impl_deref_mut_property!(
+    ProxmoxNodeStatusPanel,
+    state,
+    LoadableComponentState<ViewState>
+);
 
 impl ProxmoxNodeStatusPanel {
     fn change_power_state(&self, ctx: &LoadableComponentContext<Self>, command: NodePowerCommand) {
@@ -79,7 +85,7 @@ impl ProxmoxNodeStatusPanel {
             }));
 
             match http_post(url.as_str(), data).await {
-                Ok(()) => link.send_message(Msg::Reload),
+                Ok(()) => link.send_redraw(),
                 Err(err) => link.send_message(Msg::Error(err)),
             }
         });
@@ -90,8 +96,8 @@ impl ProxmoxNodeStatusPanel {
         ctx: &LoadableComponentContext<Self>,
         fingerprint: &str,
     ) -> Dialog {
-        let link = ctx.link();
-        let link_button = ctx.link();
+        let link = ctx.link().clone();
+        let link_button = ctx.link().clone();
         let fingerprint = fingerprint.to_owned();
 
         Dialog::new(tr!("Fingerprint"))
@@ -135,10 +141,10 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
     type ViewState = ViewState;
     type Properties = NodeStatusPanel;
 
-    fn create(ctx: &crate::LoadableComponentContext<Self>) -> Self {
+    fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         ctx.link().repeated_load(5000);
-
         Self {
+            state: LoadableComponentState::new(),
             node_status: None,
             error: None,
         }
@@ -146,7 +152,7 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
 
     fn load(
         &self,
-        ctx: &crate::LoadableComponentContext<Self>,
+        ctx: &LoadableComponentContext<Self>,
     ) -> std::pin::Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let url = ctx.props().status_base_url.clone();
         let link = ctx.link().clone();
@@ -162,7 +168,7 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
         })
     }
 
-    fn update(&mut self, ctx: &crate::LoadableComponentContext<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Error(err) => {
                 self.error = Some(err);
@@ -177,7 +183,6 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
                 self.change_power_state(ctx, command);
                 false
             }
-            Msg::Reload => true,
         }
     }
 
@@ -197,7 +202,7 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
         None
     }
 
-    fn main_view(&self, ctx: &crate::LoadableComponentContext<Self>) -> Html {
+    fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let status = self
             .node_status
             .as_ref()

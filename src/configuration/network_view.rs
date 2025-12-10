@@ -12,7 +12,10 @@ use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 use pwt::widget::{Button, Column, Container, SplitPane, Toolbar};
 
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster, TaskProgress};
+use crate::{
+    LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
+    LoadableComponentScopeExt, LoadableComponentState, TaskProgress,
+};
 use proxmox_client::ApiResponseData;
 
 use crate::percent_encoding::percent_encode_component;
@@ -66,11 +69,14 @@ impl NetworkView {
 
 #[doc(hidden)]
 pub struct ProxmoxNetworkView {
+    state: LoadableComponentState<ViewState>,
     columns: Rc<Vec<DataTableHeader<Interface>>>,
     store: Store<Interface>,
     changes: String,
     selection: Selection,
 }
+
+crate::impl_deref_mut_property!(ProxmoxNetworkView, state, LoadableComponentState<ViewState>);
 
 #[derive(PartialEq)]
 pub enum ViewState {
@@ -81,7 +87,6 @@ pub enum ViewState {
 }
 
 pub enum Msg {
-    SelectionChange,
     RemoveItem,
     Changes(String),
     RevertChanges,
@@ -119,7 +124,7 @@ impl LoadableComponent for ProxmoxNetworkView {
         ctx: &LoadableComponentContext<Self>,
     ) -> Pin<Box<dyn Future<Output = Result<(), Error>>>> {
         let store = self.store.clone();
-        let link = ctx.link();
+        let link = ctx.link().clone();
         Box::pin(async move {
             let (data, changes) = load_interfaces().await?;
             store.write().set_data(data);
@@ -130,8 +135,12 @@ impl LoadableComponent for ProxmoxNetworkView {
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let store = Store::with_extract_key(|record: &Interface| Key::from(record.name.as_str()));
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::SelectionChange));
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
         Self {
+            state: LoadableComponentState::new(),
             store,
             selection,
             changes: String::new(),
@@ -141,10 +150,9 @@ impl LoadableComponent for ProxmoxNetworkView {
 
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::SelectionChange => true,
             Msg::RemoveItem => {
                 if let Some(key) = self.selection.selected_key() {
-                    let link = ctx.link();
+                    let link = ctx.link().clone();
                     link.clone().spawn(async move {
                         if let Err(err) = delete_interface(key).await {
                             link.show_error(tr!("Unable to delete item"), err, true);
@@ -159,8 +167,8 @@ impl LoadableComponent for ProxmoxNetworkView {
                 true
             }
             Msg::RevertChanges => {
-                let link = ctx.link();
-                link.clone().spawn(async move {
+                let link = ctx.link().clone();
+                self.spawn(async move {
                     if let Err(err) = revert_changes().await {
                         link.show_error(tr!("Unable to revert changes"), err, true);
                     }
@@ -169,7 +177,7 @@ impl LoadableComponent for ProxmoxNetworkView {
                 false
             }
             Msg::ApplyChanges => {
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 link.clone().spawn(async move {
                     match apply_changes().await {
                         Err(err) => {
@@ -239,8 +247,8 @@ impl LoadableComponent for ProxmoxNetworkView {
             )
             .with_flex_spacer()
             .with_child({
-                let loading = ctx.loading();
-                let link = ctx.link();
+                let loading = self.loading();
+                let link = ctx.link().clone();
                 Button::refresh(loading).onclick(move |_| link.send_reload())
             });
 
@@ -248,7 +256,7 @@ impl LoadableComponent for ProxmoxNetworkView {
     }
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
-        let link = ctx.link();
+        let link = ctx.link().clone();
 
         let table = DataTable::new(Rc::clone(&self.columns), self.store.clone())
             .class("pwt-flex-fit")

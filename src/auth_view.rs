@@ -21,7 +21,8 @@ use pwt_macros::builder;
 
 use crate::{
     AuthEditLDAP, AuthEditOpenID, EditWindow, LoadableComponent, LoadableComponentContext,
-    LoadableComponentLink, LoadableComponentMaster,
+    LoadableComponentMaster, LoadableComponentScope, LoadableComponentScopeExt,
+    LoadableComponentState,
 };
 
 use crate::common_api_types::BasicRealmInfo;
@@ -76,16 +77,19 @@ pub enum ViewState {
 }
 
 pub enum Msg {
-    Redraw,
     Edit,
     Remove,
     Sync,
 }
+
 #[doc(hidden)]
 pub struct ProxmoxAuthView {
+    state: LoadableComponentState<ViewState>,
     selection: Selection,
     store: Store<BasicRealmInfo>,
 }
+
+crate::impl_deref_mut_property!(ProxmoxAuthView, state, LoadableComponentState<ViewState>);
 
 async fn delete_item(base_url: AttrValue, realm: AttrValue) -> Result<(), Error> {
     let url = format!("{base_url}/{}", percent_encode_component(&realm));
@@ -95,7 +99,7 @@ async fn delete_item(base_url: AttrValue, realm: AttrValue) -> Result<(), Error>
 
 async fn sync_realm(
     form_ctx: FormContext,
-    link: LoadableComponentLink<ProxmoxAuthView>,
+    link: LoadableComponentScope<ProxmoxAuthView>,
     url: impl Into<String>,
 ) -> Result<(), Error> {
     let mut data = form_ctx.get_submit_data();
@@ -178,8 +182,15 @@ impl LoadableComponent for ProxmoxAuthView {
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let store = Store::new();
-        let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::Redraw));
-        Self { store, selection }
+        let selection = Selection::new().on_select({
+            let link = ctx.link().clone();
+            move |_| link.send_redraw()
+        });
+        Self {
+            state: LoadableComponentState::new(),
+            store,
+            selection,
+        }
     }
 
     fn load(
@@ -201,7 +212,6 @@ impl LoadableComponent for ProxmoxAuthView {
         let props = ctx.props();
 
         match msg {
-            Msg::Redraw => true,
             Msg::Remove => {
                 let Some(info) = self.get_selected_record() else {
                     return true;
@@ -218,7 +228,7 @@ impl LoadableComponent for ProxmoxAuthView {
                     return true;
                 };
 
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 link.clone().spawn(async move {
                     if let Err(err) = delete_item(base_url, info.realm.into()).await {
                         link.show_error(tr!("Unable to delete item"), err, true);
@@ -341,7 +351,7 @@ impl LoadableComponent for ProxmoxAuthView {
             .selection(self.selection.clone())
             .class("pwt-flex-fit")
             .on_row_dblclick({
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 move |_: &mut _| link.send_message(Msg::Edit)
             })
             .into()
@@ -398,7 +408,7 @@ impl LoadableComponent for ProxmoxAuthView {
                     .into(),
             ),
             ViewState::Sync(realm) => {
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 let url = format!(
                     "{}/{}/sync",
                     ctx.props().base_url,

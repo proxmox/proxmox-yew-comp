@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use proxmox_client::ApiResponseData;
 use serde_json::Value;
 
-use yew::html::IntoPropValue;
+use yew::html::{IntoPropValue, Scope};
 use yew::prelude::*;
 use yew::virtual_dom::{Key, VComp, VNode};
 
@@ -20,8 +20,11 @@ use pwt::widget::form::FormContext;
 use pwt::widget::{Button, Toolbar};
 
 use crate::{ApiLoadCallback, IntoApiLoadCallback};
-use crate::{EditWindow, KVGrid, KVGridRow, LoadableComponentLink};
-use crate::{LoadableComponent, LoadableComponentContext, LoadableComponentMaster};
+use crate::{EditWindow, KVGrid, KVGridRow};
+use crate::{
+    LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
+    LoadableComponentScopeExt, LoadableComponentState,
+};
 
 use pwt_macros::builder;
 
@@ -257,6 +260,8 @@ pub enum ViewState {
 
 #[doc(hidden)]
 pub struct PwtObjectGrid {
+    state: LoadableComponentState<ViewState>,
+
     selection: Option<Key>,
     data: Rc<Value>,
 
@@ -265,6 +270,8 @@ pub struct PwtObjectGrid {
 
     controller_observer: Option<SharedStateObserver<Vec<ObjectGridCommand>>>,
 }
+
+crate::impl_deref_mut_property!(PwtObjectGrid, state, LoadableComponentState<ViewState>);
 
 impl PwtObjectGrid {
     fn update_rows(&mut self, props: &ObjectGrid) {
@@ -280,7 +287,11 @@ impl PwtObjectGrid {
         self.rows = Rc::new(rows);
     }
 
-    fn update_controller(&mut self, props: &ObjectGrid, link: LoadableComponentLink<Self>) {
+    fn update_controller(
+        &mut self,
+        props: &ObjectGrid,
+        link: Scope<LoadableComponentMaster<Self>>,
+    ) {
         match &props.controller {
             None => self.controller_observer = None,
             Some(controller) => {
@@ -335,6 +346,7 @@ impl LoadableComponent for PwtObjectGrid {
         ctx.link().repeated_load(3000);
 
         let mut me = Self {
+            state: LoadableComponentState::new(),
             data: Rc::new(Value::Null),
             rows: Rc::new(Vec::new()),
             editors: IndexMap::new(),
@@ -342,7 +354,7 @@ impl LoadableComponent for PwtObjectGrid {
             controller_observer: None,
         };
         me.update_rows(props);
-        me.update_controller(props, ctx.link());
+        me.update_controller(props, ctx.link().clone());
         me
     }
 
@@ -352,7 +364,7 @@ impl LoadableComponent for PwtObjectGrid {
     ) -> Pin<Box<dyn Future<Output = Result<(), Error>>>> {
         let props = ctx.props();
         let loader = props.loader.clone();
-        let link = ctx.link();
+        let link = ctx.link().clone();
 
         Box::pin(async move {
             if let Some(loader) = &loader {
@@ -418,7 +430,7 @@ impl LoadableComponent for PwtObjectGrid {
         let mut toolbar = Toolbar::new()
             .border_bottom(true)
             .with_child(Button::new("Edit").disabled(disable_edit).onclick({
-                let link = ctx.link();
+                let link = ctx.link().clone();
                 move |_| {
                     link.change_view(Some(ViewState::EditObject));
                 }
