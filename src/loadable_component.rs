@@ -382,7 +382,7 @@ pub struct LoadableComponentState<V: PartialEq> {
     view_state: ViewState<V>,
     reload_timeout: Option<Timeout>,
     visible: bool,
-    visibitlity_observer: Option<DomVisibilityObserver>,
+    visibility_observer: Option<DomVisibilityObserver>,
     node_ref: NodeRef,
     async_pool: AsyncPool,
 }
@@ -397,7 +397,7 @@ impl<V: PartialEq> LoadableComponentState<V> {
             view_state: ViewState::Main,
             reload_timeout: None,
             visible: true,
-            visibitlity_observer: None,
+            visibility_observer: None,
             node_ref: NodeRef::default(),
             async_pool: AsyncPool::new(),
         }
@@ -599,9 +599,9 @@ impl<L: LoadableComponent + 'static> Component for LoadableComponentMaster<L> {
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-        if self.state.visibitlity_observer.is_none() && self.state.reload_timeout.is_some() {
+        if self.state.visibility_observer.is_none() && self.state.reload_timeout.is_some() {
             if let Some(el) = self.state.node_ref.cast::<web_sys::Element>() {
-                self.state.visibitlity_observer = Some(DomVisibilityObserver::new(
+                self.state.visibility_observer = Some(DomVisibilityObserver::new(
                     &el,
                     ctx.link().callback(Msg::Visible),
                 ))
