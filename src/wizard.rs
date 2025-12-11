@@ -524,7 +524,8 @@ impl Component for PwtWizard {
                 .form_context(form_ctx.clone())
                 .onsubmit(ctx.link().batch_callback({
                     let state = self.controller.clone();
-                    move |_| {
+                    move |event: SubmitEvent| {
+                        event.prevent_default(); // don't reload the page
                         if !state.read().can_progress() {
                             return None;
                         }
