@@ -312,6 +312,7 @@ impl LoadableComponent for ProxmoxAuthView {
 
         if props.openid_base_url.is_some() {
             add_menu.add_item(
+                // TRANSLATORS: "OpenID Connect" is a proper name
                 MenuItem::new(tr!("OpenId Connect Server"))
                     .icon_class("fa fa-fw fa-openid")
                     .on_select(

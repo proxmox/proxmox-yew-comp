@@ -238,6 +238,7 @@ pub fn registered_task_types() -> Vec<String> {
 
 pub fn init_task_descr_table_base() {
     register_task_description("aptupdate", tr!("Update package database"));
+    // TRANSLATORS: Spice is a proper name, see https://www.spice-space.org
     register_task_description("spiceshell", tr!("Shell (Spice)"));
     register_task_description("vncshell", tr!("Shell (VNC)"));
     register_task_description("termproxy", tr!("Console (xterm.js)"));
