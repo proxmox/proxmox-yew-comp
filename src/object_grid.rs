@@ -325,7 +325,7 @@ impl PwtObjectGrid {
         let editor = self.editors.get(&name)?.clone();
 
         Some(
-            EditWindow::new(format!("Edit: {}", title))
+            EditWindow::new(format!("{edit}: {title}", edit = tr!("Edit")))
                 .loader(props.loader.clone())
                 .on_done(ctx.link().change_view_callback(|_| None))
                 .renderer(move |form_state| (editor.0)(form_state, &name, &value, &data))
@@ -429,7 +429,7 @@ impl LoadableComponent for PwtObjectGrid {
 
         let mut toolbar = Toolbar::new()
             .border_bottom(true)
-            .with_child(Button::new("Edit").disabled(disable_edit).onclick({
+            .with_child(Button::new(tr!("Edit")).disabled(disable_edit).onclick({
                 let link = ctx.link().clone();
                 move |_| {
                     link.change_view(Some(ViewState::EditObject));

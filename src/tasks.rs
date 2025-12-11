@@ -387,7 +387,7 @@ impl LoadableComponent for ProxmoxTasks {
                     .onclick(move |_| form_context.write().reset_form())
             })
             .with_child(
-                Button::new("Filter")
+                Button::new(tr!("Filter"))
                     .icon_class(filter_icon_class)
                     .onclick(ctx.link().callback(|_| Msg::ToggleFilter)),
             )

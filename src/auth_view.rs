@@ -326,7 +326,7 @@ impl LoadableComponent for ProxmoxAuthView {
             .class("pwt-w-100")
             .class("pwt-overflow-hidden")
             .class("pwt-border-bottom")
-            .with_child(MenuButton::new("Add").show_arrow(true).menu(add_menu))
+            .with_child(MenuButton::new(tr!("Add")).show_arrow(true).menu(add_menu))
             .with_child(
                 Button::new(tr!("Edit"))
                     .disabled(edit_disabled)
