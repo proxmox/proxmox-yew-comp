@@ -532,7 +532,8 @@ fn add_user_input_panel(form_ctx: &FormContext) -> Html {
             tr!("Expire"),
             Field::new()
                 .name("expire")
-                .input_type(InputType::DatetimeLocal),
+                .input_type(InputType::DatetimeLocal)
+                .submit(false),
         )
         .with_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
         .with_right_field(tr!("First name"), Field::new().name("firstname"))
@@ -559,7 +560,8 @@ fn edit_user_input_panel(_form_ctx: &FormContext) -> Html {
             tr!("Expire"),
             Field::new()
                 .name("expire")
-                .input_type(InputType::DatetimeLocal),
+                .input_type(InputType::DatetimeLocal)
+                .submit(false),
         )
         .with_right_field(tr!("Last name"), Field::new().name("lastname"))
         .with_field(tr!("EMail"), Field::new().name("email"))
