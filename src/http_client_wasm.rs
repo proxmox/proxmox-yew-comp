@@ -3,6 +3,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Mutex;
 
+use js_sys::Reflect;
 use percent_encoding::percent_decode_str;
 use serde::Serialize;
 use serde_json::Value;
@@ -20,23 +21,25 @@ fn convert_js_error(js_err: ::wasm_bindgen::JsValue) -> Error {
 }
 
 pub fn authentication_from_cookie(project: &dyn ProjectInfo) -> Option<Authentication> {
-    if let Some((ticket, csrfprevention_token)) = extract_auth_from_cookie(project) {
-        let ticket: Result<Ticket, _> = ticket.parse();
-        if let Ok(ticket) = ticket {
-            return Some(Authentication {
-                api_url: String::new(),
-                userid: ticket.userid().to_string(),
-                ticket,
-                clustername: None,
-                csrfprevention_token,
-            });
+    if let Some(ticket) = extract_auth_from_cookie(project) {
+        if let Some(csrfprevention_token) = current_csrf_token() {
+            let ticket: Result<Ticket, _> = ticket.parse();
+            if let Ok(ticket) = ticket {
+                return Some(Authentication {
+                    api_url: String::new(),
+                    userid: ticket.userid().to_string(),
+                    ticket,
+                    clustername: None,
+                    csrfprevention_token,
+                });
+            }
         }
     }
 
     None
 }
 
-fn extract_auth_from_cookie(project: &dyn ProjectInfo) -> Option<(String, String)> {
+fn extract_auth_from_cookie(project: &dyn ProjectInfo) -> Option<String> {
     let cookie = crate::get_cookie();
     //log::info!("COOKIE: {}", cookie);
 
@@ -55,14 +58,28 @@ fn extract_auth_from_cookie(project: &dyn ProjectInfo) -> Option<(String, String
             if key == name {
                 let items: Vec<&str> = value.split(':').take(2).collect();
                 if prefixes.contains(&items[0]) {
-                    let csrf_token = crate::load_csrf_token().unwrap_or_default();
-                    return Some((value.to_string(), csrf_token));
+                    return Some(value.to_string());
                 }
             }
         }
     }
 
     None
+}
+
+fn current_csrf_token() -> Option<String> {
+    let window = gloo_utils::window();
+
+    // prefer the fresh CSRFPreventionToken from the `Proxmox` global object set via a script in
+    // the document index on first load.
+    if let Ok(proxmox) = Reflect::get(&window, &"Proxmox".into()) {
+        if let Ok(token) = Reflect::get(&proxmox, &"CSRFPreventionToken".into()) {
+            return token.as_string();
+        }
+    }
+
+    // fall back to the csrf token stored in the session storage if no fresher token has been set
+    crate::load_csrf_token()
 }
 
 pub struct HttpClientWasm {
