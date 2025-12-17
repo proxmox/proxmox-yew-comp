@@ -116,14 +116,16 @@ impl ProxmoxSyslog {
                     .with_child("Since:"),
             )
             .with_child(
-                Field::new()
-                    .label_id(self.since_label_id.clone())
-                    .input_type(InputType::DatetimeLocal)
-                    .required(true) // avoid clear button in firefox
-                    .disabled(self.active)
-                    .class("pwt-input-hide-clear-button")
-                    .on_change(ctx.link().callback(Msg::Since))
-                    .value(since),
+                Container::new().with_child(
+                    Field::new()
+                        .label_id(self.since_label_id.clone())
+                        .input_type(InputType::DatetimeLocal)
+                        .required(true) // avoid clear button in firefox
+                        .disabled(self.active)
+                        .class("pwt-input-hide-clear-button")
+                        .on_change(ctx.link().callback(Msg::Since))
+                        .value(since),
+                ),
             )
             .with_child(
                 Container::from_tag("label")
@@ -134,13 +136,15 @@ impl ProxmoxSyslog {
                     .with_child("Until:"),
             )
             .with_child(
-                Field::new()
-                    .label_id(self.until_label_id.clone())
-                    .input_type(InputType::DatetimeLocal)
-                    .required(true) // avoid clear button in firefox
-                    .disabled(self.active)
-                    .on_change(ctx.link().callback(Msg::Until))
-                    .value(until),
+                Container::new().with_child(
+                    Field::new()
+                        .label_id(self.until_label_id.clone())
+                        .input_type(InputType::DatetimeLocal)
+                        .required(true) // avoid clear button in firefox
+                        .disabled(self.active)
+                        .on_change(ctx.link().callback(Msg::Until))
+                        .value(until),
+                ),
             )
             .border_bottom(true)
             .into()
