@@ -23,42 +23,41 @@ fn convert_js_error(js_err: ::wasm_bindgen::JsValue) -> Error {
 pub fn authentication_from_cookie(project: &dyn ProjectInfo) -> Option<Authentication> {
     if let Some(ticket) = extract_auth_from_cookie(project) {
         if let Some(csrfprevention_token) = current_csrf_token() {
-            let ticket: Result<Ticket, _> = ticket.parse();
-            if let Ok(ticket) = ticket {
-                return Some(Authentication {
-                    api_url: String::new(),
-                    userid: ticket.userid().to_string(),
-                    ticket,
-                    clustername: None,
-                    csrfprevention_token,
-                });
-            }
+            return Some(Authentication {
+                api_url: String::new(),
+                userid: ticket.userid().to_string(),
+                ticket,
+                clustername: None,
+                csrfprevention_token,
+            });
         }
     }
 
     None
 }
 
-fn extract_auth_from_cookie(project: &dyn ProjectInfo) -> Option<String> {
+fn extract_auth_from_cookie(project: &dyn ProjectInfo) -> Option<Ticket> {
     let cookie = crate::get_cookie();
-    //log::info!("COOKIE: {}", cookie);
-
     let name = project.auth_cookie_name();
-    let prefixes = project.auth_cookie_prefixes();
+    let prefixes = project
+        .auth_cookie_prefixes()
+        .iter()
+        .map(|p| format!("{p}:"))
+        .collect::<Vec<String>>();
 
     for part in cookie.split(';') {
-        let part = part.trim();
-        if let Some((key, value)) = part.split_once('=') {
-            // cookie value can be percent encoded
-            let value = match percent_decode_str(value).decode_utf8() {
-                Ok(value) => value,
-                Err(_) => continue,
-            };
-
+        if let Some((key, value)) = part.trim().split_once('=') {
+            // check if current cookie is the ticket cookie
             if key == name {
-                let items: Vec<&str> = value.split(':').take(2).collect();
-                if prefixes.contains(&items[0]) {
-                    return Some(value.to_string());
+                // cookie value can be percent encoded
+                if let Ok(value) = percent_decode_str(value).decode_utf8() {
+                    // check that the ticket prefix matches the ones defined by the current project
+                    if prefixes.iter().any(|p| value.starts_with(p)) {
+                        // parse ticket and return; if this fails keep looking for a valid ticket
+                        if let Ok(ticket) = value.to_string().parse() {
+                            return Some(ticket);
+                        }
+                    }
                 }
             }
         }
