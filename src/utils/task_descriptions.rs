@@ -209,3 +209,199 @@ pub fn register_pve_tasks() {
     register_task_description("zfscreate", (tr!("ZFS Storage"), tr!("Create")));
     register_task_description("zfsremove", ("ZFS Pool", tr!("Remove")));
 }
+
+/// Register PBS task descriptions.
+pub fn register_pbs_tasks() {
+    register_task_description("acme-deativate", |_ty, id: Option<String>| {
+        let id = id.unwrap_or_else(|| "default".to_string());
+        tr!("Deactivate ACME Account - {0}", id)
+    });
+    register_task_description("acme-register", |_ty, id: Option<String>| {
+        let id = id.unwrap_or_else(|| "default".to_string());
+        tr!("Register ACME Account - {0}", id)
+    });
+    register_task_description("acme-update", |_ty, id: Option<String>| {
+        let id = id.unwrap_or_else(|| "default".to_string());
+        tr!("Update ACME Account - {0}", id)
+    });
+    register_task_description("acme-new-cert", ("", tr!("Order Certificate")));
+    register_task_description("acme-renew-cert", ("", tr!("Renew Certificate")));
+    register_task_description("acme-revoke-cert", ("", tr!("Revoke Certificate")));
+    register_task_description("backup", |_ty, id: Option<String>| {
+        render_datastore_worker_id(id, &tr!("Backup"))
+    });
+    register_task_description(
+        "barcode-label-media",
+        (tr!("Drive"), tr!("Barcode-Label Media")),
+    );
+    register_task_description("catalog-media", (tr!("Drive"), tr!("Catalog Media")));
+    register_task_description(
+        "create-datastore",
+        (tr!("Datastore"), tr!("Create Datastore")),
+    );
+    register_task_description(
+        "delete-datastore",
+        (tr!("Datastore"), tr!("Remove Datastore")),
+    );
+    register_task_description(
+        "delete-namespace",
+        (tr!("Namespace"), tr!("Remove Namespace")),
+    );
+    register_task_description("dircreate", (tr!("Directory Storage"), tr!("Create")));
+    register_task_description("dirremove", (tr!("Directory Storage"), tr!("Remove")));
+    register_task_description("eject-media", (tr!("Drive"), tr!("Eject Media")));
+    register_task_description("format-media", (tr!("Drive"), tr!("Format Media")));
+    register_task_description("forget-group", (tr!("Group"), tr!("Remove Group")));
+    register_task_description(
+        "garbage_collection",
+        (tr!("Datastore"), tr!("Garbage Collect")),
+    );
+    register_task_description("realm-sync", ("Realm", tr!("User Sync")));
+    register_task_description("inventory-update", (tr!("Drive"), tr!("Inventory Update")));
+    register_task_description("label-media", (tr!("Drive"), tr!("Label Media")));
+    register_task_description("load-media", |_ty, id: Option<String>| {
+        render_drive_load_media_id(&id.unwrap_or_default(), &tr!("Load Media"))
+    });
+    register_task_description("logrotate", tr!("Log Rotation"));
+    register_task_description("mount-device", (tr!("Datastore"), tr!("Mount Device")));
+    register_task_description(
+        "mount-sync-jobs",
+        (
+            tr!("Datastore"),
+            tr!("sync jobs handler triggered by mount"),
+        ),
+    );
+    register_task_description("prune", |_ty, id: Option<String>| {
+        render_datastore_worker_id(id, &tr!("Prune"))
+    });
+    register_task_description("prunejob", |_ty, id: Option<String>| {
+        render_prune_job_worker_id(id, &tr!("Prune Job"))
+    });
+    register_task_description("reader", |_ty, id: Option<String>| {
+        render_datastore_worker_id(id, &tr!("Read Objects"))
+    });
+    register_task_description("rewind-media", (tr!("Drive"), tr!("Rewind Media")));
+    register_task_description("s3-refresh", (tr!("Datastore"), tr!("S3 Refresh")));
+    register_task_description("sync", (tr!("Datastore"), tr!("Remote Sync")));
+    register_task_description("syncjob", (tr!("Sync Job"), tr!("Remote Sync")));
+    register_task_description("tape-backup", |_ty, id: Option<String>| {
+        render_tape_backup_id(id, &tr!("Tape Backup"))
+    });
+    register_task_description("tape-backup-job", |_ty, id: Option<String>| {
+        render_tape_backup_id(id, &tr!("Tape Backup Job"))
+    });
+    register_task_description("tape-restore", (tr!("Datastore"), tr!("Tape Restore")));
+    register_task_description("unload-media", (tr!("Drive"), tr!("Unload Media")));
+    register_task_description("unmount-device", (tr!("Datastore"), tr!("Unmount Device")));
+    register_task_description(
+        "verificationjob",
+        (tr!("Verify Job"), tr!("Scheduled Verification")),
+    );
+    register_task_description("verify", (tr!("Datastore"), tr!("Verification")));
+    register_task_description("verify_group", (tr!("Group"), tr!("Verification")));
+    register_task_description("verify_snapshot", (tr!("Snapshot"), tr!("Verification")));
+    register_task_description("wipedisk", (tr!("Device"), tr!("Wipe Disk")));
+    register_task_description("zfscreate", (tr!("ZFS Storage"), tr!("Create")));
+}
+
+proxmox_schema::const_regex! {
+    DATASTORE_WORKER_ID_REGEX = r"^(\S+?):(\S+?)/(\S+?)(/(.+))?$";
+}
+
+fn render_datastore_worker_id(id: Option<String>, what: &str) -> String {
+    let id = id.as_deref().unwrap_or("unknown");
+
+    if let Some(caps) = DATASTORE_WORKER_ID_REGEX.captures(id) {
+        // These capture-groups MUST exist, otherwise the regex does not match as a whole
+        let datastore = &caps[1];
+        let backup_group = format!("{}/{}", &caps[2], &caps[3]);
+
+        if caps.get(4).is_some() {
+            if let Some(hex_ts) = caps.get(5) {
+                if let Ok(seconds) = u64::from_str_radix(hex_ts.as_str(), 16) {
+                    let utctime =
+                        proxmox_time::epoch_to_rfc3339_utc(seconds as i64).unwrap_or_default();
+
+                    return format!(
+                        "{ds_translated} {datastore} {what} {backup_group}/{utctime}",
+                        ds_translated = tr!("Datastore")
+                    );
+                }
+            }
+        }
+
+        return format!(
+            "{ds_translated} {datastore} {what} {backup_group}",
+            ds_translated = tr!("Datastore")
+        );
+    }
+
+    format!(
+        "{ds_translated} {what} {id}",
+        ds_translated = tr!("Datastore")
+    )
+}
+
+proxmox_schema::const_regex! {
+    PRUNE_JOB_WORKER_ID_REGEX = r"^(\S+?):(\S+)$";
+}
+
+fn render_prune_job_worker_id(id: Option<String>, what: &str) -> String {
+    let id = id.as_deref().unwrap_or("unknown");
+
+    if let Some(cap) = PRUNE_JOB_WORKER_ID_REGEX.captures(id) {
+        let datastore = cap.get(1).map(|m| m.as_str());
+        let namespace = cap.get(2).map(|m| m.as_str());
+
+        if let (Some(datastore), Some(namespace)) = (datastore, namespace) {
+            return format!(
+                "{what} on {ds_translated} {datastore} {ns_translated}  {namespace}",
+                ds_translated = tr! {"Datastore"},
+                ns_translated = tr!("Namespace"),
+            );
+        }
+    }
+    return format!(
+        "{what} on {ds_translated} {id}",
+        ds_translated = tr! {"Datastore"}
+    );
+}
+
+proxmox_schema::const_regex! {
+    TAPE_WORKER_ID_REGEX = r"^(\S+?):(\S+?):(\S+?)(:(.+))?$";
+}
+
+fn render_tape_backup_id(id: Option<String>, what: &str) -> String {
+    let id = id.as_deref().unwrap_or("unknown");
+
+    if let Some(cap) = TAPE_WORKER_ID_REGEX.captures(id) {
+        let datastore = cap.get(1).map(|m| m.as_str());
+        let pool = cap.get(2).map(|m| m.as_str());
+        let drive = cap.get(3).map(|m| m.as_str());
+
+        if let (Some(datastore), Some(pool), Some(drive)) = (datastore, pool, drive) {
+            return format!("{what} {datastore} (pool {pool}, drive {drive})");
+        }
+    }
+    format!("{what} {id}")
+}
+
+proxmox_schema::const_regex! {
+    DRIVE_LOAD_WORKER_ID_REGEX = r"^(\S+?):(\S+?)$";
+}
+
+fn render_drive_load_media_id(id: &str, what: &str) -> String {
+    if let Some(caps) = DRIVE_LOAD_WORKER_ID_REGEX.captures(id) {
+        let drive = caps.get(1).map(|m| m.as_str());
+        let label = caps.get(2).map(|m| m.as_str());
+
+        if let (Some(drive), Some(label)) = (drive, label) {
+            return format!(
+                "{drv_translated} {drive} - {what} '{label}'",
+                drv_translated = tr!("Drive")
+            );
+        }
+    }
+
+    format!("{what} {id}")
+}
