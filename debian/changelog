@@ -1,3 +1,31 @@
+rust-proxmox-yew-comp (0.8.1) trixie; urgency=medium
+
+  * refactor: use impl_deref_mut_property macro
+
+  * rrd: replace TextRenderFn with new generic RenderFn
+
+  * add translation comments to translatable strings
+
+  * wizard: prevent page reload when pressing enter in form
+
+  * user panel: don't submit raw "expire" field
+
+  * auth edit ldap: fix updating a realm to use anonymous search
+
+  * pve: firewall: nosmurfs property is set to true by default
+
+  * syslog: fix toolbar spacing
+
+  * utils: move task descriptions to a submodule
+
+  * task descriptions: add PBS task descriptions
+
+  * task descriptions: add 'create_zone', 'create_vnet' and 'reloadnetworkall'
+
+  * task description: use hyphen (-) between the id and the action
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 Dec 2025 13:40:51 +0100
+
 rust-proxmox-yew-comp (0.8.0) trixie; urgency=medium
 
   * Encapsulate the component state (loading, error, view_state) into a new
