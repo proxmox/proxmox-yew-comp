@@ -32,7 +32,7 @@ impl<A: Display, B: Display> IntoTaskDescriptionRenderFn for (A, B) {
         let action = self.1.to_string();
         Box::new(move |_, id| {
             format!(
-                "{} {} {}",
+                "{} {} - {}",
                 task_type,
                 id.as_deref().unwrap_or("unknown"),
                 action
