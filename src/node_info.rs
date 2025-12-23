@@ -204,8 +204,8 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
                 .status(format!(
                     "{:.2}% ({} of {})",
                     fraction * 100.0,
-                    HumanByte::new_decimal(root_used as f64),
-                    HumanByte::new_decimal(root_total as f64),
+                    HumanByte::from(root_used),
+                    HumanByte::from(root_total),
                 ))
         })
         .with_child({
