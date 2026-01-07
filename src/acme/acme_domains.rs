@@ -19,7 +19,7 @@ use pwt_macros::builder;
 use crate::common_api_types::{create_acme_config_string, parse_acme_config_string, AcmeConfig};
 use crate::common_api_types::{create_acme_domain_string, parse_acme_domain_string, AcmeDomain};
 use crate::percent_encoding::percent_encode_component;
-use crate::{impl_deref_mut_property, ConfirmButton, EditWindow, LoadableComponentState};
+use crate::{ConfirmButton, EditWindow, LoadableComponentState};
 use crate::{
     LoadableComponent, LoadableComponentContext, LoadableComponentMaster, LoadableComponentScopeExt,
 };
@@ -63,7 +63,7 @@ pub struct ProxmoxAcmeDomainsPanel {
     acme_account: Option<AcmeConfig>,
 }
 
-impl_deref_mut_property!(
+pwt::impl_deref_mut_property!(
     ProxmoxAcmeDomainsPanel,
     state,
     LoadableComponentState<ViewState>

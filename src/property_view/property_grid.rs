@@ -103,7 +103,7 @@ impl PvePropertyGrid {
     }
 }
 
-crate::impl_deref_mut_property!(PvePropertyGrid, view_state, PropertyViewState);
+pwt::impl_deref_mut_property!(PvePropertyGrid, view_state, PropertyViewState);
 
 impl PropertyView for PvePropertyGrid {
     type Properties = PropertyGrid;

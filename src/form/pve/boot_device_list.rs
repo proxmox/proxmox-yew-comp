@@ -72,7 +72,7 @@ fn add_disabled_devices(list: &mut Vec<DeviceEntry>, boot_devices: &[(String, St
     list.extend(disabled_list);
 }
 
-crate::impl_deref_mut_property!(PveBootDeviceField, state, ManagedFieldState);
+pwt::impl_deref_mut_property!(PveBootDeviceField, state, ManagedFieldState);
 
 impl PveBootDeviceField {
     pub fn update_device_description(&mut self, qemu_config: &Value) {

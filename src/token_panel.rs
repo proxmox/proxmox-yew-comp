@@ -130,7 +130,7 @@ struct ProxmoxTokenView {
     columns: Rc<Vec<DataTableHeader<ApiToken>>>,
 }
 
-crate::impl_deref_mut_property!(ProxmoxTokenView, state, LoadableComponentState<ViewState>);
+pwt::impl_deref_mut_property!(ProxmoxTokenView, state, LoadableComponentState<ViewState>);
 
 fn token_api_url(user: &str, tokenname: &str) -> String {
     format!(

@@ -20,9 +20,9 @@ use pwt_macros::builder;
 use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
 use crate::{
-    http_get, impl_deref_mut_property, ConfirmButton, EditWindow, LoadableComponent,
-    LoadableComponentContext, LoadableComponentMaster, LoadableComponentScope,
-    LoadableComponentScopeExt, LoadableComponentState,
+    http_get, ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,
+    LoadableComponentMaster, LoadableComponentScope, LoadableComponentScopeExt,
+    LoadableComponentState,
 };
 
 use super::{AcmeChallengeSchemaItem, AcmeChallengeSelector};
@@ -90,7 +90,7 @@ pub struct ProxmoxAcmePluginsPanel {
     schema_info: ChallengeSchemaInfo,
 }
 
-impl_deref_mut_property!(
+pwt::impl_deref_mut_property!(
     ProxmoxAcmePluginsPanel,
     state,
     LoadableComponentState<ViewState>

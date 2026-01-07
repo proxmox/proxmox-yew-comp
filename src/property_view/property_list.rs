@@ -56,7 +56,7 @@ pub struct PvePropertyList {
     view_state: PropertyViewState,
 }
 
-crate::impl_deref_mut_property!(PvePropertyList, view_state, PropertyViewState);
+pwt::impl_deref_mut_property!(PvePropertyList, view_state, PropertyViewState);
 
 impl PvePropertyList {
     fn property_tile(

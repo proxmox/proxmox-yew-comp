@@ -56,7 +56,7 @@ impl LxcMountOptionsMaster {
     }
 }
 
-crate::impl_deref_mut_property!(LxcMountOptionsMaster, state, ManagedFieldState);
+pwt::impl_deref_mut_property!(LxcMountOptionsMaster, state, ManagedFieldState);
 
 impl ManagedField for LxcMountOptionsMaster {
     type Message = Msg;

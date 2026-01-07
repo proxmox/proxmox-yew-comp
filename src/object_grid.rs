@@ -271,7 +271,7 @@ pub struct PwtObjectGrid {
     controller_observer: Option<SharedStateObserver<Vec<ObjectGridCommand>>>,
 }
 
-crate::impl_deref_mut_property!(PwtObjectGrid, state, LoadableComponentState<ViewState>);
+pwt::impl_deref_mut_property!(PwtObjectGrid, state, LoadableComponentState<ViewState>);
 
 impl PwtObjectGrid {
     fn update_rows(&mut self, props: &ObjectGrid) {

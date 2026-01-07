@@ -120,7 +120,7 @@ pub struct ProxmoxTasks {
     columns: Rc<Vec<DataTableHeader<TaskListItem>>>,
 }
 
-crate::impl_deref_mut_property!(ProxmoxTasks, state, LoadableComponentState<ViewDialog>);
+pwt::impl_deref_mut_property!(ProxmoxTasks, state, LoadableComponentState<ViewDialog>);
 
 impl ProxmoxTasks {
     fn columns(ctx: &LoadableComponentContext<Self>) -> Rc<Vec<DataTableHeader<TaskListItem>>> {

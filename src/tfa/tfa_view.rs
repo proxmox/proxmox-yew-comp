@@ -17,7 +17,7 @@ use pwt::widget::{Button, Mask, Toolbar};
 use pwt_macros::builder;
 
 use crate::{
-    impl_deref_mut_property, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
+    LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
     LoadableComponentScopeExt, LoadableComponentState,
 };
 
@@ -112,7 +112,7 @@ pub struct ProxmoxTfaView {
     removing: bool,
 }
 
-impl_deref_mut_property!(ProxmoxTfaView, state, LoadableComponentState<ViewState>);
+pwt::impl_deref_mut_property!(ProxmoxTfaView, state, LoadableComponentState<ViewState>);
 
 impl ProxmoxTfaView {
     fn get_selected_record(&self) -> Option<TfaEntry> {

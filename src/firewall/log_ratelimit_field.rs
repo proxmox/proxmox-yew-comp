@@ -196,4 +196,4 @@ impl ManagedField for LogRatelimitFieldImpl {
     }
 }
 
-crate::impl_deref_mut_property!(LogRatelimitFieldImpl, state, ManagedFieldState);
+pwt::impl_deref_mut_property!(LogRatelimitFieldImpl, state, ManagedFieldState);

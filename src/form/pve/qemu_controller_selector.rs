@@ -91,7 +91,7 @@ fn create_validator(props: &QemuControllerSelector, controller: &str) -> Validat
     })
 }
 
-crate::impl_deref_mut_property!(QemuControllerSelectorField, state, ManagedFieldState);
+pwt::impl_deref_mut_property!(QemuControllerSelectorField, state, ManagedFieldState);
 
 impl ManagedField for QemuControllerSelectorField {
     type Message = Msg;

@@ -50,7 +50,7 @@ enum TaskFilterEntry {
     Unknown,
 }
 
-crate::impl_deref_mut_property!(ProxmoxTaskStatusSelector, state, ManagedFieldState);
+pwt::impl_deref_mut_property!(ProxmoxTaskStatusSelector, state, ManagedFieldState);
 
 impl ManagedField for ProxmoxTaskStatusSelector {
     type Properties = TaskStatusSelector;

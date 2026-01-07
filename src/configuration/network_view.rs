@@ -76,7 +76,7 @@ pub struct ProxmoxNetworkView {
     selection: Selection,
 }
 
-crate::impl_deref_mut_property!(ProxmoxNetworkView, state, LoadableComponentState<ViewState>);
+pwt::impl_deref_mut_property!(ProxmoxNetworkView, state, LoadableComponentState<ViewState>);
 
 #[derive(PartialEq)]
 pub enum ViewState {

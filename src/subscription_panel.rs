@@ -49,7 +49,7 @@ pub struct ProxmoxSubscriptionPanel {
     data: Rc<RefCell<Rc<Value>>>,
 }
 
-crate::impl_deref_mut_property!(
+pwt::impl_deref_mut_property!(
     ProxmoxSubscriptionPanel,
     state,
     LoadableComponentState<ViewState>

@@ -147,7 +147,7 @@ pub struct PvePendingPropertyList {
     view_state: PendingPropertyViewState,
 }
 
-crate::impl_deref_mut_property!(PvePendingPropertyList, view_state, PendingPropertyViewState);
+pwt::impl_deref_mut_property!(PvePendingPropertyList, view_state, PendingPropertyViewState);
 
 impl PvePendingPropertyList {
     fn property_tile(

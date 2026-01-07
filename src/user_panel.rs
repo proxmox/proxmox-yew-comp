@@ -23,9 +23,9 @@ use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::{epoch_to_input_value, render_epoch_short};
 use crate::{
-    impl_deref_mut_property, EditWindow, LoadableComponent, LoadableComponentContext,
-    LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState, PermissionPanel,
-    RealmSelector, SchemaValidation,
+    EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
+    LoadableComponentScopeExt, LoadableComponentState, PermissionPanel, RealmSelector,
+    SchemaValidation,
 };
 
 async fn load_user_list() -> Result<Vec<UserWithTokens>, Error> {
@@ -121,7 +121,7 @@ pub struct ProxmoxUserPanel {
     selection: Selection,
 }
 
-impl_deref_mut_property!(ProxmoxUserPanel, state, LoadableComponentState<ViewState>);
+pwt::impl_deref_mut_property!(ProxmoxUserPanel, state, LoadableComponentState<ViewState>);
 
 impl LoadableComponent for ProxmoxUserPanel {
     type Message = Msg;

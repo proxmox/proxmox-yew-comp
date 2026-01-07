@@ -61,7 +61,7 @@ fn parse_flags(flags: &str) -> HashMap<String, bool> {
         .collect()
 }
 
-crate::impl_deref_mut_property!(QemuCpuFlagsField, state, ManagedFieldState);
+pwt::impl_deref_mut_property!(QemuCpuFlagsField, state, ManagedFieldState);
 
 impl QemuCpuFlagsField {
     pub fn update_flag_list(&mut self, value: Value) {

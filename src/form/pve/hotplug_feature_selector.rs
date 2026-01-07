@@ -114,7 +114,7 @@ impl PveHotplugFeatureMaster {
     }
 }
 
-crate::impl_deref_mut_property!(PveHotplugFeatureMaster, state, ManagedFieldState);
+pwt::impl_deref_mut_property!(PveHotplugFeatureMaster, state, ManagedFieldState);
 
 impl ManagedField for PveHotplugFeatureMaster {
     type Message = Msg;

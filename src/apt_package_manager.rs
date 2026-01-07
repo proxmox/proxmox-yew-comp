@@ -173,7 +173,7 @@ pub struct ProxmoxAptPackageManager {
     columns: Rc<Vec<DataTableHeader<TreeEntry>>>,
 }
 
-crate::impl_deref_mut_property!(
+pwt::impl_deref_mut_property!(
     ProxmoxAptPackageManager,
     state,
     LoadableComponentState<ViewState>

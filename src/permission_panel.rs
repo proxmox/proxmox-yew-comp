@@ -51,7 +51,7 @@ pub struct ProxmoxPermissionPanel {
     columns: Rc<Vec<DataTableHeader<PermissionInfo>>>,
 }
 
-crate::impl_deref_mut_property!(ProxmoxPermissionPanel, state, LoadableComponentState<()>);
+pwt::impl_deref_mut_property!(ProxmoxPermissionPanel, state, LoadableComponentState<()>);
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 enum PermissionInfo {

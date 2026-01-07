@@ -24,9 +24,8 @@ use proxmox_access_control::types::{AclListItem, AclUgidType};
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::render_boolean;
 use crate::{
-    impl_deref_mut_property, ConfirmButton, EditWindow, LoadableComponent,
-    LoadableComponentContext, LoadableComponentMaster, LoadableComponentScopeExt,
-    LoadableComponentState,
+    ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,
+    LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState,
 };
 
 use super::acl_edit::AclEditWindow;
@@ -106,7 +105,7 @@ struct ProxmoxAclView {
     store: Store<AclListItem>,
 }
 
-impl_deref_mut_property!(ProxmoxAclView, state, LoadableComponentState<ViewState>);
+pwt::impl_deref_mut_property!(ProxmoxAclView, state, LoadableComponentState<ViewState>);
 
 impl ProxmoxAclView {
     fn colmuns() -> Rc<Vec<DataTableHeader<AclListItem>>> {

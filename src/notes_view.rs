@@ -112,7 +112,7 @@ pub struct ProxmoxNotesView {
     edit_window_loader: ApiLoadCallback<Value>,
 }
 
-crate::impl_deref_mut_property!(ProxmoxNotesView, state, LoadableComponentState<ViewState>);
+pwt::impl_deref_mut_property!(ProxmoxNotesView, state, LoadableComponentState<ViewState>);
 
 impl LoadableComponent for ProxmoxNotesView {
     type Properties = NotesView;

@@ -18,9 +18,8 @@ use pwt::widget::{Button, Container, Dialog, FileButton, MessageBox, Toolbar};
 use crate::common_api_types::CertificateInfo;
 use crate::utils::render_epoch;
 use crate::{
-    impl_deref_mut_property, ConfirmButton, EditWindow, KVGrid, KVGridRow, LoadableComponent,
-    LoadableComponentContext, LoadableComponentMaster, LoadableComponentScopeExt,
-    LoadableComponentState,
+    ConfirmButton, EditWindow, KVGrid, KVGridRow, LoadableComponent, LoadableComponentContext,
+    LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState,
 };
 
 async fn upload_custom_certificate(form_ctx: FormContext) -> Result<(), Error> {
@@ -63,7 +62,7 @@ pub struct ProxmoxCertificateList {
     rows: Rc<Vec<KVGridRow>>,
 }
 
-impl_deref_mut_property!(
+pwt::impl_deref_mut_property!(
     ProxmoxCertificateList,
     state,
     LoadableComponentState<ViewState>

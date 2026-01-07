@@ -431,7 +431,7 @@ pub struct ProxmoxAptRepositories {
     status_columns: Rc<Vec<DataTableHeader<StatusLine>>>,
 }
 
-crate::impl_deref_mut_property!(
+pwt::impl_deref_mut_property!(
     ProxmoxAptRepositories,
     state,
     LoadableComponentState<ViewState>

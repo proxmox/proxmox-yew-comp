@@ -89,7 +89,7 @@ pub struct ProxmoxAuthView {
     store: Store<BasicRealmInfo>,
 }
 
-crate::impl_deref_mut_property!(ProxmoxAuthView, state, LoadableComponentState<ViewState>);
+pwt::impl_deref_mut_property!(ProxmoxAuthView, state, LoadableComponentState<ViewState>);
 
 async fn delete_item(base_url: AttrValue, realm: AttrValue) -> Result<(), Error> {
     let url = format!("{base_url}/{}", percent_encode_component(&realm));

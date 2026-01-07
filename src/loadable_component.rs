@@ -14,7 +14,6 @@ use pwt::widget::{AlertDialog, Column};
 use pwt::AsyncPool;
 
 #[cfg(doc)]
-use crate::impl_deref_mut_property;
 #[cfg(doc)]
 use pwt::widget::Dialog;
 
@@ -72,7 +71,7 @@ pub type LoadableComponentScope<L> = Scope<LoadableComponentMaster<L>>;
 /// }
 ///
 /// // implement DerefMut
-/// proxmox_yew_comp::impl_deref_mut_property!(
+/// pwt::impl_deref_mut_property!(
 ///     MyComponentState,
 ///     state,
 ///     LoadableComponentState<ViewState>
@@ -372,7 +371,7 @@ impl<M, V: PartialEq, T: 'static + LoadableComponent<Message = M, ViewState = V>
 ///     other_data: String,
 /// }
 /// // implement DerefMut
-/// proxmox_yew_comp::impl_deref_mut_property!(MyComponentState, state, LoadableComponentState<ViewState>);
+/// pwt::impl_deref_mut_property!(MyComponentState, state, LoadableComponentState<ViewState>);
 /// ```
 pub struct LoadableComponentState<V: PartialEq> {
     loading: usize,

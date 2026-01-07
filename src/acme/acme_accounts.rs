@@ -15,9 +15,8 @@ use crate::common_api_types::AcmeAccountInfo;
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::render_url;
 use crate::{
-    impl_deref_mut_property, ConfirmButton, DataViewWindow, LoadableComponent,
-    LoadableComponentContext, LoadableComponentMaster, LoadableComponentScopeExt,
-    LoadableComponentState,
+    ConfirmButton, DataViewWindow, LoadableComponent, LoadableComponentContext,
+    LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState,
 };
 
 use super::AcmeRegisterAccount;
@@ -51,7 +50,7 @@ pub struct ProxmoxAcmeAccountsPanel {
     columns: Rc<Vec<DataTableHeader<AcmeAccountEntry>>>,
 }
 
-impl_deref_mut_property!(
+pwt::impl_deref_mut_property!(
     ProxmoxAcmeAccountsPanel,
     state,
     LoadableComponentState<ViewState>

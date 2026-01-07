@@ -26,8 +26,7 @@ use crate::{
     LoadableComponentContext, LoadableComponentScopeExt,
 };
 use crate::{
-    http_put, impl_deref_mut_property, ConfirmButton, LoadableComponentMaster,
-    LoadableComponentState, PropertyEditDialog,
+    http_put, ConfirmButton, LoadableComponentMaster, LoadableComponentState, PropertyEditDialog,
 };
 
 #[derive(Clone, PartialEq, Properties)]
@@ -96,7 +95,7 @@ pub struct LxcNetworkComp {
     selection: Selection,
 }
 
-impl_deref_mut_property!(LxcNetworkComp, state, LoadableComponentState<ViewState>);
+pwt::impl_deref_mut_property!(LxcNetworkComp, state, LoadableComponentState<ViewState>);
 
 impl LxcNetworkComp {
     fn edit_dialog(&self, ctx: &LoadableComponentContext<Self>, name: Option<String>) -> Html {

@@ -77,7 +77,7 @@ pub struct PvePendingPropertyGrid {
     selection: Selection,
 }
 
-crate::impl_deref_mut_property!(PvePendingPropertyGrid, view_state, PendingPropertyViewState);
+pwt::impl_deref_mut_property!(PvePendingPropertyGrid, view_state, PendingPropertyViewState);
 
 impl PvePendingPropertyGrid {
     fn toolbar(&self, ctx: &Context<PvePendingPropertyView<Self>>) -> Html {
