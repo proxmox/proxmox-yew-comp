@@ -9,7 +9,8 @@ use pve_api_types::PveQmBoot;
 
 use pwt::prelude::*;
 use pwt::widget::form::{
-    Checkbox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState,
+    Checkbox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt,
+    ManagedFieldState,
 };
 use pwt::widget::{ActionIcon, List, ListTile, Row};
 
@@ -50,6 +51,7 @@ struct DeviceEntry {
 
 #[doc(hidden)]
 pub struct PveBootDeviceField {
+    state: ManagedFieldState,
     boot_devices: Vec<(String /* key */, String /* value */)>,
     devices: Vec<DeviceEntry>,
 }
@@ -69,6 +71,8 @@ fn add_disabled_devices(list: &mut Vec<DeviceEntry>, boot_devices: &[(String, St
     disabled_list.sort_by_key(|i| i.name.clone());
     list.extend(disabled_list);
 }
+
+crate::impl_deref_mut_property!(PveBootDeviceField, state, ManagedFieldState);
 
 impl PveBootDeviceField {
     pub fn update_device_description(&mut self, qemu_config: &Value) {
@@ -212,16 +216,13 @@ impl ManagedField for PveBootDeviceField {
 
         Ok(value)
     }
-    fn setup(_props: &BootDeviceList) -> ManagedFieldState {
-        ManagedFieldState::new(Value::Null, Value::Null)
-    }
-
     fn create(ctx: &ManagedFieldContext<Self>) -> Self {
         let props = ctx.props();
         //let input_props = props.as_input_props();
 
         let boot_devices = extract_boot_device_list(&props.qemu_config);
         Self {
+            state: ManagedFieldState::new(Value::Null, Value::Null),
             boot_devices,
             devices: Vec::new(),
         }
@@ -229,8 +230,7 @@ impl ManagedField for PveBootDeviceField {
 
     fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
         let props = ctx.props();
-        let state = ctx.state();
-        self.update_device_list(state.value.clone(), &props.qemu_config);
+        self.update_device_list(self.state.value.clone(), &props.qemu_config);
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {
@@ -269,7 +269,7 @@ impl ManagedField for PveBootDeviceField {
             self.boot_devices = extract_boot_device_list(&props.qemu_config);
             self.update_device_description(&props.qemu_config);
             add_disabled_devices(&mut self.devices, &self.boot_devices);
-            self.update_device_list(ctx.state().value.clone(), &props.qemu_config);
+            self.update_device_list(self.state.value.clone(), &props.qemu_config);
         }
         true
     }

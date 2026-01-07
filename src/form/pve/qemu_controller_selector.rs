@@ -6,8 +6,8 @@ use serde_json::{json, Value};
 
 use pwt::prelude::*;
 use pwt::widget::form::{
-    Combobox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState, Number,
-    ValidateFn,
+    Combobox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt,
+    ManagedFieldState, Number, ValidateFn,
 };
 use pwt::widget::Row;
 
@@ -54,6 +54,7 @@ impl QemuControllerSelector {
 }
 
 pub struct QemuControllerSelectorField {
+    state: ManagedFieldState,
     controller: String,
     device_id: String,
     validate: ValidateFn<u32>,
@@ -90,6 +91,8 @@ fn create_validator(props: &QemuControllerSelector, controller: &str) -> Validat
     })
 }
 
+crate::impl_deref_mut_property!(QemuControllerSelectorField, state, ManagedFieldState);
+
 impl ManagedField for QemuControllerSelectorField {
     type Message = Msg;
     type Properties = QemuControllerSelector;
@@ -111,21 +114,19 @@ impl ManagedField for QemuControllerSelectorField {
         Ok(value.clone())
     }
 
-    fn setup(_props: &Self::Properties) -> ManagedFieldState {
-        ManagedFieldState::new(Value::Null, Value::Null)
-    }
-
     fn create(ctx: &ManagedFieldContext<Self>) -> Self {
-        Self {
+        let mut me = Self {
+            state: ManagedFieldState::new(Value::Null, Value::Null),
             controller: String::new(),
             device_id: String::new(),
             validate: create_validator(ctx.props(), ""),
-        }
+        };
+        me.value_changed(ctx);
+        me
     }
 
-    fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
-        let state = ctx.state();
-        match &state.value {
+    fn value_changed(&mut self, _ctx: &ManagedFieldContext<Self>) {
+        match &self.state.value {
             Value::String(s) => match parse_qemu_controller_name(s) {
                 Ok((controller, id)) => {
                     self.controller = controller.into();

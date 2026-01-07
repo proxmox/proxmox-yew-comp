@@ -8,11 +8,13 @@ use yew::html::IntoPropValue;
 
 use pwt::prelude::*;
 use pwt::widget::form::{
-    ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState, Number,
+    ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt, ManagedFieldState,
+    Number,
 };
 use pwt::widget::Container;
 
 use pwt::props::{FieldBuilder, WidgetBuilder};
+
 use pwt_macros::{builder, widget};
 
 use proxmox_human_byte::{HumanByte, SizeUnit};
@@ -53,6 +55,7 @@ pub enum Msg {
 }
 
 pub struct ProxmoxBandwidthField {
+    state: ManagedFieldState,
     current_size: String,
     current_unit: String,
 }
@@ -60,6 +63,8 @@ pub struct ProxmoxBandwidthField {
 pub struct ValidateClosure {
     required: bool,
 }
+
+crate::impl_deref_mut_property!(ProxmoxBandwidthField, state, ManagedFieldState);
 
 impl ManagedField for ProxmoxBandwidthField {
     type Message = Msg;
@@ -120,7 +125,9 @@ impl ManagedField for ProxmoxBandwidthField {
         }
     }
 
-    fn setup(props: &Self::Properties) -> ManagedFieldState {
+    fn create(ctx: &ManagedFieldContext<Self>) -> Self {
+        let props = ctx.props();
+
         let default: Value = match &props.default {
             Some(default) => default.to_string().into(),
             None => String::new().into(),
@@ -128,14 +135,19 @@ impl ManagedField for ProxmoxBandwidthField {
 
         let value: Value = default.clone();
 
-        ManagedFieldState::new(value, default)
+        let mut me = Self {
+            state: ManagedFieldState::new(value, default),
+            current_size: "".into(),
+            current_unit: props.default_unit.to_string(),
+        };
+        me.value_changed(ctx);
+        me
     }
 
     fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
         let props = ctx.props();
-        let state = ctx.state();
 
-        match &state.value {
+        match &self.state.value {
             Value::Number(n) => {
                 if let Some(n) = n.as_f64() {
                     let hb = HumanByte::new_binary(n);
@@ -168,16 +180,6 @@ impl ManagedField for ProxmoxBandwidthField {
                 self.current_unit = props.default_unit.to_string();
             }
         }
-    }
-
-    fn create(ctx: &ManagedFieldContext<Self>) -> Self {
-        let props = ctx.props();
-        let mut me = Self {
-            current_size: "".into(),
-            current_unit: props.default_unit.to_string(),
-        };
-        me.value_changed(ctx);
-        me
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {

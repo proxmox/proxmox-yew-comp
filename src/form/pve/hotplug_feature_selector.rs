@@ -5,7 +5,8 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::{
-    Checkbox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState,
+    Checkbox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt,
+    ManagedFieldState,
 };
 use pwt::widget::{Column, List};
 
@@ -37,6 +38,7 @@ pub enum Msg {
 
 #[doc(hidden)]
 pub struct PveHotplugFeatureMaster {
+    state: ManagedFieldState,
     selection: HashSet<String>,
 }
 
@@ -112,6 +114,8 @@ impl PveHotplugFeatureMaster {
     }
 }
 
+crate::impl_deref_mut_property!(PveHotplugFeatureMaster, state, ManagedFieldState);
+
 impl ManagedField for PveHotplugFeatureMaster {
     type Message = Msg;
     type Properties = HotplugFeatureSelector;
@@ -144,22 +148,18 @@ impl ManagedField for PveHotplugFeatureMaster {
 
         Ok(value)
     }
-    fn setup(_props: &HotplugFeatureSelector) -> ManagedFieldState {
-        ManagedFieldState::new(Value::Null, Value::Null)
-    }
 
-    fn create(ctx: &ManagedFieldContext<Self>) -> Self {
+    fn create(_ctx: &ManagedFieldContext<Self>) -> Self {
         let mut me = Self {
             selection: HashSet::new(),
+            state: ManagedFieldState::new(Value::Null, Value::Null),
         };
-        let state = ctx.state();
-        me.update_selection(state.value.clone());
+        me.update_selection(me.state.value.clone());
         me
     }
 
-    fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
-        let state = ctx.state();
-        self.update_selection(state.value.clone());
+    fn value_changed(&mut self, _ctx: &ManagedFieldContext<Self>) {
+        self.update_selection(self.state.value.clone());
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {

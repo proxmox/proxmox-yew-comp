@@ -6,7 +6,8 @@ use std::collections::HashMap;
 
 use pwt::prelude::*;
 use pwt::widget::form::{
-    ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState, RadioButton,
+    ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt, ManagedFieldState,
+    RadioButton,
 };
 use pwt::widget::{Column, List, ListTile, Row};
 
@@ -38,6 +39,7 @@ struct FlagEntry {
 
 #[doc(hidden)]
 pub struct QemuCpuFlagsField {
+    state: ManagedFieldState,
     flag_list: IndexMap<&'static str, FlagEntry>,
 }
 
@@ -58,6 +60,8 @@ fn parse_flags(flags: &str) -> HashMap<String, bool> {
         })
         .collect()
 }
+
+crate::impl_deref_mut_property!(QemuCpuFlagsField, state, ManagedFieldState);
 
 impl QemuCpuFlagsField {
     pub fn update_flag_list(&mut self, value: Value) {
@@ -83,9 +87,6 @@ impl ManagedField for QemuCpuFlagsField {
 
     fn validator(_props: &Self::ValidateClosure, value: &Value) -> Result<Value, Error> {
         Ok(value.clone())
-    }
-    fn setup(_props: &QemuCpuFlags) -> ManagedFieldState {
-        ManagedFieldState::new(Value::Null, Value::Null)
     }
 
     fn create(_ctx: &ManagedFieldContext<Self>) -> Self {
@@ -117,16 +118,17 @@ impl ManagedField for QemuCpuFlagsField {
             )
         }));
 
-        Self { flag_list }
+        Self {
+            state: ManagedFieldState::new(Value::Null, Value::Null),
+            flag_list,
+        }
     }
 
-    fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
-        let state = ctx.state();
-        self.update_flag_list(state.value.clone());
+    fn value_changed(&mut self, _ctx: &ManagedFieldContext<Self>) {
+        self.update_flag_list(self.state.value.clone());
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {
-        let state = ctx.state();
         match msg {
             Msg::Set(flag, enabled) => {
                 self.flag_list[flag.as_str()].enabled = enabled;
@@ -144,7 +146,7 @@ impl ManagedField for QemuCpuFlagsField {
             .collect();
 
         // keep unknown flags
-        let current_flags = parse_flags(state.value.as_str().unwrap_or(""));
+        let current_flags = parse_flags(self.state.value.as_str().unwrap_or(""));
         for (flag, enabled) in current_flags {
             if !self.flag_list.contains_key(flag.as_str()) {
                 new_flags.push(match enabled {

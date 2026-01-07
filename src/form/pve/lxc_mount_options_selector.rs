@@ -6,7 +6,8 @@ use serde_json::Value;
 
 use pwt::prelude::*;
 use pwt::widget::form::{
-    Checkbox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState,
+    Checkbox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt,
+    ManagedFieldState,
 };
 use pwt::widget::{Column, Row};
 
@@ -29,6 +30,7 @@ pub enum Msg {
 
 #[doc(hidden)]
 pub struct LxcMountOptionsMaster {
+    state: ManagedFieldState,
     selection: HashSet<String>,
 }
 
@@ -53,6 +55,8 @@ impl LxcMountOptionsMaster {
         self.selection = selection;
     }
 }
+
+crate::impl_deref_mut_property!(LxcMountOptionsMaster, state, ManagedFieldState);
 
 impl ManagedField for LxcMountOptionsMaster {
     type Message = Msg;
@@ -83,22 +87,18 @@ impl ManagedField for LxcMountOptionsMaster {
 
         Ok(value)
     }
-    fn setup(_props: &LxcMountOptionsSelector) -> ManagedFieldState {
-        ManagedFieldState::new(Value::Null, Value::Null)
-    }
 
-    fn create(ctx: &ManagedFieldContext<Self>) -> Self {
+    fn create(_ctx: &ManagedFieldContext<Self>) -> Self {
         let mut me = Self {
             selection: HashSet::new(),
+            state: ManagedFieldState::new(Value::Null, Value::Null),
         };
-        let state = ctx.state();
-        me.update_selection(state.value.clone());
+        me.update_selection(me.state.value.clone());
         me
     }
 
-    fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
-        let state = ctx.state();
-        self.update_selection(state.value.clone());
+    fn value_changed(&mut self, _ctx: &ManagedFieldContext<Self>) {
+        self.update_selection(self.state.value.clone());
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {

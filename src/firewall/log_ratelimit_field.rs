@@ -6,7 +6,8 @@ use yew::html::IntoPropValue;
 use pwt::prelude::*;
 use pwt::props::WidgetBuilder;
 use pwt::widget::form::{
-    Checkbox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState, Number,
+    Checkbox, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt,
+    ManagedFieldState, Number,
 };
 use pwt::widget::{Container, InputPanel};
 
@@ -55,6 +56,7 @@ enum LogRatelimitMsg {
 }
 
 struct LogRatelimitFieldImpl {
+    state: ManagedFieldState,
     enable: bool,
     rate: String,
     burst: Option<u64>,
@@ -71,18 +73,7 @@ impl ManagedField for LogRatelimitFieldImpl {
         Ok(value.clone())
     }
 
-    fn setup(props: &Self::Properties) -> ManagedFieldState {
-        let value = Value::Null;
-        let default = match &props.default {
-            Some(d) => Value::String(d.to_string()),
-            None => Value::String(String::new()),
-        };
-        ManagedFieldState::new(value, default)
-    }
-
-    fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
-        let state = ctx.state();
-
+    fn value_changed(&mut self, _ctx: &ManagedFieldContext<Self>) {
         // Initialize with API defaults (enable=true is the API default)
         // When the property string is empty, rate and burst are unset
         self.enable = true;
@@ -90,15 +81,15 @@ impl ManagedField for LogRatelimitFieldImpl {
         self.burst = None;
 
         // If value is Null, use the default instead
-        let value_to_parse = match &state.value {
-            Value::Null => &state.default,
+        let value_to_parse = match &self.state.value {
+            Value::Null => &self.state.default,
             other => other,
         };
 
         if let Value::String(v) = value_to_parse {
             if !v.is_empty() {
                 match pve_api_types::ClusterFirewallOptionsLogRatelimit::API_SCHEMA
-                    .parse_property_string(v)
+                    .parse_property_string(&v)
                 {
                     Ok(parsed) => {
                         match serde_json::from_value::<
@@ -126,7 +117,13 @@ impl ManagedField for LogRatelimitFieldImpl {
     }
 
     fn create(ctx: &ManagedFieldContext<Self>) -> Self {
+        let value = Value::Null;
+        let default = match &ctx.props().default {
+            Some(d) => Value::String(d.to_string()),
+            None => Value::String(String::new()),
+        };
         let mut me = Self {
+            state: ManagedFieldState::new(value, default),
             enable: true,
             rate: String::new(),
             burst: None,
@@ -198,3 +195,5 @@ impl ManagedField for LogRatelimitFieldImpl {
             .into()
     }
 }
+
+crate::impl_deref_mut_property!(LogRatelimitFieldImpl, state, ManagedFieldState);

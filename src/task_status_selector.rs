@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use pwt::prelude::*;
-use pwt::widget::form::{ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldState};
+use pwt::widget::form::{
+    ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt, ManagedFieldState,
+};
 use pwt::widget::{Button, SegmentedButton};
 
 use pwt_macros::widget;
@@ -35,7 +37,9 @@ pub enum Msg {
     ToggleUnknown,
 }
 
-pub struct ProxmoxTaskStatusSelector {}
+pub struct ProxmoxTaskStatusSelector {
+    state: ManagedFieldState,
+}
 
 #[derive(Copy, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -45,6 +49,8 @@ enum TaskFilterEntry {
     Warning,
     Unknown,
 }
+
+crate::impl_deref_mut_property!(ProxmoxTaskStatusSelector, state, ManagedFieldState);
 
 impl ManagedField for ProxmoxTaskStatusSelector {
     type Properties = TaskStatusSelector;
@@ -65,19 +71,16 @@ impl ManagedField for ProxmoxTaskStatusSelector {
         Ok(list.into())
     }
 
-    fn setup(_props: &Self::Properties) -> ManagedFieldState {
+    fn create(_ctx: &ManagedFieldContext<Self>) -> Self {
         let value: Vec<String> = vec![];
         let default = value.clone();
-
-        ManagedFieldState::new(value.into(), default.into())
-    }
-
-    fn create(_ctx: &ManagedFieldContext<Self>) -> Self {
-        Self {}
+        Self {
+            state: ManagedFieldState::new(value.into(), default.into()),
+        }
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {
-        let state = ctx.state();
+        let state = &self.state;
         let filter: Vec<TaskFilterEntry> =
             serde_json::from_value(state.value.clone()).unwrap_or(Vec::new());
         let mut filter_map: HashSet<TaskFilterEntry> = filter.into_iter().collect();
@@ -119,7 +122,7 @@ impl ManagedField for ProxmoxTaskStatusSelector {
     }
 
     fn view(&self, ctx: &ManagedFieldContext<Self>) -> Html {
-        let state = ctx.state();
+        let state = &self.state;
         let filter: Vec<TaskFilterEntry> =
             serde_json::from_value(state.value.clone()).unwrap_or(Vec::new());
         let unique_map: HashSet<TaskFilterEntry> = filter.into_iter().collect();
