@@ -1,3 +1,11 @@
+rust-proxmox-yew-comp (0.8.2) trixie; urgency=medium
+
+  * refactor: Use pwt::impl_deref_mut_property! macro
+
+  * refactor: adapt to ManagedField trait changes
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 08 Jan 2026 08:41:02 +0100
+
 rust-proxmox-yew-comp (0.8.1) trixie; urgency=medium
 
   * refactor: use impl_deref_mut_property macro
