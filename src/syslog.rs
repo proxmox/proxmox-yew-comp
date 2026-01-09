@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use pwt::widget::form::InputType;
+use pwt::widget::form::{DateField, InputType, PlainDate};
 use pwt::widget::{Button, Container, Row, SegmentedButton};
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
@@ -46,40 +46,34 @@ impl Syslog {
 pub enum Msg {
     ChangeMode(bool),
     LoadingChange((usize, bool)),
-    Since(String),
-    Until(String),
+    SinceDate(Option<PlainDate>),
+    SinceTime(String),
+    UntilDate(Option<PlainDate>),
+    UntilTime(String),
 }
 
 pub struct ProxmoxSyslog {
     active: bool,
-    since: js_sys::Date,
+    since: PlainDate,
+    since_time: String,
     since_label_id: AttrValue,
-    until: js_sys::Date,
+    until: PlainDate,
+    until_time: String,
     until_label_id: AttrValue,
     pending: bool,
 }
 
-fn date_to_input_value(date: &js_sys::Date) -> String {
-    if date.get_date() == 0 {
-        // invalid data (clear field creates this)
-        String::new()
-    } else {
-        format!(
-            "{:04}-{:02}-{:02}T{:02}:{:02}",
-            date.get_full_year(),
-            date.get_month() + 1,
-            date.get_date(),
-            date.get_hours(),
-            date.get_minutes(),
-        )
-    }
+fn date_time_to_epoch(date: &PlainDate, time: &str) -> Option<i64> {
+    let (hours, minutes) = time.split_once(':')?;
+    let d = date.to_date();
+    d.set_hours(hours.parse().ok()?);
+    d.set_minutes(minutes.parse().ok()?);
+    let res = d.get_time() / 1000.0;
+    res.is_finite().then_some(res.round() as i64)
 }
 
 impl ProxmoxSyslog {
     fn create_toolbar(&self, ctx: &Context<Self>) -> Html {
-        let since = date_to_input_value(&self.since);
-        let until = date_to_input_value(&self.until);
-
         Toolbar::new()
             .with_optional_child(
                 self.pending.then_some(
@@ -117,14 +111,23 @@ impl ProxmoxSyslog {
             )
             .with_child(
                 Container::new().with_child(
-                    Field::new()
+                    DateField::new()
                         .label_id(self.since_label_id.clone())
-                        .input_type(InputType::DatetimeLocal)
+                        .required(true)
+                        .disabled(self.active)
+                        .on_change(ctx.link().callback(Msg::SinceDate))
+                        .value(self.since.to_string()),
+                ),
+            )
+            .with_child(
+                Container::new().with_child(
+                    Field::new()
+                        .input_type(InputType::Time)
                         .required(true) // avoid clear button in firefox
                         .disabled(self.active)
                         .class("pwt-input-hide-clear-button")
-                        .on_change(ctx.link().callback(Msg::Since))
-                        .value(since),
+                        .on_change(ctx.link().callback(Msg::SinceTime))
+                        .value(self.since_time.to_string()),
                 ),
             )
             .with_child(
@@ -137,13 +140,23 @@ impl ProxmoxSyslog {
             )
             .with_child(
                 Container::new().with_child(
-                    Field::new()
+                    DateField::new()
                         .label_id(self.until_label_id.clone())
-                        .input_type(InputType::DatetimeLocal)
                         .required(true) // avoid clear button in firefox
                         .disabled(self.active)
-                        .on_change(ctx.link().callback(Msg::Until))
-                        .value(until),
+                        .on_change(ctx.link().callback(Msg::UntilDate))
+                        .value(self.until.to_string()),
+                ),
+            )
+            .with_child(
+                Container::new().with_child(
+                    Field::new()
+                        .label_id(self.until_label_id.clone())
+                        .input_type(InputType::Time)
+                        .required(true) // avoid clear button in firefox
+                        .disabled(self.active)
+                        .on_change(ctx.link().callback(Msg::UntilTime))
+                        .value(self.until_time.to_string()),
                 ),
             )
             .border_bottom(true)
@@ -159,26 +172,12 @@ impl ProxmoxSyslog {
                 }))
                 .into()
         } else {
-            let since = if self.since.get_date() == 0 {
-                // invalid data (clear field creates this)
-                get_default_since()
-            } else {
-                self.since.clone()
-            };
-
-            let until = if self.until.get_date() == 0 {
-                // invalid data (clear field creates this)
-                None
-            } else {
-                Some((self.until.get_time() / 1000.0) as i64)
-            };
-
             LogView::new(props.base_url.clone())
                 .padding(2)
                 .class("pwt-flex-fill")
                 .service(props.service.clone())
-                .since((since.get_time() / 1000.0) as i64)
-                .until(until)
+                .since(date_time_to_epoch(&self.since, &self.since_time))
+                .until(date_time_to_epoch(&self.until, &self.until_time))
                 .active(false)
                 .on_pending_change(ctx.link().callback(Msg::LoadingChange))
                 .into()
@@ -186,27 +185,6 @@ impl ProxmoxSyslog {
     }
 }
 
-fn get_default_since() -> js_sys::Date {
-    let since = js_sys::Date::new_0();
-
-    since.set_hours(0);
-    since.set_minutes(0);
-    since.set_seconds(0);
-    since.set_milliseconds(0);
-
-    since
-}
-
-fn get_default_until() -> js_sys::Date {
-    let until = js_sys::Date::new_0();
-
-    until.set_hours(23);
-    until.set_minutes(59);
-    until.set_seconds(59);
-    until.set_milliseconds(999);
-
-    until
-}
 impl Component for ProxmoxSyslog {
     type Message = Msg;
     type Properties = Syslog;
@@ -214,9 +192,11 @@ impl Component for ProxmoxSyslog {
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
             active: true,
-            since: get_default_since(),
+            since: PlainDate::today(),
+            since_time: "00:00".to_string(),
             since_label_id: AttrValue::from(pwt::widget::get_unique_element_id()),
-            until: get_default_until(),
+            until: PlainDate::today(),
+            until_time: "23:59".to_string(),
             until_label_id: AttrValue::from(pwt::widget::get_unique_element_id()),
             pending: false,
         }
@@ -224,16 +204,22 @@ impl Component for ProxmoxSyslog {
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Since(datetime) => {
-                let since = js_sys::Date::parse(&datetime);
-                let since = js_sys::Date::new(&since.into());
-                self.since = since;
+            Msg::SinceDate(Some(date)) => {
+                self.since = date;
                 true
             }
-            Msg::Until(datetime) => {
-                let until = js_sys::Date::parse(&datetime);
-                let until = js_sys::Date::new(&until.into());
-                self.until = until;
+            Msg::SinceDate(None) => false,
+            Msg::SinceTime(time) => {
+                self.since_time = time;
+                true
+            }
+            Msg::UntilDate(Some(date)) => {
+                self.until = date;
+                true
+            }
+            Msg::UntilDate(None) => false,
+            Msg::UntilTime(time) => {
+                self.until_time = time;
                 true
             }
             Msg::LoadingChange((num, tail_view)) => {
