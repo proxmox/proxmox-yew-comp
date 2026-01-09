@@ -54,7 +54,6 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 pub fn log_ratelimit_property(mobile: bool) -> EditableProperty {
     let placeholder = tr!("Default") + " (enable=1,rate1/second,burst=5)";
     EditableProperty::new(LOG_RATELIMIT_PN, tr!("Log rate limiting"))
-        .advanced_checkbox(true)
         .required(true)
         .placeholder(placeholder)
         .render_input_panel(input_panel(mobile))
