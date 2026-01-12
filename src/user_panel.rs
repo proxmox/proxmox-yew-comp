@@ -4,7 +4,9 @@ use std::rc::Rc;
 
 use anyhow::Error;
 use proxmox_client::ApiResponseData;
+use pwt_macros::builder;
 use serde_json::Value;
+use yew::html::IntoPropValue;
 
 use proxmox_access_control::types::UserWithTokens;
 use proxmox_auth_api::types::Username;
@@ -89,7 +91,13 @@ async fn update_user(form_ctx: FormContext) -> Result<(), Error> {
 }
 
 #[derive(PartialEq, Properties)]
-pub struct UserPanel {}
+#[builder]
+pub struct UserPanel {
+    /// The realm of the current product. For example: "pdm"
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    product_realm: Option<AttrValue>,
+}
 
 impl Default for UserPanel {
     fn default() -> Self {
@@ -99,7 +107,7 @@ impl Default for UserPanel {
 
 impl UserPanel {
     pub fn new() -> Self {
-        Self {}
+        yew::props!(Self {})
     }
 }
 
@@ -119,6 +127,7 @@ pub struct ProxmoxUserPanel {
     state: LoadableComponentState<ViewState>,
     store: Store<UserWithTokens>,
     selection: Selection,
+    product_realm: Option<AttrValue>,
 }
 
 pwt::impl_deref_mut_property!(ProxmoxUserPanel, state, LoadableComponentState<ViewState>);
@@ -154,6 +163,7 @@ impl LoadableComponent for ProxmoxUserPanel {
             state: LoadableComponentState::new(),
             store,
             selection,
+            product_realm: ctx.props().product_realm.clone(),
         }
     }
 
@@ -180,7 +190,11 @@ impl LoadableComponent for ProxmoxUserPanel {
         let no_selection = self.selection.is_empty();
         let disable_change_password = self
             .get_selected_user()
-            .map(|user| user.user.userid.realm().as_str() == "pam")
+            .and_then(|user| {
+                self.product_realm
+                    .as_ref()
+                    .map(|p| p != user.user.userid.realm().as_str())
+            })
             .unwrap_or(no_selection);
 
         let toolbar = Toolbar::new()
@@ -279,8 +293,9 @@ impl ProxmoxUserPanel {
     }
 
     fn create_add_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
+        let product_realm = self.product_realm.clone();
         EditWindow::new(tr!("Add") + ": " + &tr!("User"))
-            .renderer(add_user_input_panel)
+            .renderer(move |form_ctx| add_user_input_panel(form_ctx, &product_realm))
             .on_submit(create_user)
             .on_done(ctx.link().change_view_callback(|_| None))
             .on_change(check_confirm_password)
@@ -484,8 +499,12 @@ fn password_change_input_panel(_form_ctx: &FormContext) -> Html {
         .into()
 }
 
-fn add_user_input_panel(form_ctx: &FormContext) -> Html {
-    let is_pam = form_ctx.read().get_field_text("realm") == "pam";
+fn add_user_input_panel(form_ctx: &FormContext, product_realm: &Option<AttrValue>) -> Html {
+    let realm = form_ctx.read().get_field_text("realm");
+    let is_product_realm = product_realm
+        .as_deref()
+        .map(|p| p == realm)
+        .unwrap_or_default();
 
     let mut panel = InputPanel::new()
         .padding(4)
@@ -506,7 +525,7 @@ fn add_user_input_panel(form_ctx: &FormContext) -> Html {
                 .submit(false),
         );
 
-    if !is_pam {
+    if is_product_realm {
         panel = panel
             .with_field(
                 tr!("Password"),
