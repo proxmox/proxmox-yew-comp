@@ -27,4 +27,5 @@ pub use lxc_network_panel::LxcNetworkPanel;
 mod firewall;
 pub use firewall::{
     FirewallOptionsClusterPanel, FirewallOptionsGuestPanel, FirewallOptionsNodePanel,
+    FirewallRulesPanel,
 };
