@@ -1,3 +1,19 @@
+rust-proxmox-yew-comp (0.8.3) trixie; urgency=medium
+
+  * use IEC standared for showing the HD space in node info panel
+
+  * syslog: use new DateField for selecting the date
+
+  * user panel: add a parameter to set the current product's realm
+
+  * new FirewallRulesPanel component (remove old firewall code)
+
+  * log_ratelimit_property: remove advanced checkbox
+
+  * http wasm client: load csrf token from global Proxmox object
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 16 Jan 2026 09:55:32 +0100
+
 rust-proxmox-yew-comp (0.8.2) trixie; urgency=medium
 
   * refactor: Use pwt::impl_deref_mut_property! macro
