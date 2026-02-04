@@ -164,7 +164,11 @@ pub fn node_info(data: Option<NodeStatus>) -> Container {
                 .animated(true)
                 .icon_class("fa fa-fw fa-cpu")
                 .value(cpu as f32)
-                .status(format!("{:.2}% of {} CPU(s)", cpu * 100.0, cpus_total)),
+                .status(tr!(
+                    "{0}% of {1} CPU(s)",
+                    format!("{:.2}", cpu * 100.0),
+                    cpus_total
+                )),
         )
         .with_child(
             MeterLabel::with_zero_optimum(tr!("IO delay"))
