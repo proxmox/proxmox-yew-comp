@@ -478,7 +478,7 @@ fn render_tree_node(args: &mut DataTableCellRenderArgs<TreeEntry>) -> Html {
                 + ": "
                 + &*info.name
                 + " ("
-                + &tr!("One item" | "{} items" % info.count)
+                + &tr!("One item" | "{n} items" % info.count)
                 + ")";
             args.add_class("pwt-bg-color-surface");
             args.set_attribute("colspan", "20");
