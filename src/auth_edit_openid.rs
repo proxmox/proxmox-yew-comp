@@ -7,7 +7,7 @@ use yew::html::{IntoEventCallback, IntoPropValue};
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::form::Field;
+use pwt::widget::form::{Field, InputType};
 use pwt::widget::InputPanel;
 
 use crate::form::delete_empty_values;
@@ -128,7 +128,12 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditOpenID) -> Html {
                 .name("scopes")
                 .placeholder(tr!("Default") + " (" + &tr!("email profile") + ")"),
         )
-        .with_field(tr!("Client Key"), Field::new().name("client-key"))
+        .with_field(
+            tr!("Client Key"),
+            Field::new()
+                .input_type(InputType::Password)
+                .name("client-key"),
+        )
         .with_right_field(
             tr!("Prompt"),
             Combobox::new()
