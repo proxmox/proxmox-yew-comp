@@ -258,7 +258,9 @@ pub fn openid_redirection_authorization() -> Option<HashMap<String, String>> {
 
         match (key_value.next(), key_value.next()) {
             (Some("?code") | Some("code"), Some(value)) => {
-                auth.insert("code".to_string(), value.to_string());
+                if let Ok(code) = percent_decode(value.as_bytes()).decode_utf8() {
+                    auth.insert("code".to_string(), code.to_string());
+                }
             }
             (Some("?state") | Some("state"), Some(value)) => {
                 if let Ok(decoded) = percent_decode(value.as_bytes()).decode_utf8() {
