@@ -62,6 +62,13 @@ pub struct Tasks {
     #[builder(IntoPropValue, into_prop_value)]
     pub base_url: Option<AttrValue>,
 
+    /// If set, clicking the 'refresh' button will POST the provided URL to start
+    /// a task which refreshes the underlying task storage. Once the task finishes,
+    /// the view automatically refreshes and shows the latest tasks.
+    #[prop_or_default]
+    #[builder(IntoPropValue, into_prop_value)]
+    pub refresh_task_url: Option<AttrValue>,
+
     #[builder_cb(IntoEventCallback, into_event_callback, (String, Option<i64>))]
     #[prop_or_default]
     /// Called when the task is opened
@@ -103,6 +110,7 @@ pub enum ViewDialog {
 pub enum Msg {
     ToggleFilter,
     LoadBatch(bool), // fresh load
+    RefreshClicked,
     LoadFinished,
     UpdateFilter,
     ShowTask,
@@ -337,6 +345,17 @@ impl LoadableComponent for ProxmoxTasks {
                 self.fresh_load = false;
                 false
             }
+            Msg::RefreshClicked => {
+                let link = ctx.link().clone();
+                if let Some(url) = &ctx.props().refresh_task_url {
+                    self.fresh_load = true;
+                    link.start_task(url.to_string(), None, true);
+                } else {
+                    link.send_message(Msg::LoadBatch(true));
+                }
+
+                false
+            }
             Msg::ShowTask => {
                 if let Some(on_show_task) = &ctx.props().on_show_task {
                     let selected_item = self
@@ -394,7 +413,7 @@ impl LoadableComponent for ProxmoxTasks {
             .with_child({
                 let loading = self.loading();
                 let link = ctx.link().clone();
-                Button::refresh(loading).onclick(move |_| link.send_message(Msg::LoadBatch(true)))
+                Button::refresh(loading).onclick(move |_| link.send_message(Msg::RefreshClicked))
             });
 
         let filter_classes = classes!(
