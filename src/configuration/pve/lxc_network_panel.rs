@@ -426,7 +426,7 @@ fn columns() -> Rc<Vec<DataTableHeader<NetworkEntry>>> {
         DataTableColumn::new(tr!("Bridge"))
             .width("minmax(80px, auto)")
             .get_property_owned(|item: &NetworkEntry| {
-                item.config.bridge.clone().unwrap_or(String::new())
+                item.config.bridge.clone().unwrap_or_default()
             })
             .into(),
         DataTableColumn::new(tr!("Firewall"))
@@ -448,7 +448,7 @@ fn columns() -> Rc<Vec<DataTableHeader<NetworkEntry>>> {
         DataTableColumn::new(tr!("VLAN Tag"))
             .width("minmax(80px, auto)")
             .render(|item: &NetworkEntry| {
-                html! { item.config.tag.map(|tag| tag.to_string()).unwrap_or(String::new())}
+                html! { item.config.tag.map(|tag| tag.to_string()).unwrap_or_default()}
             })
             .into(),
         DataTableColumn::new(tr!("MAC address"))
@@ -472,7 +472,7 @@ fn columns() -> Rc<Vec<DataTableHeader<NetworkEntry>>> {
         DataTableColumn::new(tr!("MTU"))
             .width("minmax(80px, auto)")
             .render(|item: &NetworkEntry| {
-                html! { item.config.mtu.map(|mtu| mtu.to_string()).unwrap_or(String::new())}
+                html! { item.config.mtu.map(|mtu| mtu.to_string()).unwrap_or_default()}
             })
             .into(),
         DataTableColumn::new(tr!("Disconnected"))

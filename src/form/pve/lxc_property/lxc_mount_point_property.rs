@@ -81,7 +81,7 @@ impl MountPointComp {
                     .map(|s| s.to_string())
             })
             .flatten()
-            .unwrap_or(String::new());
+            .unwrap_or_default();
 
         self.used_mount_points = extract_used_mount_points(&props.state.record);
 

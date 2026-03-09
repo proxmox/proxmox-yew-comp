@@ -742,7 +742,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
 
         let username = crate::http_get_auth()
             .map(|info| info.userid.clone())
-            .unwrap_or(String::new());
+            .unwrap_or_default();
         let user_is_root = props.remote.is_none() && username == "root@pam";
 
         let editor_url =

@@ -118,7 +118,7 @@ impl DiskPanelComp {
                     .map(|s| s.to_string())
             })
             .flatten()
-            .unwrap_or(String::new());
+            .unwrap_or_default();
 
         self.used_devices = extract_used_devices(&props.state.record);
     }
