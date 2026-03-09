@@ -503,7 +503,7 @@ pub fn extract_used_devices(record: &Value) -> HashSet<String> {
     let mut list = HashSet::new();
     if let Some(map) = record.as_object() {
         for key in map.keys() {
-            if let Ok(_) = parse_qemu_controller_name(key) {
+            if parse_qemu_controller_name(key).is_ok() {
                 list.insert(key.to_string());
             }
         }
