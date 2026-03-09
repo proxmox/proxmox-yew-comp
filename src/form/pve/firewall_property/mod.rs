@@ -37,7 +37,7 @@ pub fn cluster_enable_property(mobile: bool) -> EditableProperty {
         .required(true)
         .load_hook(|mut record: Value| {
             let enable = match record["enable"].as_u64() {
-                Some(n) if n == 0 => false,
+                Some(0) => false,
                 Some(_) => true,
                 None => false,
             };
