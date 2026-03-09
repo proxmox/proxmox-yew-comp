@@ -85,12 +85,10 @@ pub fn normalize_hotplug_value(value: &Value) -> Value {
         Value::String(s) => {
             if s == "0" {
                 "".into()
+            } else if s == "1" {
+                "disk,network,usb".into()
             } else {
-                if s == "1" {
-                    "disk,network,usb".into()
-                } else {
-                    s.clone().into()
-                }
+                s.clone().into()
             }
         }
         _ => value.clone(),

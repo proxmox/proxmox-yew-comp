@@ -297,12 +297,10 @@ impl Component for DiskPanelComp {
             if props.unused_disk.is_some() {
                 panel.add_custom_child(file_info_child);
                 add_bus_device_selector(&mut panel);
+            } else if self.is_create {
+                add_bus_device_selector(&mut panel);
             } else {
-                if self.is_create {
-                    add_bus_device_selector(&mut panel);
-                } else {
-                    panel.add_custom_child(file_info_child);
-                }
+                panel.add_custom_child(file_info_child);
             }
 
             panel.add_field(cache_label, cache_field);
@@ -340,12 +338,10 @@ impl Component for DiskPanelComp {
                         .read_only(true)
                         .value(self.unused_volume.clone()),
                 );
+            } else if self.is_create {
+                add_bus_device_selector(&mut panel);
             } else {
-                if self.is_create {
-                    add_bus_device_selector(&mut panel);
-                } else {
-                    panel.add_custom_child(file_info_child);
-                }
+                panel.add_custom_child(file_info_child);
             }
 
             panel.add_right_field(cache_label, cache_field);

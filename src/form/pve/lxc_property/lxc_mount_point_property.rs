@@ -267,14 +267,12 @@ impl Component for MountPointComp {
             if props.unused_disk.is_some() {
                 panel.add_custom_child(file_info_child);
                 panel.add_field(mount_point_id_label, mount_point_id_field);
+            } else if self.is_create {
+                panel.add_field(mount_point_id_label, mount_point_id_field);
+                panel.add_field(storage_label, storage_field);
+                panel.add_field(disk_size_label, disk_size_field);
             } else {
-                if self.is_create {
-                    panel.add_field(mount_point_id_label, mount_point_id_field);
-                    panel.add_field(storage_label, storage_field);
-                    panel.add_field(disk_size_label, disk_size_field);
-                } else {
-                    panel.add_custom_child(file_info_child);
-                }
+                panel.add_custom_child(file_info_child);
             }
 
             if !props.rootfs {
@@ -309,14 +307,12 @@ impl Component for MountPointComp {
             if props.unused_disk.is_some() {
                 panel.add_field(mount_point_id_label, mount_point_id_field);
                 panel.add_custom_child(file_info_child);
+            } else if self.is_create {
+                panel.add_field(mount_point_id_label, mount_point_id_field);
+                panel.add_field(storage_label, storage_field);
+                panel.add_field(disk_size_label, disk_size_field);
             } else {
-                if self.is_create {
-                    panel.add_field(mount_point_id_label, mount_point_id_field);
-                    panel.add_field(storage_label, storage_field);
-                    panel.add_field(disk_size_label, disk_size_field);
-                } else {
-                    panel.add_custom_child(file_info_child);
-                }
+                panel.add_custom_child(file_info_child);
             }
 
             if !props.rootfs {
