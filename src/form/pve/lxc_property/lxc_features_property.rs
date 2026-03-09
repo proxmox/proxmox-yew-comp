@@ -59,10 +59,7 @@ impl Component for LxcFeaturesComp {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
 
-        let unpriviledged = match props.state.record["unprivileged"] {
-            Value::Bool(true) => true,
-            _ => false,
-        };
+        let unpriviledged = matches!(props.state.record["unprivileged"], Value::Bool(true));
 
         let unprivileged_hint = |msg: String| {
             if !unpriviledged {

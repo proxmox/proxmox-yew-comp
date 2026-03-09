@@ -89,10 +89,7 @@ impl Component for QemuEfidiskPanelComp {
         let hint = |msg: String| Container::new().class("pwt-color-warning").with_child(msg);
 
         let bios = serde_json::from_value::<Option<QemuConfigBios>>(state.record["bios"].clone());
-        let show_bios_hint = match bios {
-            Ok(Some(QemuConfigBios::Ovmf)) => false,
-            _ => true,
-        };
+        let show_bios_hint = matches!(bios, Ok(Some(QemuConfigBios::Ovmf)));
 
         // disable selector if there is no real choice
         let disable_format_selector = supported_formats.len() <= 1;
