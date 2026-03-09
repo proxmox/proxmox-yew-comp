@@ -141,8 +141,8 @@ impl PveGuestSelectorComp {
         let props = ctx.props();
         let remote = props.remote.clone();
         let guest_type = props.guest_type;
-        let templates = props.templates.clone();
-        let exclude_guest = props.exclude_guest.clone();
+        let templates = props.templates;
+        let exclude_guest = props.exclude_guest;
         (move || Self::get_guest_list(remote.clone(), guest_type, exclude_guest, templates)).into()
     }
 }

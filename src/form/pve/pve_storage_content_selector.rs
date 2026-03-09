@@ -126,15 +126,15 @@ impl PveStorageContentSelectorComp {
         let props = ctx.props();
         let node = props.node.clone();
         let storage = props.storage.clone();
-        let content_filter = props.content_filter.clone();
+        let content_filter = props.content_filter;
         let vmid_filter = props.vmid_filter;
 
         (move || {
             Self::get_storage_content(
                 node.clone().unwrap_or("localhost".into()),
                 storage.clone(),
-                content_filter.clone(),
-                vmid_filter.clone(),
+                content_filter,
+                vmid_filter,
             )
         })
         .into()

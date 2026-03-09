@@ -416,7 +416,7 @@ fn mount_point_property(
             move |mut record: Value| {
                 let used_mount_points = extract_used_mount_points(&record);
                 let default_mount_point = first_unused_mount_point(&used_mount_points);
-                record[MOUNT_POINT_ID] = default_mount_point.clone().into();
+                record[MOUNT_POINT_ID] = default_mount_point.into();
 
                 if unused_disk.is_none() {
                     if let Some(name) = &name {

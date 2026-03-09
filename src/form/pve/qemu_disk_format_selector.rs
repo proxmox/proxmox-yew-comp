@@ -147,7 +147,7 @@ impl Component for QemuDiskFormatComp {
                     .read()
                     .iter()
                     .find(|item| *item.format_text == *key)
-                    .map(|entry| entry.format.clone());
+                    .map(|entry| entry.format);
 
                 if let Some(on_change) = &on_change {
                     on_change.emit(format);
