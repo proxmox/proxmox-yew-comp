@@ -89,5 +89,4 @@ pub fn log_ratelimit_property(mobile: bool) -> EditableProperty {
             let form_data = delete_empty_values(&form_data, &[LOG_RATELIMIT_PN], false);
             Ok(form_data)
         })
-        .into()
 }

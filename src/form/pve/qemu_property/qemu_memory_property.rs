@@ -185,7 +185,7 @@ pub fn qemu_memory_property(mobile: bool) -> EditableProperty {
                     if balloon == old_memory && old_memory != current_memory {
                         form_ctx
                             .write()
-                            .set_field_value("balloon", current_memory.clone().into());
+                            .set_field_value("balloon", current_memory.clone());
                     }
                 }
                 _ => {}
@@ -194,7 +194,7 @@ pub fn qemu_memory_property(mobile: bool) -> EditableProperty {
             if let Some(current_memory) = current_memory {
                 form_ctx
                     .write()
-                    .set_field_value("_old_memory", current_memory.into());
+                    .set_field_value("_old_memory", current_memory);
             }
         })
 }

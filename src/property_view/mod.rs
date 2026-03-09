@@ -31,7 +31,7 @@ pub struct PropertyGridRecord {
 
 impl ExtractPrimaryKey for PropertyGridRecord {
     fn extract_key(&self) -> Key {
-        Key::from(self.key.clone())
+        self.key.clone()
     }
 }
 
@@ -276,7 +276,7 @@ pub fn render_property_value(record: &Value, property: &EditableProperty) -> Htm
         match value {
             None::<_> | Some(Value::Null) => {
                 let placeholder = if let Some(placeholder) = &property.placeholder {
-                    placeholder.to_string().into()
+                    placeholder.to_string()
                 } else {
                     String::from("-")
                 };

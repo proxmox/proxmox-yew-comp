@@ -63,7 +63,7 @@ struct HardwareEntry {
 
 impl ExtractPrimaryKey for HardwareEntry {
     fn extract_key(&self) -> Key {
-        Key::from(self.key.clone())
+        self.key.clone()
     }
 }
 

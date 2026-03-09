@@ -73,7 +73,7 @@ struct NetworkEntry {
 
 impl ExtractPrimaryKey for NetworkEntry {
     fn extract_key(&self) -> Key {
-        Key::from(self.key.clone())
+        self.key.clone()
     }
 }
 

@@ -114,8 +114,7 @@ impl Component for QemuDiskFormatComp {
                         .min_width(300)
                         .show_header(false)
                         .header_focusable(false)
-                        .class(pwt::css::FlexFit)
-                        .into(),
+                        .class(pwt::css::FlexFit),
                 )
                 .selection(args.selection.clone())
                 .on_select(args.controller.on_select_callback())

@@ -7,7 +7,6 @@ pub fn label_widget(label: impl Into<AttrValue>, field: impl Into<Html>) -> Colu
     Column::new()
         .with_child(FieldLabel::new(label.into()).padding_bottom(PwtSpace::Em(0.3)))
         .with_child(field)
-        .into()
 }
 
 /// Column with label and field
@@ -30,5 +29,4 @@ pub fn label_field(
                 .class((!enabled).then(|| "pwt-label-disabled")),
         )
         .with_child(field.label_id(label_id).disabled(!enabled))
-        .into()
 }
