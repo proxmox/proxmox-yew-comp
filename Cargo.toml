@@ -104,3 +104,8 @@ network = [
 rrd = [
     "dep:proxmox-rrd-api-types"
 ]
+
+[lints.clippy]
+too_many_arguments = "allow"
+enum_variant_names = "allow"
+large_enum_variant = "allow"
