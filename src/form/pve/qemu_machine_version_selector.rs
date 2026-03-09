@@ -173,18 +173,20 @@ fn extract_version_text(id: &str) -> String {
     if id == "pc" || id == "q35" {
         return tr!("Latest");
     }
-    if id.starts_with("pc-q35-") {
-        return id[7..].to_string();
+
+    if let Some(id) = id.strip_prefix("pc-q35-") {
+        return id.to_string();
     }
-    if id.starts_with("pc-i440fx-") {
-        return id[10..].to_string();
+    if let Some(id) = id.strip_prefix("pc-i440fx-") {
+        return id.to_string();
     }
-    if id.starts_with("pc-") {
-        return id[3..].to_string();
+    if let Some(id) = id.strip_prefix("pc-") {
+        return id.to_string();
     }
-    if id.starts_with("virt-") {
-        return id[5..].to_string();
+    if let Some(id) = id.strip_prefix("virt-") {
+        return id.to_string();
     }
+
     id.to_string()
 }
 

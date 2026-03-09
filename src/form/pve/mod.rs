@@ -88,8 +88,8 @@ pub enum PveGuestType {
 }
 
 fn parse_unused_key(key: &str) -> Option<usize> {
-    if key.starts_with("unused") {
-        if let Ok(id) = key[6..].parse::<usize>() {
+    if let Some(key) = key.strip_prefix("unused") {
+        if let Ok(id) = key.parse::<usize>() {
             return Some(id);
         }
     }

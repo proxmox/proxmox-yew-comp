@@ -55,10 +55,10 @@ fn parse_flags(flags: &str) -> HashMap<String, bool> {
         .filter_map(|flag| {
             if flag.is_empty() {
                 None
-            } else if flag.starts_with("+") {
-                Some((flag[1..].to_string(), true))
-            } else if flag.starts_with("-") {
-                Some((flag[1..].to_string(), false))
+            } else if let Some(flag) = flag.strip_prefix("+") {
+                Some((flag.to_string(), true))
+            } else if let Some(flag) = flag.strip_prefix("-") {
+                Some((flag.to_string(), false))
             } else {
                 log::error!("unable to parse cpu flag '{flag}' - missing prefix");
                 None

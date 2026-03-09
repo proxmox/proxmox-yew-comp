@@ -43,8 +43,8 @@ fn get_schema(name: &str) -> &'static Schema {
 }
 
 fn net_property_id(name: &str) -> Option<usize> {
-    if name.starts_with("net") {
-        if let Ok(id) = name[3..].parse::<usize>() {
+    if let Some(name) = name.strip_prefix("net") {
+        if let Ok(id) = name.parse::<usize>() {
             return Some(id);
         }
     }
