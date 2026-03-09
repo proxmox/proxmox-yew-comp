@@ -332,7 +332,6 @@ impl<M, V: PartialEq, T: 'static + LoadableComponent<Message = M, ViewState = V>
         self.send_message(Msg::Spawn(Box::pin(async move {
             match command_future.await {
                 Ok(task_id) => {
-                    link.send_reload();
                     if short {
                         link.show_task_progres(task_id);
                     } else {
