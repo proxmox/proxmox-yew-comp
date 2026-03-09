@@ -279,7 +279,7 @@ fn render_firewall_rule_mobile(rule: &ListFirewallRules) -> Html {
         .with_child(
             Container::new().with_child(
                 Container::new()
-                    .style("opacity", (rule.enable != Some(1)).then(|| "0.5"))
+                    .style("opacity", (rule.enable != Some(1)).then_some("0.5"))
                     .with_child(&rule.action),
             ),
         )

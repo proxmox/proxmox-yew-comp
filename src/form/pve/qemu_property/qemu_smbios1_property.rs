@@ -78,7 +78,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 
         InputPanel::new()
             .mobile(mobile)
-            .field_width((!mobile).then(|| "300px"))
+            .field_width((!mobile).then_some("300px"))
             .class(pwt::css::FlexFit)
             .padding_x(2)
             .with_field(uuid_label, uuid_field)

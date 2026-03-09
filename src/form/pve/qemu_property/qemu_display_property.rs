@@ -135,7 +135,7 @@ impl Component for StatefulPanelComp {
 
         InputPanel::new()
             .mobile(props.mobile)
-            .style("min-width", (!props.mobile).then(|| "400px"))
+            .style("min-width", (!props.mobile).then_some("400px"))
             .show_advanced(advanced)
             .class(pwt::css::FlexFit)
             .padding_x(2)

@@ -46,7 +46,7 @@ pub fn qemu_scsihw_property(mobile: bool) -> EditableProperty {
             let mut panel = InputPanel::new()
                 .mobile(mobile)
                 .class(pwt::css::FlexFit)
-                .field_width((!mobile).then(|| "250px"))
+                .field_width((!mobile).then_some("250px"))
                 .padding_x(2)
                 .padding_bottom(1); // avoid scrollbar ?!
 

@@ -89,7 +89,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
             .mobile(mobile)
             .show_advanced(advanced)
             .label_width("max-content")
-            .field_width((!mobile).then(|| "350px"))
+            .field_width((!mobile).then_some("350px"))
             .class(pwt::css::FlexFit)
             .padding_x(2)
             .padding_bottom(1) // avoid scrollbar

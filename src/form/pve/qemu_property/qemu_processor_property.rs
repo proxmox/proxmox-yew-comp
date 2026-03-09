@@ -144,7 +144,7 @@ fn processor_input_panel(
             .with_child(
                 Column::new()
                     .class(pwt::css::FlexFit)
-                    .class((!advanced).then(|| pwt::css::Display::None))
+                    .class((!advanced).then_some(pwt::css::Display::None))
                     .with_child(Row::new().padding_y(2).with_child(scheduler_view))
                     .with_child(
                         Container::new()

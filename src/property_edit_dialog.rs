@@ -426,9 +426,9 @@ impl Component for PwtPropertyEditDialog {
                     .style("position", "absolute")
                     .style("left", "0")
                     .style("right", "0")
-                    .style("visibility", (!loading).then(|| "hidden")),
+                    .style("visibility", (!loading).then_some("hidden")),
             )
-            .with_child(form.style("visibility", loading.then(|| "hidden")));
+            .with_child(form.style("visibility", loading.then_some("hidden")));
 
         let on_close = {
             let on_close = props.on_close.clone();

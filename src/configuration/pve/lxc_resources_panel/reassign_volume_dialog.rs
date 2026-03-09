@@ -162,7 +162,7 @@ impl Component for LxcReassignVolumeComp {
 
         InputPanel::new()
             .mobile(props.mobile)
-            .field_width((!props.mobile).then(|| "300px"))
+            .field_width((!props.mobile).then_some("300px"))
             .class(pwt::css::FlexFit)
             .padding_x(2)
             .padding_bottom(1) // avoid scrollbar

@@ -218,7 +218,7 @@ fn input_panel(
             .mobile(mobile)
             .show_advanced(advanced)
             .padding_x(2)
-            .field_width((!mobile).then(|| "300px"))
+            .field_width((!mobile).then_some("300px"))
             .with_field(name_label, name_field)
             .with_field(hwaddr_label, hwaddr_field)
             .with_field(bridge_label, bridge_field)

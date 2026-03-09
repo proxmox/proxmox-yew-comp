@@ -26,7 +26,7 @@ pub fn label_field(
                 .into()
                 .id(label_id.clone())
                 .padding_bottom(PwtSpace::Em(0.3))
-                .class((!enabled).then(|| "pwt-label-disabled")),
+                .class((!enabled).then_some("pwt-label-disabled")),
         )
         .with_child(field.label_id(label_id).disabled(!enabled))
 }

@@ -235,7 +235,7 @@ fn columns_mobile() -> Rc<Vec<DataTableHeader<ClusterResource>>> {
                 .class(pwt::css::AlignItems::Center)
                 .gap(2)
                 .with_child(Fa::new(icon).large_2x().class(
-                    (item.status.as_deref() == Some("running")).then(|| "pwt-color-primary"),
+                    (item.status.as_deref() == Some("running")).then_some("pwt-color-primary"),
                 ))
                 .with_child(title_subtitle_column(title, item.node.clone()))
                 .with_flex_spacer()

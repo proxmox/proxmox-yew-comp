@@ -219,7 +219,7 @@ pub fn qemu_startup_property(mobile: bool) -> EditableProperty {
                 .mobile(mobile)
                 .class(pwt::css::FlexFit)
                 .padding_x(2)
-                .style("min-width", (!mobile).then(|| "500px"))
+                .style("min-width", (!mobile).then_some("500px"))
                 .with_field(order_label, order_field)
                 .with_field(up_label, up_field)
                 .with_field(down_label, down_field)
