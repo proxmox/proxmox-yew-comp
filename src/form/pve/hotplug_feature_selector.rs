@@ -125,9 +125,7 @@ impl ManagedField for PveHotplugFeatureMaster {
     type Properties = HotplugFeatureSelector;
     type ValidateClosure = ();
 
-    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure {
-        ()
-    }
+    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure {}
 
     fn validator(_props: &Self::ValidateClosure, value: &Value) -> Result<Value, Error> {
         let value = match value {

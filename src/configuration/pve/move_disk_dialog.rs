@@ -131,7 +131,7 @@ pub fn move_disk_dialog(
                 node: node.clone(),
                 remote: remote.clone(),
                 guest_type,
-                mobile: mobile,
+                mobile,
             };
             VComp::new::<MoveDiskPanelComp>(Rc::new(props), None).into()
         }

@@ -60,7 +60,7 @@ pub struct PveBootDeviceField {
 fn add_disabled_devices(list: &mut Vec<DeviceEntry>, boot_devices: &[(String, String)]) {
     let mut disabled_list = Vec::new();
     for (device, value) in boot_devices {
-        if list.iter().find(|i| &i.name == device).is_none() {
+        if !list.iter().any(|i| &i.name == device) {
             disabled_list.push(DeviceEntry {
                 enabled: false,
                 name: device.clone(),
@@ -191,9 +191,7 @@ impl ManagedField for PveBootDeviceField {
     type Properties = BootDeviceList;
     type ValidateClosure = ();
 
-    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure {
-        ()
-    }
+    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure {}
 
     fn validator(_props: &Self::ValidateClosure, value: &Value) -> Result<Value, Error> {
         let value = match value {

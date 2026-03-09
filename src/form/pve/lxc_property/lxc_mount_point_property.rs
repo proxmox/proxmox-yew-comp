@@ -75,12 +75,11 @@ impl MountPointComp {
         self.unused_volume = props
             .unused_disk
             .as_ref()
-            .map(|unused_disk| {
+            .and_then(|unused_disk| {
                 props.state.record[unused_disk]
                     .as_str()
                     .map(|s| s.to_string())
             })
-            .flatten()
             .unwrap_or_default();
 
         self.used_mount_points = extract_used_mount_points(&props.state.record);
@@ -154,10 +153,8 @@ impl Component for MountPointComp {
                 Some(Value::String(volume)) => {
                     if volume.starts_with("/dev/") {
                         false
-                    } else if volume_storage(volume).is_some() {
-                        false
                     } else {
-                        true
+                        volume_storage(volume).is_none()
                     }
                 }
                 _ => false,
@@ -449,17 +446,15 @@ fn mount_point_property(
                         }
                         _ => bail!("got invalid value for unused volume"),
                     }
-                } else if is_create {
-                    if data[VOLUME_PN].is_null() {
-                        let image_storage = form_ctx.read().get_field_text(IMAGE_STORAGE);
-                        let image_size =
-                            match form_ctx.read().get_last_valid_value(DISK_SIZE_FIELD_NAME) {
-                                Some(Value::Number(size)) => size.as_f64().unwrap(),
-                                _ => bail!("got invalid disk size"),
-                            };
-                        let image = format!("{image_storage}:{image_size}");
-                        data[VOLUME_PN] = image.into();
-                    }
+                } else if is_create && data[VOLUME_PN].is_null() {
+                    let image_storage = form_ctx.read().get_field_text(IMAGE_STORAGE);
+                    let image_size =
+                        match form_ctx.read().get_last_valid_value(DISK_SIZE_FIELD_NAME) {
+                            Some(Value::Number(size)) => size.as_f64().unwrap(),
+                            _ => bail!("got invalid disk size"),
+                        };
+                    let image = format!("{image_storage}:{image_size}");
+                    data[VOLUME_PN] = image.into();
                 }
                 if let Some((_, _, Some(Value::Bool(no_replicate)))) =
                     form_ctx.read().get_field_data(NOREPLICATE_FIELD_NAME)
@@ -586,10 +581,7 @@ fn volume_storage(volume: &str) -> Option<String> {
         static VOLUME_MATCH: Regex = Regex::new(r#"^([a-zA-Z][a-zA-Z0-9\-_.]*[a-zA-Z0-9]):"#).unwrap();
     }
     match VOLUME_MATCH.with(|r| r.captures(volume)) {
-        Some(caps) => match caps.get(1) {
-            Some(storage) => Some(storage.as_str().into()),
-            None => None,
-        },
+        Some(caps) => caps.get(1).map(|storage| storage.as_str().into()),
         None => None,
     }
 }

@@ -178,9 +178,9 @@ impl Component for QemuDiskSizeFormatComp {
     }
 }
 
-impl Into<VNode> for QemuDiskSizeFormatSelector {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<QemuDiskSizeFormatComp>(Rc::new(self), None);
+impl From<QemuDiskSizeFormatSelector> for VNode {
+    fn from(val: QemuDiskSizeFormatSelector) -> Self {
+        let comp = VComp::new::<QemuDiskSizeFormatComp>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

@@ -170,7 +170,7 @@ impl PveQemuHardwarePanel {
                                         _ => name.to_string(),
                                     };
                                     let on_confirm = on_confirm.clone();
-                                    confirm_delete_volume(&*name, &volume, false)
+                                    confirm_delete_volume(&name, &volume, false)
                                         .on_close(on_done)
                                         .on_confirm(move |_| on_confirm.emit(()))
                                         .on_confirm({

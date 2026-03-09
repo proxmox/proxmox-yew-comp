@@ -112,12 +112,11 @@ impl DiskPanelComp {
         self.unused_volume = props
             .unused_disk
             .as_ref()
-            .map(|unused_disk| {
+            .and_then(|unused_disk| {
                 props.state.record[unused_disk]
                     .as_str()
                     .map(|s| s.to_string())
             })
-            .flatten()
             .unwrap_or_default();
 
         self.used_devices = extract_used_devices(&props.state.record);
@@ -408,13 +407,13 @@ pub fn qemu_disk_property(
         Some(name) => {
             if name.starts_with("unused") {
                 let mut title = tr!("Unused Disk");
-                if let Some(id) = parse_unused_key(&name) {
+                if let Some(id) = parse_unused_key(name) {
                     title = title + " " + &id.to_string();
                 }
 
                 (Some(name.clone()), title)
             } else {
-                (None, tr!("Hard Disk") + " (" + &name + ")")
+                (None, tr!("Hard Disk") + " (" + name + ")")
             }
         }
         None => (None, tr!("Hard Disk")),
@@ -447,11 +446,9 @@ pub fn qemu_disk_property(
                 record[BUS_DEVICE] = default_device.clone().into();
 
                 if let Some(name) = &name {
-                    if unused_disk.is_none() {
-                        if !name.starts_with("unused") {
-                            flatten_device_data(&mut record, name)?;
-                            record[BUS_DEVICE] = name.clone().into();
-                        }
+                    if unused_disk.is_none() && !name.starts_with("unused") {
+                        flatten_device_data(&mut record, name)?;
+                        record[BUS_DEVICE] = name.clone().into();
                     }
                 }
                 Ok(record)
@@ -475,26 +472,24 @@ pub fn qemu_disk_property(
                         }
                         _ => bail!("got invalid value for unused volume"),
                     }
-                } else if is_create {
-                    if data[FILE_PN].is_null() {
-                        let image_storage = form_ctx.read().get_field_text(IMAGE_STORAGE);
-                        let image_size = match form_ctx
-                            .read()
-                            .get_last_valid_value(QemuDiskSizeFormatSelector::DISK_SIZE)
-                        {
-                            Some(Value::Number(size)) => size.as_f64().unwrap(),
-                            _ => bail!("got invalid disk size"),
-                        };
-                        let image = format!("{image_storage}:{image_size}");
-                        data[FILE_PN] = image.into();
+                } else if is_create && data[FILE_PN].is_null() {
+                    let image_storage = form_ctx.read().get_field_text(IMAGE_STORAGE);
+                    let image_size = match form_ctx
+                        .read()
+                        .get_last_valid_value(QemuDiskSizeFormatSelector::DISK_SIZE)
+                    {
+                        Some(Value::Number(size)) => size.as_f64().unwrap(),
+                        _ => bail!("got invalid disk size"),
+                    };
+                    let image = format!("{image_storage}:{image_size}");
+                    data[FILE_PN] = image.into();
 
-                        let image_format = form_ctx
-                            .read()
-                            .get_field_text(QemuDiskSizeFormatSelector::DISK_FORMAT);
+                    let image_format = form_ctx
+                        .read()
+                        .get_field_text(QemuDiskSizeFormatSelector::DISK_FORMAT);
 
-                        if !image_format.is_empty() {
-                            data["_format"] = Value::String(image_format);
-                        }
+                    if !image_format.is_empty() {
+                        data["_format"] = Value::String(image_format);
                     }
                 }
 
@@ -687,10 +682,8 @@ pub fn qemu_cdrom_property(
             let form_ctx = state.form_ctx;
             let image_storage = form_ctx.read().get_field_text(IMAGE_STORAGE);
             let file = form_ctx.read().get_field_text(FILE_PN);
-            if !image_storage.is_empty() {
-                if !file.starts_with(&(image_storage + ":")) {
-                    form_ctx.write().set_field_value(FILE_PN, "".into());
-                }
+            if !image_storage.is_empty() && !file.starts_with(&(image_storage + ":")) {
+                form_ctx.write().set_field_value(FILE_PN, "".into());
             }
         })
 }

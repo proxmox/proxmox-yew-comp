@@ -86,10 +86,7 @@ impl PveNetworkSelectorComp {
             format!("/nodes/{}/network", percent_encode_component(&node))
         };
 
-        let param = match ty {
-            Some(ty) => Some(json!({"type": ty})),
-            None => None,
-        };
+        let param = ty.map(|ty| json!({"type": ty}));
 
         let mut interfaces: Vec<NetworkInterface> = http_get(url, param).await?;
         interfaces.sort_by(|a, b| a.iface.cmp(&b.iface));

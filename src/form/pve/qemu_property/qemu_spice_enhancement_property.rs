@@ -85,9 +85,9 @@ pub fn qemu_spice_enhancement_property(mobile: bool) -> EditableProperty {
                         output.push(tr!("Video Streaming") + ": " + &videostreaming.to_string());
                     }
                     if output.is_empty() {
-                        return tr!("none").into();
+                        tr!("none").into()
                     } else {
-                        return output.join(", ").into();
+                        output.join(", ").into()
                     }
                 }
                 Ok(None::<_>) => tr!("none").into(),

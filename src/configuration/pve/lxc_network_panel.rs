@@ -233,10 +233,9 @@ impl LoadableComponent for LxcNetworkComp {
                 move |_| link.change_view(Some(ViewState::Add))
             }))
             .with_child({
-                let msg = match &selected_key {
-                    Some(key) => Some(super::guest::confirm_remove_message(&key.to_string())),
-                    None => None,
-                };
+                let msg = selected_key
+                    .as_ref()
+                    .map(|key| super::guest::confirm_remove_message(&key.to_string()));
                 ConfirmButton::new(tr!("Remove"))
                     .disabled(disable_remove)
                     .confirm_message(msg)

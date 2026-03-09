@@ -478,7 +478,7 @@ impl Component for PwtLogView {
                             tag.set_style("line-height", format!("{line_height}px"));
                         }
 
-                        let page_ref = page_ref.take().unwrap_or_else(|| NodeRef::default());
+                        let page_ref = page_ref.take().unwrap_or_default();
 
                         for item in page.lines.iter() {
                             tag.add_child(format!("{}\n", item.t));

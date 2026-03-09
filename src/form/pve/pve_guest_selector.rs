@@ -103,7 +103,7 @@ impl PveGuestSelectorComp {
                 percent_encode_component(remote),
             )
         } else {
-            format!("/cluster/resources")
+            "/cluster/resources".to_string()
         };
         let param = if remote.is_some() {
             json!({ "kind": ClusterResourceKind::Vm })

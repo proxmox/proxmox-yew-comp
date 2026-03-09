@@ -260,7 +260,7 @@ fn render_firewall_rule_mobile(rule: &ListFirewallRules) -> Html {
 
     let prefix = Column::new()
         .gap(1)
-        .with_child(Container::new().with_child(&rule.pos))
+        .with_child(Container::new().with_child(rule.pos))
         .with_child(Container::new().with_child(&rule.ty));
 
     tile.add_child(prefix);

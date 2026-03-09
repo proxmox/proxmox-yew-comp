@@ -106,9 +106,9 @@ impl Component for LogRatelimitSelectorComp {
     }
 }
 
-impl Into<VNode> for LogRatelimitSelector {
-    fn into(self) -> VNode {
-        let comp = VComp::new::<LogRatelimitSelectorComp>(Rc::new(self), None);
+impl From<LogRatelimitSelector> for VNode {
+    fn from(val: LogRatelimitSelector) -> Self {
+        let comp = VComp::new::<LogRatelimitSelectorComp>(Rc::new(val), None);
         VNode::from(comp)
     }
 }

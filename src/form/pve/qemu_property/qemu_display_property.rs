@@ -36,7 +36,7 @@ fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {
             };
 
             if let Some(QemuConfigVgaClipboard::Vnc) = vga.clipboard {
-                inner.push(format!("clipboard=vnc"));
+                inner.push("clipboard=vnc".to_string());
             };
             if !inner.is_empty() {
                 let inner = inner.join(", ");

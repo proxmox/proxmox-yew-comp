@@ -135,7 +135,7 @@ impl EditableProperty {
     pub fn new(name: impl IntoPropValue<Option<AttrValue>>, title: impl Into<AttrValue>) -> Self {
         let name = name.into_prop_value();
         Self {
-            name: name,
+            name,
             revert_keys: None,
             title: title.into(),
             required: false,

@@ -364,10 +364,10 @@ fn render_prune_job_worker_id(id: Option<String>, what: &str) -> String {
             );
         }
     }
-    return format!(
+    format!(
         "{what} on {ds_translated} {id}",
         ds_translated = tr! {"Datastore"}
-    );
+    )
 }
 
 proxmox_schema::const_regex! {

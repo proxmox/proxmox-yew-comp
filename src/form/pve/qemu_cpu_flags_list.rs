@@ -87,9 +87,7 @@ impl ManagedField for QemuCpuFlagsField {
     type Properties = QemuCpuFlags;
     type ValidateClosure = ();
 
-    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure {
-        ()
-    }
+    fn validation_args(_props: &Self::Properties) -> Self::ValidateClosure {}
 
     fn validator(_props: &Self::ValidateClosure, value: &Value) -> Result<Value, Error> {
         Ok(value.clone())
@@ -103,7 +101,7 @@ impl ManagedField for QemuCpuFlagsField {
             ("spec-ctrl", tr!("Allows improved Spectre mitigation with Intel CPUs")),
             ("ssbd", tr!("Protection for \"Speculative Store Bypass\" for Intel models")),
             ("ibpb", tr!("Allows improved Spectre mitigation with AMD CPUs")),
-            ("virt-ssbd", tr!("Basis for \"Speculative Store Bypass\" protection for AMD models")), 
+            ("virt-ssbd", tr!("Basis for \"Speculative Store Bypass\" protection for AMD models")),
             ("amd-ssbd", tr!("Improves Spectre mitigation performance with AMD CPUs, best used with \"virt-ssbd\"")),
             ("amd-no-ssb", tr!("Notifies guest OS that host is not vulnerable for Spectre on AMD CPUs")),
             ("pdpe1gb", tr!("Allow guest OS to use 1GB size pages, if host HW supports it")),
@@ -193,7 +191,7 @@ impl ManagedField for QemuCpuFlagsField {
                     )
                     .with_child(
                         RadioButton::new("default")
-                            .checked(item.enabled == None)
+                            .checked(item.enabled.is_none())
                             .on_input(ctx.link().callback({
                                 let name = name.to_string();
                                 move |_| Msg::Set(name.clone(), None)

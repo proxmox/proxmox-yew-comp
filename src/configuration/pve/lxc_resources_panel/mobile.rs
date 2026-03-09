@@ -242,7 +242,7 @@ impl PveLxcResourcesPanel {
     ) -> ListTile {
         let props = ctx.props();
         let menu = self.disk_menu(ctx, name, false, true, false).with_item({
-            let volume = record[name].as_str().unwrap_or(&name);
+            let volume = record[name].as_str().unwrap_or(name);
             let dialog: Html = confirm_delete_volume(name, volume, true)
                 .on_close({
                     let link = ctx.link().clone();

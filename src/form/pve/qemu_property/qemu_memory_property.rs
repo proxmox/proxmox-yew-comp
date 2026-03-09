@@ -180,15 +180,14 @@ pub fn qemu_memory_property(mobile: bool) -> EditableProperty {
             let old_memory = form_ctx.read().get_field_value("_old_memory");
             let balloon = form_ctx.read().get_last_valid_value("balloon");
 
-            match (&old_memory, &current_memory, &balloon) {
-                (Some(old_memory), Some(current_memory), Some(balloon)) => {
-                    if balloon == old_memory && old_memory != current_memory {
-                        form_ctx
-                            .write()
-                            .set_field_value("balloon", current_memory.clone());
-                    }
+            if let (Some(old_memory), Some(current_memory), Some(balloon)) =
+                (&old_memory, &current_memory, &balloon)
+            {
+                if balloon == old_memory && old_memory != current_memory {
+                    form_ctx
+                        .write()
+                        .set_field_value("balloon", current_memory.clone());
                 }
-                _ => {}
             }
 
             if let Some(current_memory) = current_memory {

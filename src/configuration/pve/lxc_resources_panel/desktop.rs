@@ -167,7 +167,7 @@ impl PveLxcResourcesPanel {
                                         Some(Value::String(volume)) => volume.clone(),
                                         _ => name.to_string(),
                                     };
-                                    confirm_delete_volume(&*name, &volume, false)
+                                    confirm_delete_volume(&name, &volume, false)
                                         .on_close(on_done)
                                         .on_confirm({
                                             let on_confirm = on_confirm.clone();
