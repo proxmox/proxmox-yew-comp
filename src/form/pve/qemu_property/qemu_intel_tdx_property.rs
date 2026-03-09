@@ -11,11 +11,11 @@ use pwt::widget::{Container, FieldPosition, InputPanel};
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
-const INTEL_TDX_PN: &'static str = "intel-tdx";
-const TYPE_PN: &'static str = "_type";
-const ATTESTATION_PN: &'static str = "_attestation";
-const VSOCK_CID_PN: &'static str = "_vsock-cid";
-const VSOCK_PORT_PN: &'static str = "_vsock-port";
+const INTEL_TDX_PN: &str = "intel-tdx";
+const TYPE_PN: &str = "_type";
+const ATTESTATION_PN: &str = "_attestation";
+const VSOCK_CID_PN: &str = "_vsock-cid";
+const VSOCK_PORT_PN: &str = "_vsock-port";
 
 fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {

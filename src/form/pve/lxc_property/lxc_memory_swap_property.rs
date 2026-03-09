@@ -7,8 +7,8 @@ use pwt::widget::{form::Number, InputPanel};
 
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
-const MEMORY_PN: &'static str = "memory";
-const SWAP_PN: &'static str = "swap";
+const MEMORY_PN: &str = "memory";
+const SWAP_PN: &str = "swap";
 const DEFAULT_MEMORY: u64 = 512;
 
 fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {

@@ -15,19 +15,19 @@ use pve_api_types::{
 };
 use yew::virtual_dom::VComp;
 
-const MEDIA_TYPE: &'static str = "_media_type_";
-const BUS_DEVICE: &'static str = "_device_";
-const IMAGE_STORAGE: &'static str = "_storage_";
-const NOREPLICATE_FIELD_NAME: &'static str = "_noreplicate_";
-const DISCARD_CHECKBOX_NAME: &'static str = "_discard_checkbox_";
+const MEDIA_TYPE: &str = "_media_type_";
+const BUS_DEVICE: &str = "_device_";
+const IMAGE_STORAGE: &str = "_storage_";
+const NOREPLICATE_FIELD_NAME: &str = "_noreplicate_";
+const DISCARD_CHECKBOX_NAME: &str = "_discard_checkbox_";
 
-const FILE_PN: &'static str = "_file";
-const DISCARD_PN: &'static str = "_discard";
-const READONLY_PN: &'static str = "_ro";
-const REPLICATE_PN: &'static str = "_replicate";
-const BACKUP_PN: &'static str = "_backup";
-const IOTHREAD_PN: &'static str = "_iothread";
-const SSD_PN: &'static str = "_ssd";
+const FILE_PN: &str = "_file";
+const DISCARD_PN: &str = "_discard";
+const READONLY_PN: &str = "_ro";
+const REPLICATE_PN: &str = "_replicate";
+const BACKUP_PN: &str = "_backup";
+const IOTHREAD_PN: &str = "_iothread";
+const SSD_PN: &str = "_ssd";
 
 use crate::form::pve::pve_storage_content_selector::PveStorageContentSelector;
 use crate::form::pve::{

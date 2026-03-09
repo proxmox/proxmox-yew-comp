@@ -11,15 +11,15 @@ use pwt::widget::{Container, FieldPosition, InputPanel};
 use crate::form::{delete_empty_values, flatten_property_string, property_string_from_parts};
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn};
 
-const AMD_SEV_PN: &'static str = "amd-sev";
-const TYPE_PN: &'static str = "_type";
-const NO_DEBUG_PN: &'static str = "_no-debug";
-const NO_KEY_SHARING_PN: &'static str = "_no-key-sharing";
+const AMD_SEV_PN: &str = "amd-sev";
+const TYPE_PN: &str = "_type";
+const NO_DEBUG_PN: &str = "_no-debug";
+const NO_KEY_SHARING_PN: &str = "_no-key-sharing";
 
-const DEBUG_FIELD_NAME: &'static str = "_debug";
-const KEY_SHARING_FIELD_NAME: &'static str = "_key-sharing";
-const ALLOW_SMT_FIELD_NAME: &'static str = "_allow-smt";
-const KERNEL_HASHES_FIELD_NAME: &'static str = "_kernel-hashes";
+const DEBUG_FIELD_NAME: &str = "_debug";
+const KEY_SHARING_FIELD_NAME: &str = "_key-sharing";
+const ALLOW_SMT_FIELD_NAME: &str = "_allow-smt";
+const KERNEL_HASHES_FIELD_NAME: &str = "_kernel-hashes";
 
 fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |state: PropertyEditorState| {

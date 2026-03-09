@@ -8,8 +8,8 @@ use crate::{
     form::delete_empty_values, EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn,
 };
 
-const SEARCDOMAIN_PN: &'static str = "searchdomain";
-const NAMESERVER_PN: &'static str = "nameserver";
+const SEARCDOMAIN_PN: &str = "searchdomain";
+const NAMESERVER_PN: &str = "nameserver";
 
 fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {
     match value {

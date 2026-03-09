@@ -19,22 +19,22 @@ use crate::form::{
 };
 use crate::{EditableProperty, PropertyEditorState};
 
-const MOUNT_POINT_ID: &'static str = "_mount_point_id_";
-const NOREPLICATE_FIELD_NAME: &'static str = "_noreplicate_";
-const DISK_SIZE_FIELD_NAME: &'static str = "_disk_size_";
-const IMAGE_STORAGE: &'static str = "_storage_";
+const MOUNT_POINT_ID: &str = "_mount_point_id_";
+const NOREPLICATE_FIELD_NAME: &str = "_noreplicate_";
+const DISK_SIZE_FIELD_NAME: &str = "_disk_size_";
+const IMAGE_STORAGE: &str = "_storage_";
 
-const VOLUME_PN: &'static str = "_volume";
-const MOUNT_PATH_PN: &'static str = "_mp";
-const MOUNT_OPTIONS_PN: &'static str = "_mountoptions";
+const VOLUME_PN: &str = "_volume";
+const MOUNT_PATH_PN: &str = "_mp";
+const MOUNT_OPTIONS_PN: &str = "_mountoptions";
 
-const SHARED_PN: &'static str = "_shared";
-const READONLY_PN: &'static str = "_ro";
-const SIZE_PN: &'static str = "_size";
-const REPLICATE_PN: &'static str = "_replicate";
-const BACKUP_PN: &'static str = "_backup";
-const ACL_PN: &'static str = "_acl";
-const QUOTA_PN: &'static str = "_quota";
+const SHARED_PN: &str = "_shared";
+const READONLY_PN: &str = "_ro";
+const SIZE_PN: &str = "_size";
+const REPLICATE_PN: &str = "_replicate";
+const BACKUP_PN: &str = "_backup";
+const ACL_PN: &str = "_acl";
+const QUOTA_PN: &str = "_quota";
 
 #[derive(Properties, Clone, PartialEq)]
 struct MountPointPanel {

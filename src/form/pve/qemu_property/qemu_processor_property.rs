@@ -167,7 +167,7 @@ pub fn qemu_sockets_cores_property(
     user_is_root: bool,
     mobile: bool,
 ) -> EditableProperty {
-    const KEYS: &[&'static str] = &[
+    const KEYS: &[&str] = &[
         "sockets", "cores", "cpu", "vcpus", "cpuunits", "cpulimit", "affinity", "numa",
     ];
 

@@ -18,23 +18,23 @@ use crate::form::{
 };
 use crate::{EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn, SchemaValidation};
 
-const NAME_PN: &'static str = "_name";
-const IP_PN: &'static str = "_ip";
-const IP6_PN: &'static str = "_ip6";
-const GW_PN: &'static str = "_gw";
-const GW6_PN: &'static str = "_gw6";
-const HWADDR_PN: &'static str = "_hwaddr";
-const BRIDGE_PN: &'static str = "_bridge";
-const TAG_PN: &'static str = "_tag";
-const RATE_PN: &'static str = "_rate";
-const MTU_PN: &'static str = "_mtu";
-const HOST_MANAGED_PN: &'static str = "_host-managed";
+const NAME_PN: &str = "_name";
+const IP_PN: &str = "_ip";
+const IP6_PN: &str = "_ip6";
+const GW_PN: &str = "_gw";
+const GW6_PN: &str = "_gw6";
+const HWADDR_PN: &str = "_hwaddr";
+const BRIDGE_PN: &str = "_bridge";
+const TAG_PN: &str = "_tag";
+const RATE_PN: &str = "_rate";
+const MTU_PN: &str = "_mtu";
+const HOST_MANAGED_PN: &str = "_host-managed";
 
-const FIREWALL_PN: &'static str = "_firewall";
-const DISCONNECT_PN: &'static str = "_link_down";
+const FIREWALL_PN: &str = "_firewall";
+const DISCONNECT_PN: &str = "_link_down";
 
-const IPV4_MODE_FIELD_NAME: &'static str = "_ipv4_mode_";
-const IPV6_MODE_FIELD_NAME: &'static str = "_ipv6_mode_";
+const IPV4_MODE_FIELD_NAME: &str = "_ipv4_mode_";
+const IPV6_MODE_FIELD_NAME: &str = "_ipv6_mode_";
 
 fn get_schema(name: &str) -> &'static Schema {
     let object_schema = LxcConfigNet::API_SCHEMA.unwrap_object_schema();

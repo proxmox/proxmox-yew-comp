@@ -13,8 +13,8 @@ use pwt::prelude::*;
 use pwt::widget::InputPanel;
 use pwt::AsyncAbortGuard;
 
-const TARGET_MOUNT_POINT_ID: &'static str = "_target_mount_point_id_";
-const TARGET_VMID_PN: &'static str = "target-vmid";
+const TARGET_MOUNT_POINT_ID: &str = "_target_mount_point_id_";
+const TARGET_VMID_PN: &str = "target-vmid";
 
 use crate::configuration::guest_config_url;
 use crate::form::pve::{

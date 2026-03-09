@@ -18,7 +18,7 @@ use crate::form::pve::{
 use crate::http_get;
 use crate::{PropertyEditDialog, PropertyEditorState};
 
-const TARGET_VMID_PN: &'static str = "target-vmid";
+const TARGET_VMID_PN: &str = "target-vmid";
 
 #[derive(PartialEq, Properties, Clone)]
 struct QemuReassignDiskPanel {

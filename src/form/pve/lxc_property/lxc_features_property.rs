@@ -16,18 +16,18 @@ use pwt::widget::InputPanel;
 
 use crate::{EditableProperty, PropertyEditorState};
 
-const NFS_CHECKBOX_NAME: &'static str = "_nfs_";
-const CIFS_CHECKBOX_NAME: &'static str = "_cifs_";
+const NFS_CHECKBOX_NAME: &str = "_nfs_";
+const CIFS_CHECKBOX_NAME: &str = "_cifs_";
 
-const FEATURES_PN: &'static str = "features";
-const MOUNT_PN: &'static str = "_mount";
-const NESTING_PN: &'static str = "_nesting";
-const KEYCTL_PN: &'static str = "_keyctl";
-const FUSE_PN: &'static str = "_fuse";
-const MKNOD_PN: &'static str = "_mknod";
+const FEATURES_PN: &str = "features";
+const MOUNT_PN: &str = "_mount";
+const NESTING_PN: &str = "_nesting";
+const KEYCTL_PN: &str = "_keyctl";
+const FUSE_PN: &str = "_fuse";
+const MKNOD_PN: &str = "_mknod";
 
-const FSTYPE_NFS: &'static str = "nfs";
-const FSTYPE_CIFS: &'static str = "cifs";
+const FSTYPE_NFS: &str = "nfs";
+const FSTYPE_CIFS: &str = "cifs";
 
 #[derive(PartialEq, Properties)]
 struct LxcFeaturesPanel {

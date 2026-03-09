@@ -7,8 +7,8 @@ use pwt::prelude::*;
 use pwt::widget::form::{Combobox, FormContextObserver};
 use pwt::widget::InputPanel;
 
-const IMAGE_STORAGE: &'static str = "_storage_";
-const FILE_PN: &'static str = "_file";
+const IMAGE_STORAGE: &str = "_storage_";
+const FILE_PN: &str = "_file";
 
 use crate::form::property_string_from_parts;
 use crate::form::pve::{PveStorageContentSelector, PveStorageSelector};

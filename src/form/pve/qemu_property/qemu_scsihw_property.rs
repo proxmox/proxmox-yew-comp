@@ -9,7 +9,7 @@ use crate::form::delete_empty_values;
 use crate::{EditableProperty, PropertyEditorState};
 
 pub fn qemu_scsihw_property(mobile: bool) -> EditableProperty {
-    const NAME: &'static str = "scsihw";
+    const NAME: &str = "scsihw";
     let mut items = IndexMap::new();
     items.extend([
         ("lsi", "LSI 53C895A"),

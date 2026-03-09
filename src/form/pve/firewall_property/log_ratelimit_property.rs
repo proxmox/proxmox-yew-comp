@@ -14,13 +14,13 @@ use crate::{EditableProperty, PropertyEditorState, SchemaValidation};
 
 use super::LogRatelimitSelector;
 
-const LOG_RATELIMIT_PN: &'static str = "log_ratelimit";
-const ENABLE_PN: &'static str = "_enable";
-const RATE_PN: &'static str = "_rate";
-const BURST_PN: &'static str = "_burst";
+const LOG_RATELIMIT_PN: &str = "log_ratelimit";
+const ENABLE_PN: &str = "_enable";
+const RATE_PN: &str = "_rate";
+const BURST_PN: &str = "_burst";
 
-const RATE_FIELD_NAME: &'static str = "_rate_";
-const UNIT_FIELD_NAME: &'static str = "_unit_";
+const RATE_FIELD_NAME: &str = "_rate_";
+const UNIT_FIELD_NAME: &str = "_unit_";
 
 fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
     RenderPropertyInputPanelFn::new(move |_state: PropertyEditorState| {

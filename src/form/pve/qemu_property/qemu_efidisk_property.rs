@@ -12,10 +12,10 @@ use pve_api_types::{
 };
 use yew::virtual_dom::VComp;
 
-const IMAGE_STORAGE: &'static str = "_storage_";
+const IMAGE_STORAGE: &str = "_storage_";
 
-const FILE_PN: &'static str = "_file";
-const EFITYPE_PN: &'static str = "_efitype";
+const FILE_PN: &str = "_file";
+const EFITYPE_PN: &str = "_efitype";
 
 use crate::form::property_string_from_parts;
 use crate::form::pve::{PveStorageContentSelector, PveStorageSelector, QemuDiskFormatSelector};

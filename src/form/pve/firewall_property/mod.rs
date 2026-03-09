@@ -179,7 +179,7 @@ pub fn forward_policy_poperty(mobile: bool) -> EditableProperty {
 
 pub fn nf_conntrack_max_poperty(mobile: bool) -> EditableProperty {
     let title = tr!("Connection Tracking Max");
-    const NAME: &'static str = "nf_conntrack_max";
+    const NAME: &str = "nf_conntrack_max";
     EditableProperty::new(NAME, title.clone())
         .required(true)
         .placeholder(tr!("Default"))
@@ -204,7 +204,7 @@ pub fn nf_conntrack_max_poperty(mobile: bool) -> EditableProperty {
 }
 
 pub fn nf_timeout_established_poperty(mobile: bool) -> EditableProperty {
-    const NAME: &'static str = "nf_conntrack_tcp_timeout_established";
+    const NAME: &str = "nf_conntrack_tcp_timeout_established";
     let title = tr!("TCP Timeout Established");
     EditableProperty::new(NAME, title.clone())
         .required(true)

@@ -9,9 +9,9 @@ use crate::{
     form::delete_empty_values, EditableProperty, PropertyEditorState, RenderPropertyInputPanelFn,
 };
 
-const CORES_PN: &'static str = "cores";
-const CPU_LIMIT_PN: &'static str = "cpulimit";
-const CPU_UNITS_PN: &'static str = "cpuunits";
+const CORES_PN: &str = "cores";
+const CPU_LIMIT_PN: &str = "cpulimit";
+const CPU_UNITS_PN: &str = "cpuunits";
 
 const CPU_UNITS_DEFAULT: u64 = 100;
 
@@ -80,7 +80,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
 }
 
 pub fn lxc_cores_property(mobile: bool) -> EditableProperty {
-    const KEYS: &[&'static str] = &[CORES_PN, CPU_UNITS_PN, CPU_LIMIT_PN];
+    const KEYS: &[&str] = &[CORES_PN, CPU_UNITS_PN, CPU_LIMIT_PN];
     let title = tr!("Cores");
     EditableProperty::new(CORES_PN, title)
         .required(true)
