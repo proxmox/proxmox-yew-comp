@@ -1,6 +1,26 @@
+rust-proxmox-yew-comp (0.8.4) trixie; urgency=medium
+
+  * fix #7141: set correct timezone name for Kyiv.
+
+  * task list: add support for starting refresh tasks.
+
+  * loadable component: don't trigger reload when starting a task.
+
+  * fix #7290: url decode code value in openid connect redirection
+    authorization to address issues with providers using characters that would
+    require URL encoding, like e.g. Google.
+
+  * oidc realm edit: set password input-type for client key field.
+
+  * node info: allow translating user-facing CPU usage string.
+
+  * apt package manager: fix format of translatable item count string.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 09 Mar 2026 22:27:51 +0100
+
 rust-proxmox-yew-comp (0.8.3) trixie; urgency=medium
 
-  * use IEC standared for showing the HD space in node info panel
+  * use IEC standard for showing the HD space in node info panel
 
   * syslog: use new DateField for selecting the date
 
