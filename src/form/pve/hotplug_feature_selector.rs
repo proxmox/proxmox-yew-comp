@@ -26,6 +26,12 @@ pub struct HotplugFeatureSelector {
     pub mobile: bool,
 }
 
+impl Default for HotplugFeatureSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HotplugFeatureSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

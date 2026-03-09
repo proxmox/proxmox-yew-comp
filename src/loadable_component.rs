@@ -385,6 +385,12 @@ pub struct LoadableComponentState<V: PartialEq> {
     async_pool: AsyncPool,
 }
 
+impl<V: PartialEq> Default for LoadableComponentState<V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<V: PartialEq> LoadableComponentState<V> {
     pub fn new() -> Self {
         Self {

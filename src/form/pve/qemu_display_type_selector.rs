@@ -20,6 +20,12 @@ pub struct QemuDisplayTypeSelector {
     pub serial_device_list: Option<Rc<Vec<AttrValue>>>,
 }
 
+impl Default for QemuDisplayTypeSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QemuDisplayTypeSelector {
     /// Create a new instance.
     pub fn new() -> Self {

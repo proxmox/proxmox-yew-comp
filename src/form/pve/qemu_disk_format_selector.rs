@@ -38,6 +38,12 @@ pub struct QemuDiskFormatSelector {
     pub on_change: Option<Callback<Option<StorageInfoFormatsDefault>>>,
 }
 
+impl Default for QemuDiskFormatSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QemuDiskFormatSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

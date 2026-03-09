@@ -52,6 +52,12 @@ pub struct PveNetworkSelector {
     pub interface_type: Option<ListNetworksType>,
 }
 
+impl Default for PveNetworkSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PveNetworkSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

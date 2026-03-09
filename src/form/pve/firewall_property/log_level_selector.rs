@@ -11,6 +11,12 @@ use pwt_macros::{builder, widget};
 #[builder]
 pub struct LogLevelSelector {}
 
+impl Default for LogLevelSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LogLevelSelector {
     /// Create a new instance.
     pub fn new() -> Self {

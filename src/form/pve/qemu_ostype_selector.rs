@@ -20,6 +20,12 @@ pub struct QemuOstypeSelector {
     pub default: Option<AttrValue>,
 }
 
+impl Default for QemuOstypeSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QemuOstypeSelector {
     /// Create a new instance.
     pub fn new() -> Self {

@@ -73,6 +73,12 @@ pub struct PveGuestSelector {
     pub mobile: bool,
 }
 
+impl Default for PveGuestSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PveGuestSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

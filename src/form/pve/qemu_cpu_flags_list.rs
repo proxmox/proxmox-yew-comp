@@ -20,6 +20,12 @@ pub type QemuCpuFlagsComp = ManagedFieldMaster<QemuCpuFlagsField>;
 #[builder]
 pub struct QemuCpuFlags {}
 
+impl Default for QemuCpuFlags {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QemuCpuFlags {
     pub fn new() -> Self {
         yew::props!(Self {})

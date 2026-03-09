@@ -37,6 +37,12 @@ pub struct PvePendingConfiguration {
     pub keys: HashSet<String>,
 }
 
+impl Default for PvePendingConfiguration {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PvePendingConfiguration {
     pub fn new() -> Self {
         Self {

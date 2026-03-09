@@ -32,6 +32,12 @@ pub struct LogRatelimitSelector {
     label_id: Option<AttrValue>,
 }
 
+impl Default for LogRatelimitSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LogRatelimitSelector {
     pub const RATE_NAME: AttrValue = AttrValue::Static("_lograte_");
     pub const RATE_UNIT: AttrValue = AttrValue::Static("_lograte_unit_");

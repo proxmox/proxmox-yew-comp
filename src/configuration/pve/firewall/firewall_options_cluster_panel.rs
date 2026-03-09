@@ -38,6 +38,12 @@ pub struct FirewallOptionsClusterPanel {
     pub readonly: bool,
 }
 
+impl Default for FirewallOptionsClusterPanel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FirewallOptionsClusterPanel {
     pub fn new() -> Self {
         yew::props!(Self {})

@@ -74,6 +74,12 @@ pub struct PveStorageContentSelector {
     pub mobile: bool,
 }
 
+impl Default for PveStorageContentSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PveStorageContentSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

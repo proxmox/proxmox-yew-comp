@@ -20,6 +20,12 @@ pub struct QemuCacheTypeSelector {
     pub default: Option<AttrValue>,
 }
 
+impl Default for QemuCacheTypeSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QemuCacheTypeSelector {
     /// Create a new instance.
     pub fn new() -> Self {

@@ -8,6 +8,12 @@ use pwt_macros::widget;
 #[derive(Clone, Properties, PartialEq)]
 pub struct PveVlanField {}
 
+impl Default for PveVlanField {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PveVlanField {
     pub fn new() -> Self {
         yew::props!(Self {})

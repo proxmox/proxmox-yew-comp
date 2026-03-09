@@ -18,6 +18,12 @@ use pwt_macros::{builder, widget};
 #[builder]
 pub struct LxcMountOptionsSelector {}
 
+impl Default for LxcMountOptionsSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LxcMountOptionsSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

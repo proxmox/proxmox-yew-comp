@@ -33,6 +33,12 @@ pub struct QemuControllerSelector {
     pub exclude_devices: Option<HashSet<String>>,
 }
 
+impl Default for QemuControllerSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QemuControllerSelector {
     pub fn new() -> Self {
         yew::props!(Self {})

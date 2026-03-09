@@ -49,6 +49,12 @@ pub struct QemuDiskSizeFormatSelector {
     default_format: Option<StorageInfoFormatsDefault>,
 }
 
+impl Default for QemuDiskSizeFormatSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QemuDiskSizeFormatSelector {
     pub const DISK_SIZE: AttrValue = AttrValue::Static("_disk_size_");
     pub const DISK_FORMAT: AttrValue = AttrValue::Static("_disk_format_");
