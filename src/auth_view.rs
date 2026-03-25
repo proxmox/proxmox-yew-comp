@@ -469,6 +469,8 @@ impl LoadableComponent for ProxmoxAuthView {
                                 format!("{base_url}/{}", percent_encode_component(&realm.realm));
                             move || load_realm(url.clone())
                         })
+                        .edit(false)
+                        .submit_text(tr!("Start Sync"))
                         .submit_digest(false)
                         .on_close(link.change_view_callback(|_| None))
                         .on_submit(move |form_context| {
