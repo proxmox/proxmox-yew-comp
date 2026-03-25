@@ -40,8 +40,12 @@ async fn load_user(userid: Key) -> Result<ApiResponseData<Value>, Error> {
     let mut resp: ApiResponseData<Value> = crate::http_get_full(&url, None).await?;
 
     if let Value::Number(number) = &resp.data["expire"] {
-        if let Some(epoch) = number.as_f64() {
-            resp.data["expire"] = Value::String(epoch_to_input_value(epoch as i64));
+        if let Some(epoch) = number.as_i64() {
+            if epoch == 0 {
+                resp.data["expire"] = Value::Null;
+            } else {
+                resp.data["expire"] = Value::String(epoch_to_input_value(epoch));
+            }
         }
     }
 
