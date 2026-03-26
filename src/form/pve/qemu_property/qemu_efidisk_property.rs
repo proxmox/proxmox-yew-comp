@@ -122,7 +122,7 @@ impl Component for QemuEfidiskPanelComp {
             .storage(self.storage_info.as_ref().map(|info| info.storage.clone()));
 
         let bios_hint = hint(tr!(
-            "Warning: The VM currently does not uses 'OVMF (UEFI)' as BIOS."
+            "Warning: The VM currently does not use 'OVMF (UEFI)' as BIOS."
         ))
         .key("bios_hint");
 
