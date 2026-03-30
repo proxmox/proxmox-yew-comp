@@ -3,24 +3,20 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use anyhow::Error;
+use gloo_timers::callback::{Interval, Timeout};
+use serde::Deserialize;
+use serde_json::json;
+use yew::html::{IntoEventCallback, IntoPropValue};
+use yew::virtual_dom::{Key, VComp, VNode};
 
+use pwt::dom::DomSizeObserver;
 use pwt::prelude::*;
 use pwt::props::{
     AsClassesMut, AsCssStylesMut, ContainerBuilder, CssMarginBuilder, CssPaddingBuilder, CssStyles,
     WidgetBuilder, WidgetStyleBuilder,
 };
-use pwt::AsyncPool;
-use serde::Deserialize;
-use serde_json::json;
-
-use gloo_timers::callback::{Interval, Timeout};
-
-use yew::html::{IntoEventCallback, IntoPropValue};
-use yew::virtual_dom::{Key, VComp, VNode};
-
-use pwt::dom::DomSizeObserver;
 use pwt::widget::Container;
-
+use pwt::AsyncPool;
 use pwt_macros::builder;
 
 // Note: virtual scrolling fails when log is large:
