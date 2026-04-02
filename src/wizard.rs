@@ -8,7 +8,7 @@ use html::Scope;
 use indexmap::IndexMap;
 use serde_json::{json, Value};
 
-use pwt::css::{Flex, Overflow};
+use pwt::css::{Flex, FlexFit, Overflow};
 use pwt::props::RenderFn;
 use pwt::{prelude::*, AsyncPool};
 
@@ -553,7 +553,7 @@ impl Component for PwtWizard {
             tab_panel.add_item(tab_bar_item, page_content);
         }
 
-        let tab_panel = Mask::new(tab_panel).visible(self.loading);
+        let tab_panel = Mask::new(tab_panel).visible(self.loading).class(FlexFit);
 
         Container::new()
             .with_child(
