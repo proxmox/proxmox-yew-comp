@@ -1,3 +1,20 @@
+rust-proxmox-yew-comp (0.8.5) trixie; urgency=medium
+
+  * wizard: make content panel resizable so it fills the dialog area when the
+    parent wizard dialog is resized.
+
+  * auth view: don't mark realm sync dialog as edit mode, which previously
+    prevented submitting a sync with the realm's default settings.
+
+  * sanitize html: encode the 'base' tag and fix trailing spaces in
+    'video'/'object' tag comparisons that prevented matching uppercase
+    variants.
+
+  * user panel: handle expire property on edit properly, treating the special
+    value "0" as "never expires" instead of rendering the Unix epoch.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 10 Apr 2026 13:12:19 +0200
+
 rust-proxmox-yew-comp (0.8.4) trixie; urgency=medium
 
   * fix #7141: set correct timezone name for Kyiv.
