@@ -38,7 +38,7 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str) -> Result<(), Err
             match tag_name.as_str() {
                 "SCRIPT" | "STYLE" | "FORM" | "SELECT" | "OPTION" | "OPTGROUP" | "MAP" | "AREA"
                 | "CANVAS" | "TEXTAREA" | "APPLET" | "FONT" | "IFRAME" | "AUDIO" | "VIDEO"
-                | "OBJECT" | "EMBED" | "SVG" => {
+                | "OBJECT" | "EMBED" | "SVG" | "BASE" => {
                     // could do node.remove() instead, but it's nicer UX if we keep the (encoded!) html
                     node.set_outer_html(&format!(
                         "<span>{}</span>",
