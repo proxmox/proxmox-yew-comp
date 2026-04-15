@@ -35,6 +35,10 @@ pub struct NodeStatusPanel {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     power_management_buttons: bool,
+
+    /// Children that should be rendered on this panel
+    #[prop_or_default]
+    children: Vec<VNode>,
 }
 
 impl NodeStatusPanel {
@@ -46,6 +50,12 @@ impl NodeStatusPanel {
 impl Default for NodeStatusPanel {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl ContainerBuilder for NodeStatusPanel {
+    fn as_children_mut(&mut self) -> &mut Vec<VNode> {
+        &mut self.children
     }
 }
 
@@ -203,6 +213,8 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
     }
 
     fn main_view(&self, ctx: &LoadableComponentContext<Self>) -> Html {
+        let props = ctx.props();
+
         let status = self
             .node_status
             .as_ref()
@@ -221,6 +233,10 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
             )
             .with_child(node_info(status))
             .with_optional_child(self.error.as_ref().map(|e| error_message(&e.to_string())));
+
+        for c in props.children.clone() {
+            panel = panel.with_child(c);
+        }
 
         if ctx.props().power_management_buttons {
             panel.add_tool(
