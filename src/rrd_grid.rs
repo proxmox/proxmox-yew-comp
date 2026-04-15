@@ -77,7 +77,7 @@ impl Component for ProxmoxRRDGrid {
                     .children(props.children.clone()),
             )
             .with_child(html! {<div class="pwt-flex-fill"/>})
-            .into()
+            .into_html_with_ref(self.node_ref.clone())
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
