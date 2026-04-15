@@ -69,7 +69,8 @@ impl Component for ProxmoxRRDGrid {
             .with_child(
                 Container::new()
                     .class(Display::Grid)
-                    .class("pwt-gap-2 pwt-w-100")
+                    .class("pwt-gap-4 pwt-w-100")
+                    .padding(4)
                     .attribute(
                         "style",
                         format!("grid-template-columns:repeat({}, 1fr);", self.cols),
