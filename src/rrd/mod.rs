@@ -9,3 +9,5 @@ pub(crate) mod series;
 pub use series::Series;
 
 pub(crate) mod units;
+
+pub mod rrd_value_renderer;

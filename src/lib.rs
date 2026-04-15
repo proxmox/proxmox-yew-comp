@@ -124,7 +124,7 @@ pub use role_selector::RoleSelector;
 #[cfg(feature = "rrd")]
 mod rrd;
 #[cfg(feature = "rrd")]
-pub use rrd::{RRDGraph, Series};
+pub use rrd::{rrd_value_renderer, RRDGraph, Series};
 
 #[cfg(feature = "rrd")]
 mod rrd_grid;
