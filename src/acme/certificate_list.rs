@@ -123,9 +123,13 @@ impl LoadableComponent for ProxmoxCertificateList {
             )
             .with_child(
                 ConfirmButton::new(tr!("Delete Custom Certificate"))
+                    .disabled(selected_cert.is_none())
                     .confirm_message(tr!(
                         "Are you sure you want to remove the certificate used for {0}",
-                        "proxy.pem"
+                        selected_cert
+                            .as_ref()
+                            .map(|s| s.filename.as_str())
+                            .unwrap_or_default(),
                     ))
                     .on_activate({
                         let link = ctx.link().clone();
