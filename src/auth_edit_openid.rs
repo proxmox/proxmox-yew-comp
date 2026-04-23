@@ -60,6 +60,7 @@ async fn update_item(form_ctx: FormContext, base_url: String) -> Result<(), Erro
         &data,
         &[
             "acr-values",
+            "audiences",
             "autocreate",
             "comment",
             "client-key",
@@ -145,6 +146,7 @@ fn render_input_form(form_ctx: FormContext, props: AuthEditOpenID) -> Html {
         .with_large_field(tr!("Comment"), Field::new().name("comment"))
         .with_advanced_spacer()
         .with_large_advanced_field(tr!("ACR Values"), Field::new().name("acr-values"))
+        .with_large_advanced_field(tr!("Audiences"), Field::new().name("audiences"))
         .into()
 }
 
