@@ -68,7 +68,7 @@ impl Component for PveQemuOstypeSelector {
 macro_rules! item_list {
     () => {
         [
-            ("l26", "Linux 6.x - 2.6 Kernel"),
+            ("l26", "Linux 7.x - 2.6 Kernel"),
             ("l24", "Linux 2.4 Kernel"),
             ("win11", "Windows 11/2022/2025"),
             ("win10", "Windows 10/2016/2019"),
