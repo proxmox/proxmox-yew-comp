@@ -234,6 +234,9 @@ pub mod utils;
 mod xtermjs;
 pub use xtermjs::{ConsoleType, ProxmoxXTermJs, XTermJs};
 
+mod key_value_list;
+pub use key_value_list::KeyValueList;
+
 use pwt::gettext_noop;
 use pwt::state::{LanguageInfo, TextDirection};
 
