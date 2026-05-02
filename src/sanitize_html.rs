@@ -5,32 +5,56 @@ use wasm_bindgen::JsCast;
 
 use pwt::convert_js_error;
 
-/// Tags we explicitly allow.  Anything not on this list (incl. SVG/MathML, custom elements,
-/// `<plaintext>`/`<noscript>`/`<template>`/`<base>`/`<meta>`/`<link>`/`<frame*>` and so on) gets
-/// replaced with a `<span>` containing the encoded HTML by the walker.
+/// Tags we explicitly allow.  Anything not on this list (incl. SVG, custom elements,
+/// `<plaintext>`/`<noscript>`/`<template>`/`<base>`/`<meta>`/`<link>`/`<frame*>`, MathML
+/// integration points like `<annotation-xml>`, and so on) gets replaced with a `<span>`
+/// containing the encoded HTML by the walker.
 ///
 /// Compared in lower-case (HTML elements report tag_name in upper-case, foreign elements in
 /// lower-case; we normalize to lower-case before matching).  Covers what pulldown-cmark produces
-/// plus common raw-HTML patterns admins use in notes.
+/// plus common raw-HTML patterns admins use in notes, plus a curated subset of presentation
+/// MathML so admins can paste calculations into notes.
+///
+/// MathML notes:
+/// - `<annotation-xml>` / `<annotation>` are deliberately NOT on this list: they are the
+///   parser-mode-flipping integration points and the historical mXSS source.  Same for
+///   `<semantics>` (its only purpose is to wrap annotations) and `<mlabeledtr>`.
+/// - `<mglyph>` / `<maction>` are NOT on this list: they can load external resources via
+///   `src` / `xlink:href` / `actiontype=link` which would bypass our HTML-style URL allowlist.
 #[rustfmt::skip]
 const ALLOWED_TAGS: &[&str] = &[
     // structural; `html` and `body` are kept since DomParser always wraps the input in them and
     // we walk doc.body itself.
     "html", "body",
+    // HTML
     "a", "abbr", "address", "article", "aside", "b", "bdi", "bdo", "blockquote", "br", "caption",
     "cite", "code", "col", "colgroup", "dd", "del", "details", "dfn", "div", "dl", "dt", "em",
     "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i",
     "img", "input", "ins", "kbd", "li", "main", "mark", "nav", "ol", "p", "pre", "q", "rp", "rt",
     "ruby", "s", "samp", "section", "small", "span", "strong", "sub", "summary", "sup", "table",
     "tbody", "td", "tfoot", "th", "thead", "time", "tr", "u", "ul", "var", "wbr",
+    // MathML (presentation only; integration-point and URL-loading elements left out above)
+    "math", "menclose", "merror", "mfenced", "mfrac", "mi", "mmultiscripts", "mn", "mo", "mover",
+    "mpadded", "mphantom", "mprescripts", "mroot", "mrow", "ms", "mspace", "msqrt", "mstyle",
+    "msub", "msubsup", "msup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover",
 ];
 
 /// Attributes we keep on allowed elements.  Anything else is dropped.  `id`/`name` are handled
-/// specially (namespaced) and so are NOT in this list.
+/// specially (namespaced) and so are NOT in this list.  Includes MathML presentation
+/// attributes; none of these take URL values so the URL-validation branch (href/src) doesn't
+/// need to know about them.  `form` is deliberately omitted: as an HTML attribute it
+/// associates an `<input>` with a form by id and would defeat id namespacing.
 #[rustfmt::skip]
 const ALLOWED_ATTRS: &[&str] = &[
+    // common HTML
     "class", "href", "src", "alt", "align", "valign", "disabled", "checked", "start", "type",
     "target", "colspan", "rowspan", "title", "width", "height", "dir",
+    // MathML presentation attributes
+    "mathvariant", "mathsize", "mathcolor", "mathbackground", "displaystyle", "scriptlevel",
+    "display", "accent", "accentunder", "lspace", "rspace", "linethickness", "maxsize", "minsize",
+    "movablelimits", "stretchy", "symmetric", "notation", "subscriptshift", "superscriptshift",
+    "depth", "fence", "separator", "columnalign", "columnlines", "columnspacing", "rowalign",
+    "rowlines", "rowspacing", "frame", "framespacing", "open", "close", "separators",
 ];
 
 /// URL schemes we explicitly deny on href/src.  We keep an otherwise-permissive stance for `<a>`
