@@ -1,3 +1,32 @@
+rust-proxmox-yew-comp (0.8.6) trixie; urgency=medium
+
+  * node status panel: add `children` property to allow injecting product
+    specific UI elements into the same panel.
+
+  * RRD metrics grid: fix size observer by attaching the node reference to the
+    rendered container.
+
+  * RRD metrics grid: add padding and increase the gap between elements to
+    avoid the overflow scrollbar covering child elements.
+
+  * RRD metrics: add new `rrd_value_renderer` module with helpers commonly
+    used when rendering values in metric graphs.
+
+  * qemu ostype selector: include 7.x as supported Linux kernel releases to
+    match the list available in pve-manager and the backend ostype property
+    description.
+
+  * sanitize html: harden the HTML sanitizer by switching to an explicit
+    element and attribute allowlist and namespacing `id`/`name` to prevent DOM
+    clobbering of the surrounding admin UI, plus several smaller hardenings to
+    URL-scheme handling and walker robustness.
+
+  * sanitize html: allow a curated subset of presentation MathML in notes so
+    that admins can embed the calculations they used to derive a
+    configuration.
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 03 May 2026 18:30:00 +0200
+
 rust-proxmox-yew-comp (0.8.5) trixie; urgency=medium
 
   * wizard: make content panel resizable so it fills the dialog area when the
