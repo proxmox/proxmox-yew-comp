@@ -112,15 +112,14 @@ impl Slugger {
     }
 }
 
-/// Convert Markdown to sanitized Html
-pub fn markdown_to_html(text: &str) -> Html {
+/// Render markdown to (still untrusted) HTML, with auto-derived heading ids. Mirrors marked's
+/// `headerIds: true` on the JS side so fragment links like `[link](#section)` resolve to the
+/// matching heading; the sanitizer then namespaces both the heading id and the link href with the
+/// same prefix, keeping them in sync.
+fn markdown_to_unsanitized_html(text: &str) -> String {
     let options = Options::all();
     let parser = Parser::new_ext(text, options);
 
-    // Auto-derive `id` for headings without an explicit one, using a slug of the heading text.
-    // Mirrors marked's `headerIds: true` on the JS side so fragment links like
-    // `[link](#section)` resolve to the matching heading; the sanitizer then namespaces both
-    // the heading id and the link href with the same prefix, keeping them in sync.
     let mut events: Vec<Event<'_>> = Vec::new();
     let mut heading_start: Option<usize> = None;
     let mut heading_text = String::new();
@@ -173,7 +172,12 @@ pub fn markdown_to_html(text: &str) -> Html {
 
     let mut html_output = String::new();
     pulldown_cmark::html::push_html(&mut html_output, events.into_iter());
+    html_output
+}
 
+/// Convert Markdown to sanitized Html
+pub fn markdown_to_html(text: &str) -> Html {
+    let html_output = markdown_to_unsanitized_html(text);
     match sanitize_html(&html_output) {
         Ok(html) => Html::from_html_unchecked(html.into()),
         Err(err) => {
@@ -254,5 +258,41 @@ mod tests {
         let mut s = Slugger::new();
         s.reserve("bar");
         assert_eq!(s.slug("Bar"), "bar-1");
+    }
+
+    /// Smoke-test of common markdown elements through the pulldown-cmark + slug-injection pipeline.
+    ///
+    /// The sanitizer is browser-only and exercised separately; this confirms that nothing in our
+    /// event-walking trips on day-to-day notes input and that an in-document fragment link gets the
+    /// same auto-derived slug as its target heading (so the sanitizer's prefix-rewrite has matching
+    /// strings on both sides).
+    #[test]
+    fn markdown_to_unsanitized_html_renders_common_elements() {
+        let md = "\
+# Hello World
+
+Some **bold** and *italic* text with an [anchor](#hello-world) and `inline code`.
+
+- first item
+- second item
+
+```
+fn main() {}
+```
+";
+        let html = markdown_to_unsanitized_html(md);
+        assert!(
+            html.contains(r#"<h1 id="hello-world">Hello World</h1>"#),
+            "{html}"
+        );
+        assert!(
+            html.contains(r##"<a href="#hello-world">anchor</a>"##),
+            "{html}"
+        );
+        assert!(html.contains("<strong>bold</strong>"), "{html}");
+        assert!(html.contains("<em>italic</em>"), "{html}");
+        assert!(html.contains("<code>inline code</code>"), "{html}");
+        assert!(html.contains("<ul>"), "{html}");
+        assert!(html.contains("<pre><code>fn main() {}"), "{html}");
     }
 }
