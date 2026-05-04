@@ -287,3 +287,36 @@ pub fn sanitize_html(text: &str) -> Result<String, Error> {
         bail!("DomParser produced no body element");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // Only the host-testable URL-policy helpers are covered here; the full sanitizer pipeline
+    // walks the DOM via web-sys and needs wasm-bindgen-test infrastructure (left as follow-up).
+    use super::*;
+
+    #[test]
+    fn is_http_like_recognises_only_http_and_https() {
+        // Matches what `validate_url` actually feeds in (canonical lowercase `Url::protocol()`).
+        assert!(is_http_like("http:"));
+        assert!(is_http_like("https:"));
+        // Extra robustness vs the rare path that's called on the raw attribute value.
+        assert!(is_http_like("http://example.com"));
+        assert!(is_http_like("  HTTPS://example.com"));
+        assert!(!is_http_like("httpx://example.com"));
+        assert!(!is_http_like("javascript:alert(1)"));
+        assert!(!is_http_like("data:image/png;base64,xxx"));
+    }
+
+    #[test]
+    fn is_img_data_mime_only_accepts_raster_image_subtypes() {
+        assert!(is_img_data_mime("data:image/png;base64,xxx"));
+        assert!(is_img_data_mime("DATA:IMAGE/JPEG;base64,xxx"));
+        // SVG and HTML data: URLs are deliberately blocked even on <img>.
+        assert!(!is_img_data_mime("data:image/svg+xml;base64,xxx"));
+        assert!(!is_img_data_mime(
+            "data:text/html,<script>alert(1)</script>"
+        ));
+        // Missing parameter separator -> reject.
+        assert!(!is_img_data_mime("data:image/png"));
+    }
+}
