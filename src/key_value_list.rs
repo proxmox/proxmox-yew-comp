@@ -94,7 +94,7 @@ pub enum Message {
 }
 
 impl KeyValueListField {
-    fn reset_data(&mut self, data: &[(String, Value)]) {
+    fn set_data(&mut self, data: &[(String, Value)]) {
         self.store.set_data(
             data.iter()
                 .enumerate()
@@ -199,7 +199,7 @@ impl ManagedField for KeyValueListField {
             index_counter: AtomicU32::new(ctx.props().value.len() as u32),
             columns: Self::columns(ctx),
         };
-        this.reset_data(&ctx.props().value);
+        this.set_data(&ctx.props().value);
         this
     }
 
@@ -246,11 +246,11 @@ impl ManagedField for KeyValueListField {
                 let data =
                     serde_json::from_value::<Vec<(String, Value)>>(self.state.default.clone())
                         .unwrap();
-                self.reset_data(&data);
+                self.set_data(&data);
             }
             value => {
                 let data = serde_json::from_value::<Vec<(String, Value)>>(value.clone()).unwrap();
-                self.reset_data(&data);
+                self.set_data(&data);
             }
         }
     }
