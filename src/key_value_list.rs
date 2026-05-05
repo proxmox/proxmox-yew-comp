@@ -81,6 +81,7 @@ pub struct KeyValueListField {
     state: ManagedFieldState,
     store: Store<Entry>,
     index_counter: AtomicU32,
+    columns: Rc<Vec<DataTableHeader<Entry>>>,
 }
 
 pwt::impl_deref_mut_property!(KeyValueListField, state, ManagedFieldState);
@@ -196,6 +197,7 @@ impl ManagedField for KeyValueListField {
             state: ManagedFieldState::new(Value::Null, default),
             store,
             index_counter: AtomicU32::new(ctx.props().value.len() as u32),
+            columns: Self::columns(ctx),
         };
         this.reset_data(&ctx.props().value);
         this
@@ -234,6 +236,7 @@ impl ManagedField for KeyValueListField {
 
             ctx.link().update_default(data.clone());
         }
+        self.columns = Self::columns(ctx);
         true
     }
 
@@ -289,7 +292,7 @@ impl ManagedField for KeyValueListField {
     fn view(&self, ctx: &ManagedFieldContext<Self>) -> Html {
         let props = ctx.props();
 
-        let table = DataTable::new(Self::columns(ctx), self.store.clone())
+        let table = DataTable::new(Rc::clone(&self.columns), self.store.clone())
             .border(true)
             .class(FlexFit);
 
