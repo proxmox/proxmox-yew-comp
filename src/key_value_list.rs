@@ -46,7 +46,7 @@ pub struct KeyValueList {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     /// Placeholder to display in the key columns fields, default is no placeholder.
-    pub key_placeholder: AttrValue,
+    pub key_placeholder: Option<AttrValue>,
 
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(tr!("Value").into())]
