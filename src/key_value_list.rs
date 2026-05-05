@@ -88,9 +88,9 @@ pwt::impl_deref_mut_property!(KeyValueListField, state, ManagedFieldState);
 
 pub enum Message {
     DataChange,
-    UpdateKey(String, String),
-    UpdateValue(String, Value),
-    RemoveEntry(String),
+    UpdateKey(u32, String),
+    UpdateValue(u32, Value),
+    RemoveEntry(u32),
 }
 
 impl KeyValueListField {
@@ -118,13 +118,9 @@ impl KeyValueListField {
                     let link = link.clone();
                     let props = props.clone();
                     move |item: &Entry| {
-                        let key = item.key.clone();
+                        let index = item.index;
                         Field::new()
-                            .on_change(
-                                link.callback({
-                                    move |value| Message::UpdateKey(key.clone(), value)
-                                }),
-                            )
+                            .on_change(link.callback(move |value| Message::UpdateKey(index, value)))
                             .required(true)
                             .disabled(props.input_props.disabled)
                             .placeholder(props.key_placeholder.clone())
@@ -148,10 +144,8 @@ impl KeyValueListField {
                     let props = props.clone();
                     move |item: &Entry| {
                         let on_change = link.callback({
-                            let key = item.key.clone();
-                            move |value: String| {
-                                Message::UpdateValue(key.clone(), Value::String(value))
-                            }
+                            let index = item.index;
+                            move |value: String| Message::UpdateValue(index, Value::String(value))
                         });
                         props.value_renderer.apply(&(
                             item.key.clone(),
@@ -165,10 +159,10 @@ impl KeyValueListField {
             DataTableColumn::new("")
                 .width("50px")
                 .render(move |item: &Entry| {
-                    let key = item.key.clone();
+                    let index = item.index;
                     ActionIcon::new("fa fa-lg fa-trash-o")
                         .tabindex(0)
-                        .on_activate(link.callback(move |_| Message::RemoveEntry(key.clone())))
+                        .on_activate(link.callback(move |_| Message::RemoveEntry(index)))
                         .disabled(props.input_props.disabled)
                         .into()
                 })
@@ -268,20 +262,20 @@ impl ManagedField for KeyValueListField {
                 ctx.link().update_value(serde_json::to_value(list).unwrap());
                 true
             }
-            Message::RemoveEntry(key) => {
-                self.store.write().retain(|item| item.key != key);
+            Message::RemoveEntry(index) => {
+                self.store.write().retain(|item| item.index != index);
                 true
             }
-            Message::UpdateKey(old_name, new_name) => {
+            Message::UpdateKey(index, new_name) => {
                 let mut data = self.store.write();
-                if let Some(item) = data.iter_mut().find(|item| item.key == old_name) {
+                if let Some(item) = data.iter_mut().find(|item| item.index == index) {
                     item.key = new_name;
                 }
                 true
             }
-            Message::UpdateValue(key, value) => {
+            Message::UpdateValue(index, value) => {
                 let mut data = self.store.write();
-                if let Some(item) = data.iter_mut().find(|item| item.key == key) {
+                if let Some(item) = data.iter_mut().find(|item| item.index == index) {
                     item.value = value;
                 }
                 true
