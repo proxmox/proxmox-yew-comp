@@ -173,7 +173,7 @@ impl ProxmoxSyslog {
                 .into()
         } else {
             LogView::new(props.base_url.clone())
-                .padding(2)
+                .margin(2)
                 .class("pwt-flex-fill")
                 .service(props.service.clone())
                 .since(date_time_to_epoch(&self.since, &self.since_time))

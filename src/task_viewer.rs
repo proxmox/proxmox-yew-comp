@@ -290,7 +290,7 @@ impl PwtTaskViewer {
             .with_child(toolbar)
             .with_child(
                 LogView::new(url)
-                    .padding(2)
+                    .margin(2)
                     .class("pwt-flex-fill")
                     .active(active),
             )
