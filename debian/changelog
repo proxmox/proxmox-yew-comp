@@ -1,3 +1,18 @@
+rust-proxmox-yew-comp (0.8.7) trixie; urgency=medium
+
+  * widget: add a new `kvlist` widget for user-modifiable key/value data
+    tables with custom value renderers, so consumers can expose simple
+    map-shaped configuration to operators without rolling their own UI.
+
+  * markdown: auto-derive heading ids from heading text, so fragment links
+    like `[link](#section)` resolve in rendered notes. The sanitizer's
+    id-namespacing previously rewrote the href while no element on the page
+    carried a matching id, silently breaking internal anchor links; mirror the
+    marked.js `headerIds: true` slug rules used on the proxmox-widget-toolkit
+    JS side for parity.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 07 May 2026 03:49:45 +0200
+
 rust-proxmox-yew-comp (0.8.6) trixie; urgency=medium
 
   * node status panel: add `children` property to allow injecting product
