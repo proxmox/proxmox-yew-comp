@@ -73,7 +73,7 @@ impl FirewallRulesPanel {
                         percent_encode_component(remote)
                     )
                 } else {
-                    "/pve/firewall/rules".into()
+                    "/cluster/firewall/rules".into()
                 }
             }
             FirewallContext::Node { node } => {
