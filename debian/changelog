@@ -1,3 +1,27 @@
+rust-proxmox-yew-comp (0.8.8) trixie; urgency=medium
+
+  * fix #5076: auth edit openid: add advanced "audiences" field to allow
+    configuring the audiences accepted from the OpenID provider.
+
+  * task viewer / syslog: switch the inner log view's spacing from padding to
+    margin, so the scrollbars no longer overlap the dialog resize handles and
+    the handles stay draggable.
+
+  * firewall rules panel: correct the URL for the PVE cluster firewall rules,
+    so the panel can be reused for the mobile firewall UI.
+
+  * http helpers: add `http_post_full` returning the full `ApiResponseData`,
+    so callers that need response attributes such as the post-mutation digest
+    can pin them atomically instead of chaining a follow-up GET, which
+    previously widened the optimistic concurrency window against parallel
+    writers.
+
+  * certificate list: use certificate file name fetched from the backend
+    instead of hard-coding "proxy.pem" and disable the remove button if no
+    certificate is selected, aligning the behaviour with the ExtJS-based UIs.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 12 May 2026 17:32:14 +0200
+
 rust-proxmox-yew-comp (0.8.7) trixie; urgency=medium
 
   * widget: add a new `kvlist` widget for user-modifiable key/value data
