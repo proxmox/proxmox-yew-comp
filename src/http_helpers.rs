@@ -280,6 +280,18 @@ pub async fn http_post<T: DeserializeOwned>(
     path: impl Into<String>,
     data: Option<Value>,
 ) -> Result<T, Error> {
+    Ok(http_post_full(path, data).await?.data)
+}
+
+/// POST and return the full [`ApiResponseData`] so callers can inspect response attributes.
+///
+/// This can, for example, be use to check the post-mutation `digest` (used for
+/// optimistic-concurrency chains where a follow-up write needs to pin the digest the server settled
+/// on after the previous write).
+pub async fn http_post_full<T: DeserializeOwned>(
+    path: impl Into<String>,
+    data: Option<Value>,
+) -> Result<ApiResponseData<T>, Error> {
     let client = CLIENT.with(|c| Rc::clone(&c.borrow()));
 
     let path_and_query = path_and_param_to_api_url(&path.into(), None::<()>)?;
@@ -289,8 +301,7 @@ pub async fn http_post<T: DeserializeOwned>(
     } else {
         client.post_without_body(&path_and_query).await?
     };
-    let resp: ApiResponseData<T> = resp.expect_json()?;
-    Ok(resp.data)
+    Ok(resp.expect_json()?)
 }
 
 pub async fn http_put<T: DeserializeOwned>(
