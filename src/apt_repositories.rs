@@ -29,8 +29,8 @@ use crate::{
 use pwt_macros::builder;
 
 use proxmox_apt_api_types::{
-    APTRepositoriesResult, APTRepository, APTRepositoryHandle, APTRepositoryInfo,
-    APTRepositoryPackageType, APTStandardRepository,
+    APTRepositoriesResult, APTRepository, APTRepositoryInfo, APTRepositoryPackageType,
+    APTStandardRepoSummary, APTStandardRepository,
 };
 
 async fn apt_configuration(base_url: AttrValue) -> Result<APTRepositoriesResult, Error> {
@@ -137,30 +137,16 @@ fn update_status_store(
         None => return,
     };
 
-    let mut has_enterprise = false;
-    let mut has_no_subscription = false;
-    let mut has_test = false;
-    let mut has_ceph_enterprise = false;
-    let mut has_ceph_no_subscription = false;
-    let mut has_ceph_test = false;
-
-    for repo in standard_repos.values() {
-        if repo.status != Some(true) {
-            continue;
-        }
-        use APTRepositoryHandle::*;
-        match repo.handle {
-            CephSquidEnterprise => has_ceph_enterprise = true,
-            CephSquidNoSubscription => has_ceph_no_subscription = true,
-            CephSquidTest => has_ceph_test = true,
-            Enterprise => has_enterprise = true,
-            NoSubscription => has_no_subscription = true,
-            Test => has_test = true,
-            APTRepositoryHandle::UnknownEnumValue(s) => {
-                log::warn!("encountered unknown APT repository handle {s}");
-            }
-        }
+    let summary = APTStandardRepoSummary::from_repos(standard_repos.values());
+    for handle in &summary.unrecognized {
+        log::warn!("encountered unknown APT repository handle variant '{handle}'");
     }
+    let has_enterprise = summary.has_enterprise;
+    let has_no_subscription = summary.has_no_subscription;
+    let has_test = summary.has_test;
+    let has_ceph_enterprise = summary.has_ceph_enterprise;
+    let has_ceph_no_subscription = summary.has_ceph_no_subscription;
+    let has_ceph_test = summary.has_ceph_test;
 
     if !(has_enterprise | has_no_subscription | has_test) {
         list.push(StatusLine::error(tr!(

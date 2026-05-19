@@ -181,8 +181,7 @@ Multi-Arch: same
 Depends:
  ${misc:Depends},
  librust-proxmox-yew-comp-dev (= ${binary:Version}),
- librust-proxmox-apt-api-types-2+default-dev (>= 2.0.4-~~),
- librust-proxmox-apt-api-types-2+enum-fallback-dev (>= 2.0.4-~~)
+ librust-proxmox-apt-api-types-3+default-dev (>= 3.0.0-~~)
 Provides:
  librust-proxmox-yew-comp-0+apt-dev (= ${binary:Version}),
  librust-proxmox-yew-comp-0.8+apt-dev (= ${binary:Version}),
