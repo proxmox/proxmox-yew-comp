@@ -1,3 +1,11 @@
+rust-proxmox-yew-comp (0.8.9) trixie; urgency=medium
+
+  * apt repositories: adopt the struct-based APTRepositoryHandle from
+    proxmox-apt-api-types 3.0; the Ceph status bucket now accepts both
+    CephSquid and CephTentacle.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 19 May 2026 13:30:00 +0200
+
 rust-proxmox-yew-comp (0.8.8) trixie; urgency=medium
 
   * fix #5076: auth edit openid: add advanced "audiences" field to allow
