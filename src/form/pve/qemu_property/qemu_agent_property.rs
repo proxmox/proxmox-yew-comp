@@ -31,8 +31,8 @@ fn renderer(_name: &str, value: &Value, _record: &Value) -> Html {
             if let Some(enabled) = qga.fstrim_cloned_disks {
                 parts.push(format!("fstrim-cloned-disks: {}", render_boolean(enabled)));
             }
-            if let Some(false) = qga.freeze_fs_on_backup {
-                parts.push(format!("freeze-fs-on-backup: {}", render_boolean(false)));
+            if let Some(false) = qga.freeze_fs {
+                parts.push(format!("freeze-fs: {}", render_boolean(false)));
             }
             parts.join(", ").into()
         }
@@ -51,13 +51,13 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
         let form_ctx = state.form_ctx;
         let advanced = form_ctx.get_show_advanced();
         let enabled = form_ctx.read().get_field_checked("_enabled");
-        let ffob_enabled = form_ctx.read().get_field_checked("_freeze-fs-on-backup");
+        let freeze_fs_enabled = form_ctx.read().get_field_checked("_freeze-fs");
 
         let warning = |msg: String| -> Container {
             Container::new().class("pwt-color-warning").with_child(msg)
         };
 
-        let hint1_enabled = ffob_enabled;
+        let hint1_enabled = freeze_fs_enabled;
         let hint1 = warning(tr!("Freeze/thaw for guest filesystems disabled. This can lead to inconsistent disk backups.")).key("hint1");
 
         let hint2_enabled = !enabled;
@@ -92,7 +92,7 @@ fn input_panel(mobile: bool) -> RenderPropertyInputPanelFn {
                 tr!("Freeze/thaw guest filesystems on backup for consistency"),
                 Checkbox::new()
                     .switch(mobile)
-                    .name("_freeze-fs-on-backup")
+                    .name("_freeze-fs")
                     .disabled(!enabled),
             )
             .with_advanced_field(
