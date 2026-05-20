@@ -1,3 +1,9 @@
+rust-proxmox-yew-comp (0.8.10) trixie; urgency=medium
+
+  * qemu agent property: adapt to rename of freeze-fs-on-backup to freeze-fs.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 20 May 2026 06:47:22 +0200
+
 rust-proxmox-yew-comp (0.8.9) trixie; urgency=medium
 
   * apt repositories: adopt the struct-based APTRepositoryHandle from
