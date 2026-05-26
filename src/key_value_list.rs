@@ -94,6 +94,16 @@ pub enum Message {
 }
 
 impl KeyValueListField {
+    // FormContext::is_dirty compares the default against the validator's submit_value, so the
+    // default needs to be in the same (post-validator) shape.
+    fn compute_default(props: &KeyValueList) -> Value {
+        if let Some(f) = &props.submit_validate {
+            f.apply(&props.value).unwrap_or_default()
+        } else {
+            serde_json::to_value(props.value.clone()).unwrap_or_default()
+        }
+    }
+
     fn set_data(&mut self, data: &[(String, Value)]) {
         self.store.set_data(
             data.iter()
@@ -180,15 +190,8 @@ impl ManagedField for KeyValueListField {
         let store = Store::with_extract_key(|entry: &Entry| Key::from(entry.index))
             .on_change(ctx.link().callback(|_| Message::DataChange));
 
-        // put the default value through the validator fn, to allow for correct dirty checking
-        let default = if let Some(f) = &ctx.props().submit_validate {
-            f.apply(&ctx.props().value).unwrap_or_default()
-        } else {
-            serde_json::to_value(ctx.props().value.clone()).unwrap_or_default()
-        };
-
         let mut this = Self {
-            state: ManagedFieldState::new(Value::Null, default),
+            state: ManagedFieldState::new(Value::Null, Self::compute_default(ctx.props())),
             store,
             index_counter: AtomicU32::new(ctx.props().value.len() as u32),
             columns: Self::columns(ctx),
@@ -222,13 +225,7 @@ impl ManagedField for KeyValueListField {
     fn changed(&mut self, ctx: &ManagedFieldContext<Self>, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
         if old_props.value != props.value {
-            let data: Value = props
-                .value
-                .iter()
-                .filter_map(|n| serde_json::to_value(n).ok())
-                .collect();
-
-            ctx.link().update_default(data.clone());
+            ctx.link().update_default(Self::compute_default(props));
         }
         self.columns = Self::columns(ctx);
         true
