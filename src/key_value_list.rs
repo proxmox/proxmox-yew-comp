@@ -242,6 +242,14 @@ impl ManagedField for KeyValueListField {
                         .unwrap();
                 self.set_data(&data);
             }
+            Value::Object(map) => {
+                let values: Vec<(String, Value)> = map
+                    .iter()
+                    .map(|(key, value)| (key.clone(), value.clone()))
+                    .collect();
+
+                self.set_data(&values);
+            }
             value => {
                 let data = serde_json::from_value::<Vec<(String, Value)>>(value.clone()).unwrap();
                 self.set_data(&data);
