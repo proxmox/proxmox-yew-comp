@@ -1,3 +1,15 @@
+rust-proxmox-yew-comp (0.8.11) trixie; urgency=medium
+
+  * key value list: accept JSON objects as field data, fixing a panic on form
+    reset for fields whose value comes from a submit validator returning an
+    object, as used by the Proxmox Datacenter Manager auto installer.
+
+  * key value list: fix dirty-state tracking after a value-prop change for
+    fields with a submit validator, which previously left the reset and submit
+    buttons permanently enabled.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 26 May 2026 21:34:59 +0200
+
 rust-proxmox-yew-comp (0.8.10) trixie; urgency=medium
 
   * qemu agent property: adapt to rename of freeze-fs-on-backup to freeze-fs.
