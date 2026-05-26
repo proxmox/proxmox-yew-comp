@@ -235,26 +235,15 @@ impl ManagedField for KeyValueListField {
     }
 
     fn value_changed(&mut self, _ctx: &ManagedFieldContext<Self>) {
-        match &self.state.value {
-            Value::Null => {
-                let data =
-                    serde_json::from_value::<Vec<(String, Value)>>(self.state.default.clone())
-                        .unwrap();
-                self.set_data(&data);
-            }
-            Value::Object(map) => {
-                let values: Vec<(String, Value)> = map
-                    .iter()
-                    .map(|(key, value)| (key.clone(), value.clone()))
-                    .collect();
-
-                self.set_data(&values);
-            }
-            value => {
-                let data = serde_json::from_value::<Vec<(String, Value)>>(value.clone()).unwrap();
-                self.set_data(&data);
-            }
-        }
+        let source = match &self.state.value {
+            Value::Null => &self.state.default,
+            _ => &self.state.value,
+        };
+        let data: Vec<(String, Value)> = match source {
+            Value::Object(map) => map.clone().into_iter().collect(),
+            other => serde_json::from_value(other.clone()).unwrap(),
+        };
+        self.set_data(&data);
     }
 
     fn update(&mut self, ctx: &ManagedFieldContext<Self>, msg: Self::Message) -> bool {
