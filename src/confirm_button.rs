@@ -50,6 +50,11 @@ pub struct ConfirmButton {
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     pub on_activate: Option<Callback<()>>,
 
+    /// Style the confirmation dialog as a dangerous, destructive action.
+    #[prop_or_default]
+    #[builder]
+    pub dangerous: bool,
+
     #[prop_or_default]
     pub confirm_message: Option<Html>,
 }
@@ -123,6 +128,7 @@ impl Component for ProxmoxConfirmButton {
         match msg {
             Msg::Request => {
                 let mut dialog = ConfirmDialog::default()
+                    .dangerous(props.dangerous)
                     .on_confirm(ctx.link().callback(|_| Msg::Activate))
                     .on_close(ctx.link().callback(|_| Msg::CloseDialog));
 
