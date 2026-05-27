@@ -243,18 +243,18 @@ mod tests {
     /// Some Slugger edge-cases
     #[test]
     fn slug_dedup_contract() {
-        /// `## Foo`, `## Foo 1`, `## Foo` -> `foo`, `foo-1`, `foo-2` (do-while skip),
+        // `## Foo`, `## Foo 1`, `## Foo` -> `foo`, `foo-1`, `foo-2` (do-while skip)
         let mut s = Slugger::new();
         assert_eq!(s.slug("Foo"), "foo");
         assert_eq!(s.slug("Foo 1"), "foo-1");
         assert_eq!(s.slug("Foo"), "foo-2");
 
-        /// all-punct headings don't pollute `seen` and so don't start emitting `-1`, `-2`,
+        // all-punct headings don't pollute `seen` and so don't start emitting `-1`, `-2`
         let mut s = Slugger::new();
         assert_eq!(s.slug("!!!"), "");
         assert_eq!(s.slug("!!!"), "");
 
-        /// explicit `{#anchor}` ids reserve their slot against a later auto-id collision.
+        // explicit `{#anchor}` ids reserve their slot against a later auto-id collision.
         let mut s = Slugger::new();
         s.reserve("bar");
         assert_eq!(s.slug("Bar"), "bar-1");
