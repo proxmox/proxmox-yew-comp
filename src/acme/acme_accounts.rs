@@ -128,6 +128,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
             )
             .with_child(
                 ConfirmButton::remove_entry(selected_key.as_deref().unwrap_or("").to_string())
+                    .dangerous(true)
                     .disabled(selected_key.is_none())
                     .on_activate({
                         let link = ctx.link().clone();

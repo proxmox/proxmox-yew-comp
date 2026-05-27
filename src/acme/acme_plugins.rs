@@ -289,6 +289,7 @@ impl LoadableComponent for ProxmoxAcmePluginsPanel {
             )
             .with_child(
                 ConfirmButton::remove_entry(selected_key.as_deref().unwrap_or("").to_string())
+                    .dangerous(true)
                     .disabled(selected_key.is_none())
                     .on_activate(ctx.link().callback({
                         let selected_key = selected_key.clone();

@@ -211,6 +211,7 @@ impl LoadableComponent for ProxmoxAclView {
 
         toolbar.add_child(
             ConfirmButton::new(tr!("Remove ACL Entry"))
+                .dangerous(true)
                 .confirm_message(tr!("Are you sure you want to remove this ACL entry?"))
                 .disabled(disabled)
                 .on_activate(ctx.link().callback(|_| Msg::Remove)),

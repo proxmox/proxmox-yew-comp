@@ -241,6 +241,7 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
         if ctx.props().power_management_buttons {
             panel.add_tool(
                 ConfirmButton::new(tr!("Reboot"))
+                    .dangerous(true)
                     .confirm_message(tr!("Are you sure you want to reboot the node?"))
                     .on_activate(
                         ctx.link()
@@ -250,6 +251,7 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
             );
             panel.add_tool(
                 ConfirmButton::new(tr!("Shutdown"))
+                    .dangerous(true)
                     .confirm_message(tr!("Are you sure you want to shut down the node?"))
                     .on_activate(
                         ctx.link()

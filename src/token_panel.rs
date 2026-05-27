@@ -197,6 +197,7 @@ impl LoadableComponent for ProxmoxTokenView {
             )
             .with_child(
                 ConfirmButton::new(tr!("Remove"))
+                    .dangerous(true)
                     .confirm_message(tr!("Are you sure you want to remove the API token? \
                         All existing users of the token will lose access!"))
                     .disabled(disabled)
@@ -205,6 +206,7 @@ impl LoadableComponent for ProxmoxTokenView {
             .with_spacer()
             .with_child(
                 ConfirmButton::new(tr!("Regenerate Secret"))
+                    .dangerous(true)
                     .confirm_message(tr!(
                         "Do you want to regenerate the secret of the selected API token? \
                         All existing users of the token will lose access!"

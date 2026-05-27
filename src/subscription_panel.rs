@@ -118,6 +118,7 @@ impl LoadableComponent for ProxmoxSubscriptionPanel {
             )
             .with_child(
                 ConfirmButton::new(tr!("Remove Subscription"))
+                    .dangerous(true)
                     .icon_class("fa fa-trash-o")
                     .confirm_message(
                         html! {tr!("Are you sure you want to remove the subscription key?")},

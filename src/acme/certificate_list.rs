@@ -123,6 +123,7 @@ impl LoadableComponent for ProxmoxCertificateList {
             )
             .with_child(
                 ConfirmButton::new(tr!("Delete Custom Certificate"))
+                    .dangerous(true)
                     .disabled(selected_cert.is_none())
                     .confirm_message(tr!(
                         "Are you sure you want to remove the certificate used for {0}",

@@ -30,5 +30,7 @@ pub fn confirm_delete_volume(_name: &str, volume: &str, _mobile: bool) -> Confir
         .with_child(message2)
         .into();
 
-    ConfirmDialog::default().confirm_message(message)
+    ConfirmDialog::default()
+        .dangerous(true)
+        .confirm_message(message)
 }
