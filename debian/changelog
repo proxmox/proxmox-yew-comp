@@ -1,3 +1,20 @@
+rust-proxmox-yew-comp (0.8.12) trixie; urgency=medium
+
+  * wizard: show an "Advanced" toggle automatically on steps that contain
+    advanced fields, instead of requiring a manual opt-in.
+
+  * confirm dialogs: use a neutral style by default, reserving the alerting
+    (red) style for genuinely destructive actions (deleting volumes or
+    certificates, removing or regenerating API tokens, removing ACL, ACME, or
+    subscription entries, rebooting or shutting down a node); previously every
+    confirmation used the alerting style.
+
+  * key value list: preserve row identity across edits, so deleting an entry
+    no longer copies its value onto the next row and Reset restores edited
+    values.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 27 May 2026 22:32:07 +0200
+
 rust-proxmox-yew-comp (0.8.11) trixie; urgency=medium
 
   * key value list: accept JSON objects as field data, fixing a panic on form
