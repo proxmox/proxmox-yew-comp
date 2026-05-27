@@ -8,14 +8,14 @@ use html::Scope;
 use indexmap::IndexMap;
 use serde_json::{json, Value};
 
-use pwt::css::{Flex, FlexFit, Overflow};
+use pwt::css::{AlignItems, Flex, FlexFit, Overflow};
 use pwt::props::RenderFn;
 use pwt::{prelude::*, AsyncPool};
 
 use pwt::css::ColorScheme;
 use pwt::props::{AsCssStylesMut, ContainerBuilder, CssStyles};
-use pwt::state::Selection;
-use pwt::widget::form::{Form, FormContext};
+use pwt::state::{PersistentState, Selection};
+use pwt::widget::form::{Checkbox, Form, FormContext};
 use pwt::widget::{
     AlertDialog, Button, Container, Dialog, Input, Mask, MiniScrollMode, Row, TabBarItem,
     TabBarStyle, TabPanel,
@@ -337,13 +337,14 @@ impl WizardController {
         self.state.borrow_mut()
     }
 
-    fn insert_page(&self, key: &Key) {
+    fn insert_page(&self, key: &Key, show_advanced: bool) {
         let mut state = self.write();
         state.page_list.push(key.clone());
         let form_ctx = FormContext::new().on_change(state.link.callback({
             let key = key.clone();
             move |form_ctx: FormContext| Msg::ChangeValid(key.clone(), form_ctx.read().is_valid())
         }));
+        form_ctx.set_show_advanced(show_advanced);
         state.page_data.insert(key.clone(), form_ctx);
         if state.page.is_none() {
             state.page = Some(key.clone());
@@ -355,6 +356,7 @@ pub struct PwtWizard {
     loading: bool, // set during submit
     submit_error: Option<String>,
     valid_data: Rc<Value>,
+    show_advanced: PersistentState<bool>,
 
     controller: WizardController,
     async_pool: AsyncPool,
@@ -369,6 +371,7 @@ pub enum Msg {
     Submit,
     SubmitResult(Result<(), Error>),
     ClearError,
+    ShowAdvanced(bool),
 }
 
 impl Component for PwtWizard {
@@ -381,10 +384,12 @@ impl Component for PwtWizard {
 
         let selection = Selection::new().on_select(ctx.link().callback(Msg::SelectionChange));
 
+        let show_advanced = PersistentState::new("proxmox-form-show-advanced");
+
         let controller = WizardController::new(ctx.link().clone());
 
         for (key, _) in props.pages.iter() {
-            controller.insert_page(key);
+            controller.insert_page(key, *show_advanced);
         }
 
         Self {
@@ -392,6 +397,7 @@ impl Component for PwtWizard {
             submit_error: None,
             selection,
             valid_data: Rc::new(json!({})),
+            show_advanced,
             controller,
             async_pool: AsyncPool::new(),
         }
@@ -484,6 +490,15 @@ impl Component for PwtWizard {
             }
             Msg::PageLock(page, lock) => {
                 self.change_page_lock(&page, lock);
+            }
+            Msg::ShowAdvanced(show_advanced) => {
+                self.show_advanced.update(show_advanced);
+                // every page owns its own FormContext, so the flag has to be set on each
+                let form_ctxs: Vec<FormContext> =
+                    self.controller.read().page_data.values().cloned().collect();
+                for form_ctx in form_ctxs {
+                    form_ctx.set_show_advanced(show_advanced);
+                }
             }
         }
         true
@@ -658,12 +673,28 @@ impl PwtWizard {
             tr!("Next")
         };
 
+        // show the "Advanced" toggle only when the current page actually has advanced fields,
+        // which each page's InputPanel reports into its FormContext via sync_advanced()
+        let page_has_advanced = state
+            .page
+            .as_ref()
+            .and_then(|key| state.page_data.get(key))
+            .is_some_and(|form_ctx| form_ctx.get_has_advanced());
+
         Row::new()
             .padding(2)
             .gap(2)
-            .with_flex_spacer()
             .class(ColorScheme::Surface)
             .class("pwt-panel-header")
+            .with_optional_child(page_has_advanced.then(|| {
+                Row::new().class(AlignItems::Center).with_child(
+                    Checkbox::new()
+                        .box_label(tr!("Advanced"))
+                        .checked(*self.show_advanced)
+                        .on_change(ctx.link().callback(Msg::ShowAdvanced)),
+                )
+            }))
+            .with_flex_spacer()
             .with_optional_child((!is_first).then(|| {
                 Button::new(tr!("Back")).disabled(self.loading).onclick({
                     let link = ctx.link().clone();
