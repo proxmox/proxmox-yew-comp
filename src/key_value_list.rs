@@ -88,6 +88,7 @@ pwt::impl_deref_mut_property!(KeyValueListField, state, ManagedFieldState);
 
 pub enum Message {
     DataChange,
+    AddEntry,
     UpdateKey(u32, String),
     UpdateValue(u32, Value),
     RemoveEntry(u32),
@@ -105,16 +106,25 @@ impl KeyValueListField {
     }
 
     fn set_data(&mut self, data: &[(String, Value)]) {
-        self.store.set_data(
-            data.iter()
-                .enumerate()
-                .map(|(i, (k, v))| Entry {
-                    index: i as u32,
-                    key: k.clone(),
-                    value: v.clone(),
-                })
-                .collect(),
-        );
+        // Keep each row's stable `index` (its DataTable widget identity) by matching incoming
+        // pairs to existing rows by key; only new rows get a fresh index. Re-deriving it by
+        // position would reuse the wrong row's widget on remove and break reset-in-place.
+        let mut existing: Vec<Entry> = self.store.read().iter().cloned().collect();
+        let entries: Vec<Entry> = data
+            .iter()
+            .map(|(key, value)| {
+                let index = match existing.iter().position(|e| &e.key == key) {
+                    Some(pos) => existing.remove(pos).index,
+                    None => self.index_counter.fetch_add(1, Ordering::Relaxed),
+                };
+                Entry {
+                    index,
+                    key: key.clone(),
+                    value: value.clone(),
+                }
+            })
+            .collect();
+        self.store.set_data(entries);
     }
 
     fn columns(ctx: &ManagedFieldContext<KeyValueListField>) -> Rc<Vec<DataTableHeader<Entry>>> {
@@ -256,6 +266,15 @@ impl ManagedField for KeyValueListField {
                 ctx.link().update_value(serde_json::to_value(list).unwrap());
                 true
             }
+            Message::AddEntry => {
+                let index = self.index_counter.fetch_add(1, Ordering::Relaxed);
+                self.store.write().push(Entry {
+                    index,
+                    key: String::new(),
+                    value: String::new().into(),
+                });
+                true
+            }
             Message::RemoveEntry(index) => {
                 self.store.write().retain(|item| item.index != index);
                 true
@@ -290,17 +309,7 @@ impl ManagedField for KeyValueListField {
                     .class(ColorScheme::Primary)
                     .icon_class("fa fa-plus-circle")
                     .disabled(props.input_props.disabled)
-                    .on_activate({
-                        let store = self.store.clone();
-                        let index = self.index_counter.fetch_add(1, Ordering::Relaxed);
-                        move |_| {
-                            store.write().push(Entry {
-                                index,
-                                key: String::new(),
-                                value: String::new().into(),
-                            });
-                        }
-                    }),
+                    .on_activate(ctx.link().callback(|_| Message::AddEntry)),
             )
             .with_flex_spacer()
             .with_optional_child(self.state.result.clone().err().map(|err| {
