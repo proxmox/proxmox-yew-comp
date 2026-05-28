@@ -510,6 +510,9 @@ impl Component for PwtWizard {
         let mut tab_panel = TabPanel::new()
             .class(Overflow::Auto)
             .class(Flex::Fill)
+            // NOTE: this is necessary for the form_ctx validation to work correctly, since only
+            // rendered (and thus mounted) fields are registered with the context.
+            .force_render_all(true)
             .tab_bar_style(props.tab_bar_style)
             .selection(self.selection.clone());
 
