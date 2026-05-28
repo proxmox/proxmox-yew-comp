@@ -1,3 +1,11 @@
+rust-proxmox-yew-comp (0.8.13) trixie; urgency=medium
+
+  * wizard: fix page validation when advanced fields are present anywhere, as
+    that cause enabling all tabs from all steps independent of the validity of
+    the previous steps.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 29 May 2026 00:18:46 +0200
+
 rust-proxmox-yew-comp (0.8.12) trixie; urgency=medium
 
   * wizard: show an "Advanced" toggle automatically on steps that contain
