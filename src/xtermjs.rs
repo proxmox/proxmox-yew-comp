@@ -74,6 +74,8 @@ pub enum ConsoleType {
     LoginShell,
     RemotePveLoginShell(String),
     RemotePbsLoginShell(String),
+    RemotePveLXC(String, u64),
+    RemotePveKVM(String, u64),
 }
 
 fn xtermjs_url(console_type: &ConsoleType, node_name: &str, vnc: bool) -> String {
@@ -115,6 +117,18 @@ fn xtermjs_url(console_type: &ConsoleType, node_name: &str, vnc: bool) -> String
             param["cmd"] = "login".into();
             param["remote-type"] = "pve".into();
             param["remote"] = remote_name.as_str().into();
+        }
+        ConsoleType::RemotePveLXC(remote_name, vmid) => {
+            param["console"] = "lxc".into();
+            param["remote-type"] = "pve".into();
+            param["remote"] = remote_name.as_str().into();
+            param["vmid"] = (*vmid).into();
+        }
+        ConsoleType::RemotePveKVM(remote_name, vmid) => {
+            param["console"] = "kvm".into();
+            param["remote-type"] = "pve".into();
+            param["remote"] = remote_name.as_str().into();
+            param["vmid"] = (*vmid).into();
         }
     }
 
