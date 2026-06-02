@@ -216,9 +216,9 @@ impl Component for ProxmoxMarkdown {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
         Container::new()
-            .class("pwt-embedded-html")
             .with_std_props(&props.std_props)
             .listeners(&props.listeners)
+            .class("pwt-embedded-html")
             .with_child(self.html.clone())
             .into()
     }
