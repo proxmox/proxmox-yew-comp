@@ -1,3 +1,11 @@
+rust-proxmox-yew-comp (0.8.14) trixie; urgency=medium
+
+  * markdown: correctly pass the 'pwt-embedded-html' css class to avoid that
+    it's always overridden by the default props and the call site needs to set
+    this again.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 05 Jun 2026 08:48:08 +0200
+
 rust-proxmox-yew-comp (0.8.13) trixie; urgency=medium
 
   * wizard: fix page validation when advanced fields are present anywhere, as
