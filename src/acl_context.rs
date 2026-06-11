@@ -132,6 +132,12 @@ impl LocalAclTree {
     /// successful load, a copy will be persisted to local storage. If `ACL_TREE_UPDATE_CB`
     /// contains a callback, it will be used to update the current `AclContext`.
     pub(crate) async fn load() {
+        // without a mounted AclContextProvider nothing consumes the tree, and products without
+        // the shared proxmox-access-control API reject the all-for-authid parameter
+        if ACL_TREE_UPDATE_CB.with(|cb| cb.borrow().is_none()) {
+            return;
+        }
+
         let Some(authid) = Self::get_current_authid() else {
             log::error!("Could not get current Authid, please login first.");
             return;
