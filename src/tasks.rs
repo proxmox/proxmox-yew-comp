@@ -111,7 +111,7 @@ pub enum Msg {
     ToggleFilter,
     LoadBatch(bool), // fresh load
     RefreshClicked,
-    LoadFinished,
+    LoadFinished(bool), // no more tasks available
     UpdateFilter,
     ShowTask,
 }
@@ -123,6 +123,7 @@ pub struct ProxmoxTasks {
     filter_form_context: FormContext,
     row_render_callback: DataTableRowRenderCallback<TaskListItem>,
     fresh_load: bool,
+    no_more_tasks: bool,
     last_filter: serde_json::Value,
     load_timeout: Option<Timeout>,
     columns: Rc<Vec<DataTableHeader<TaskListItem>>>,
@@ -218,6 +219,7 @@ impl LoadableComponent for ProxmoxTasks {
             row_render_callback,
             last_filter: serde_json::Value::Object(Map::new()),
             fresh_load: true,
+            no_more_tasks: false,
             load_timeout: None,
             columns: Self::columns(ctx),
         }
@@ -279,6 +281,10 @@ impl LoadableComponent for ProxmoxTasks {
         let link = ctx.link().clone();
         Box::pin(async move {
             let mut data: Vec<_> = crate::http_get(&path, Some(filter)).await?;
+            // send this before updating the store: rendering the new rows can
+            // trigger a LoadBatch for the next batch, which must already see
+            // the updated no_more_tasks state
+            link.send_message(Msg::LoadFinished((data.len() as u64) < BATCH_LIMIT));
             if until.is_none() {
                 store.write().set_data(data);
             } else {
@@ -303,7 +309,6 @@ impl LoadableComponent for ProxmoxTasks {
                 }
                 store.append(&mut data);
             }
-            link.send_message(Msg::LoadFinished);
             Ok(())
         })
     }
@@ -326,6 +331,7 @@ impl LoadableComponent for ProxmoxTasks {
 
                 self.last_filter = filter_params;
                 self.fresh_load = true;
+                self.no_more_tasks = false;
 
                 let link = ctx.link().clone();
                 self.load_timeout = Some(Timeout::new(FILTER_UPDATE_BUFFER_MS, move || {
@@ -334,6 +340,11 @@ impl LoadableComponent for ProxmoxTasks {
                 true
             }
             Msg::LoadBatch(start) => {
+                if !start && self.no_more_tasks {
+                    // all tasks are already loaded, avoid a request loop at
+                    // the end of the list
+                    return false;
+                }
                 self.fresh_load = start;
                 let link = ctx.link().clone();
                 self.load_timeout = Some(Timeout::new(FILTER_UPDATE_BUFFER_MS, move || {
@@ -341,8 +352,9 @@ impl LoadableComponent for ProxmoxTasks {
                 }));
                 false
             }
-            Msg::LoadFinished => {
+            Msg::LoadFinished(no_more_tasks) => {
                 self.fresh_load = false;
+                self.no_more_tasks = no_more_tasks;
                 false
             }
             Msg::RefreshClicked => {
