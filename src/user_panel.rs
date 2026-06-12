@@ -201,6 +201,9 @@ impl LoadableComponent for ProxmoxUserPanel {
                     .map(|p| p != user.user.userid.realm().as_str())
             })
             .unwrap_or(no_selection);
+        let is_root_user = selected_user
+            .as_ref()
+            .is_some_and(|user| user.user.userid.as_str() == "root@pam");
 
         let toolbar = Toolbar::new()
             .class("pwt-w-100")
@@ -219,7 +222,7 @@ impl LoadableComponent for ProxmoxUserPanel {
             .with_child(
                 ConfirmButton::new(tr!("Remove"))
                     .dangerous(true)
-                    .disabled(no_selection)
+                    .disabled(no_selection || is_root_user)
                     .confirm_message(match selected_user {
                         Some(user) => tr!(
                             "Are you sure you want to remove entry '{}'?",
