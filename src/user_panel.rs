@@ -25,9 +25,9 @@ use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
 use crate::utils::{epoch_to_input_value, render_epoch_short};
 use crate::{
-    EditWindow, LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
-    LoadableComponentScopeExt, LoadableComponentState, PermissionPanel, RealmSelector,
-    SchemaValidation,
+    ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,
+    LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState, PermissionPanel,
+    RealmSelector, SchemaValidation,
 };
 
 async fn load_user_list() -> Result<Vec<UserWithTokens>, Error> {
@@ -192,8 +192,9 @@ impl LoadableComponent for ProxmoxUserPanel {
         let link = ctx.link();
 
         let no_selection = self.selection.is_empty();
-        let disable_change_password = self
-            .get_selected_user()
+        let selected_user = self.get_selected_user().and_then(|user| Some(user));
+        let disable_change_password = selected_user
+            .as_ref()
             .and_then(|user| {
                 self.product_realm
                     .as_ref()
@@ -216,9 +217,17 @@ impl LoadableComponent for ProxmoxUserPanel {
                     .onclick(link.change_view_callback(|_| Some(ViewState::Edit))),
             )
             .with_child(
-                Button::new(tr!("Remove"))
+                ConfirmButton::new(tr!("Remove"))
+                    .dangerous(true)
                     .disabled(no_selection)
-                    .onclick(link.callback(|_| Msg::RemoveItem)),
+                    .confirm_message(match selected_user {
+                        Some(user) => tr!(
+                            "Are you sure you want to remove entry '{}'?",
+                            user.user.userid.as_str()
+                        ),
+                        None => tr!("Are you sure you want to remove this entry?"),
+                    })
+                    .on_activate(link.callback(|_| Msg::RemoveItem)),
             )
             .with_spacer()
             .with_child(
