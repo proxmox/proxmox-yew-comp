@@ -252,7 +252,7 @@ pub trait LoadableComponentScopeExt<M, V: PartialEq> {
         reload_on_close: bool,
     );
 
-    fn show_task_progres(&self, task_id: impl Into<String>);
+    fn show_task_progress(&self, task_id: impl Into<String>);
 
     fn show_task_log(&self, task_id: impl Into<String>, endtime: Option<i64>);
 
@@ -315,7 +315,7 @@ impl<M, V: PartialEq, T: 'static + LoadableComponent<Message = M, ViewState = V>
         self.send_message(Msg::ChangeView(false, view_state));
     }
 
-    fn show_task_progres(&self, task_id: impl Into<String>) {
+    fn show_task_progress(&self, task_id: impl Into<String>) {
         let view_state = ViewState::TaskProgress(task_id.into());
         self.send_message(Msg::ChangeView(false, view_state));
     }
@@ -333,7 +333,7 @@ impl<M, V: PartialEq, T: 'static + LoadableComponent<Message = M, ViewState = V>
             match command_future.await {
                 Ok(task_id) => {
                     if short {
-                        link.show_task_progres(task_id);
+                        link.show_task_progress(task_id);
                     } else {
                         link.show_task_log(task_id, None);
                     }

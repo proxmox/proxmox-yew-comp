@@ -146,7 +146,7 @@ impl LoadableComponent for ProxmoxAcmeAccountsPanel {
                                 link.clone().spawn(async move {
                                     match command_future.await {
                                         Ok(task_id) => {
-                                            link.show_task_progres(task_id);
+                                            link.show_task_progress(task_id);
                                         }
                                         Err(err) => {
                                             link.show_error(tr!("Error"), err, true);
