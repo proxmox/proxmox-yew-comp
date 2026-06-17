@@ -206,6 +206,7 @@ impl ManagedField for ProxmoxBandwidthField {
 
         let input = Number::<f64>::new()
             .with_input_props(&input_props)
+            .min_width(40)
             .min(0.0)
             .value(self.current_size.clone())
             .on_input(ctx.link().callback(Msg::ChangeSize));
@@ -233,7 +234,7 @@ impl ManagedField for ProxmoxBandwidthField {
 
         Container::new()
             .with_std_props(&props.std_props)
-            .class("pwt-d-flex pwt-flex-fill-first-child pwt-gap-2")
+            .class("pwt-d-flex pwt-gap-2")
             .with_child(input)
             .with_child(unit_selector)
             .into()
