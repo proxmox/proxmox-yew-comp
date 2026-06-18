@@ -1,3 +1,28 @@
+rust-proxmox-yew-comp (0.8.15) trixie; urgency=medium
+
+  * task list: stop sending further "load more" requests once the end of the
+    list has been reached, fixing an endless request loop at the bottom of a
+    fully loaded list and a redundant second request for short lists.
+
+  * rrd graph: avoid a panic in debug builds and broken rendering otherwise
+    when the graph becomes too narrow, for example with a dynamic graph width
+    on a small viewport.
+
+  * user panel:
+    - ask for confirmation before removing a user, instead of deleting the
+      account immediately when clicking "Remove".
+    - disable the "Remove" button for the "root" user.
+
+  * bandwidth selector: give the number input a fixed minimum width instead of
+    stretching it to fill the whole container, so it no longer takes up
+    unnecessary horizontal space.
+
+  * acl context: only load the ACL tree for applications that actually consume
+    it, avoiding a spurious API error logged on every login for products that
+    do not use the shared access-control API, such as Proxmox Backup Server.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 18 Jun 2026 18:27:34 +0200
+
 rust-proxmox-yew-comp (0.8.14) trixie; urgency=medium
 
   * markdown: correctly pass the 'pwt-embedded-html' css class to avoid that
