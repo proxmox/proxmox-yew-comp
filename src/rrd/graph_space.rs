@@ -123,8 +123,12 @@ impl GraphSpace {
 
     fn update_inner_size(&mut self) {
         let layout = &mut self.layout;
-        layout.inner_width = layout.width - layout.left_offset - layout.grid_border * 2;
-        layout.inner_height = layout.height - layout.bottom_offset - layout.grid_border * 2;
+        layout.inner_width = layout
+            .width
+            .saturating_sub(layout.left_offset + layout.grid_border * 2);
+        layout.inner_height = layout
+            .height
+            .saturating_sub(layout.bottom_offset + layout.grid_border * 2);
     }
 
     /// Updates the width of the layout, recalculates all necessary fields
