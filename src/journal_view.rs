@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use anyhow::{format_err, Error};
+use anyhow::Error;
 use gloo_timers::callback::Timeout;
 use serde_json::json;
 use yew::html::IntoEventCallback;
@@ -205,8 +205,12 @@ impl Component for ProxmoxJournalView {
                     callback.emit((false, self.position == Position::Bottom));
                 }
                 if lines.len() < 2 {
-                    ctx.link()
-                        .send_message(Msg::Error(format_err!("invalid response: {:?}", lines)));
+                    // an empty or cursor-only response is a normal outcome now, for example a
+                    // priority filter that currently matches nothing; keep the existing cursors
+                    // and, in live mode, poll again instead of reporting an error
+                    if self.position == Position::Bottom {
+                        self.load(ctx);
+                    }
                     return false;
                 }
 
