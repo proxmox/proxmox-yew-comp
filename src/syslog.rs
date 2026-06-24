@@ -29,6 +29,12 @@ pub struct Syslog {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     pub service: Option<AttrValue>,
+
+    /// Render the live journal in structured mode: priority coloring and the filter row. Needs a
+    /// backend that serves the journal endpoint's structured output.
+    #[builder]
+    #[prop_or_default]
+    pub structured: bool,
 }
 
 impl Default for Syslog {
@@ -45,6 +51,7 @@ impl Syslog {
 
 pub enum Msg {
     ChangeMode(bool),
+    ToggleFilters,
     LoadingChange((usize, bool)),
     SinceDate(Option<PlainDate>),
     SinceTime(String),
@@ -61,6 +68,7 @@ pub struct ProxmoxSyslog {
     until_time: String,
     until_label_id: AttrValue,
     pending: bool,
+    show_filters: bool,
 }
 
 fn date_time_to_epoch(date: &PlainDate, time: &str) -> Option<i64> {
@@ -159,6 +167,14 @@ impl ProxmoxSyslog {
                         .value(self.until_time.to_string()),
                 ),
             )
+            // the structured journal view's filters only apply in live mode; keep the toggle in
+            // this shared toolbar rather than stacking a second one just for it
+            .with_optional_child((self.active && ctx.props().structured).then(|| {
+                Button::new(tr!("Filter"))
+                    .icon_class("fa fa-filter")
+                    .pressed(self.show_filters)
+                    .on_activate(ctx.link().callback(|_| Msg::ToggleFilters))
+            }))
             .border_bottom(true)
             .into()
     }
@@ -167,6 +183,8 @@ impl ProxmoxSyslog {
         let props = ctx.props();
         if self.active {
             JournalView::new(props.journal_base_url.clone())
+                .structured(props.structured)
+                .show_filters(self.show_filters)
                 .on_loading_change(ctx.link().callback(|(loading, tailview)| {
                     Msg::LoadingChange((if loading { 1 } else { 0 }, tailview))
                 }))
@@ -199,6 +217,7 @@ impl Component for ProxmoxSyslog {
             until_time: "23:59".to_string(),
             until_label_id: AttrValue::from(pwt::widget::get_unique_element_id()),
             pending: false,
+            show_filters: false,
         }
     }
 
@@ -232,6 +251,10 @@ impl Component for ProxmoxSyslog {
                 let changed = active != self.active;
                 self.active = active;
                 changed
+            }
+            Msg::ToggleFilters => {
+                self.show_filters = !self.show_filters;
+                true
             }
         }
     }
