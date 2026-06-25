@@ -1,3 +1,10 @@
+rust-proxmox-yew-comp (0.8.16) trixie; urgency=medium
+
+  * xtermjs: add ConsoleType variants for guests accessed via Proxmox
+    Datacenter Manager.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 25 Jun 2026 10:56:46 +0200
+
 rust-proxmox-yew-comp (0.8.15) trixie; urgency=medium
 
   * task list: stop sending further "load more" requests once the end of the
