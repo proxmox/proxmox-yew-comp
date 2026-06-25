@@ -5,7 +5,7 @@ use std::rc::Rc;
 use anyhow::Error;
 
 use proxmox_client::ApiResponseData;
-use pwt::widget::form::{Checkbox, FormContext, TristateBoolean};
+use pwt::widget::form::{Checkbox, DisplayField, Field, FormContext, TristateBoolean};
 use serde_json::Value;
 use yew::html::IntoPropValue;
 use yew::virtual_dom::{VComp, VNode};
@@ -19,6 +19,7 @@ use pwt::widget::{Button, Container, Fa, InputPanel, Toolbar};
 
 use pwt_macros::builder;
 
+use crate::form::delete_empty_values;
 use crate::{
     AuthEditLDAP, AuthEditOpenID, EditWindow, LoadableComponent, LoadableComponentContext,
     LoadableComponentMaster, LoadableComponentScope, LoadableComponentScopeExt,
@@ -36,6 +37,12 @@ pub struct AuthView {
     #[builder(IntoPropValue, into_prop_value)]
     /// The base url for
     pub base_url: AttrValue,
+
+    /// The base URL to edit the default realms (pam, pve, pdm, pbs etc.). Specify `None` if
+    /// editing the default realms is not supported.
+    #[prop_or(Some("/config/access".into()))]
+    #[builder(IntoPropValue, into_prop_value)]
+    pub edit_default_realms_base_url: Option<AttrValue>,
 
     /// Allow to add/edit OpenID entries
     #[builder(IntoPropValue, into_prop_value)]
@@ -73,6 +80,7 @@ pub enum ViewState {
     EditOpenID(AttrValue),
     EditLDAP(AttrValue),
     EditAd(AttrValue),
+    EditDefaultRealm(AttrValue),
     Sync(BasicRealmInfo),
 }
 
@@ -162,6 +170,33 @@ async fn load_realm(url: impl Into<String>) -> Result<ApiResponseData<Value>, Er
     }
 
     Ok(response)
+}
+
+fn edit_default_realm(realm: AttrValue, url: AttrValue) -> EditWindow {
+    let url = format!("{url}/{realm}");
+    EditWindow::new(tr!("Edit: {realm}", realm))
+        .loader(url.clone())
+        .renderer({
+            move |_form_ctx: &FormContext| {
+                InputPanel::new()
+                    .padding(4)
+                    .with_field(
+                        tr!("Realm"),
+                        DisplayField::new().name("realm").submit(false),
+                    )
+                    .with_right_field(tr!("Default Realm"), Checkbox::new().name("default"))
+                    .with_large_field(tr!("Comment"), Field::new().name("comment"))
+                    .into()
+            }
+        })
+        .on_submit(move |form_ctx: FormContext| {
+            let url = url.clone();
+            async move {
+                let data = form_ctx.get_submit_data();
+                let data = delete_empty_values(&data, &["comment"], true);
+                crate::http_put(&url, Some(data)).await
+            }
+        })
 }
 
 impl ProxmoxAuthView {
@@ -254,6 +289,11 @@ impl LoadableComponent for ProxmoxAuthView {
                     "ad" if props.ad_base_url.is_some() => {
                         Some(ViewState::EditAd(info.realm.into()))
                     }
+                    "pam" | "pbs" | "pdm" | "pve"
+                        if props.edit_default_realms_base_url.is_some() =>
+                    {
+                        Some(ViewState::EditDefaultRealm(info.realm.into()))
+                    }
                     _ => return true,
                 };
 
@@ -285,7 +325,7 @@ impl LoadableComponent for ProxmoxAuthView {
             if let Some(auth_info) = crate::utils::get_auth_domain_info(&realm_info.ty) {
                 sync_disabled = !auth_info.sync;
                 remove_disabled = !auth_info.add;
-                edit_disabled = !auth_info.add;
+                edit_disabled = !auth_info.edit;
             }
         }
 
@@ -407,6 +447,14 @@ impl LoadableComponent for ProxmoxAuthView {
                     .realm(realm.clone())
                     .on_close(ctx.link().change_view_callback(|_| None))
                     .into(),
+            ),
+            ViewState::EditDefaultRealm(realm) => Some(
+                edit_default_realm(
+                    realm.clone(),
+                    props.edit_default_realms_base_url.clone().unwrap(),
+                )
+                .on_done(ctx.link().change_view_callback(|_| None))
+                .into(),
             ),
             ViewState::Sync(realm) => {
                 let link = ctx.link().clone();
