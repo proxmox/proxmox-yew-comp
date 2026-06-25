@@ -32,10 +32,9 @@ use crate::percent_encoding::percent_encode_component;
 #[derive(PartialEq, Properties)]
 #[builder]
 pub struct AuthView {
-    /// Base API path.
+    /// Base API path to fetch configured realms.
     #[prop_or("/access/domains".into())]
     #[builder(IntoPropValue, into_prop_value)]
-    /// The base url for
     pub base_url: AttrValue,
 
     /// The base URL to edit the default realms (pam, pve, pdm, pbs etc.). Specify `None` if
@@ -44,17 +43,17 @@ pub struct AuthView {
     #[builder(IntoPropValue, into_prop_value)]
     pub edit_default_realms_base_url: Option<AttrValue>,
 
-    /// Allow to add/edit OpenID entries
+    /// Base URL to allow adding and editing of OpenID realms.
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     openid_base_url: Option<AttrValue>,
 
-    /// Allow to add/edit LDAP entries
+    /// Base URL to allow adding and editing of LDAP realms.
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     ldap_base_url: Option<AttrValue>,
 
-    /// Allow to add/edit LDAP entries
+    /// Base URL to allow adding and editing of Active Directory realms.
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     ad_base_url: Option<AttrValue>,
