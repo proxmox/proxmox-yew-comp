@@ -1,3 +1,20 @@
+rust-proxmox-yew-comp (0.8.17) trixie; urgency=medium
+
+  * system log journal view:
+    - add an opt-in structured mode that colors log entries by syslog
+      priority, marks reboots and indents multi-line messages
+    - add server-side filters for minimum priority, systemd unit, syslog
+      identifier and kernel-only messages, in a collapsible filter row with
+      a reset
+
+  * auth cookies:
+    - pin every cookie to the site root path so the ticket is a single
+      canonical value shared across all paths
+    - on logout clear it at the root, path-less and current document paths, so
+      no stale copy seemingly keeps the session alive
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 28 Jun 2026 23:33:28 +0200
+
 rust-proxmox-yew-comp (0.8.16) trixie; urgency=medium
 
   * xtermjs: add ConsoleType variants for guests accessed via Proxmox
