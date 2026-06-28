@@ -12,7 +12,12 @@ function set_cookie(value) {
 
 // name is PBSAuthCookie, PVEAuthCookie or PMGAuthCookie
 function clear_auth_cookie(name) {
-    document.cookie = name + "=; expires=Thu, 01-Jan-1970 00:00:01 GMT; SameSite=Lax;";
+    // Sweep the root path and any path the cookie may previously have been pinned to, so a stale
+    // ticket cannot survive the clear.
+    var gone = "=; expires=Thu, 01-Jan-1970 00:00:01 GMT";
+    document.cookie = name + gone + "; path=/";
+    document.cookie = name + gone;
+    document.cookie = name + gone + "; path=" + location.pathname;
 }
 
 function get_cookie() {
