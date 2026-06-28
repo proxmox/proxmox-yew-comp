@@ -5,7 +5,9 @@ function async_sleep(ms) {
 }
 
 function set_cookie(value) {
-    document.cookie = value;
+    // Pin to the site root so a single canonical cookie is shared by every path the UI is
+    // served under, instead of the writing document's default path.
+    document.cookie = value + "; path=/";
 }
 
 // name is PBSAuthCookie, PVEAuthCookie or PMGAuthCookie
