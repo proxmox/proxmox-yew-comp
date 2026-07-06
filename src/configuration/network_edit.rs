@@ -131,7 +131,7 @@ fn render_bridge_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             tr!("Name"),
             Field::new()
                 .name("name")
-                .tip(tr!("For example, vmbr0, vmbr0.100, vmbr1, ..."))
+                .tip(tr!("Commonly: vmbr[N] (e.g., vmbr0, vmbr1). Must start with a character, max 10 alphanumeric characters."))
                 .required(true)
                 .default(&props.default_name)
                 .disabled(is_edit)
@@ -206,7 +206,7 @@ fn render_bond_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             Field::new()
                 .name("name")
                 .default(&props.default_name)
-                .tip(tr!("For example, bond0, bond0.100, bond1, ..."))
+                .tip(tr!("Format: bond[N] (e.g., bond0, bond1)"))
                 .required(true)
                 .disabled(is_edit)
                 .submit(!is_edit),
@@ -279,6 +279,7 @@ fn render_common_form(form_ctx: FormContext, props: &NetworkEdit) -> Html {
             Field::new()
                 .name("name")
                 .default(&props.default_name)
+                .tip(tr!("Format: [interface].[vlan-id] (e.g., eno1.50, bond1.30)"))
                 .required(true)
                 .disabled(is_edit)
                 .submit(!is_edit),
