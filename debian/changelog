@@ -1,3 +1,14 @@
+rust-proxmox-yew-comp (0.8.18) trixie; urgency=medium
+
+  * auth view: allow editing of default realms, so one can set a custom
+    comment and mark a realm as the default to preselect on login.
+
+  * login panel: add a property to override the default username, for UIs
+    focused on ordinary end-users where "root" is often not available or not
+    the most commonly used login. Falls back to "root" when unset.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 08 Jul 2026 02:12:29 +0200
+
 rust-proxmox-yew-comp (0.8.17) trixie; urgency=medium
 
   * system log journal view:
