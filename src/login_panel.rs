@@ -36,6 +36,11 @@ pub struct LoginPanel {
     #[builder_cb(IntoEventCallback, into_event_callback, Authentication)]
     pub on_login: Option<Callback<Authentication>>,
 
+    /// Default username.
+    #[prop_or_default]
+    #[builder]
+    pub default_username: Option<AttrValue>,
+
     /// Default realm.
     #[prop_or_default]
     #[builder]
@@ -229,7 +234,10 @@ impl ProxmoxLoginPanel {
     }
 
     fn get_defaults(&self, props: &LoginPanel) -> (String, Option<AttrValue>) {
-        let mut default_username = String::from("root");
+        let mut default_username = props
+            .default_username
+            .as_ref()
+            .map_or_else(|| String::from("root"), |username| username.to_string());
         let mut default_realm = props.default_realm.clone();
 
         if props.mobile || *self.save_username {
