@@ -156,6 +156,73 @@ pub fn epoch_to_input_value(epoch: i64) -> String {
     }
 }
 
+/// epoch to "Y-m-d" (localtime), the submit value format of a date input
+pub fn epoch_to_input_date(epoch: i64) -> String {
+    let date = js_sys::Date::new_0();
+    date.set_time((epoch * 1000) as f64);
+
+    if date.get_date() == 0 {
+        // invalid data (clear field creates this)
+        String::new()
+    } else {
+        format!(
+            "{:04}-{:02}-{:02}",
+            date.get_full_year(),
+            date.get_month() + 1,
+            date.get_date(),
+        )
+    }
+}
+
+/// epoch to "H:i" (localtime), for a 24h time-of-day field complementing a date input
+pub fn epoch_to_input_time(epoch: i64) -> String {
+    let date = js_sys::Date::new_0();
+    date.set_time((epoch * 1000) as f64);
+
+    format!("{:02}:{:02}", date.get_hours(), date.get_minutes())
+}
+
+/// Parse a "Y-m-dTH:i" string as localtime into a Unix epoch.
+///
+/// Counterpart of [`epoch_to_input_value`] and the epoch_to_input_date/time split. Unlike
+/// `js_sys::Date::parse`, which leaves it engine-defined whether an offset-less string is read
+/// as UTC or localtime, this always uses the local calendar, so values loaded through the
+/// helpers above round-trip without a UTC offset shift.
+pub fn parse_input_datetime(input: &str) -> Option<i64> {
+    let input = input.trim();
+    if input.len() < 16 {
+        return None;
+    }
+    let bytes = input.as_bytes();
+    if bytes[4] != b'-' || bytes[7] != b'-' || bytes[10] != b'T' || bytes[13] != b':' {
+        return None;
+    }
+    let year: u32 = input.get(0..4)?.parse().ok()?;
+    let month: i32 = input.get(5..7)?.parse().ok()?;
+    let day: i32 = input.get(8..10)?.parse().ok()?;
+    let hour: i32 = input.get(11..13)?.parse().ok()?;
+    let minute: i32 = input.get(14..16)?.parse().ok()?;
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day) || hour > 23 || minute > 59 {
+        return None;
+    }
+    let date =
+        js_sys::Date::new_with_year_month_day_hr_min_sec(year, month - 1, day, hour, minute, 0);
+    let time_milli = date.get_time();
+    if time_milli.is_nan() {
+        return None;
+    }
+    // js Date silently rolls impossible dates over into the next month (February 31st becomes
+    // March 3rd) and maps years below 100 to 1900..2000; require an exact component round-trip
+    // instead of resolving to a shifted date.
+    if date.get_full_year() != year
+        || date.get_month() as i32 != month - 1
+        || date.get_date() as i32 != day
+    {
+        return None;
+    }
+    Some((time_milli / 1000.0) as i64)
+}
+
 pub struct AuthDomainInfo {
     pub ty: String, // type
     //pub description: String,

@@ -18,12 +18,14 @@ use yew::virtual_dom::{Key, VComp, VNode};
 use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
-use pwt::widget::form::{Checkbox, Field, FormContext, InputType};
+use pwt::widget::form::{Checkbox, DateField, Field, FormContext, InputType};
 use pwt::widget::{Button, Dialog, InputPanel, Toolbar};
 
 use crate::form::delete_empty_values;
 use crate::percent_encoding::percent_encode_component;
-use crate::utils::{epoch_to_input_value, render_epoch_short};
+use crate::utils::{
+    epoch_to_input_date, epoch_to_input_time, parse_input_datetime, render_epoch_short,
+};
 use crate::{
     ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,
     LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState, PermissionPanel,
@@ -39,17 +41,42 @@ async fn load_user(userid: Key) -> Result<ApiResponseData<Value>, Error> {
 
     let mut resp: ApiResponseData<Value> = crate::http_get_full(&url, None).await?;
 
-    if let Value::Number(number) = &resp.data["expire"] {
-        if let Some(epoch) = number.as_i64() {
-            if epoch == 0 {
-                resp.data["expire"] = Value::Null;
-            } else {
-                resp.data["expire"] = Value::String(epoch_to_input_value(epoch));
-            }
+    // Split the stored epoch into the date and time helper fields the form renders. Zero means
+    // no expiry, leave both fields empty so the control reads "never".
+    if let Some(epoch) = resp.data["expire"].as_i64() {
+        if epoch != 0 {
+            resp.data["expire-date"] = Value::String(epoch_to_input_date(epoch));
+            resp.data["expire-time"] = Value::String(epoch_to_input_time(epoch));
         }
     }
 
     Ok(resp)
+}
+
+/// Join the split `expire-date` (ISO, the DateField submit format) and 24h `expire-time` helper
+/// fields into the "Y-m-dTH:i" shape [`parse_input_datetime`] accepts. An empty date yields
+/// `None` so the caller can clear the expiry; an empty time defaults to midnight.
+fn join_expire(form_ctx: &FormContext) -> Option<String> {
+    let date = match form_ctx.get_submit_data().get("expire-date") {
+        Some(Value::String(date)) if !date.is_empty() => date.clone(),
+        _ => return None,
+    };
+    let time = form_ctx.read().get_field_text("expire-time");
+    let time = match time.trim() {
+        "" => "00:00".to_string(),
+        // allow a single digit hour like 9:30
+        time if time.len() == 4 && time.as_bytes()[1] == b':' => format!("0{time}"),
+        time => time.to_string(),
+    };
+    Some(format!("{date}T{time}"))
+}
+
+// the split helper fields must not reach the API, it only knows the `expire` epoch
+fn strip_expire_helpers(data: &mut Value) {
+    if let Some(obj) = data.as_object_mut() {
+        obj.remove("expire-date");
+        obj.remove("expire-time");
+    }
 }
 
 async fn delete_user(userid: Key) -> Result<(), Error> {
@@ -65,10 +92,15 @@ async fn create_user(form_ctx: FormContext) -> Result<(), Error> {
     let realm = form_ctx.read().get_field_text("realm");
     data["userid"] = Value::String(format!("{username}@{realm}"));
 
-    let expire = form_ctx.read().get_field_text("expire");
-    if let Ok(epoch) = proxmox_time::parse_rfc3339(&expire) {
-        data["expire"] = epoch.into();
+    if let Some(value) = join_expire(&form_ctx) {
+        match parse_input_datetime(&value) {
+            Some(epoch) => data["expire"] = epoch.into(),
+            // a date the field validator let through but the calendar rejects, like a
+            // nonexistent February 31st; error out over silently dropping the expiry
+            None => bail!(tr!("invalid expire date")),
+        }
     }
+    strip_expire_helpers(&mut data);
 
     crate::http_post("/access/users", Some(data)).await
 }
@@ -76,14 +108,21 @@ async fn create_user(form_ctx: FormContext) -> Result<(), Error> {
 async fn update_user(form_ctx: FormContext) -> Result<(), Error> {
     let mut data = form_ctx.get_submit_data();
 
-    if Some(true) == form_ctx.read().is_field_dirty("expire") {
-        let expire = form_ctx.read().get_field_text("expire");
-        if let Ok(epoch) = proxmox_time::parse_rfc3339(&expire) {
-            data["expire"] = epoch.into();
-        } else {
-            data["expire"] = 0i64.into();
+    let expire_dirty = Some(true) == form_ctx.read().is_field_dirty("expire-date")
+        || Some(true) == form_ctx.read().is_field_dirty("expire-time");
+    if expire_dirty {
+        match join_expire(&form_ctx) {
+            Some(value) => match parse_input_datetime(&value) {
+                Some(epoch) => data["expire"] = epoch.into(),
+                // a date the field validator let through but the calendar rejects, like a
+                // nonexistent February 31st; error out over silently clearing the expiry
+                None => bail!(tr!("invalid expire date")),
+            },
+            // a cleared date removes the expiry, zero means never expire
+            None => data["expire"] = 0i64.into(),
         }
     }
+    strip_expire_helpers(&mut data);
 
     let data = delete_empty_values(&data, &["firstname", "lastname", "email", "comment"], true);
 
@@ -101,6 +140,11 @@ pub struct UserPanel {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     product_realm: Option<AttrValue>,
+
+    /// Display format for the expire date input. Submitted values always use ISO "Y-m-d".
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or(AttrValue::from("Y-m-d"))]
+    date_format: AttrValue,
 }
 
 impl Default for UserPanel {
@@ -316,6 +360,25 @@ fn validate_email(mail: &String) -> Result<(), Error> {
     Ok(())
 }
 
+/// A 24h HH:MM time-of-day check for the expire time helper field; empty is allowed and
+/// defaults to midnight on submit.
+fn validate_time(time: &String) -> Result<(), Error> {
+    let time = time.trim();
+    if time.is_empty() {
+        return Ok(());
+    }
+    if let Some((hour, minute)) = time.split_once(':') {
+        if (1..=2).contains(&hour.len())
+            && minute.len() == 2
+            && matches!(hour.parse::<u8>(), Ok(0..=23))
+            && matches!(minute.parse::<u8>(), Ok(0..=59))
+        {
+            return Ok(());
+        }
+    }
+    bail!(tr!("not a valid time of day (24h HH:MM)"));
+}
+
 fn check_confirm_password(form_ctx: FormContext) {
     let pw = form_ctx.read().get_field_text("password");
     let confirm = form_ctx.read().get_field_text("confirm_password");
@@ -338,8 +401,9 @@ impl ProxmoxUserPanel {
 
     fn create_add_dialog(&self, ctx: &LoadableComponentContext<Self>) -> Html {
         let product_realm = self.product_realm.clone();
+        let date_format = ctx.props().date_format.clone();
         EditWindow::new(tr!("Add") + ": " + &tr!("User"))
-            .renderer(move |form_ctx| add_user_input_panel(form_ctx, &product_realm))
+            .renderer(move |form_ctx| add_user_input_panel(form_ctx, &product_realm, &date_format))
             .on_submit(create_user)
             .on_done(ctx.link().change_view_callback(|_| None))
             .on_change(check_confirm_password)
@@ -347,8 +411,9 @@ impl ProxmoxUserPanel {
     }
 
     fn create_edit_dialog(&self, ctx: &LoadableComponentContext<Self>, key: Key) -> Html {
+        let date_format = ctx.props().date_format.clone();
         EditWindow::new(tr!("Edit") + ": " + &tr!("User"))
-            .renderer(edit_user_input_panel)
+            .renderer(move |form_ctx: &FormContext| edit_user_input_panel(form_ctx, &date_format))
             .on_submit(update_user)
             .on_done(ctx.link().change_view_callback(|_| None))
             .loader(move || load_user(key.clone()))
@@ -542,7 +607,11 @@ fn password_change_input_panel(_form_ctx: &FormContext) -> Html {
         .into()
 }
 
-fn add_user_input_panel(form_ctx: &FormContext, product_realm: &Option<AttrValue>) -> Html {
+fn add_user_input_panel(
+    form_ctx: &FormContext,
+    product_realm: &Option<AttrValue>,
+    date_format: &AttrValue,
+) -> Html {
     let realm = form_ctx.read().get_field_text("realm");
     let is_product_realm = product_realm
         .as_deref()
@@ -603,17 +672,25 @@ fn add_user_input_panel(form_ctx: &FormContext, product_realm: &Option<AttrValue
         )
         .with_right_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
         .with_field(
-            tr!("Expire"),
+            tr!("Expire date"),
+            DateField::new()
+                .name("expire-date")
+                .format(date_format.clone())
+                .submit_format("Y-m-d")
+                .placeholder(tr!("never")),
+        )
+        .with_right_field(
+            tr!("Expire time"),
             Field::new()
-                .name("expire")
-                .input_type(InputType::DatetimeLocal)
-                .submit(false),
+                .name("expire-time")
+                .placeholder("HH:MM")
+                .validate(validate_time),
         )
         .with_large_field(tr!("Comment"), Field::new().name("comment"))
         .into()
 }
 
-fn edit_user_input_panel(_form_ctx: &FormContext) -> Html {
+fn edit_user_input_panel(_form_ctx: &FormContext, date_format: &AttrValue) -> Html {
     InputPanel::new()
         .padding(4)
         .with_field(
@@ -638,11 +715,19 @@ fn edit_user_input_panel(_form_ctx: &FormContext) -> Html {
         )
         .with_right_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
         .with_field(
-            tr!("Expire"),
+            tr!("Expire date"),
+            DateField::new()
+                .name("expire-date")
+                .format(date_format.clone())
+                .submit_format("Y-m-d")
+                .placeholder(tr!("never")),
+        )
+        .with_right_field(
+            tr!("Expire time"),
             Field::new()
-                .name("expire")
-                .input_type(InputType::DatetimeLocal)
-                .submit(false),
+                .name("expire-time")
+                .placeholder("HH:MM")
+                .validate(validate_time),
         )
         .with_large_field(tr!("Comment"), Field::new().name("comment").autofocus(true))
         .into()
