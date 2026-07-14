@@ -225,7 +225,8 @@ impl LoadableComponent for ProxmoxUserPanel {
                     .disabled(no_selection || is_root_user)
                     .confirm_message(match selected_user {
                         Some(user) => tr!(
-                            "Are you sure you want to remove entry '{}'?",
+                            "Are you sure you want to remove user '{}'? This also deletes \
+                             all API tokens, permissions and TFA methods of that user.",
                             user.user.userid.as_str()
                         ),
                         None => tr!("Are you sure you want to remove this entry?"),
