@@ -1,3 +1,46 @@
+rust-proxmox-yew-comp (0.8.19) trixie; urgency=medium
+
+  * fix #7426: network: show the matching interface name example in the
+    tooltip for the type being created, instead of always the VLAN one.
+
+  * auth view: ask for confirmation before removing a realm, as that drops
+    the whole realm configuration and, for LDAP and AD realms, the stored
+    bind password with it.
+
+  * auth view: grey out the edit, remove and sync actions for realms the
+    view cannot handle, like the built-in realm of a product that does not
+    register one, instead of showing enabled buttons that silently do
+    nothing.
+
+  * user panel:
+    - state in the remove confirmation that the API tokens, permissions and
+      TFA methods of the user get deleted as well.
+    - validate the email address field with a lenient shape check to catch
+      obviously broken addresses before they make mail delivery fail.
+    - group related fields in the add and edit dialogs, like first and last
+      name, into one row each.
+    - replace the native, locale-dependent expire input with a date field
+      plus a 24h time field that render one consistent format on any host.
+      Products can override the displayed date format with the new
+      date_format property; an empty date still means no expiry.
+
+  * add a markdown editor form field with a formatting toolbar, write,
+    split and preview modes, and a live preview that passes the same
+    sanitizer as the finally displayed content.
+
+  * acl view: sort the text columns case-insensitively, render the
+    propagate flag as a centered read-only checkbox, and allow embedders
+    to tune or disable the periodic reload.
+
+  * acl edit: preselect the propagate flag like the ExtJS based products
+    do, instead of requiring an extra click for the common setting.
+
+  * acl: add a selector for grantable paths, fed from the permissions
+    listing of the access control API, so operators no longer need to
+    type ACL paths from memory.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 15 Jul 2026 12:05:00 +0200
+
 rust-proxmox-yew-comp (0.8.18) trixie; urgency=medium
 
   * auth view: allow editing of default realms, so one can set a custom
