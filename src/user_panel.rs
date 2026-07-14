@@ -531,7 +531,6 @@ fn password_change_input_panel(_form_ctx: &FormContext) -> Html {
                 .schema(&PASSWORD_SCHEMA)
                 .input_type(InputType::Password),
         )
-        // fixme: validate confirmation
         .with_field(
             tr!("Confirm password"),
             Field::new()
@@ -550,6 +549,9 @@ fn add_user_input_panel(form_ctx: &FormContext, product_realm: &Option<AttrValue
         .map(|p| p == realm)
         .unwrap_or_default();
 
+    // The grid pairs the n-th left with the n-th right field, so add fields strictly in
+    // semantic pairs; a lone left field would knock every following right field into the
+    // wrong row.
     let mut panel = InputPanel::new()
         .padding(4)
         .with_field(
@@ -561,7 +563,7 @@ fn add_user_input_panel(form_ctx: &FormContext, product_realm: &Option<AttrValue
                 .schema(&Username::API_SCHEMA)
                 .submit(false),
         )
-        .with_field(
+        .with_right_field(
             tr!("Realm"),
             RealmSelector::new()
                 .name("realm")
@@ -579,8 +581,7 @@ fn add_user_input_panel(form_ctx: &FormContext, product_realm: &Option<AttrValue
                     .schema(&PASSWORD_SCHEMA)
                     .input_type(InputType::Password),
             )
-            // fixme: validate confirmation
-            .with_field(
+            .with_right_field(
                 tr!("Confirm password"),
                 Field::new()
                     .name("confirm_password")
@@ -591,22 +592,22 @@ fn add_user_input_panel(form_ctx: &FormContext, product_realm: &Option<AttrValue
     }
 
     panel
+        .with_field(tr!("First name"), Field::new().name("firstname"))
+        .with_right_field(tr!("Last name"), Field::new().name("lastname"))
+        .with_field(
+            tr!("EMail"),
+            Field::new()
+                .name("email")
+                .input_type(InputType::Email)
+                .validate(validate_email),
+        )
+        .with_right_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
         .with_field(
             tr!("Expire"),
             Field::new()
                 .name("expire")
                 .input_type(InputType::DatetimeLocal)
                 .submit(false),
-        )
-        .with_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
-        .with_right_field(tr!("First name"), Field::new().name("firstname"))
-        .with_right_field(tr!("Last name"), Field::new().name("lastname"))
-        .with_right_field(
-            tr!("EMail"),
-            Field::new()
-                .name("email")
-                .input_type(InputType::Email)
-                .validate(validate_email),
         )
         .with_large_field(tr!("Comment"), Field::new().name("comment"))
         .into()
@@ -624,14 +625,9 @@ fn edit_user_input_panel(_form_ctx: &FormContext) -> Html {
                 .schema(&Username::API_SCHEMA)
                 .submit(false),
         )
-        .with_right_field(tr!("First name"), Field::new().name("firstname"))
-        .with_field(
-            tr!("Expire"),
-            Field::new()
-                .name("expire")
-                .input_type(InputType::DatetimeLocal)
-                .submit(false),
-        )
+        // balance the lone user name row so the semantic pairs below stay aligned
+        .with_right_custom_child(html! {})
+        .with_field(tr!("First name"), Field::new().name("firstname"))
         .with_right_field(tr!("Last name"), Field::new().name("lastname"))
         .with_field(
             tr!("EMail"),
@@ -641,6 +637,13 @@ fn edit_user_input_panel(_form_ctx: &FormContext) -> Html {
                 .validate(validate_email),
         )
         .with_right_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
+        .with_field(
+            tr!("Expire"),
+            Field::new()
+                .name("expire")
+                .input_type(InputType::DatetimeLocal)
+                .submit(false),
+        )
         .with_large_field(tr!("Comment"), Field::new().name("comment").autofocus(true))
         .into()
 }
