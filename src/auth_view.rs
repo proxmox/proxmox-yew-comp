@@ -316,15 +316,28 @@ impl LoadableComponent for ProxmoxAuthView {
 
         let selected_record = self.get_selected_record();
 
-        let mut remove_disabled = selected_record.is_none();
-        let mut edit_disabled = selected_record.is_none();
+        let mut remove_disabled = true;
+        let mut edit_disabled = true;
         let mut sync_disabled = true;
 
+        // Derive the button state from what the message handlers can actually do, so realm
+        // types without a configured base URL, or unknown product-specific ones, do not show
+        // enabled but inert buttons.
         if let Some(realm_info) = &selected_record {
+            let type_base_url = match realm_info.ty.as_str() {
+                "openid" => props.openid_base_url.as_ref(),
+                "ldap" => props.ldap_base_url.as_ref(),
+                "ad" => props.ad_base_url.as_ref(),
+                _ => None,
+            };
+
+            remove_disabled = type_base_url.is_none();
+            edit_disabled = match realm_info.ty.as_str() {
+                "pam" | "pbs" | "pdm" | "pve" => props.edit_default_realms_base_url.is_none(),
+                _ => type_base_url.is_none(),
+            };
             if let Some(auth_info) = crate::utils::get_auth_domain_info(&realm_info.ty) {
-                sync_disabled = !auth_info.sync;
-                remove_disabled = !auth_info.add;
-                edit_disabled = !auth_info.edit;
+                sync_disabled = !auth_info.sync || type_base_url.is_none();
             }
         }
 
