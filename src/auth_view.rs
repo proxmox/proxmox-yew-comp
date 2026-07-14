@@ -21,9 +21,9 @@ use pwt_macros::builder;
 
 use crate::form::delete_empty_values;
 use crate::{
-    AuthEditLDAP, AuthEditOpenID, EditWindow, LoadableComponent, LoadableComponentContext,
-    LoadableComponentMaster, LoadableComponentScope, LoadableComponentScopeExt,
-    LoadableComponentState,
+    AuthEditLDAP, AuthEditOpenID, ConfirmButton, EditWindow, LoadableComponent,
+    LoadableComponentContext, LoadableComponentMaster, LoadableComponentScope,
+    LoadableComponentScopeExt, LoadableComponentState,
 };
 
 use crate::common_api_types::BasicRealmInfo;
@@ -372,9 +372,21 @@ impl LoadableComponent for ProxmoxAuthView {
                     .onclick(ctx.link().callback(|_| Msg::Edit)),
             )
             .with_child(
-                Button::new(tr!("Remove"))
+                ConfirmButton::new(tr!("Remove"))
+                    .dangerous(true)
                     .disabled(remove_disabled)
-                    .onclick(ctx.link().callback(|_| Msg::Remove)),
+                    .confirm_message(match &selected_record {
+                        Some(info) if matches!(info.ty.as_str(), "ldap" | "ad") => tr!(
+                            "Are you sure you want to remove realm '{}'? This also deletes \
+                             the stored bind password.",
+                            info.realm
+                        ),
+                        Some(info) => {
+                            tr!("Are you sure you want to remove realm '{}'?", info.realm)
+                        }
+                        None => tr!("Are you sure you want to remove this entry?"),
+                    })
+                    .on_activate(ctx.link().callback(|_| Msg::Remove)),
             )
             .with_child(
                 Button::new(tr!("Sync"))
