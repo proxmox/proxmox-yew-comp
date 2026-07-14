@@ -2,7 +2,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
-use anyhow::Error;
+use anyhow::{bail, Error};
 use proxmox_client::ApiResponseData;
 use pwt_macros::builder;
 use serde_json::Value;
@@ -287,6 +287,33 @@ impl LoadableComponent for ProxmoxUserPanel {
                 .map(|key| self.create_show_permissions_dialog(ctx, key)),
         }
     }
+}
+
+/// Lenient email shape check: a non-empty local part, a single `@` and a non-empty domain
+/// without whitespace or edge dots. Single-label domains like root@localhost stay allowed, they
+/// are valid for local or intranet mail setups and got accepted by this dialog in the past. An
+/// empty value is fine too, the field is optional. Full validation is left to the server; this
+/// only stops obviously broken addresses like a bare user name.
+fn validate_email(mail: &String) -> Result<(), Error> {
+    let mail = mail.trim();
+    if mail.is_empty() {
+        return Ok(());
+    }
+    let valid = match mail.split_once('@') {
+        Some((local, domain)) => {
+            !local.is_empty()
+                && !domain.is_empty()
+                && !domain.contains('@')
+                && !mail.contains(char::is_whitespace)
+                && !domain.starts_with('.')
+                && !domain.ends_with('.')
+        }
+        None => false,
+    };
+    if !valid {
+        bail!(tr!("not a valid E-Mail address"));
+    }
+    Ok(())
 }
 
 fn check_confirm_password(form_ctx: FormContext) {
@@ -574,7 +601,13 @@ fn add_user_input_panel(form_ctx: &FormContext, product_realm: &Option<AttrValue
         .with_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
         .with_right_field(tr!("First name"), Field::new().name("firstname"))
         .with_right_field(tr!("Last name"), Field::new().name("lastname"))
-        .with_right_field(tr!("EMail"), Field::new().name("email"))
+        .with_right_field(
+            tr!("EMail"),
+            Field::new()
+                .name("email")
+                .input_type(InputType::Email)
+                .validate(validate_email),
+        )
         .with_large_field(tr!("Comment"), Field::new().name("comment"))
         .into()
 }
@@ -600,7 +633,13 @@ fn edit_user_input_panel(_form_ctx: &FormContext) -> Html {
                 .submit(false),
         )
         .with_right_field(tr!("Last name"), Field::new().name("lastname"))
-        .with_field(tr!("EMail"), Field::new().name("email"))
+        .with_field(
+            tr!("EMail"),
+            Field::new()
+                .name("email")
+                .input_type(InputType::Email)
+                .validate(validate_email),
+        )
         .with_right_field(tr!("Enabled"), Checkbox::new().name("enable").default(true))
         .with_large_field(tr!("Comment"), Field::new().name("comment").autofocus(true))
         .into()
