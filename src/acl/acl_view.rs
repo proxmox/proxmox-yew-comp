@@ -113,19 +113,25 @@ impl ProxmoxAclView {
             DataTableColumn::new(tr!("Path"))
                 .flex(1)
                 .render(|item: &AclListItem| item.path.as_str().into())
-                .sorter(|a: &AclListItem, b: &AclListItem| a.path.cmp(&b.path))
+                .sorter(|a: &AclListItem, b: &AclListItem| {
+                    a.path.to_lowercase().cmp(&b.path.to_lowercase())
+                })
                 .sort_order(true)
                 .into(),
             DataTableColumn::new(tr!("User/Group/API Token"))
                 .flex(1)
                 .render(|item: &AclListItem| item.ugid.as_str().into())
-                .sorter(|a: &AclListItem, b: &AclListItem| a.ugid.cmp(&b.ugid))
+                .sorter(|a: &AclListItem, b: &AclListItem| {
+                    a.ugid.to_lowercase().cmp(&b.ugid.to_lowercase())
+                })
                 .sort_order(true)
                 .into(),
             DataTableColumn::new(tr!("Role"))
                 .flex(1)
                 .render(|item: &AclListItem| item.roleid.as_str().into())
-                .sorter(|a: &AclListItem, b: &AclListItem| a.roleid.cmp(&b.roleid))
+                .sorter(|a: &AclListItem, b: &AclListItem| {
+                    a.roleid.to_lowercase().cmp(&b.roleid.to_lowercase())
+                })
                 .into(),
             DataTableColumn::new(tr!("Propagate"))
                 .render(|item: &AclListItem| render_boolean(item.propagate).as_str().into())
