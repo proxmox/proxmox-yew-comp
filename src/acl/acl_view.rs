@@ -49,6 +49,12 @@ pub struct AclView {
     #[prop_or_default]
     // using an index map here preserves the insertion order
     edit_acl_menu: IndexMap<AttrValue, (Classes, EditWindow)>,
+
+    /// Interval in milliseconds for periodically reloading the entries; `None` only loads on
+    /// explicit actions. ACL entries can change behind the view's back, so this defaults to 5000.
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or(Some(5000))]
+    auto_reload_interval: Option<u32>,
 }
 
 impl AclView {
@@ -161,7 +167,9 @@ impl LoadableComponent for ProxmoxAclView {
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         let link = ctx.link();
-        link.repeated_load(5000);
+        if let Some(interval) = ctx.props().auto_reload_interval {
+            link.repeated_load(interval);
+        }
 
         let selection = Selection::new().on_select({
             let link = ctx.link().clone();
