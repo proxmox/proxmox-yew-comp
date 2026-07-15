@@ -87,7 +87,7 @@ impl From<AclEdit> for EditWindow {
             .with_field(tr!("Role"), role_selector)
             .with_field(
                 tr!("Propagate"),
-                Checkbox::new().name("propagate").required(true),
+                Checkbox::new().name("propagate").default(true),
             );
 
         let url = value.acl_api_endpoint.to_owned();
