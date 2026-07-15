@@ -157,6 +157,9 @@ pub use log_view::LogView;
 mod markdown;
 pub use markdown::{Markdown, ProxmoxMarkdown};
 
+mod markdown_editor;
+pub use markdown_editor::{MarkdownEditor, MarkdownViewMode};
+
 mod journal_view;
 pub use journal_view::JournalView;
 
