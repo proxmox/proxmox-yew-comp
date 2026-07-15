@@ -29,7 +29,7 @@ mod authid_selector;
 pub use authid_selector::AuthidSelector;
 
 mod acl;
-pub use acl::{AclEdit, AclView};
+pub use acl::{AclEdit, AclPathSelector, AclView};
 
 mod bandwidth_selector;
 pub use bandwidth_selector::{BandwidthSelector, ProxmoxBandwidthSelector};
