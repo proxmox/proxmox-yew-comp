@@ -14,15 +14,15 @@ use pwt::css;
 use pwt::prelude::*;
 use pwt::state::{Selection, Store};
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
+use pwt::widget::form::Checkbox;
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
-use pwt::widget::Toolbar;
+use pwt::widget::{Container, Toolbar};
 
 use pwt_macros::builder;
 
 use proxmox_access_control::types::{AclListItem, AclUgidType};
 
 use crate::percent_encoding::percent_encode_component;
-use crate::utils::render_boolean;
 use crate::{
     ConfirmButton, EditWindow, LoadableComponent, LoadableComponentContext,
     LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState,
@@ -134,7 +134,20 @@ impl ProxmoxAclView {
                 })
                 .into(),
             DataTableColumn::new(tr!("Propagate"))
-                .render(|item: &AclListItem| render_boolean(item.propagate).as_str().into())
+                .justify("center")
+                .render(|item: &AclListItem| {
+                    Container::new()
+                        .class("pwt-d-flex pwt-justify-content-center")
+                        .with_child(
+                            // read-only cell, keep it out of the tab order (the checkbox
+                            // element takes its tabindex from the input props)
+                            FieldBuilder::tabindex(
+                                Checkbox::new().checked(item.propagate).disabled(true),
+                                -1,
+                            ),
+                        )
+                        .into()
+                })
                 .sorter(|a: &AclListItem, b: &AclListItem| a.propagate.cmp(&b.propagate))
                 .into(),
         ])
