@@ -73,7 +73,7 @@ pub use calendar_event_selector::CalendarEventSelector;
 pub mod configuration;
 
 mod edit_window;
-pub use edit_window::{EditWindow, PwtEditWindow};
+pub use edit_window::{AdaptiveEditWindow, EditWindow, EditWindowLayout, PwtEditWindow};
 
 mod property_edit_dialog;
 pub use property_edit_dialog::PropertyEditDialog;

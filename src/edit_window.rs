@@ -13,6 +13,7 @@ use proxmox_client::ApiResponseData;
 use pwt::props::{
     AsCssStylesMut, CssStyles, IntoSubmitCallback, RenderFn, SubmitCallback, WidgetStyleBuilder,
 };
+use pwt::touch::AdaptiveDialog;
 use pwt::widget::form::{Checkbox, Form, FormContext, Hidden, ResetButton, SubmitButton};
 use pwt::widget::{AlertDialog, Column, Dialog, Mask, Row};
 use pwt::{prelude::*, AsyncPool};
@@ -20,6 +21,17 @@ use pwt::{prelude::*, AsyncPool};
 use pwt_macros::builder;
 
 use crate::{ApiLoadCallback, IntoApiLoadCallback};
+
+/// How an [EditWindow] anchors itself on screen.
+#[derive(Copy, Clone, PartialEq, Eq, Default)]
+pub enum EditWindowLayout {
+    /// A centered, draggable modal [Dialog]. The default.
+    #[default]
+    Dialog,
+    /// A centered [Dialog] on wide viewports, switching to a slide-up bottom-sheet SideDialog on
+    /// narrow, touch-first ones. See [AdaptiveEditWindow].
+    Adaptive,
+}
 
 #[derive(Clone, PartialEq, Properties)]
 #[builder]
@@ -107,6 +119,19 @@ pub struct EditWindow {
     #[prop_or_default]
     #[builder(IntoPropValue, into_prop_value)]
     pub edit: Option<bool>,
+
+    /// On-screen layout. Defaults to a centered [Dialog]; [EditWindowLayout::Adaptive] switches to
+    /// a slide-up SideDialog on narrow viewports. See also [AdaptiveEditWindow].
+    #[prop_or_default]
+    #[builder]
+    pub layout: EditWindowLayout,
+
+    /// Media query selecting the wide ([Dialog]) layout when `layout` is
+    /// [EditWindowLayout::Adaptive]; below it the window becomes a bottom SideDialog. Defaults to
+    /// `(min-width: 768px)`, matching the other adaptive widgets.
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or(AttrValue::Static("(min-width: 768px)"))]
+    pub wide_query: AttrValue,
 }
 
 impl AsCssStylesMut for EditWindow {
@@ -142,6 +167,29 @@ impl EditWindow {
         } else {
             self.loader.is_some()
         }
+    }
+}
+
+/// An [EditWindow] that adapts its shell to the viewport: a centered, draggable [Dialog] on wide
+/// screens and a slide-up bottom-sheet SideDialog on narrow, touch-first ones.
+///
+/// This is a thin constructor over [EditWindow] with [EditWindowLayout::Adaptive], so every
+/// EditWindow builder method is available on the returned value.
+///
+/// ```
+/// # use anyhow::Error;
+/// # use proxmox_yew_comp::AdaptiveEditWindow;
+/// # use yew::prelude::*;
+/// AdaptiveEditWindow::new("Edit entry")
+///     .renderer(|_ctx| html! { "form fields" })
+///     .on_submit(|_form| async move { Ok::<(), Error>(()) });
+/// ```
+pub struct AdaptiveEditWindow;
+
+impl AdaptiveEditWindow {
+    /// Create an [EditWindow] preset to [EditWindowLayout::Adaptive].
+    pub fn new(title: impl Into<AttrValue>) -> EditWindow {
+        EditWindow::new(title).layout(EditWindowLayout::Adaptive)
     }
 }
 
@@ -367,21 +415,37 @@ impl Component for PwtEditWindow {
             .as_ref()
             .map(|msg| AlertDialog::new(msg).on_close(on_close.clone()));
 
-        Dialog::new(props.title.clone())
-            .on_close(on_close)
-            .draggable(props.draggable)
-            .resizable(props.resizable)
-            .auto_center(props.auto_center)
-            .styles(props.styles.clone())
-            .with_child(
-                Form::new()
-                    .class("pwt-flex-fit")
-                    .form_context(self.form_ctx.clone())
-                    .with_child(input_panel),
-            )
-            .with_optional_child(alert)
-            .with_optional_child(load_err)
-            .into()
+        let form = Form::new()
+            .class("pwt-flex-fit")
+            .form_context(self.form_ctx.clone())
+            .with_child(input_panel);
+
+        // The Adaptive layout hands the shell to AdaptiveDialog (centered Dialog on wide, slide-up
+        // bottom sheet on narrow); every other case is the plain centered Dialog.
+        if props.layout == EditWindowLayout::Adaptive {
+            AdaptiveDialog::new(props.title.clone())
+                .on_close(on_close)
+                .draggable(props.draggable)
+                .resizable(props.resizable)
+                .auto_center(props.auto_center)
+                .wide_query(props.wide_query.clone())
+                .styles(props.styles.clone())
+                .with_child(form)
+                .with_optional_child(alert)
+                .with_optional_child(load_err)
+                .into()
+        } else {
+            Dialog::new(props.title.clone())
+                .on_close(on_close)
+                .draggable(props.draggable)
+                .resizable(props.resizable)
+                .auto_center(props.auto_center)
+                .styles(props.styles.clone())
+                .with_child(form)
+                .with_optional_child(alert)
+                .with_optional_child(load_err)
+                .into()
+        }
     }
 }
 
