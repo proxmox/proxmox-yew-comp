@@ -5,7 +5,7 @@ use serde_json::Value;
 use web_sys::HtmlTextAreaElement;
 use yew::html::{IntoEventCallback, IntoPropValue};
 
-use pwt::css::ColorScheme;
+use pwt::css::{ColorScheme, Display, FlexDirection};
 use pwt::prelude::*;
 use pwt::widget::form::{
     IntoValidateFn, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt,
@@ -134,6 +134,11 @@ impl MarkdownEditorField {
     ///
     /// First, the height is collapsed so the box can shrink, then `scrollHeight`
     /// (the content height) is read which is used to set the new height.
+    ///
+    /// Only when nothing else sizes the editor, though. With the textarea collapsed the row still
+    /// holds whatever height a flex-fit ancestor handed it, so a non-zero height there means the
+    /// pane is already bounded: drop the explicit height and let the row stretch the textarea the
+    /// same way it stretches the preview, instead of computing a second, slightly different one.
     fn autosize(&self) {
         let el = match self.input_ref.cast::<HtmlTextAreaElement>() {
             Some(el) => el,
@@ -142,8 +147,15 @@ impl MarkdownEditorField {
         let style = el.style();
         let _ = style.set_property("height", "0px");
         let border = el.offset_height() - el.client_height();
-        let height = el.scroll_height() + border;
-        let _ = style.set_property("height", &format!("{height}px"));
+        let content = el.scroll_height() + border;
+        let bounded = el
+            .parent_element()
+            .is_some_and(|parent| parent.client_height() > 0);
+        if bounded {
+            let _ = style.remove_property("height");
+        } else {
+            let _ = style.set_property("height", &format!("{content}px"));
+        }
     }
 }
 
@@ -323,7 +335,7 @@ impl ManagedField for MarkdownEditorField {
 
         let min_rows = props.rows.unwrap_or(4);
         let style =
-            format!("overflow-y: hidden; flex: 1 1 0; min-width: 0; min-height: {min_rows}lh;");
+            format!("overflow-y: auto; flex: 1 1 0; min-width: 0; min-height: {min_rows}lh;");
 
         let textarea = html! {
             <textarea
@@ -356,18 +368,23 @@ impl ManagedField for MarkdownEditorField {
                 .into()
         };
 
+        // grow into whatever height the column got, rather than staying at content height, and
+        // allow shrinking below it so a long note scrolls inside the pane instead of overflowing
         let body = match self.mode {
             MarkdownViewMode::Write => Row::new().with_child(textarea),
             MarkdownViewMode::Preview => Row::new().with_child(preview),
-            MarkdownViewMode::Split => Row::new()
-                .class("pwt-align-items-start")
-                .gap(2)
-                .with_child(textarea)
-                .with_child(preview),
-        };
+            MarkdownViewMode::Split => Row::new().gap(2).with_child(textarea).with_child(preview),
+        }
+        .style("flex", "1 1 auto")
+        .style("min-height", "0");
 
-        // relative: the positioning context the floating switcher anchors to
+        // with_std_props assigns the whole set rather than merging, so it has to come first - and
+        // that drops the flex classes Column::new() puts there, which have to be put back or the
+        // panes have no flex parent to grow into. Ours go on last for the same reason.
         Column::new()
+            .with_std_props(&props.std_props)
+            .class(Display::Flex)
+            .class(FlexDirection::Column)
             .style("position", "relative")
             .with_child(body)
             .with_child(switcher)
