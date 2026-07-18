@@ -276,15 +276,26 @@ impl ManagedField for MarkdownEditorField {
             let active = self.mode == mode;
             Button::new_icon(icon)
                 .pressed(active)
+                // a chrome control sitting on top of the text, so keep it smaller than a regular
+                // button: the label font drives the glyph and the height, the padding the rest
+                .class("pwt-font-label-small")
+                .style("padding", "var(--pwt-spacer-1)")
                 .class(active.then_some(ColorScheme::Primary))
                 .aria_label(tip.clone())
                 .attribute("title", tip)
                 .on_activate(link.callback(move |_| Msg::SetMode(mode)))
         };
-        let switcher = Row::new()
-            .class("pwt-align-items-center")
-            .gap(1)
-            .with_flex_spacer()
+        // Floated over the bottom-right corner of the panes rather than sitting in a row of its
+        // own, so the switcher costs no vertical space in a cramped detail view. The wrapper stays
+        // invisible: a fill or a border around it reads as a second, competing box on top of the
+        // text, and the buttons bring their own shape already.
+        let switcher = Container::new()
+            .style("position", "absolute")
+            .style("background-color", "transparent")
+            .style("border", "none !important")
+            .style("bottom", "var(--pwt-spacer-1)")
+            .style("right", "var(--pwt-spacer-1)")
+            .style("z-index", "1")
             .with_child(
                 SegmentedButton::new()
                     .aria_label(tr!("View mode"))
@@ -355,10 +366,11 @@ impl ManagedField for MarkdownEditorField {
                 .with_child(preview),
         };
 
+        // relative: the positioning context the floating switcher anchors to
         Column::new()
-            .gap(1)
-            .with_child(switcher)
+            .style("position", "relative")
             .with_child(body)
+            .with_child(switcher)
             .into()
     }
 
