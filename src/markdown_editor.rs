@@ -1,24 +1,33 @@
 use anyhow::Error;
+use gloo_timers::callback::Timeout;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlTextAreaElement;
 use yew::html::{IntoEventCallback, IntoPropValue};
 
+use pwt::css::ColorScheme;
 use pwt::prelude::*;
 use pwt::widget::form::{
     IntoValidateFn, ManagedField, ManagedFieldContext, ManagedFieldMaster, ManagedFieldScopeExt,
     ManagedFieldState, ValidateFn,
 };
-use pwt::widget::{Button, Column, Container, Row};
+use pwt::widget::{Button, Column, Container, Row, SegmentedButton};
 
 use pwt_macros::{builder, widget};
 
 use crate::Markdown;
 
-/// Which pane(s) a [`MarkdownEditor`] shows.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+/// How far the preview trails the textarea. Rendering it means parsing and sanitizing the whole
+/// document, which is too much work to redo on every keystroke.
+const PREVIEW_DEBOUNCE_MS: u32 = 300;
+
+/// Which pane(s) a [`MarkdownEditor`] shows. Serializable so a consumer can persist the user's
+/// pick and hand it back as [`MarkdownEditor::initial_mode`].
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 pub enum MarkdownViewMode {
     /// Only the textarea.
+    #[default]
     Write,
     /// Textarea and preview side by side.
     Split,
@@ -68,6 +77,10 @@ pub struct MarkdownEditor {
     #[builder_cb(IntoEventCallback, into_event_callback, String)]
     #[prop_or_default]
     pub on_input: Option<Callback<String>>,
+    /// Emitted when the user switches the view mode, for consumers that persist the choice.
+    #[builder_cb(IntoEventCallback, into_event_callback, MarkdownViewMode)]
+    #[prop_or_default]
+    pub on_mode_change: Option<Callback<MarkdownViewMode>>,
 }
 
 impl Default for MarkdownEditor {
@@ -103,6 +116,8 @@ pub enum Msg {
     Prefix(&'static str),
     /// Insert a `[text](url)` link around the selection.
     Link,
+    /// Catch the preview up with the current text, after the debounce elapsed.
+    SyncPreview,
 }
 
 #[doc(hidden)]
@@ -111,6 +126,10 @@ pub struct MarkdownEditorField {
     mode: MarkdownViewMode,
     /// Selection (UTF-16 units) to restore after the next render, set by toolbar edits.
     pending_selection: Option<(u32, u32)>,
+    /// Text the preview renders, trailing the live value by [`PREVIEW_DEBOUNCE_MS`].
+    preview_text: String,
+    /// Pending catch-up; dropping it cancels the timer, which is what debounces typing.
+    preview_timeout: Option<Timeout>,
     state: ManagedFieldState,
 }
 
@@ -279,6 +298,8 @@ impl ManagedField for MarkdownEditorField {
             input_ref: NodeRef::default(),
             mode: props.initial_mode,
             pending_selection: None,
+            preview_text: text.clone(),
+            preview_timeout: None,
             state: ManagedFieldState::new(Value::String(text), default),
         }
     }
@@ -294,6 +315,21 @@ impl ManagedField for MarkdownEditorField {
             }
             Msg::SetMode(mode) => {
                 self.mode = mode;
+                // the preview may have just become visible, show the current text at once
+                self.preview_timeout = None;
+                self.preview_text = value_to_text(&self.state.value);
+                if let Some(on_mode_change) = &ctx.props().on_mode_change {
+                    on_mode_change.emit(mode);
+                }
+                true
+            }
+            Msg::SyncPreview => {
+                self.preview_timeout = None;
+                let text = value_to_text(&self.state.value);
+                if self.preview_text == text {
+                    return false;
+                }
+                self.preview_text = text;
                 true
             }
             edit => {
@@ -309,6 +345,15 @@ impl ManagedField for MarkdownEditorField {
     fn value_changed(&mut self, ctx: &ManagedFieldContext<Self>) {
         if let Some(on_change) = &ctx.props().on_change {
             on_change.emit(value_to_text(&self.state.value));
+        }
+
+        // Nothing renders the preview in write mode, so leave it stale and let the mode switch
+        // catch it up; otherwise restart the debounce, dropping any timer still pending.
+        if self.mode != MarkdownViewMode::Write {
+            let link = ctx.link().clone();
+            self.preview_timeout = Some(Timeout::new(PREVIEW_DEBOUNCE_MS, move || {
+                link.send_message(Msg::SyncPreview)
+            }));
         }
     }
 
@@ -338,9 +383,16 @@ impl ManagedField for MarkdownEditorField {
                     .disabled(fmt_disabled)
                     .on_activate(link.callback(move |_| msg.clone()))
             };
-            let mode_btn = |label: String, mode: MarkdownViewMode| {
-                Button::new(label)
-                    .pressed(self.mode == mode)
+            // Icon-only and grouped: the view mode is a small, rarely-touched control that should
+            // not compete with the formatting actions for attention. The label lives in the
+            // tooltip and the accessible name.
+            let mode_btn = |icon: &'static str, tip: String, mode: MarkdownViewMode| {
+                let active = self.mode == mode;
+                Button::new_icon(icon)
+                    .pressed(active)
+                    .class(active.then_some(ColorScheme::Primary))
+                    .aria_label(tip.clone())
+                    .attribute("title", tip)
                     .on_activate(link.callback(move |_| Msg::SetMode(mode)))
             };
             Row::new()
@@ -354,9 +406,25 @@ impl ManagedField for MarkdownEditorField {
                 .with_child(fmt_btn("fa fa-quote-left", Msg::Prefix("> ")))
                 .with_child(fmt_btn("fa fa-link", Msg::Link))
                 .with_flex_spacer()
-                .with_child(mode_btn(tr!("Write"), MarkdownViewMode::Write))
-                .with_child(mode_btn(tr!("Split"), MarkdownViewMode::Split))
-                .with_child(mode_btn(tr!("Preview"), MarkdownViewMode::Preview))
+                .with_child(
+                    SegmentedButton::new()
+                        .aria_label(tr!("View mode"))
+                        .with_button(mode_btn(
+                            "fa fa-pencil",
+                            tr!("Write"),
+                            MarkdownViewMode::Write,
+                        ))
+                        .with_button(mode_btn(
+                            "fa fa-columns",
+                            tr!("Split"),
+                            MarkdownViewMode::Split,
+                        ))
+                        .with_button(mode_btn(
+                            "fa fa-eye",
+                            tr!("Preview"),
+                            MarkdownViewMode::Preview,
+                        )),
+                )
         });
 
         let oninput = link.callback(|e: InputEvent| {
@@ -381,13 +449,15 @@ impl ManagedField for MarkdownEditorField {
             />
         };
 
+        // Render the debounced text, not the live one: handing Markdown an unchanged prop keeps
+        // it from re-parsing and re-sanitizing the document on every keystroke.
         let preview: Html = {
-            let body: Html = if value.trim().is_empty() {
+            let body: Html = if self.preview_text.trim().is_empty() {
                 html! { <span class="pwt-opacity-50">{ tr!("Nothing to preview") }</span> }
             } else {
                 // render through the Markdown viewer so the preview goes through the same
                 // sanitizer as the finally displayed content
-                Markdown::new().text(value.clone()).into()
+                Markdown::new().text(self.preview_text.clone()).into()
             };
             Container::new()
                 .class("pwt-border pwt-shape-small pwt-p-2 pwt-overflow-auto")
