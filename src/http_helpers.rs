@@ -3,9 +3,11 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::thread_local;
 
-use anyhow::{bail, Error};
-use pwt::AsyncAbortGuard;
+use anyhow::{bail, format_err, Error};
+use js_sys::Uint8Array;
+use pwt::{convert_js_error, AsyncAbortGuard, WebSysAbortGuard};
 use slab::Slab;
+use web_sys::{File, Headers, Request, RequestInit, Response};
 
 use proxmox_client::ApiResponseData;
 use serde::{de::DeserializeOwned, Serialize};
@@ -319,6 +321,103 @@ pub async fn http_put<T: DeserializeOwned>(
     };
     let resp: ApiResponseData<T> = resp.expect_json()?;
     Ok(resp.data)
+}
+
+/// POST raw `bytes` to `url` with the CSRF token attached, for uploads too large for the JSON body
+/// lane: proxmox-rest-server caps a parsed request body at 512 KiB, whereas a raw-body `AsyncHttp`
+/// endpoint reads the stream directly. Hits the `/api2/json` endpoint so HTTP status codes come back
+/// verbatim; a JSON reply's ExtJS `{ data: ... }` envelope is parsed into `T`, otherwise `Ok(None)`.
+/// On a 401 the auth cookie is cleared, matching the JSON helpers.
+pub async fn http_post_bytes<T: DeserializeOwned>(
+    url: &str,
+    bytes: Uint8Array,
+    content_type: Option<&str>,
+) -> Result<Option<T>, Error> {
+    let window = web_sys::window().ok_or_else(|| format_err!("unable to get window object"))?;
+    let headers = Headers::new().map_err(convert_js_error)?;
+    headers
+        .append("cache-control", "no-cache")
+        .map_err(convert_js_error)?;
+    headers
+        .append(
+            "content-type",
+            content_type.unwrap_or("application/octet-stream"),
+        )
+        .map_err(convert_js_error)?;
+
+    // A write without a CSRF token would be rejected server-side anyway; attach it when present.
+    if let Some(auth) = http_get_auth() {
+        headers
+            .append("CSRFPreventionToken", &auth.csrfprevention_token)
+            .map_err(convert_js_error)?;
+    }
+
+    let url = format!("/api2/json{url}");
+    let abort = WebSysAbortGuard::new()?;
+
+    let request_init = RequestInit::new();
+    request_init.set_method("POST");
+    request_init.set_headers(&headers);
+    request_init.set_body(&bytes);
+    request_init.set_signal(Some(&abort.signal()));
+
+    let request = Request::new_with_str_and_init(&url, &request_init).map_err(convert_js_error)?;
+
+    let resp: Response = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request))
+        .await
+        .map_err(convert_js_error)?
+        .into();
+
+    // Reading the whole body dismisses the abort guard.
+    let body = wasm_bindgen_futures::JsFuture::from(resp.text().map_err(convert_js_error)?)
+        .await
+        .map_err(convert_js_error)?
+        .as_string()
+        .unwrap_or_default();
+
+    if resp.status() == 401 {
+        log::info!("got UNAUTHORIZED while uploading - clearing the auth cookie");
+        http_clear_auth();
+        bail!("could not post to '{url}' - UNAUTHORIZED");
+    }
+    if resp.status() != 200 {
+        bail!(
+            "could not post, '{}', response status {}",
+            body,
+            resp.status()
+        );
+    }
+
+    // the server sends a parameterized media type (application/json;charset=UTF-8), so match on
+    // the bare type only, like HttpClientWasm does when it normalizes a response
+    let content_type = resp
+        .headers()
+        .get("Content-Type")
+        .map_err(convert_js_error)?;
+    let is_json = content_type
+        .as_deref()
+        .and_then(|ct| ct.split(';').next())
+        .map(str::trim)
+        == Some("application/json");
+
+    if is_json {
+        // The body is the usual ExtJS-shaped { data: ... } envelope.
+        let data = serde_json::from_str::<Value>(&body)
+            .and_then(|value| serde_json::from_value::<T>(value["data"].to_owned()))?;
+        return Ok(Some(data));
+    }
+
+    Ok(None)
+}
+
+/// Read a picked `File` into a byte buffer, awaiting the result. A `File` is a `Blob`, so its
+/// `array_buffer()` promise yields the contents directly - use this when an upload chain needs the
+/// bytes inline rather than through a `FileReader` callback. Pair it with [`http_post_bytes`].
+pub async fn read_file_bytes(file: &File) -> Result<Uint8Array, Error> {
+    let buffer = wasm_bindgen_futures::JsFuture::from(file.array_buffer())
+        .await
+        .map_err(convert_js_error)?;
+    Ok(Uint8Array::new(&buffer))
 }
 
 /// Helper to wait for a task result

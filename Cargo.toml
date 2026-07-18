@@ -18,6 +18,9 @@ web-sys = { version = "0.3", features = [
   "AbortController",
   "AbortSignal",
   "Attr",
+  "Blob",
+  "File",
+  "Headers",
   "Clipboard",
   "Crypto",
   "Document",
@@ -33,13 +36,16 @@ web-sys = { version = "0.3", features = [
   "Node",
   "Range",
   "ReadableStreamDefaultReader",
+  "Request",
   "RequestInit",
+  "Response",
   "Selection",
   "SupportedType",
   "SvgGraphicsElement",
   "SvgRect",
   "SvgsvgElement",
   "Url",
+  "Window",
 ] }
 js-sys = "0.3"
 log = "0.4.6"
