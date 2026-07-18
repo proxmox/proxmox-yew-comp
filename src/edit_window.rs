@@ -10,12 +10,13 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use proxmox_client::ApiResponseData;
 
+use pwt::css::{AlignItems, ColorScheme};
 use pwt::props::{
     AsCssStylesMut, CssStyles, IntoSubmitCallback, RenderFn, SubmitCallback, WidgetStyleBuilder,
 };
 use pwt::touch::AdaptiveDialog;
 use pwt::widget::form::{Checkbox, Form, FormContext, Hidden, ResetButton, SubmitButton};
-use pwt::widget::{AlertDialog, Column, Dialog, Mask, Row};
+use pwt::widget::{AlertDialog, Column, Dialog, Fa, Mask, Row};
 use pwt::{prelude::*, AsyncPool};
 
 use pwt_macros::builder;
@@ -132,6 +133,13 @@ pub struct EditWindow {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or(AttrValue::Static("(min-width: 768px)"))]
     pub wide_query: AttrValue,
+
+    /// Show a submit failure as an inline error strip inside the window instead of the default
+    /// modal alert popover. Keeps the failure in view beside the form (cleared on the next edit)
+    /// rather than stacking a second dialog on top - the pattern the touch/employee forms want.
+    #[prop_or_default]
+    #[builder]
+    pub inline_error: bool,
 }
 
 impl AsCssStylesMut for EditWindow {
@@ -378,10 +386,27 @@ impl Component for PwtEditWindow {
             None => html! {},
         };
 
+        // In inline-error mode the failure rides above the toolbar as a tinted strip and clears on
+        // the next edit (Msg::FormDataChange); otherwise it stacks the modal alert popover below.
+        let inline_err = self
+            .submit_error
+            .as_ref()
+            .filter(|_| props.inline_error)
+            .map(|msg| {
+                Row::new()
+                    .padding(1)
+                    .gap(1)
+                    .class(AlignItems::Center)
+                    .class(ColorScheme::ErrorContainer)
+                    .with_child(Fa::new("exclamation-circle"))
+                    .with_child(msg.clone())
+            });
+
         let input_panel = Mask::new(
             Column::new()
                 .class("pwt-flex-fit")
                 .with_child(form)
+                .with_optional_child(inline_err)
                 .with_child(toolbar.clone()),
         )
         .class("pwt-flex-fit")
@@ -390,6 +415,7 @@ impl Component for PwtEditWindow {
         let alert = self
             .submit_error
             .as_ref()
+            .filter(|_| !props.inline_error)
             .map(|msg| AlertDialog::new(msg).on_close(ctx.link().callback(|_| Msg::ClearError)));
 
         let on_close = {
