@@ -1,3 +1,33 @@
+rust-proxmox-yew-comp (0.8.20) trixie; urgency=medium
+
+  * markdown editor:
+    - remove the formatting toolbar added in 0.8.19. The bold, italic, code,
+      heading, list, quote and link buttons applied their edit through the
+      obsolete execCommand API, which browsers implement inconsistently, so
+      they never worked reliably. The feature is better redone properly once
+      there is a replacement API that can carry it; the markdown stays fully
+      editable by typing in the meantime.
+    - debounce the live preview by 300ms so a large note is not re-parsed and
+      re-sanitized on every keystroke.
+    - float the write / split / preview switcher over the panes as an
+      icon-only control, so it no longer spends a row of editing height, and
+      report mode changes through a new on_mode_change callback so a consumer
+      can persist the layout.
+    - apply the class, style and attributes a caller sets on the widget,
+      which were silently dropped before, and fill the height the editor is
+      given instead of staying at content height.
+
+  * edit window: add an adaptive layout that renders the centered Dialog on wide
+    viewports and a slide-up bottom-sheet SideDialog on narrow ones, exposed
+    through EditWindowLayout and the AdaptiveEditWindow constructor. Add an
+    opt-in inline_error mode that shows a submit failure as a strip inside the
+    window instead of the modal alert, for forms that keep errors in view.
+
+  * http: add http_post_bytes and read_file_bytes helpers for file-attachment
+    uploads that must bypass the JSON body's 512 KiB parse cap.
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 19 Jul 2026 17:14:46 +0200
+
 rust-proxmox-yew-comp (0.8.19) trixie; urgency=medium
 
   * fix #7426: network: show the matching interface name example in the
