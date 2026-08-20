@@ -309,6 +309,7 @@ pub fn available_language_list() -> Vec<LanguageInfo> {
         LanguageInfo::new("fa", "فارسی", gettext_noop("Persian (Farsi)"))
             .direction(TextDirection::Rtl),
         LanguageInfo::new("fr", "Français", gettext_noop("French")),
+        LanguageInfo::new("ga", "Gaeilge", gettext_noop("Irish")),
         LanguageInfo::new("he", "עברית", gettext_noop("Hebrew")).direction(TextDirection::Rtl),
         LanguageInfo::new("hr", "Hrvatski", gettext_noop("Croatian")),
         LanguageInfo::new("it", "Italiano", gettext_noop("Italian")),
