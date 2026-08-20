@@ -302,6 +302,7 @@ pub fn available_language_list() -> Vec<LanguageInfo> {
         LanguageInfo::new("cs", "Czech", gettext_noop("Czech")),
         LanguageInfo::new("da", "Dansk", gettext_noop("Danish")),
         LanguageInfo::new("de", "Deutsch", gettext_noop("German")),
+        LanguageInfo::new("el_GR", "ελληνικά", gettext_noop("Greek")),
         LanguageInfo::new("en", "English", gettext_noop("English")),
         LanguageInfo::new("es", "Español", gettext_noop("Spanish")),
         LanguageInfo::new("eu", "Euskera (Basque)", gettext_noop("Euskera (Basque)")),
