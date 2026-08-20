@@ -316,6 +316,7 @@ pub fn available_language_list() -> Vec<LanguageInfo> {
         LanguageInfo::new("ja", "日本語", gettext_noop("Japanese")),
         LanguageInfo::new("ka", "ქართული", gettext_noop("Georgian")),
         LanguageInfo::new("ko", "한국어", gettext_noop("Korean")),
+        LanguageInfo::new("lo", "ພາສາລາວ", gettext_noop("Lao")),
         LanguageInfo::new("nb", "Bokmål", gettext_noop("Norwegian (Bokmal)")),
         LanguageInfo::new("nl", "Nederlands", gettext_noop("Dutch")),
         LanguageInfo::new("nn", "Nynorsk", gettext_noop("Norwegian (Nynorsk)")),
