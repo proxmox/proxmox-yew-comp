@@ -410,9 +410,9 @@ impl ProxmoxAcmePluginsPanel {
         let mut panel = panel
             .with_field(
                 tr!("Validation Delay"),
-                Number::<u8>::new()
+                Number::<u32>::new()
                     .name("validation-delay")
-                    .max(48)
+                    .max(48 * 60 * 60)
                     .placeholder("30"),
             )
             .with_field(
