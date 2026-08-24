@@ -58,6 +58,9 @@ pub struct AcmeChallengeSchemaItem {
     #[serde(rename = "type")]
     pub ty: String,
     pub schema: Value,
+    /// Human-readable name.
+    /// The backend sets this to the same value as `id` if no `name` is defined the schema.
+    pub name: String,
 }
 
 impl ExtractPrimaryKey for AcmeChallengeSchemaItem {
@@ -108,6 +111,12 @@ impl Component for ProxmoxAcmeChallengeSelector {
                     .class("pwt-flex-fit");
 
                 GridPicker::new(table)
+                    .filter(|plugin: &AcmeChallengeSchemaItem, query: &str| {
+                        let name = plugin.name.to_ascii_uppercase();
+                        let query = query.to_ascii_uppercase();
+
+                        name.contains(&query)
+                    })
                     .selection(args.selection.clone())
                     .on_select(args.controller.on_select_callback())
                     .into()
