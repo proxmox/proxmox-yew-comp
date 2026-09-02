@@ -8,13 +8,13 @@ use pwt::widget::form::DisplayField;
 use yew::virtual_dom::{VComp, VNode};
 
 use pwt::prelude::*;
-use pwt::widget::{error_message, Fa, Panel, Row, Tooltip};
+use pwt::widget::{error_message, Container, Fa, Panel, Row, Tooltip};
 use pwt::widget::{Button, Dialog};
 use pwt_macros::builder;
 
 use proxmox_node_status::{NodePowerCommand, NodeStatus};
 
-use crate::utils::copy_text_to_clipboard;
+use crate::utils::{copy_text_to_clipboard, format_duration_human};
 use crate::{
     http_get, http_post, node_info, ConfirmButton, LoadableComponent, LoadableComponentContext,
     LoadableComponentMaster, LoadableComponentScopeExt, LoadableComponentState,
@@ -146,6 +146,14 @@ impl ProxmoxNodeStatusPanel {
     }
 }
 
+fn uptime_html(node_status: Option<&NodeStatus>) -> Option<Html> {
+    let uptime = node_status
+        .map(|status| status.uptime)
+        .filter(|&uptime| uptime > 0)?;
+    let uptime = tr!("(Uptime: {})", format_duration_human(uptime as f64));
+    Some(Container::from_tag("span").with_child(uptime).into())
+}
+
 impl LoadableComponent for ProxmoxNodeStatusPanel {
     type Message = Msg;
     type ViewState = ViewState;
@@ -229,6 +237,7 @@ impl LoadableComponent for ProxmoxNodeStatusPanel {
                     .gap(2)
                     .with_child(Fa::new("book"))
                     .with_child(tr!("Node Status"))
+                    .with_optional_child(uptime_html(self.node_status.as_deref()))
                     .into_html(),
             )
             .with_child(node_info(status))
