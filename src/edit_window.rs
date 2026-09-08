@@ -10,7 +10,7 @@ use yew::virtual_dom::{Key, VComp, VNode};
 
 use proxmox_client::ApiResponseData;
 
-use pwt::css::{AlignItems, ColorScheme};
+use pwt::css::{AlignItems, ColorScheme, Display, FlexDirection};
 use pwt::props::{
     AsCssStylesMut, CssStyles, IntoSubmitCallback, RenderFn, SubmitCallback, WidgetStyleBuilder,
 };
@@ -441,8 +441,11 @@ impl Component for PwtEditWindow {
             .as_ref()
             .map(|msg| AlertDialog::new(msg).on_close(on_close.clone()));
 
+        // A flex parent lets an inline error shrink the form body instead of pushing actions away.
         let form = Form::new()
             .class("pwt-flex-fit")
+            .class(Display::Flex)
+            .class(FlexDirection::Column)
             .form_context(self.form_ctx.clone())
             .with_child(input_panel);
 
