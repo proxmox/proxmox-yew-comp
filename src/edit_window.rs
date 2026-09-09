@@ -95,6 +95,12 @@ pub struct EditWindow {
     #[prop_or_default]
     pub on_close: Option<Callback<()>>,
 
+    /// Check a close request against current form data before changing native modal state. Returning
+    /// false keeps the editor and its inputs mounted; successful submission does not use this check.
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub before_close: Option<Callback<FormContext, bool>>,
+
     /// Done callback, called after Close, Abort or Submit.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     #[prop_or_default]
@@ -441,6 +447,11 @@ impl Component for PwtEditWindow {
             .as_ref()
             .map(|msg| AlertDialog::new(msg).on_close(on_close.clone()));
 
+        let before_close = props.before_close.clone().map(|check| {
+            let form = self.form_ctx.clone();
+            Callback::from(move |_| check.emit(form.clone()))
+        });
+
         // A flex parent lets an inline error shrink the form body instead of pushing actions away.
         let form = Form::new()
             .class("pwt-flex-fit")
@@ -454,6 +465,7 @@ impl Component for PwtEditWindow {
         if props.layout == EditWindowLayout::Adaptive {
             AdaptiveDialog::new(props.title.clone())
                 .on_close(on_close)
+                .before_close(before_close)
                 .draggable(props.draggable)
                 .resizable(props.resizable)
                 .auto_center(props.auto_center)
@@ -466,6 +478,7 @@ impl Component for PwtEditWindow {
         } else {
             Dialog::new(props.title.clone())
                 .on_close(on_close)
+                .before_close(before_close)
                 .draggable(props.draggable)
                 .resizable(props.resizable)
                 .auto_center(props.auto_center)

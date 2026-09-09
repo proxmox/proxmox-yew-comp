@@ -158,6 +158,14 @@ pub struct Wizard {
     #[prop_or_default]
     on_close: Option<Callback<()>>,
 
+    /// Check a user close request before changing native modal state. Return false to keep the
+    /// wizard and its pages mounted, for example while asking whether to discard entered data.
+    /// Successful submission does not use this check. Page-specific discard policy belongs to the
+    /// caller; form contexts are available through [`WizardPageRenderInfo`].
+    #[builder(IntoPropValue, into_prop_value)]
+    #[prop_or_default]
+    pub before_close: Option<Callback<(), bool>>,
+
     /// Done callback, called after Close, Abort or Submit.
     #[builder_cb(IntoEventCallback, into_event_callback, ())]
     #[prop_or_default]
@@ -582,6 +590,7 @@ impl Component for PwtWizard {
                     .resizable(props.resizable)
                     .auto_center(props.auto_center)
                     .on_close(ctx.link().callback(|_| Msg::CloseDialog))
+                    .before_close(props.before_close.clone())
                     .with_child(tab_panel)
                     .with_child(self.create_bottom_bar(ctx)),
             )

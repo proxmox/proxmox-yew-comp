@@ -1,0 +1,10 @@
+{
+    "name": "proxmox-yew-comp-browser-tests",
+    "private": true,
+    "scripts": {
+        "test": "node run.cjs"
+    },
+    "devDependencies": {
+        "playwright": "1.60.0"
+    }
+}

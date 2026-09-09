@@ -1,0 +1,14 @@
+[package]
+name = "dialog-browser-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+anyhow = "1"
+gloo-utils = "0.2"
+proxmox-yew-comp = { path = "../.." }
+pwt = "0.8.20"
+yew = { version = "0.21", features = ["csr"] }

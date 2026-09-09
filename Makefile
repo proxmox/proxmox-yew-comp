@@ -46,6 +46,10 @@ upload: $(BUILD_DEBS)
 check:
 	cargo test --all-features --all-targets
 
+.PHONY: check-browser
+check-browser:
+	node tests/browser/run.cjs
+
 .PHONY: clean
 clean:
 	cargo clean
