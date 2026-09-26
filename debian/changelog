@@ -1,3 +1,19 @@
+rust-proxmox-yew-comp (0.8.22) trixie; urgency=medium
+
+  * fix #7959: acme: limit the validation delay to 48 hours, the maximum
+    the backend accepts, as the ExtJS interface does.
+
+  * markdown: add an option to show only images embedded in the text, for
+    text from authors the reader does not fully trust. An image loaded by
+    URL tells its server who read the text and when, and one on the app's
+    own origin can call a route in the reader's name.
+
+  * markdown editor: leave a hidden editor's height, such as one in an
+    inactive tab, to the layout to avoid limiting the textarea at its minimum
+    once the tab showed again.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 30 Sep 2026 13:37:24 +0200
+
 rust-proxmox-yew-comp (0.8.21) trixie; urgency=medium
 
   * fix #7963: acme: match any part of the displayed DNS plugin name,
