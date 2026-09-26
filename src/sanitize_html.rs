@@ -65,6 +65,16 @@ const DENIED_SCHEMES: &[&str] = &[
     "javascript:", "vbscript:", "livescript:", "mocha:", "data:", "jar:",
 ];
 
+/// Where an `<img>` or `<input type="image">` may load from, the only elements the allowlist
+/// lets load anything. Embedded `data:` images are kept either way.
+#[derive(Clone, Copy, PartialEq)]
+enum ImageSources {
+    /// Any http(s) URL.
+    Any,
+    /// No URL at all, this page's own origin included.
+    EmbeddedOnly,
+}
+
 /// Counter to namespace `id`/`name` per [`sanitize_html`] call so multiple notes on the same page
 /// can't clobber each other. Avoid pwt's get_unique_element_id() to render ids as `pmx-md-N-...`.
 static INSTANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -92,6 +102,12 @@ fn is_img_data_mime(value: &str) -> bool {
     .any(|p| lower.starts_with(p))
 }
 
+/// Whether an image whose URL resolved to `protocol` may load. Resource-loading tags must use
+/// http(s), no exotic protocol handlers.
+fn image_source_allowed(images: ImageSources, protocol: &str) -> bool {
+    images == ImageSources::Any && is_http_like(protocol)
+}
+
 /// Validate an `href`/`src` value.  Returns the resolved URL string if safe, or `None` if the
 /// attribute should be dropped.
 fn validate_url(
@@ -100,6 +116,7 @@ fn validate_url(
     value: &str,
     base_url: &str,
     prefix: &str,
+    images: ImageSources,
 ) -> Option<String> {
     // same-document fragment-only href: namespace it so it points at our rewritten id/name.
     let trimmed = value.trim_start();
@@ -119,8 +136,7 @@ fn validate_url(
     }
 
     if tag_name == "img" || tag_name == "input" {
-        // resource-loading tags must use http(s); no exotic protocol handlers.
-        if is_http_like(&protocol) {
+        if image_source_allowed(images, &protocol) {
             return Some(url.href());
         }
         return None;
@@ -136,6 +152,28 @@ fn validate_url(
     } else {
         None
     }
+}
+
+/// Replace an image `node` with its `alt` text, or drop it when it has none.
+fn replace_with_alt_text(node: &web_sys::Node) -> Result<(), Error> {
+    let (Some(owner_doc), Some(parent)) = (node.owner_document(), node.parent_node()) else {
+        return Ok(());
+    };
+    let elem: &web_sys::Element = node.unchecked_ref();
+    match elem
+        .get_attribute("alt")
+        .filter(|alt| !alt.trim().is_empty())
+    {
+        Some(alt) => {
+            parent
+                .replace_child(&owner_doc.create_text_node(&alt), node)
+                .map_err(convert_js_error)?;
+        }
+        None => {
+            parent.remove_child(node).map_err(convert_js_error)?;
+        }
+    }
+    Ok(())
 }
 
 /// Replace `node` with a `<span>` element containing its outer HTML as a single text node.
@@ -159,7 +197,12 @@ fn replace_with_encoded(node: &web_sys::Node) -> Result<(), Error> {
     Ok(())
 }
 
-fn sanitize_html_element(node: &web_sys::Node, base_url: &str, prefix: &str) -> Result<(), Error> {
+fn sanitize_html_element(
+    node: &web_sys::Node,
+    base_url: &str,
+    prefix: &str,
+    images: ImageSources,
+) -> Result<(), Error> {
     let node_type = node.node_type();
 
     match node_type {
@@ -205,7 +248,7 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str, prefix: &str) -> 
                     continue;
                 }
                 if name == "href" || name == "src" {
-                    match validate_url(&tag_name, &name, &value, base_url, prefix) {
+                    match validate_url(&tag_name, &name, &value, base_url, prefix, images) {
                         Some(resolved) => {
                             elem.set_attribute(&attr.name(), &resolved)
                                 .map_err(convert_js_error)?;
@@ -240,6 +283,14 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str, prefix: &str) -> 
                 }
             }
 
+            // An image that may not load reads as its description, not as a broken picture.
+            if images == ImageSources::EmbeddedOnly
+                && tag_name == "img"
+                && !elem.has_attribute("src")
+            {
+                return replace_with_alt_text(node);
+            }
+
             // snapshot children -- recursion may replace nodes.
             let children = node.child_nodes();
             let mut child_vec: Vec<web_sys::Node> = Vec::with_capacity(children.length() as usize);
@@ -249,7 +300,7 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str, prefix: &str) -> 
                 }
             }
             for child in child_vec.iter().rev() {
-                sanitize_html_element(child, base_url, prefix)?;
+                sanitize_html_element(child, base_url, prefix, images)?;
             }
 
             Ok(())
@@ -266,6 +317,18 @@ fn sanitize_html_element(node: &web_sys::Node, base_url: &str, prefix: &str) -> 
 /// scheme policy; `id`/`name` (and same-document fragment hrefs) are rewritten with a per-call
 /// prefix to prevent DOM clobbering.
 pub fn sanitize_html(text: &str) -> Result<String, Error> {
+    sanitize(text, ImageSources::Any)
+}
+
+/// Sanitize HTML like [`sanitize_html`], but drop the source of every image that would load from
+/// a URL, this page's own origin included; embedded `data:` images are kept. For text whose
+/// author must not make the reader's browser send requests: to learn who reads it and when, or
+/// to call a GET route in the reader's name.
+pub fn sanitize_html_embedded_images(text: &str) -> Result<String, Error> {
+    sanitize(text, ImageSources::EmbeddedOnly)
+}
+
+fn sanitize(text: &str, images: ImageSources) -> Result<String, Error> {
     let location = gloo_utils::window().location();
     let origin = location.origin().unwrap_or_default();
     let wrapped = format!("<div>{}</div>", text);
@@ -281,7 +344,7 @@ pub fn sanitize_html(text: &str) -> Result<String, Error> {
     let prefix = format!("pmx-md-{}-", n);
 
     if let Some(body) = doc.body() {
-        sanitize_html_element(&body, &origin, &prefix)?;
+        sanitize_html_element(&body, &origin, &prefix, images)?;
         Ok(body.inner_html())
     } else {
         bail!("DomParser produced no body element");
@@ -305,6 +368,14 @@ mod tests {
         assert!(!is_http_like("httpx://example.com"));
         assert!(!is_http_like("javascript:alert(1)"));
         assert!(!is_http_like("data:image/png;base64,xxx"));
+    }
+
+    #[test]
+    fn embedded_only_loads_no_url() {
+        for (protocol, any) in [("https:", true), ("http:", true), ("ftp:", false)] {
+            assert_eq!(image_source_allowed(ImageSources::Any, protocol), any);
+            assert!(!image_source_allowed(ImageSources::EmbeddedOnly, protocol));
+        }
     }
 
     #[test]

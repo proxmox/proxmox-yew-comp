@@ -5,7 +5,7 @@ use yew::html::IntoPropValue;
 
 use pwt::{prelude::*, widget::Container};
 
-use crate::sanitize_html;
+use crate::{sanitize_html, sanitize_html_embedded_images};
 
 use pwt_macros::{builder, widget};
 
@@ -18,6 +18,13 @@ pub struct Markdown {
     #[builder(IntoPropValue, into_prop_value)]
     #[prop_or_default]
     text: Option<AttrValue>,
+
+    /// Whether an image may load from a URL, this server's own included. Turn it off for text
+    /// whose author must not make the reader's browser send requests; only images embedded as
+    /// `data:` are then shown, any other only by its alt text.
+    #[prop_or(true)]
+    #[builder]
+    remote_images: bool,
 }
 
 impl Default for Markdown {
@@ -176,9 +183,14 @@ fn markdown_to_unsanitized_html(text: &str) -> String {
 }
 
 /// Convert Markdown to sanitized Html
-pub fn markdown_to_html(text: &str) -> Html {
+pub fn markdown_to_html(text: &str, remote_images: bool) -> Html {
     let html_output = markdown_to_unsanitized_html(text);
-    match sanitize_html(&html_output) {
+    let sanitized = if remote_images {
+        sanitize_html(&html_output)
+    } else {
+        sanitize_html_embedded_images(&html_output)
+    };
+    match sanitized {
         Ok(html) => Html::from_html_unchecked(html.into()),
         Err(err) => {
             log::error!("sanitize html failed: {}", err);
@@ -195,7 +207,7 @@ impl Component for ProxmoxMarkdown {
         let props = ctx.props();
 
         let html = match &props.text {
-            Some(text) => markdown_to_html(text),
+            Some(text) => markdown_to_html(text, props.remote_images),
             None => html! {},
         };
 
@@ -204,9 +216,9 @@ impl Component for ProxmoxMarkdown {
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
         let props = ctx.props();
-        if props.text != old_props.text {
+        if props.text != old_props.text || props.remote_images != old_props.remote_images {
             self.html = match &props.text {
-                Some(text) => markdown_to_html(text),
+                Some(text) => markdown_to_html(text, props.remote_images),
                 None => html! {},
             };
         }

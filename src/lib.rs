@@ -167,7 +167,7 @@ mod meter_label;
 pub use meter_label::{MeterLabel, ProxmoxMeterLabel};
 
 mod sanitize_html;
-pub use sanitize_html::sanitize_html;
+pub use sanitize_html::{sanitize_html, sanitize_html_embedded_images};
 
 mod schema_validation;
 pub use schema_validation::*;

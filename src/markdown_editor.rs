@@ -76,6 +76,10 @@ pub struct MarkdownEditor {
     #[builder_cb(IntoEventCallback, into_event_callback, MarkdownViewMode)]
     #[prop_or_default]
     pub on_mode_change: Option<Callback<MarkdownViewMode>>,
+    /// Whether an image in the preview may load from a URL, as on [`Markdown`].
+    #[prop_or(true)]
+    #[builder]
+    pub remote_images: bool,
 }
 
 impl Default for MarkdownEditor {
@@ -358,7 +362,10 @@ impl ManagedField for MarkdownEditorField {
             } else {
                 // render through the Markdown viewer so the preview goes through the same
                 // sanitizer as the finally displayed content
-                Markdown::new().text(self.preview_text.clone()).into()
+                Markdown::new()
+                    .text(self.preview_text.clone())
+                    .remote_images(props.remote_images)
+                    .into()
             };
             Container::new()
                 .class("pwt-border pwt-shape-small pwt-p-2 pwt-overflow-auto")
