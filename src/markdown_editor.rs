@@ -149,6 +149,13 @@ impl MarkdownEditorField {
             None => return,
         };
         let style = el.style();
+        // A hidden editor, such as one in an inactive tab, measures zero: pinning that as its
+        // height kept the textarea at its minimum once the tab showed again, since nothing renders
+        // on becoming visible. Leave the height to the layout until it can be measured.
+        if el.offset_parent().is_none() {
+            let _ = style.remove_property("height");
+            return;
+        }
         let _ = style.set_property("height", "0px");
         let border = el.offset_height() - el.client_height();
         let content = el.scroll_height() + border;
