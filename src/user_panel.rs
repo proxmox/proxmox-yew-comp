@@ -133,6 +133,15 @@ async fn update_user(form_ctx: FormContext) -> Result<(), Error> {
     crate::http_put(&url, Some(data)).await
 }
 
+/// Set only the password. The user update would also delete every property its form leaves out,
+/// and this form shows none of them.
+async fn update_password(form_ctx: FormContext) -> Result<(), Error> {
+    let data = form_ctx.get_submit_data();
+    let userid = form_ctx.read().get_field_text("userid");
+    let url = format!("/access/users/{}", percent_encode_component(&userid));
+    crate::http_put(&url, Some(data)).await
+}
+
 #[derive(PartialEq, Properties)]
 #[builder]
 pub struct UserPanel {
@@ -427,7 +436,7 @@ impl ProxmoxUserPanel {
     ) -> Html {
         EditWindow::new(tr!("Change Password"))
             .renderer(password_change_input_panel)
-            .on_submit(update_user)
+            .on_submit(update_password)
             .on_done(ctx.link().change_view_callback(|_| None))
             .on_change(check_confirm_password)
             .loader(move || load_user(key.clone()))
