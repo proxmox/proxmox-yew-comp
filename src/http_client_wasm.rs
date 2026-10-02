@@ -271,6 +271,22 @@ impl HttpClientWasm {
         let headers = request.headers();
 
         if let Some(auth) = &auth {
+            // All tabs of the app share the cookie. When it no longer holds a ticket of this
+            // tab's user, a logout or another user's login happened in another tab. Writing this
+            // tab's ticket back would undo it, and an auth failure would have the app log out the
+            // login that is now the browser's, so the tab reloads instead: it comes up as whoever
+            // is logged in now, or at the login.
+            let shared = extract_auth_from_cookie(self.project);
+            if shared.as_ref().map(|ticket| ticket.userid()) != Some(auth.ticket.userid()) {
+                log::info!("the login changed in another tab - reloading");
+                *self.auth.lock().unwrap() = None;
+                let _ = gloo_utils::window().location().reload();
+                return Err(Error::Api(
+                    http::StatusCode::UNAUTHORIZED,
+                    "the login changed in another tab".to_string(),
+                ));
+            }
+
             headers
                 .append("CSRFPreventionToken", &auth.csrfprevention_token)
                 .map_err(convert_js_error)?;
