@@ -408,10 +408,12 @@ impl Component for PwtEditWindow {
                     .with_child(msg.clone())
             });
 
+        // The form body scrolls on its own, so a form taller than the window keeps the error and
+        // the actions in view below it.
         let input_panel = Mask::new(
             Column::new()
                 .class("pwt-flex-fit")
-                .with_child(form)
+                .with_child(Column::new().class("pwt-flex-fit").with_child(form))
                 .with_optional_child(inline_err)
                 .with_child(toolbar.clone()),
         )
