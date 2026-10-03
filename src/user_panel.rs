@@ -510,6 +510,7 @@ thread_local! {
             .into(),
 
         DataTableColumn::new(tr!("Expire"))
+            .width("130px")
             .render({
                 let never_text = tr!("never");
                 move |item: &UserWithTokens| html!{
