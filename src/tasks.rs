@@ -152,7 +152,7 @@ impl ProxmoxTasks {
                     })
                     .into(),
                 DataTableColumn::new(tr!("User name"))
-                    .width("150px")
+                    .width("minmax(150px, 0.4fr)")
                     .render(|item: &TaskListItem| {
                         html! {&item.user}
                     })
