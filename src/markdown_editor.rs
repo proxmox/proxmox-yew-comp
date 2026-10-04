@@ -344,9 +344,15 @@ impl ManagedField for MarkdownEditorField {
             Msg::Input(el.value())
         });
 
+        // Room below the last line for the switcher floating over the corner, so the end of the
+        // text can always be scrolled out from under it.
+        let switcher_room = "calc(1.5rem + 3 * var(--pwt-spacer-1))";
+
         let min_rows = props.rows.unwrap_or(4);
-        let style =
-            format!("overflow-y: auto; flex: 1 1 0; min-width: 0; min-height: {min_rows}lh;");
+        let style = format!(
+            "overflow-y: auto; flex: 1 1 0; min-width: 0; min-height: {min_rows}lh; \
+             padding-bottom: {switcher_room};"
+        );
 
         let textarea = html! {
             <textarea
@@ -378,6 +384,7 @@ impl ManagedField for MarkdownEditorField {
                 .class("pwt-border pwt-shape-small pwt-p-2 pwt-overflow-auto")
                 .style("flex", "1 1 0")
                 .style("min-width", "0")
+                .style("padding-bottom", switcher_room)
                 .with_child(body)
                 .into()
         };
