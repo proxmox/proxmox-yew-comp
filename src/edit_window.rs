@@ -404,6 +404,7 @@ impl Component for PwtEditWindow {
                     .gap(1)
                     .class(AlignItems::Center)
                     .class(ColorScheme::ErrorContainer)
+                    .class("pwt-default-colors")
                     .with_child(Fa::new("exclamation-circle"))
                     .with_child(msg.clone())
             });
