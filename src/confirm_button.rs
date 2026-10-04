@@ -136,6 +136,12 @@ impl Component for ProxmoxConfirmButton {
                     dialog.set_confirm_message(confirm_message.clone())
                 }
 
+                // Name the dialog for the action, so it reads as the step the button started
+                // rather than a bare "Confirm".
+                if let Some(text) = &props.text {
+                    dialog.title = text.clone();
+                }
+
                 self.dialog = Some(dialog.into());
                 true
             }
