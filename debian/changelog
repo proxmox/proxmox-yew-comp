@@ -1,3 +1,28 @@
+rust-proxmox-yew-comp (0.8.23) trixie; urgency=medium
+
+  * user panel:
+    - change only the password in the Change Password dialog, which also
+      cleared the user's name, email address and comment.
+    - give the expire column room for its date.
+
+  * http client: reload a tab once another tab logged out or logged in as
+    another user, instead of writing the old login back.
+
+  * edit window: keep the error and the actions in view below a form taller
+    than the window, which now scrolls on its own, and tint the inline error
+    strip as an error.
+
+  * tasks: let the user name column grow with the window instead of cutting
+    longer names off.
+
+  * markdown editor: keep the last line of the text clear of the floating
+    view mode switcher.
+
+  * confirm button: title the confirmation dialog with the button's text
+    instead of a bare "Confirm".
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 05 Oct 2026 07:38:21 +0200
+
 rust-proxmox-yew-comp (0.8.22) trixie; urgency=medium
 
   * fix #7959: acme: limit the validation delay to 48 hours, the maximum
