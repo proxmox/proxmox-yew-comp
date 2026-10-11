@@ -9,7 +9,7 @@ use yew::virtual_dom::Key;
 use proxmox_auth_api::types::{Authid, Userid};
 
 use pwt::prelude::*;
-use pwt::props::{FieldBuilder, RenderFn, WidgetBuilder};
+use pwt::props::{CssLength, FieldBuilder, RenderFn, WidgetBuilder, WidgetStyleBuilder};
 use pwt::state::Store;
 use pwt::widget::data_table::{DataTable, DataTableColumn, DataTableHeader};
 use pwt::widget::form::{Selector, SelectorRenderArgs, ValidateFn};
@@ -20,6 +20,8 @@ use pwt_macros::{builder, widget};
 #[derive(Clone, PartialEq)]
 struct AuthidListEntry {
     authid: Authid,
+    /// The user's first and last name, empty for API tokens.
+    name: String,
     comment: Option<String>,
 }
 
@@ -36,6 +38,10 @@ pub struct UserWithTokens {
     pub userid: Userid,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub firstname: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lastname: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tokens: Vec<ApiToken>,
 }
@@ -52,8 +58,14 @@ async fn load_users(
 
     for user in users.into_iter() {
         if include_users {
+            let name = [user.firstname, user.lastname]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+                .join(" ");
             list.push(AuthidListEntry {
                 authid: Authid::from(user.userid),
+                name,
                 comment: user.comment,
             });
         }
@@ -62,6 +74,7 @@ async fn load_users(
                 //if token.is_active() {
                 list.push(AuthidListEntry {
                     authid: token.tokenid,
+                    name: String::new(),
                     comment: token.comment,
                 });
                 // }
@@ -72,36 +85,77 @@ async fn load_users(
     Ok(list)
 }
 
-thread_local! {
-    static COLUMNS: Rc<Vec<DataTableHeader<AuthidListEntry>>> = Rc::new(vec![
-        DataTableColumn::new("Type")
-            .width("100px")
-            .show_menu(false)
-            .render(|item: &AuthidListEntry| {
-                if item.authid.is_token() { html!{"API Token"} } else { html!{"User"}}
-            })
-            .sorter(|a: &AuthidListEntry, b: &AuthidListEntry| {
-                a.authid.is_token().cmp(&b.authid.is_token())
-            })
-            .sort_order(true)
-            .into(),
+/// The picker's columns. The type column only tells users and tokens apart, so it is left out when
+/// the list holds just one kind, and only users have a name.
+fn columns(users: bool, tokens: bool) -> Rc<Vec<DataTableHeader<AuthidListEntry>>> {
+    let mut columns = Vec::new();
+    if users && tokens {
+        columns.push(
+            DataTableColumn::new("Type")
+                .width("100px")
+                .show_menu(false)
+                .render(|item: &AuthidListEntry| {
+                    if item.authid.is_token() {
+                        html! {"API Token"}
+                    } else {
+                        html! {"User"}
+                    }
+                })
+                .sorter(|a: &AuthidListEntry, b: &AuthidListEntry| {
+                    a.authid.is_token().cmp(&b.authid.is_token())
+                })
+                .sort_order(true)
+                .into(),
+        );
+    }
+    columns.push(
         DataTableColumn::new("Auth ID")
-            .width("100px")
+            .flex(2)
             .show_menu(false)
-            .render(|item: &AuthidListEntry| html!{item.authid.clone()})
-            .sorter(|a: &AuthidListEntry, b: &AuthidListEntry| {
-                a.authid.cmp(&b.authid)
-            })
+            .render(|item: &AuthidListEntry| html! {item.authid.clone()})
+            .sorter(|a: &AuthidListEntry, b: &AuthidListEntry| a.authid.cmp(&b.authid))
             .sort_order(true)
             .into(),
+    );
+    if users {
+        columns.push(
+            DataTableColumn::new("Name")
+                .flex(2)
+                .show_menu(false)
+                .render(|item: &AuthidListEntry| html! {item.name.clone()})
+                .sorter(|a: &AuthidListEntry, b: &AuthidListEntry| a.name.cmp(&b.name))
+                .into(),
+        );
+    }
+    columns.push(
         DataTableColumn::new("Comment")
-            .width("300px")
+            .flex(1)
             .show_menu(false)
-            .render(|item: &AuthidListEntry| {
-                html!{item.comment.clone().unwrap_or_default()}
-            })
+            .render(|item: &AuthidListEntry| html! {item.comment.clone().unwrap_or_default()})
             .into(),
-    ]);
+    );
+    Rc::new(columns)
+}
+
+fn picker(users: bool, tokens: bool) -> RenderFn<SelectorRenderArgs<Store<AuthidListEntry>>> {
+    let columns = columns(users, tokens);
+    RenderFn::new(move |args: &SelectorRenderArgs<Store<AuthidListEntry>>| {
+        // Wider than the field, so IDs and names fit, but never wider than the window.
+        let table = DataTable::new(columns.clone(), args.store.clone())
+            .class("pwt-flex-fit")
+            .width(640)
+            .max_width(CssLength::Fraction(1.0));
+
+        GridPicker::new(table)
+            .filter(|item: &AuthidListEntry, query: &str| {
+                let query = query.to_lowercase();
+                item.authid.to_string().to_lowercase().contains(&query)
+                    || item.name.to_lowercase().contains(&query)
+            })
+            .selection(args.selection.clone())
+            .on_select(args.controller.on_select_callback())
+            .into()
+    })
 }
 
 #[widget(comp=PbsAuthidSelector, @input)]
@@ -161,21 +215,24 @@ impl Component for PbsAuthidSelector {
                 .ok_or_else(|| format_err!("no such user"))
         });
 
-        let picker = RenderFn::new(|args: &SelectorRenderArgs<Store<AuthidListEntry>>| {
-            let table =
-                DataTable::new(COLUMNS.with(Rc::clone), args.store.clone()).class("pwt-fit");
-
-            GridPicker::new(table)
-                .selection(args.selection.clone())
-                .on_select(args.controller.on_select_callback())
-                .into()
-        });
+        let props = ctx.props();
+        let picker = picker(props.include_users, props.include_tokens);
 
         Self {
             store,
             validate,
             picker,
         }
+    }
+
+    fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
+        let props = ctx.props();
+        if props.include_users != old_props.include_users
+            || props.include_tokens != old_props.include_tokens
+        {
+            self.picker = picker(props.include_users, props.include_tokens);
+        }
+        true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
