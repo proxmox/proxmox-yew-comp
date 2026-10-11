@@ -1,3 +1,23 @@
+rust-proxmox-yew-comp (0.8.24) trixie; urgency=medium
+
+  * login panel: when the server refuses a password or second-factor login,
+    say to check the user name, password and realm, or that the second
+    factor was not accepted, and keep the 401 status in parentheses, instead
+    of showing the raw "api error (status = 401: Unauthorized)". Other
+    failures, including refused OpenID logins, keep their detail, and the
+    mobile view now shows the same text as the desktop one.
+
+  * login panel: ignore spaces around the user name, such as a phone
+    keyboard or a paste can add. They made servers built on proxmox-auth-api
+    refuse the login with a raw "status = 400: Bad Request".
+
+  * authid selector: show each user's name and let the filter match it, give
+    the ID and name columns more room than the comment, and widen the picker
+    to 640 pixels where the window allows. The type column only shows when
+    users and API tokens are listed together.
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 11 Oct 2026 14:59:22 +0200
+
 rust-proxmox-yew-comp (0.8.23) trixie; urgency=medium
 
   * user panel:
