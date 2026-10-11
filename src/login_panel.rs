@@ -673,14 +673,15 @@ impl Component for ProxmoxLoginPanel {
                 self.loading = true;
 
                 let password = self.form_ctx.read().get_field_text("password");
+                // A user ID never holds spaces, so ones around the name, as a phone keyboard or a
+                // paste can add, are dropped rather than sent for the server to refuse.
+                let username = self.form_ctx.read().get_field_text("username");
+                let username = username.trim();
                 let (username, realm) = if props.realm_selectable {
-                    let username = self.form_ctx.read().get_field_text("username");
                     let realm = self.form_ctx.read().get_field_text("realm");
-                    (username, realm)
+                    (username.to_string(), realm)
                 } else {
-                    self.form_ctx
-                        .read()
-                        .get_field_text("username")
+                    username
                         .rsplit_once('@')
                         .map(|(user, realm)| (user.to_string(), realm.to_string()))
                         .unwrap_or_default()
