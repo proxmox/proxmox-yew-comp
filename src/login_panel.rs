@@ -85,6 +85,9 @@ pub enum Msg {
     SaveUsername(bool),
     Login(Authentication),
     LoginError(String),
+    /// The server refused the login. It gives no reason on purpose, so the text says what the person
+    /// can check, and keeps the status for whoever looks into it.
+    LoginRefused(String),
     Challenge(SecondFactorChallenge),
     AbortTfa,
     Totp(String),
@@ -107,7 +110,31 @@ pub struct ProxmoxLoginPanel {
     selected_realm: Option<BasicRealmInfo>,
 }
 
+/// Whether the server refused the login itself, rather than failing to answer it.
+fn refused(err: &proxmox_client::Error) -> bool {
+    matches!(
+        err,
+        proxmox_client::Error::Api(status, _) if *status == http::StatusCode::UNAUTHORIZED
+    )
+}
+
 impl ProxmoxLoginPanel {
+    /// Show why a login failed: in a snackbar on a mobile layout, under the form otherwise, so
+    /// both say the same.
+    fn show_login_error(&mut self, ctx: &Context<Self>, text: String) -> bool {
+        self.loading = false;
+        self.challenge = None;
+        match (ctx.props().mobile, ctx.link().snackbar_controller()) {
+            (true, Some(controller)) => {
+                controller.show_snackbar(SnackBar::new().message(text));
+            }
+            _ => {
+                self.login_error = Some(text);
+            }
+        }
+        true
+    }
+
     fn send_login(&self, ctx: &Context<Self>, username: String, password: String, realm: String) {
         let link = ctx.link().clone();
         self.async_pool.spawn(async move {
@@ -120,6 +147,11 @@ impl ProxmoxLoginPanel {
                 }
                 Ok(TicketResult::TfaRequired(challenge)) => {
                     link.send_message(Msg::Challenge(challenge));
+                }
+                Err(err) if refused(&err) => {
+                    link.send_message(Msg::LoginRefused(tr!(
+                        "Login failed (401). Please check the user name, password and realm."
+                    )));
                 }
                 Err(err) => {
                     link.send_message(Msg::LoginError(err.to_string()));
@@ -139,6 +171,11 @@ impl ProxmoxLoginPanel {
             match crate::http_login_tfa(challenge, response).await {
                 Ok(info) => {
                     link.send_message(Msg::Login(info));
+                }
+                Err(err) if refused(&err) => {
+                    link.send_message(Msg::LoginRefused(tr!(
+                        "Login failed (401). The second factor was not accepted."
+                    )));
                 }
                 Err(err) => {
                     link.send_message(Msg::LoginError(err.to_string()));
@@ -362,9 +399,8 @@ impl ProxmoxLoginPanel {
                     .default(default_realm),
             ))
             .with_child(submit_button)
-            .with_optional_child(self.login_error.as_ref().map(|msg| {
+            .with_optional_child(self.login_error.as_ref().map(|text| {
                 let icon_class = classes!("fa-lg", "fa", "fa-align-center", "fa-exclamation-triangle");
-                let text = tr!("Login failed. Please try again ({0})", msg);
                 Row::new()
                     .class("pwt-align-items-center")
                     .with_child(
@@ -492,10 +528,11 @@ impl ProxmoxLoginPanel {
             .class(pwt::css::FlexFit)
             .with_child(input_panel)
             .with_optional_child(tfa_dialog)
-            .with_optional_child(self.login_error.as_ref().map(|msg| {
-                pwt::widget::error_message(&tr!("Login failed. Please try again ({0})", msg))
-                    .padding(2)
-            }))
+            .with_optional_child(
+                self.login_error
+                    .as_ref()
+                    .map(|msg| pwt::widget::error_message(msg).padding(2)),
+            )
             .with_flex_spacer()
             .with_child(toolbar);
 
@@ -665,19 +702,10 @@ impl Component for ProxmoxLoginPanel {
                 }
                 true
             }
-            Msg::LoginError(msg) => {
-                self.loading = false;
-                self.challenge = None;
-                match (props.mobile, ctx.link().snackbar_controller()) {
-                    (true, Some(controller)) => {
-                        controller.show_snackbar(SnackBar::new().message(msg));
-                    }
-                    _ => {
-                        self.login_error = Some(msg);
-                    }
-                }
-                true
+            Msg::LoginError(detail) => {
+                self.show_login_error(ctx, tr!("Login failed. Please try again ({0})", detail))
             }
+            Msg::LoginRefused(text) => self.show_login_error(ctx, text),
             Msg::UpdateRealm(realm) => {
                 self.selected_realm = Some(realm);
                 true
