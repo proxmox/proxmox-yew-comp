@@ -344,10 +344,29 @@ async fn web_sys_response_to_http_api_response(
     })
 }
 
+/// The body of a streaming response.
+///
+/// It owns the request: dropping it aborts the fetch, so a caller that gives up on a response
+/// does not leave the request running. A [`ReadableStreamReader`](crate::http_stream::ReadableStreamReader)
+/// made from it, directly or through the record streams of [`http_stream`](crate::http_stream),
+/// takes that ownership over and ends the request when it is dropped before the stream's end.
+pub struct ResponseBody {
+    stream: web_sys::ReadableStream,
+    abort: pwt::WebSysAbortGuard,
+}
+
+impl ResponseBody {
+    /// The browser stream, and the guard whose drop aborts the request.
+    pub fn into_parts(self) -> (web_sys::ReadableStream, pwt::WebSysAbortGuard) {
+        (self.stream, self.abort)
+    }
+}
+
 async fn web_sys_response_to_http_api_stream_response(
     response: web_sys::Response,
-) -> Result<HttpApiResponseStream<web_sys::ReadableStream>, Error> {
-    let body = response.body();
+    abort: pwt::WebSysAbortGuard,
+) -> Result<HttpApiResponseStream<ResponseBody>, Error> {
+    let body = response.body().map(|stream| ResponseBody { stream, abort });
 
     let mut content_type = response.headers().get("content-type").unwrap_or(None);
     if let Some(ct) = &content_type {
@@ -419,7 +438,7 @@ impl HttpApiClient for HttpClientWasm {
     where
         Self: 'a;
 
-    type Body = web_sys::ReadableStream;
+    type Body = ResponseBody;
 
     type ResponseStreamFuture<'a>
         = Pin<Box<dyn Future<Output = Result<HttpApiResponseStream<Self::Body>, Error>> + 'a>>
@@ -458,13 +477,22 @@ impl HttpApiClient for HttpClientWasm {
     {
         Box::pin(async move {
             let request = Self::request_builder(method.as_str(), path_and_query, params)?;
+            // The server streams the records of a streaming handler only when asked for the
+            // format; otherwise it collects them into one document first.
+            request
+                .headers()
+                .append("accept", "application/json-seq")
+                .map_err(convert_js_error)?;
 
+            // The guard aborts the request if this future is dropped while the response head is
+            // awaited; afterwards the body owns it, so the request lives as long as the caller
+            // reads.
             let abort = pwt::WebSysAbortGuard::new().map_err(Error::Anyhow)?;
             let init = web_sys::RequestInit::new();
             init.set_signal(Some(&abort.signal()));
 
             let response = self.fetch_request(request, Some(init)).await?;
-            web_sys_response_to_http_api_stream_response(response).await
+            web_sys_response_to_http_api_stream_response(response, abort).await
         })
     }
 }

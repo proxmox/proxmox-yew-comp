@@ -13,6 +13,8 @@ use wasm_bindgen::JsValue;
 
 use pwt::convert_js_error;
 
+use crate::ResponseBody;
+
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Record<T> {
@@ -54,6 +56,14 @@ impl TryFrom<web_sys::ReadableStream> for Stream {
 
     fn try_from(reader: web_sys::ReadableStream) -> Result<Self, Error> {
         Ok(Self::from(ReadableStreamReader::try_from(reader)?))
+    }
+}
+
+impl TryFrom<ResponseBody> for Stream {
+    type Error = Error;
+
+    fn try_from(body: ResponseBody) -> Result<Self, Error> {
+        Ok(Self::from(ReadableStreamReader::try_from(body)?))
     }
 }
 
@@ -149,6 +159,9 @@ pub struct ReadableStreamReader {
     buf_at: Option<(Vec<u8>, usize)>,
     /// The same reader, kept to cancel the stream when dropped before its end.
     handle: web_sys::ReadableStreamDefaultReader,
+    /// The request's abort guard, when the reader was made from a [`ResponseBody`]. Its drop
+    /// aborts the request.
+    abort: Option<pwt::WebSysAbortGuard>,
 }
 
 impl Drop for ReadableStreamReader {
@@ -158,7 +171,7 @@ impl Drop for ReadableStreamReader {
         // alone, the fetch stays open until the page is closed. Canceling a stream that already
         // failed rejects with the stream's error, which the failed read reported already, so the
         // promise is awaited rather than left to surface as an unhandled rejection.
-        if self.reader.is_some() || self.read_future.is_some() {
+        if self.abort.is_none() && (self.reader.is_some() || self.read_future.is_some()) {
             let cancelled = wasm_bindgen_futures::JsFuture::from(self.handle.cancel());
             wasm_bindgen_futures::spawn_local(async move {
                 let _ = cancelled.await;
@@ -191,7 +204,19 @@ impl TryFrom<web_sys::ReadableStream> for ReadableStreamReader {
             reader: Some(reader),
             read_future: None,
             buf_at: None,
+            abort: None,
         })
+    }
+}
+
+impl TryFrom<ResponseBody> for ReadableStreamReader {
+    type Error = Error;
+
+    fn try_from(body: ResponseBody) -> Result<Self, Error> {
+        let (stream, abort) = body.into_parts();
+        let mut reader = Self::try_from(stream)?;
+        reader.abort = Some(abort);
+        Ok(reader)
     }
 }
 
@@ -323,6 +348,14 @@ impl TryFrom<web_sys::ReadableStream> for Records {
     }
 }
 
+impl TryFrom<ResponseBody> for Records {
+    type Error = Error;
+
+    fn try_from(body: ResponseBody) -> Result<Self, Error> {
+        Ok(Self::from(ReadableStreamReader::try_from(body)?))
+    }
+}
+
 impl futures::Stream for Records {
     type Item = io::Result<Vec<u8>>;
 
@@ -443,6 +476,17 @@ where
 
     fn try_from(reader: web_sys::ReadableStream) -> Result<Self, Error> {
         Ok(Self::from(Records::try_from(reader)?))
+    }
+}
+
+impl<T> TryFrom<ResponseBody> for JsonRecords<T>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    type Error = Error;
+
+    fn try_from(body: ResponseBody) -> Result<Self, Error> {
+        Ok(Self::from(Records::try_from(body)?))
     }
 }
 
