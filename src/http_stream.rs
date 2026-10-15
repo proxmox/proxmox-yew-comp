@@ -147,6 +147,24 @@ pub struct ReadableStreamReader {
     reader: Option<web_sys::ReadableStreamDefaultReader>,
     read_future: Option<ReadFuture>,
     buf_at: Option<(Vec<u8>, usize)>,
+    /// The same reader, kept to cancel the stream when dropped before its end.
+    handle: web_sys::ReadableStreamDefaultReader,
+}
+
+impl Drop for ReadableStreamReader {
+    fn drop(&mut self) {
+        // While a reader or a pending read exists the stream is still open. Cancel it, so the
+        // browser closes the response body and the server learns that the client is gone; left
+        // alone, the fetch stays open until the page is closed. Canceling a stream that already
+        // failed rejects with the stream's error, which the failed read reported already, so the
+        // promise is awaited rather than left to surface as an unhandled rejection.
+        if self.reader.is_some() || self.read_future.is_some() {
+            let cancelled = wasm_bindgen_futures::JsFuture::from(self.handle.cancel());
+            wasm_bindgen_futures::spawn_local(async move {
+                let _ = cancelled.await;
+            });
+        }
+    }
 }
 
 impl ReadableStreamReader {
@@ -166,10 +184,11 @@ impl TryFrom<web_sys::ReadableStream> for ReadableStreamReader {
     type Error = Error;
 
     fn try_from(reader: web_sys::ReadableStream) -> Result<Self, Error> {
+        let reader =
+            web_sys::ReadableStreamDefaultReader::new(&reader).map_err(convert_js_error)?;
         Ok(Self {
-            reader: Some(
-                web_sys::ReadableStreamDefaultReader::new(&reader).map_err(convert_js_error)?,
-            ),
+            handle: reader.clone(),
+            reader: Some(reader),
             read_future: None,
             buf_at: None,
         })
@@ -202,6 +221,7 @@ impl AsyncBufRead for ReadableStreamReader {
             ref mut reader,
             ref mut read_future,
             ref mut buf_at,
+            ..
         } = Pin::into_inner(self);
         loop {
             // If we currently have a buffer, use it:
