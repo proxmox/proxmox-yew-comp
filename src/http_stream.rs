@@ -270,13 +270,17 @@ impl futures::Stream for Records {
                     *self = Self::Reading(fut);
                     continue;
                 }
-                Self::Reading(mut fut) => match std::task::ready!(fut.as_mut().poll(cx)) {
-                    Ok(None) => Poll::Ready(None),
-                    Ok(Some((data, reader))) => {
+                Self::Reading(mut fut) => match fut.as_mut().poll(cx) {
+                    Poll::Pending => {
+                        *self = Self::Reading(fut);
+                        Poll::Pending
+                    }
+                    Poll::Ready(Ok(None)) => Poll::Ready(None),
+                    Poll::Ready(Ok(Some((data, reader)))) => {
                         *self = Self::New(reader);
                         Poll::Ready(Some(Ok(data)))
                     }
-                    Err(err) => {
+                    Poll::Ready(Err(err)) => {
                         *self = Self::Done;
                         Poll::Ready(Some(Err(err)))
                     }
