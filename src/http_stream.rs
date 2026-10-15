@@ -63,11 +63,9 @@ impl Stream {
         T: for<'de> Deserialize<'de>,
     {
         loop {
-            self.linebuf.clear();
-            if self.reader.read_until(b'\x1E', &mut self.linebuf).await? == 0 {
+            if !read_record(&mut self.reader, &mut self.linebuf).await? {
                 return Ok(None);
             }
-            self.linebuf.pop(); // pop off the record separator
 
             let entry = std::str::from_utf8(&self.linebuf)
                 .map_err(|_| format_err!("non-utf8 data in stream item"))?;
@@ -81,6 +79,67 @@ impl Stream {
                 serde_json::from_str(entry).context("bad json data in snapshot list item")?;
             return entry.into_result().map(Some);
         }
+    }
+}
+
+/// Read the next record of an RFC 7464 JSON text sequence into `buf`, without its framing.
+/// Returns `false` at the end of the stream.
+///
+/// A record is a record separator (`\x1E`), the JSON text and a line feed. Waiting for the next
+/// record separator holds the latest record back for as long as the sender has nothing new to
+/// write, so a record is also complete at a line feed that ends a whole JSON text. Line feeds
+/// inside a JSON text, as in pretty-printed output, do not end the record. A record separator
+/// always ends it, so a truncated JSON text does not swallow the record that follows.
+async fn read_record<R>(reader: &mut R, buf: &mut Vec<u8>) -> io::Result<bool>
+where
+    R: AsyncBufRead + Unpin,
+{
+    buf.clear();
+    let mut read_any = false;
+    loop {
+        let available = reader.fill_buf().await?;
+        if available.is_empty() {
+            break;
+        }
+        read_any = true;
+        let (used, done) = match available.iter().position(|&b| b == b'\n' || b == b'\x1E') {
+            None => {
+                buf.extend_from_slice(available);
+                (available.len(), false)
+            }
+            Some(pos) if available[pos] == b'\n' => {
+                buf.extend_from_slice(&available[..=pos]);
+                (pos + 1, is_complete_json(buf))
+            }
+            Some(pos) => {
+                buf.extend_from_slice(&available[..pos]);
+                if buf.iter().all(u8::is_ascii_whitespace) {
+                    // the separator starts this record
+                    buf.clear();
+                    (pos + 1, false)
+                } else {
+                    // the separator starts the next record, leave it for the next call
+                    (pos, true)
+                }
+            }
+        };
+        reader.consume_unpin(used);
+        if done {
+            break;
+        }
+    }
+    while buf.last().is_some_and(u8::is_ascii_whitespace) {
+        buf.pop();
+    }
+    Ok(read_any)
+}
+
+/// Whether `text` holds a whole JSON text rather than the start of one.
+fn is_complete_json(text: &[u8]) -> bool {
+    match serde_json::from_slice::<serde::de::IgnoredAny>(text) {
+        Ok(_) => true,
+        // a syntax error is reported by the caller, more data would not fix it
+        Err(err) => !err.is_eof(),
     }
 }
 
@@ -257,10 +316,9 @@ impl futures::Stream for Records {
                     let fut = Box::pin(async move {
                         let mut linebuf = Vec::new();
                         loop {
-                            if reader.read_until(b'\x1E', &mut linebuf).await? == 0 {
+                            if !read_record(&mut reader, &mut linebuf).await? {
                                 return Ok(None);
                             }
-                            linebuf.pop(); // pop off the record separator
                             if linebuf.is_empty() {
                                 continue;
                             }
@@ -365,5 +423,53 @@ where
 
     fn try_from(reader: web_sys::ReadableStream) -> Result<Self, Error> {
         Ok(Self::from(Records::try_from(reader)?))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use futures::{FutureExt, StreamExt, TryStreamExt};
+
+    use super::read_record;
+
+    /// The records `chunks` hold, read from a stream that stays open after them, as a response
+    /// does while the sender has nothing new to write.
+    fn records(chunks: &[&'static [u8]]) -> Vec<Vec<u8>> {
+        let chunks: Vec<std::io::Result<&[u8]>> = chunks.iter().map(|c| Ok(*c)).collect();
+        let mut reader = futures::stream::iter(chunks)
+            .chain(futures::stream::pending())
+            .into_async_read();
+        let mut buf = Vec::new();
+        let mut records = Vec::new();
+        while let Some(more) = read_record(&mut reader, &mut buf).now_or_never() {
+            assert!(more.unwrap());
+            records.push(buf.clone());
+        }
+        records
+    }
+
+    #[test]
+    fn json_seq_records() {
+        // each record is returned as soon as it is complete, not when the next one starts
+        assert_eq!(
+            records(&[b"\x1E{\"data\":1}\n"]),
+            [b"{\"data\":1}".to_vec()]
+        );
+        assert_eq!(
+            records(&[b"\x1E{\"data\":1}\n\x1E{\"da", b"ta\":2}\n"]),
+            [b"{\"data\":1}".to_vec(), b"{\"data\":2}".to_vec()]
+        );
+        // a record is not returned before its line feed arrives
+        assert!(records(&[b"\x1E{\"data\":1}"]).is_empty());
+        // a line feed inside a JSON text does not end the record
+        assert_eq!(
+            records(&[b"\x1E{\n  \"data\": 1\n", b"}\n"]),
+            [b"{\n  \"data\": 1\n}".to_vec()]
+        );
+        // a record separator ends a truncated JSON text
+        assert_eq!(
+            records(&[b"\x1E{\"da\x1E{\"data\":2}\n"]),
+            [b"{\"da".to_vec(), b"{\"data\":2}".to_vec()]
+        );
     }
 }
