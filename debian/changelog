@@ -1,3 +1,23 @@
+rust-proxmox-yew-comp (0.8.25) trixie; urgency=medium
+
+  * fix #7932: node status: show the node's uptime in the panel title, as
+    the Proxmox VE and Proxmox Backup Server interfaces do. Proxmox
+    Datacenter Manager did not show its own uptime anywhere.
+
+  * http stream:
+    - return each json-seq record as soon as its closing line feed arrives,
+      instead of only once the next record starts. A streaming view lagged
+      one event behind for as long as the server had nothing new to send,
+      for example keeping a finished tool call hidden while a slow language
+      model worked on its answer.
+    - fix the Records and JsonRecords streams, which ended before yielding
+      their first record when reading a browser stream.
+
+  * language map: add Bengali, Greek, Irish, Lao and Mongolian to the
+    selectable languages.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 16 Oct 2026 00:36:24 +0200
+
 rust-proxmox-yew-comp (0.8.24) trixie; urgency=medium
 
   * login panel: when the server refuses a password or second-factor login,
