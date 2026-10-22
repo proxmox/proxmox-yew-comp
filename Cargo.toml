@@ -128,3 +128,11 @@ rrd = [
 too_many_arguments = "allow"
 enum_variant_names = "allow"
 large_enum_variant = "allow"
+
+[profile.dev]
+# Full DWARF made up most of each debug test binary and wasm module, and wasm-bindgen strips it
+# again unless told to keep it. Line tables keep file and line numbers in backtraces.
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
