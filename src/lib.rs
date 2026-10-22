@@ -12,6 +12,13 @@ mod api_load_callback;
 pub use api_load_callback::{ApiLoadCallback, IntoApiLoadCallback};
 
 #[cfg(feature = "apt")]
+mod apt_history;
+#[cfg(feature = "apt")]
+pub use apt_history::{AptHistory, ProxmoxAptHistory};
+#[cfg(feature = "apt")]
+mod transaction_detail;
+
+#[cfg(feature = "apt")]
 mod apt_package_manager;
 #[cfg(feature = "apt")]
 pub use apt_package_manager::{AptPackageManager, ProxmoxAptPackageManager};
