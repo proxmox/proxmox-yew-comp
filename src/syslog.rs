@@ -8,6 +8,7 @@ use yew::virtual_dom::{VComp, VNode};
 use pwt::prelude::*;
 use pwt::widget::{form::Field, Column, Toolbar};
 
+use crate::utils::date_time_to_epoch;
 use crate::{JournalView, LogView};
 
 use pwt_macros::builder;
@@ -69,15 +70,6 @@ pub struct ProxmoxSyslog {
     until_label_id: AttrValue,
     pending: bool,
     show_filters: bool,
-}
-
-fn date_time_to_epoch(date: &PlainDate, time: &str) -> Option<i64> {
-    let (hours, minutes) = time.split_once(':')?;
-    let d = date.to_date();
-    d.set_hours(hours.parse().ok()?);
-    d.set_minutes(minutes.parse().ok()?);
-    let res = d.get_time() / 1000.0;
-    res.is_finite().then_some(res.round() as i64)
 }
 
 impl ProxmoxSyslog {

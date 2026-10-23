@@ -7,6 +7,7 @@ use yew::prelude::*;
 use crate::common_api_types::ProxmoxUpid;
 
 use pwt::tr;
+use pwt::widget::form::PlainDate;
 
 mod clipboard;
 mod task_descriptions;
@@ -180,6 +181,16 @@ pub fn epoch_to_input_time(epoch: i64) -> String {
     date.set_time((epoch * 1000) as f64);
 
     format!("{:02}:{:02}", date.get_hours(), date.get_minutes())
+}
+
+/// Convert a local calendar date and an hour/minute field to a Unix epoch.
+pub(crate) fn date_time_to_epoch(date: &PlainDate, time: &str) -> Option<i64> {
+    let (hours, minutes) = time.split_once(':')?;
+    let d = date.to_date();
+    d.set_hours(hours.parse().ok()?);
+    d.set_minutes(minutes.parse().ok()?);
+    let res = d.get_time() / 1000.0;
+    res.is_finite().then_some(res.round() as i64)
 }
 
 /// Parse a "Y-m-dTH:i" string as localtime into a Unix epoch.
