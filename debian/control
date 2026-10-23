@@ -176,6 +176,7 @@ Depends:
  librust-yew-0.21+default-dev,
  librust-yew-router-0.18+default-dev
 Suggests:
+ librust-proxmox-yew-comp+access-log-dev (= ${binary:Version}),
  librust-proxmox-yew-comp+apt-dev (= ${binary:Version}),
  librust-proxmox-yew-comp+dns-dev (= ${binary:Version}),
  librust-proxmox-yew-comp+network-dev (= ${binary:Version}),
@@ -190,6 +191,21 @@ Provides:
  librust-proxmox-yew-comp-0.8.26+default-dev (= ${binary:Version})
 Description: Rust crate "proxmox-yew-comp" - Rust source code
  Source code for Debianized Rust crate "proxmox-yew-comp"
+
+Package: librust-proxmox-yew-comp+access-log-dev
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ librust-proxmox-yew-comp-dev (= ${binary:Version}),
+ librust-proxmox-access-log-0.1+default-dev
+Provides:
+ librust-proxmox-yew-comp-0+access-log-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.8+access-log-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp-0.8.26+access-log-dev (= ${binary:Version})
+Description: Rust crate "proxmox-yew-comp" - feature "access-log"
+ This metapackage enables feature "access-log" for the Rust proxmox-yew-comp
+ crate, by pulling in any additional dependencies needed by that feature.
 
 Package: librust-proxmox-yew-comp+apt-dev
 Architecture: any

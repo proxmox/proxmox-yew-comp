@@ -1,5 +1,10 @@
 pub mod acme;
 
+#[cfg(feature = "access-log")]
+mod access_log;
+#[cfg(feature = "access-log")]
+pub use access_log::{AccessLog, ProxmoxAccessLog};
+
 mod acl_context;
 pub use acl_context::{AclContext, AclContextProvider};
 
