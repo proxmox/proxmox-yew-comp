@@ -151,27 +151,27 @@ impl Component for PwtTaskProgress {
                     }
                 })
                 .with_child(Container::new().padding(2).with_child(if active {
-                    html! {"running"}
+                    html! {tr!("running")}
                 } else {
                     let exit_status = data["exitstatus"].as_str().unwrap_or("unknown");
                     if exit_status == "OK" {
-                        html! {"Done! Task finished successfully."}
+                        html! {tr!("Done! Task finished successfully.")}
                     } else if exit_status.starts_with("WARNINGS") {
                         // e.g. "WARNINGS: 2", the task did its work but logged warnings
-                        html! {format!("Task finished with warnings: {exit_status}")}
+                        html! {tr!("Task finished with warnings: {0}", exit_status)}
                     } else {
-                        html! {format!("Task failed: {exit_status}")}
+                        html! {tr!("Task failed: {0}", exit_status)}
                     }
                 }))
         });
 
-        Dialog::new("Task Progress")
+        Dialog::new(tr!("Task Progress"))
             .resizable(true)
             .min_width(300)
             .on_close(props.on_close.clone())
             .with_child(panel)
             .with_child(Row::new().padding(2).with_flex_spacer().with_child(
-                Button::new("Details").onclick(ctx.link().callback(|_| Msg::ShowDetails)),
+                Button::new(tr!("Details")).onclick(ctx.link().callback(|_| Msg::ShowDetails)),
             ))
             .into()
     }
