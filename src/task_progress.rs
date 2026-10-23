@@ -156,6 +156,9 @@ impl Component for PwtTaskProgress {
                     let exit_status = data["exitstatus"].as_str().unwrap_or("unknown");
                     if exit_status == "OK" {
                         html! {"Done! Task finished successfully."}
+                    } else if exit_status.starts_with("WARNINGS") {
+                        // e.g. "WARNINGS: 2", the task did its work but logged warnings
+                        html! {format!("Task finished with warnings: {exit_status}")}
                     } else {
                         html! {format!("Task failed: {exit_status}")}
                     }
