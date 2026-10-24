@@ -415,6 +415,14 @@ impl<V: PartialEq> LoadableComponentState<V> {
         self.last_load_error.as_deref()
     }
 
+    /// The active component dialog, if it has not been closed or replaced by another view.
+    pub fn dialog_state(&self) -> Option<&V> {
+        match &self.view_state {
+            ViewState::Dialog(state) => Some(state),
+            _ => None,
+        }
+    }
+
     pub fn set_task_base_url(&mut self, base_url: AttrValue) {
         self.task_base_url = Some(base_url);
     }
