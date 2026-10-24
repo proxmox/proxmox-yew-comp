@@ -15,7 +15,9 @@ use pwt::widget::data_table::{
     DataTable, DataTableColumn, DataTableHeader, DataTableKeyboardEvent, DataTableMouseEvent,
     DataTableRowRenderCallback,
 };
-use pwt::widget::form::{Combobox, DateField, Field, Form, FormContext, InputType, PlainDate};
+use pwt::widget::form::{
+    Checkbox, Combobox, DateField, Field, Form, FormContext, InputType, PlainDate,
+};
 use pwt::widget::menu::{Menu, MenuButton, MenuItem};
 use pwt::widget::{Button, Column, Container, Dialog, Mask, SegmentedButton, Toolbar, Tooltip};
 
@@ -23,11 +25,14 @@ use pwt_macros::builder;
 
 use proxmox_access_log::{AccessLogEntry, QueryResult};
 
-use crate::utils::{date_time_to_epoch, render_epoch};
+use crate::utils::{date_time_to_epoch, epoch_to_input_time, render_epoch};
 use crate::{
     LoadableComponent, LoadableComponentContext, LoadableComponentMaster,
     LoadableComponentScopeExt, LoadableComponentState,
 };
+
+mod statistics;
+use statistics::{DrillDown, Statistics};
 
 const FILTER_UPDATE_BUFFER_MS: u32 = 300;
 const BATCH_LIMIT: u64 = 500;
@@ -37,7 +42,15 @@ const LIVE_INTERVAL_MS: u32 = 3000;
 /// Live mode starts over after adding that many requests, so an open view does not grow forever.
 const LIVE_LIMIT: usize = 5000;
 /// The filters that take a text, named like their form field and API parameter.
-const TEXT_FILTERS: [&str; 5] = ["search", "auth-id", "client", "method", "path"];
+const TEXT_FILTERS: [&str; 7] = [
+    "search",
+    "auth-id",
+    "client",
+    "method",
+    "path",
+    "path-group",
+    "user-agent",
+];
 
 /// Shows the API access log of a node, newest requests first. Live mode follows the log, a
 /// timespan shows the requests logged in it, and scrolling down loads older requests.
@@ -91,6 +104,11 @@ pub struct PageRequest {
 }
 
 pub enum Msg {
+    /// Loads the statistics of the filter.
+    LoadStatistics,
+    /// Restores the counted filter and range, narrowed to a statistics row.
+    DrillDown(DrillDown),
+    CloseStatistics,
     ToggleFilter,
     UpdateFilter,
     /// Starts over with the newest page, applying the timespan.
@@ -148,15 +166,19 @@ pub struct ProxmoxAccessLog {
     older_pending: bool,
     restart_pending: bool,
     _visibility_listener: gloo_events::EventListener,
+    statistics_request: usize,
+    statistics_filter: Option<Value>,
     live: bool,
     _live_interval: Interval,
     at_top: bool,
     view_ref: NodeRef,
     since: PlainDate,
     since_time: String,
+    since_epoch: Option<i64>,
     since_label_id: AttrValue,
     until: PlainDate,
     until_time: String,
+    until_epoch: Option<i64>,
     until_label_id: AttrValue,
     searched_back_to: Option<i64>,
     gap_files: Vec<String>,
@@ -168,7 +190,10 @@ pwt::impl_deref_mut_property!(ProxmoxAccessLog, state, LoadableComponentState<Vi
 #[derive(PartialEq)]
 pub enum ViewState {
     Request(AccessLogEntry),
+    Statistics,
 }
+
+const DAY: i64 = 24 * 60 * 60;
 
 impl ProxmoxAccessLog {
     fn is_current_request(&self, request: &PageRequest) -> bool {
@@ -247,20 +272,34 @@ impl ProxmoxAccessLog {
         let form = self.filter_form_context.read();
         let mut params = Map::new();
 
+        if form.get_field_value("auth-id-exact") == Some(Value::Bool(true)) {
+            params.insert("auth-id-exact".into(), true.into());
+        }
         for name in TEXT_FILTERS {
             let text = form.get_field_text(name);
-            let value = text.trim();
+            // values of exact filters can end with spaces, like the ones statistics list
+            let value = match name {
+                "path-group" | "user-agent" => text.as_str(),
+                _ => text.trim(),
+            };
             if !value.is_empty() {
                 params.insert(name.into(), value.into());
             }
         }
         if !self.live {
-            if let Some(since) = date_time_to_epoch(&self.since, &self.since_time) {
+            if let Some(since) = self
+                .since_epoch
+                .or_else(|| date_time_to_epoch(&self.since, &self.since_time))
+            {
                 params.insert("since".into(), since.into());
             }
-            // the fields have minutes, and the selected one counts until its end
-            if let Some(until) = date_time_to_epoch(&self.until, &self.until_time) {
-                params.insert("until".into(), (until + 59).into());
+            // the fields have minutes, and the selected one counts until its end, but a drill-down
+            // range stays exact until they change, as local times repeat when the clock goes back
+            if let Some(until) = self
+                .until_epoch
+                .or_else(|| date_time_to_epoch(&self.until, &self.until_time).map(|time| time + 59))
+            {
+                params.insert("until".into(), until.into());
             }
         }
         let (min, max) = match form.get_field_text("status").as_str() {
@@ -268,7 +307,10 @@ impl ProxmoxAccessLog {
             "error" => (Some(400), None),
             "client-error" => (Some(400), Some(499)),
             "server-error" => (Some(500), None),
-            _ => (None, None),
+            code => match code.parse::<u16>() {
+                Ok(code) => (Some(code), Some(code)),
+                Err(_) => (None, None),
+            },
         };
         if let Some(min) = min {
             params.insert("min-status".into(), min.into());
@@ -497,15 +539,19 @@ impl LoadableComponent for ProxmoxAccessLog {
             older_pending: false,
             restart_pending: false,
             _visibility_listener: visibility_listener,
+            statistics_request: 0,
+            statistics_filter: None,
             live: true,
             _live_interval: live_interval,
             at_top: true,
             view_ref: NodeRef::default(),
             since: PlainDate::today(),
             since_time: "00:00".to_string(),
+            since_epoch: None,
             since_label_id: AttrValue::from(pwt::widget::get_unique_element_id()),
             until: PlainDate::today(),
             until_time: "23:59".to_string(),
+            until_epoch: None,
             until_label_id: AttrValue::from(pwt::widget::get_unique_element_id()),
             searched_back_to: None,
             gap_files: Vec::new(),
@@ -591,18 +637,30 @@ impl LoadableComponent for ProxmoxAccessLog {
                 true
             }
             Msg::SinceDate(Some(date)) => {
+                if self.since != date {
+                    self.since_epoch = None;
+                }
                 self.since = date;
                 true
             }
             Msg::SinceTime(time) => {
+                if self.since_time != time {
+                    self.since_epoch = None;
+                }
                 self.since_time = time;
                 true
             }
             Msg::UntilDate(Some(date)) => {
+                if self.until != date {
+                    self.until_epoch = None;
+                }
                 self.until = date;
                 true
             }
             Msg::UntilTime(time) => {
+                if self.until_time != time {
+                    self.until_epoch = None;
+                }
                 self.until_time = time;
                 true
             }
@@ -693,8 +751,9 @@ impl LoadableComponent for ProxmoxAccessLog {
                     ctx.link().send_message(Msg::LoadOlder);
                     return false;
                 }
-                // older pages can load meanwhile, at the other end of the rows
+                // older pages may overlap live polling, statistics pause it as it logs requests
                 if !self.live
+                    || self.dialog_state() == Some(&ViewState::Statistics)
                     || !self.at_top
                     || self.newer_running
                     || (self.loading() && !self.load_older)
@@ -775,6 +834,65 @@ impl LoadableComponent for ProxmoxAccessLog {
                 false
             }
             Msg::SelectionChange => true,
+            Msg::LoadStatistics => {
+                ctx.link().change_view(Some(ViewState::Statistics));
+                let mut params = self.filter_params();
+                if self.live {
+                    // the last day up to the last full minute, which the timespan fields can hold,
+                    // for a row to lead to exactly the requests it counted
+                    let now = (js_sys::Date::now() / 1000.0) as i64;
+                    let until = now.div_euclid(60) * 60 - 1;
+                    params["since"] = (until + 1 - DAY).into();
+                    params["until"] = until.into();
+                }
+                self.statistics_request += 1;
+                self.statistics_filter = Some(params);
+                true
+            }
+            Msg::CloseStatistics => {
+                ctx.link().change_view(None);
+                false
+            }
+            Msg::DrillDown(DrillDown {
+                filter,
+                since,
+                until,
+                fields,
+            }) => {
+                self.since = PlainDate::from_timestamp((since * 1000) as f64);
+                self.since_time = epoch_to_input_time(since);
+                self.until = PlainDate::from_timestamp((until * 1000) as f64);
+                self.until_time = epoch_to_input_time(until);
+                self.since_epoch = Some(since);
+                self.until_epoch = Some(until);
+                self.live = false;
+                let mut form = self.filter_form_context.write();
+                // the filter the statistics got counted with, not one edited meanwhile
+                for name in TEXT_FILTERS {
+                    form.set_field_value(name, filter.get(name).cloned().unwrap_or("".into()));
+                }
+                form.set_field_value(
+                    "auth-id-exact",
+                    filter.get("auth-id-exact").cloned().unwrap_or(false.into()),
+                );
+                let status = match (filter["min-status"].as_u64(), filter["max-status"].as_u64()) {
+                    (None, Some(399)) => "success".to_string(),
+                    (Some(400), None) => "error".to_string(),
+                    (Some(400), Some(499)) => "client-error".to_string(),
+                    (Some(500), None) => "server-error".to_string(),
+                    (Some(min), Some(max)) if min == max => min.to_string(),
+                    _ => String::new(),
+                };
+                form.set_field_value("status", status.into());
+                for (name, value) in fields {
+                    form.set_field_value(name, value);
+                }
+                drop(form);
+                self.show_filter.update(true);
+                ctx.link().change_view(None);
+                ctx.link().send_message(Msg::Refresh);
+                true
+            }
             Msg::FilterBy(name, value) => {
                 self.filter_form_context
                     .write()
@@ -825,6 +943,11 @@ impl LoadableComponent for ProxmoxAccessLog {
                 )
                 .tip(problems)
             }))
+            .with_child(
+                Button::new(tr!("Statistics"))
+                    .icon_class("fa fa-bar-chart")
+                    .onclick(ctx.link().callback(|_| Msg::LoadStatistics)),
+            )
             .with_child(self.filter_by_menu(ctx))
             .with_child(
                 Container::new()
@@ -862,6 +985,11 @@ impl LoadableComponent for ProxmoxAccessLog {
             },
         );
 
+        let show_path_group = !self
+            .filter_form_context
+            .read()
+            .get_field_text("path-group")
+            .is_empty();
         let label = |text: String| html! {<div class="pwt-text-align-end">{text}</div>};
         let filter = Container::new()
             .key("filter")
@@ -869,15 +997,31 @@ impl LoadableComponent for ProxmoxAccessLog {
             .padding(4)
             .style(
                 "grid-template-columns",
-                "auto minmax(150px, 300px) auto minmax(150px, 300px) auto minmax(150px, 360px) 1fr",
+                "auto minmax(250px, 420px) auto minmax(150px, 300px) auto minmax(150px, 360px) auto \
+                 minmax(0, 300px) 1fr",
             )
             .with_child(label(tr!("User")))
             .with_child(
-                Field::new()
-                    .name("auth-id")
-                    .aria_label(tr!("User"))
-                    .placeholder(tr!("All"))
-                    .validate(max_length(1024)),
+                Container::new()
+                    .class("pwt-d-flex pwt-gap-2 pwt-align-items-center")
+                    .padding_end(2)
+                    .with_child(
+                        Field::new()
+                            .name("auth-id")
+                            .style("flex", "1 1 0")
+                            .style("min-width", "0")
+                            .aria_label(tr!("User"))
+                            .placeholder(tr!("All"))
+                            .validate(max_length(1024)),
+                    )
+                    .with_child(
+                        Tooltip::new(
+                            Checkbox::new()
+                                .name("auth-id-exact")
+                                .box_label(tr!("Exact match")),
+                        )
+                        .tip(tr!("Only the user itself, not its API tokens.")),
+                    ),
             )
             .with_child(label(tr!("Method")))
             .with_child(
@@ -900,6 +1044,21 @@ impl LoadableComponent for ProxmoxAccessLog {
                     .aria_label(tr!("Path"))
                     .placeholder(tr!("Contains"))
                     .validate(max_length(1024)),
+            )
+            .with_child(
+                Container::new()
+                    .with_optional_child(show_path_group.then(|| label(tr!("Path Group")))),
+            )
+            .with_child(
+                // Keep the field registered so drill-down can set it even while it is hidden.
+                Container::new().with_child(
+                    Field::new()
+                        .name("path-group")
+                        .class((!show_path_group).then_some("pwt-d-none"))
+                        .aria_label(tr!("Path Group"))
+                        .placeholder(tr!("All"))
+                        .validate(max_length(1024)),
+                ),
             )
             .with_child(html! {<div/>})
             .with_child(label(tr!("Client")))
@@ -932,7 +1091,14 @@ impl LoadableComponent for ProxmoxAccessLog {
                 )
                 .placeholder(tr!("All")),
             )
-            .with_child(html! {<div/>});
+            .with_child(label(tr!("User Agent")))
+            .with_child(
+                Field::new()
+                    .name("user-agent")
+                    .aria_label(tr!("User Agent"))
+                    .placeholder(tr!("All"))
+                    .validate(max_length(128)),
+            );
 
         // one form, for the search field in the toolbar to count as filter
         Some(
@@ -998,6 +1164,20 @@ impl LoadableComponent for ProxmoxAccessLog {
 
         Column::new()
             .class("pwt-flex-fit")
+            // keep the child mounted before the variable rows while closed, to serialize scans
+            .with_child(html! {
+                if let Some(filter) = &self.statistics_filter {
+                    <Statistics
+                        url={format!("{}/stats", ctx.props().url())}
+                        filter={filter.clone()}
+                        request={self.statistics_request}
+                        open={self.dialog_state() == Some(&ViewState::Statistics)}
+                        on_reload={ctx.link().callback(|_| Msg::LoadStatistics)}
+                        on_close={ctx.link().callback(|_| Msg::CloseStatistics)}
+                        on_drill_down={ctx.link().callback(Msg::DrillDown)}
+                    />
+                }
+            })
             .with_child(
                 Mask::new(table)
                     // keeps the text below the header
@@ -1024,7 +1204,9 @@ impl LoadableComponent for ProxmoxAccessLog {
         ctx: &LoadableComponentContext<Self>,
         view_state: &Self::ViewState,
     ) -> Option<Html> {
-        let ViewState::Request(entry) = view_state;
+        let ViewState::Request(entry) = view_state else {
+            return None;
+        };
         let rows = [
             (tr!("Time"), Some(render_epoch(entry.time))),
             (tr!("User"), entry.auth_id.clone()),

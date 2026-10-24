@@ -198,6 +198,7 @@ Multi-Arch: same
 Depends:
  ${misc:Depends},
  librust-proxmox-yew-comp-dev (= ${binary:Version}),
+ librust-proxmox-yew-comp+rrd-dev (= ${binary:Version}),
  librust-proxmox-access-log-0.1+default-dev
 Provides:
  librust-proxmox-yew-comp-0+access-log-dev (= ${binary:Version}),

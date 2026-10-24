@@ -102,7 +102,8 @@ proxmox-deb-version = "0.1.0"
 [features]
 default = []
 access-log = [
-    "dep:proxmox-access-log"
+    "dep:proxmox-access-log",
+    "rrd"
 ]
 apt = [
     "dep:proxmox-apt-api-types"
