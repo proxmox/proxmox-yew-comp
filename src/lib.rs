@@ -28,6 +28,13 @@ mod apt_repositories;
 #[cfg(feature = "apt")]
 pub use apt_repositories::{AptRepositories, ProxmoxAptRepositories};
 
+#[cfg(feature = "apt")]
+mod changelog_entry;
+#[cfg(feature = "apt")]
+mod package_changelog;
+#[cfg(feature = "apt")]
+pub use package_changelog::{PackageChangelog, ProxmoxPackageChangelog};
+
 mod auth_view;
 pub use auth_view::{AuthView, ProxmoxAuthView};
 

@@ -26,6 +26,7 @@ use proxmox_apt_history::{
     styled_segments, HistoryEntry, PackageAction, PackageChange, TextColor, TextStyle,
 };
 
+use crate::package_changelog::PackageChangelog;
 use crate::transaction_detail::ProxmoxTransactionDetail;
 use crate::utils::{format_duration_human, render_epoch};
 use crate::{
@@ -51,7 +52,8 @@ pub(crate) fn api_error_message(err: Error) -> Error {
     }
 }
 
-/// Shows past APT transactions of a node, their package changes and their terminal output.
+/// Shows past APT transactions of a node, their package changes with their changelogs and their
+/// terminal output.
 #[derive(Properties, PartialEq, Clone)]
 #[builder]
 pub struct AptHistory {
@@ -147,8 +149,14 @@ fn matches_package(terms: &[String], change: &PackageChange) -> bool {
         .any(|term| change.package.contains(term.as_str()))
 }
 
+#[derive(Clone, PartialEq)]
+pub enum ViewState {
+    Changelog(PackageChange),
+}
+
 pub enum Msg {
     SelectionChange,
+    PackageSelectionChange,
     Filter(String),
     StatusFilter(StatusFilter),
     ToggleMajorUpgrades,
@@ -169,10 +177,11 @@ const TERM_LOG_TAB: &str = "termlog";
 const STACK_BELOW_WIDTH: f64 = 1200.0;
 
 pub struct ProxmoxAptHistory {
-    state: LoadableComponentState<()>,
+    state: LoadableComponentState<ViewState>,
     store: Store<HistoryEntry>,
     selection: Selection,
     package_store: Store<PackageChange>,
+    package_selection: Selection,
     columns: Rc<Vec<DataTableHeader<HistoryEntry>>>,
     package_columns: Rc<Vec<DataTableHeader<PackageChange>>>,
     filters: Filters,
@@ -188,12 +197,12 @@ pub struct ProxmoxAptHistory {
     command_toggle_ref: NodeRef,
 }
 
-pwt::impl_deref_mut_property!(ProxmoxAptHistory, state, LoadableComponentState<()>);
+pwt::impl_deref_mut_property!(ProxmoxAptHistory, state, LoadableComponentState<ViewState>);
 
 impl LoadableComponent for ProxmoxAptHistory {
     type Properties = AptHistory;
     type Message = Msg;
-    type ViewState = ();
+    type ViewState = ViewState;
 
     fn create(ctx: &LoadableComponentContext<Self>) -> Self {
         // transactions can start in the same second, see `HistoryEntry::start_index`
@@ -209,6 +218,8 @@ impl LoadableComponent for ProxmoxAptHistory {
             ))
         });
         let selection = Selection::new().on_select(ctx.link().callback(|_| Msg::SelectionChange));
+        let package_selection =
+            Selection::new().on_select(ctx.link().callback(|_| Msg::PackageSelectionChange));
         let tab_selection = Selection::new();
 
         Self {
@@ -216,6 +227,7 @@ impl LoadableComponent for ProxmoxAptHistory {
             store,
             selection,
             package_store,
+            package_selection,
             columns: Self::columns(&[]),
             package_columns: Self::package_columns(),
             filters: Filters::default(),
@@ -239,6 +251,7 @@ impl LoadableComponent for ProxmoxAptHistory {
                 self.show_details();
                 true
             }
+            Msg::PackageSelectionChange => true,
             Msg::Filter(search) => {
                 self.filters.search = search.trim().to_lowercase();
                 self.apply_filters();
@@ -432,9 +445,41 @@ impl LoadableComponent for ProxmoxAptHistory {
                 empty_text.map(|text| Container::new().padding(2).with_child(text)),
             );
 
-        let packages = DataTable::new(self.package_columns.clone(), self.package_store.clone())
+        let selected_change = self
+            .selected_change()
+            .filter(|change| change.changelog_range().is_some());
+        let packages = Column::new()
             .class("pwt-flex-fit")
-            .borderless(true);
+            .with_child(
+                Toolbar::new().class("pwt-border-bottom").with_child(
+                    Button::new(tr!("Changelog"))
+                        .disabled(selected_change.is_none())
+                        .onclick({
+                            let link = ctx.link().clone();
+                            move |_| {
+                                link.change_view(selected_change.clone().map(ViewState::Changelog))
+                            }
+                        }),
+                ),
+            )
+            .with_child(
+                DataTable::new(self.package_columns.clone(), self.package_store.clone())
+                    .selection(self.package_selection.clone())
+                    .on_row_dblclick({
+                        let link = ctx.link().clone();
+                        let store = self.package_store.clone();
+                        move |event: &mut DataTableMouseEvent| {
+                            let change = store.read().lookup_record(&event.record_key).cloned();
+                            if let Some(change) =
+                                change.filter(|change| change.changelog_range().is_some())
+                            {
+                                link.change_view(Some(ViewState::Changelog(change)));
+                            }
+                        }
+                    })
+                    .class("pwt-flex-fit")
+                    .borderless(true),
+            );
 
         let transaction = self
             .selected_entry()
@@ -511,6 +556,26 @@ impl LoadableComponent for ProxmoxAptHistory {
         .into()
     }
 
+    fn dialog_view(
+        &self,
+        ctx: &LoadableComponentContext<Self>,
+        view_state: &Self::ViewState,
+    ) -> Option<Html> {
+        let ViewState::Changelog(change) = view_state;
+        let (since_version, to_version) = change.changelog_range()?;
+        Some(
+            PackageChangelog::new(change.package.clone())
+                .base_url(ctx.props().base_url.clone())
+                .since_version(since_version.map(str::to_owned))
+                .to_version(to_version.to_owned())
+                .on_close({
+                    let link = ctx.link().clone();
+                    move |_| link.change_view(None)
+                })
+                .into(),
+        )
+    }
+
     fn changed(
         &mut self,
         ctx: &LoadableComponentContext<Self>,
@@ -542,6 +607,11 @@ impl ProxmoxAptHistory {
         let key = self.selection.selected_key()?;
         self.store.filtered_record_pos(&key)?;
         self.store.read().lookup_record(&key).cloned()
+    }
+
+    fn selected_change(&self) -> Option<PackageChange> {
+        let key = self.package_selection.selected_key()?;
+        self.package_store.read().lookup_record(&key).cloned()
     }
 
     fn apply_filters(&mut self) {
