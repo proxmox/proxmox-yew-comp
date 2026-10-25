@@ -405,7 +405,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
         Self {
             view_state: PendingPropertyViewState::default(),
             store: Store::new(),
-            columns: columns(),
+            columns: columns(props.readonly),
             selection,
             async_submit: super::create_on_submit(
                 editor_url,
@@ -792,7 +792,7 @@ impl PendingPropertyView for PveQemuHardwarePanel {
     }
 }
 
-fn columns() -> Rc<Vec<DataTableHeader<HardwareEntry>>> {
+fn columns(readonly: bool) -> Rc<Vec<DataTableHeader<HardwareEntry>>> {
     Rc::new(vec![
         DataTableColumn::new(tr!("Key"))
             .show_menu(false)
@@ -807,7 +807,18 @@ fn columns() -> Rc<Vec<DataTableHeader<HardwareEntry>>> {
             .into(),
         DataTableColumn::new(tr!("Value"))
             .show_menu(false)
-            .render(|record: &HardwareEntry| record.content.clone())
+            .render(move |record: &HardwareEntry| {
+                if !readonly {
+                    return record.content.clone();
+                }
+                // without an editor to open, a long value must be readable in place
+                Container::new()
+                    .style("white-space", "normal")
+                    .style("overflow-wrap", "anywhere")
+                    .style("line-height", "normal")
+                    .with_child(record.content.clone())
+                    .into()
+            })
             .into(),
     ])
 }
