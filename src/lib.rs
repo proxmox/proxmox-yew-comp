@@ -35,6 +35,9 @@ mod package_changelog;
 #[cfg(feature = "apt")]
 pub use package_changelog::{PackageChangelog, ProxmoxPackageChangelog};
 
+#[cfg(feature = "apt")]
+mod transaction_changelogs;
+
 mod auth_view;
 pub use auth_view::{AuthView, ProxmoxAuthView};
 

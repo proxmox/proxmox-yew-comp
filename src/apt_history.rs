@@ -24,9 +24,11 @@ use pwt::widget::{
 
 use proxmox_apt_history::{
     styled_segments, HistoryEntry, PackageAction, PackageChange, TextColor, TextStyle,
+    TransactionChangelog,
 };
 
 use crate::package_changelog::PackageChangelog;
+use crate::transaction_changelogs::TransactionChangelogs;
 use crate::transaction_detail::ProxmoxTransactionDetail;
 use crate::utils::{format_duration_human, render_epoch};
 use crate::{
@@ -172,6 +174,7 @@ pub enum Msg {
 
 const PACKAGES_TAB: &str = "packages";
 const TERM_LOG_TAB: &str = "termlog";
+const CHANGELOGS_TAB: &str = "changelogs";
 
 /// Below this width the details go below the list, as each needs about half of it for its columns.
 const STACK_BELOW_WIDTH: f64 = 1200.0;
@@ -495,6 +498,29 @@ impl LoadableComponent for ProxmoxAptHistory {
             .with_item(
                 TabBarItem::new().key(PACKAGES_TAB).label(tr!("Packages")),
                 packages,
+            )
+            .with_item_builder(
+                TabBarItem::new()
+                    .key(CHANGELOGS_TAB)
+                    .label(tr!("Changelogs")),
+                {
+                    let base_url = base_url.clone();
+                    move |info: &SelectionViewRenderInfo| {
+                        let renderer = RenderFn::new(|groups: &Rc<Vec<TransactionChangelog>>| {
+                            TransactionChangelogs::new(groups.clone()).into()
+                        });
+                        html! {
+                            <ProxmoxTransactionDetail<Vec<TransactionChangelog>>
+                                base_url={base_url.clone()}
+                                path="transaction-changelogs"
+                                {transaction}
+                                {generation}
+                                visible={info.visible}
+                                {renderer}
+                            />
+                        }
+                    }
+                },
             )
             .with_item_builder(
                 TabBarItem::new()
