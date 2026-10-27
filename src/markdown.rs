@@ -179,7 +179,26 @@ fn markdown_to_unsanitized_html(text: &str) -> String {
 
     let mut html_output = String::new();
     pulldown_cmark::html::push_html(&mut html_output, events.into_iter());
-    html_output
+    alignment_as_attribute(html_output)
+}
+
+/// pulldown-cmark writes a table column's alignment as a `style` attribute on each of its cells,
+/// which the sanitizer drops with every other style, so an aligned column showed as a plain one.
+/// The `align` attribute the sanitizer keeps says the same.
+fn alignment_as_attribute(html: String) -> String {
+    if !html.contains(" style=\"text-align: ") {
+        return html;
+    }
+    let mut html = html;
+    for cell in ["th", "td"] {
+        for side in ["left", "center", "right"] {
+            html = html.replace(
+                &format!("<{cell} style=\"text-align: {side}\">"),
+                &format!("<{cell} align=\"{side}\">"),
+            );
+        }
+    }
+    html
 }
 
 /// Convert Markdown to sanitized Html
@@ -306,5 +325,15 @@ fn main() {}
         assert!(html.contains("<code>inline code</code>"), "{html}");
         assert!(html.contains("<ul>"), "{html}");
         assert!(html.contains("<pre><code>fn main() {}"), "{html}");
+    }
+
+    /// A column's alignment reaches the cells as an attribute the sanitizer keeps.
+    #[test]
+    fn table_alignment_is_an_attribute() {
+        let html = markdown_to_unsanitized_html("| a | b | c |\n|---|:-:|--:|\n| 1 | 2 | 3 |\n");
+        assert!(html.contains("<th>a</th>"), "{html}");
+        assert!(html.contains(r#"<th align="center">b</th>"#), "{html}");
+        assert!(html.contains(r#"<td align="right">3</td>"#), "{html}");
+        assert!(!html.contains("style="), "{html}");
     }
 }
