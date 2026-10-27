@@ -1,3 +1,21 @@
+rust-proxmox-yew-comp (0.8.26) trixie; urgency=medium
+
+  * http:
+    - streaming requests from the browser ask for json-seq and keep the
+      request alive while the body streams. Every read of a streamed body
+      failed with an abort error, and a streaming handler on the server
+      collected all records into one document before answering.
+    - cancel the browser stream when its reader is dropped, so the server
+      stops producing records nobody reads.
+
+  * task progress: show a task that logged warnings as finished with
+    warnings instead of failed, and translate the dialog's texts.
+
+  * markdown: keep the alignment of table columns, which the HTML sanitizer
+    dropped.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 27 Oct 2026 15:14:50 +0100
+
 rust-proxmox-yew-comp (0.8.25) trixie; urgency=medium
 
   * fix #7932: node status: show the node's uptime in the panel title, as
