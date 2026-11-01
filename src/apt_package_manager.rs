@@ -21,6 +21,7 @@ use pwt::widget::{AlertDialog, Button, Container, Toolbar, Tooltip};
 
 use crate::percent_encoding::percent_encode_component;
 use crate::subscription_alert::subscription_is_active;
+use crate::transaction_changelogs::TransactionChangelogs;
 use crate::LoadableComponentState;
 use crate::SubscriptionAlert;
 use crate::{
@@ -28,6 +29,7 @@ use crate::{
     LoadableComponentScopeExt, XTermJs,
 };
 use proxmox_apt_api_types::APTUpdateInfo;
+use proxmox_apt_history::TransactionChangelog;
 
 use pwt_macros::builder;
 
@@ -55,6 +57,11 @@ pub struct AptPackageManager {
     #[prop_or_default]
     #[builder]
     pub enable_upgrade: bool,
+
+    /// Show grouped changelogs for pending updates, if the endpoint is available.
+    #[prop_or_default]
+    #[builder]
+    pub show_update_changelogs: bool,
 
     /// What happens when the 'Upgrade' button is clicked, by default opens the XTermJs upgrade
     /// console for 'localhost'
@@ -158,6 +165,7 @@ fn update_list_to_tree(updates: &[APTUpdateInfo]) -> SlabTree<TreeEntry> {
 #[derive(Clone, PartialEq)]
 pub enum ViewState {
     ShowChangelog(String),
+    ShowUpdateChangelogs,
     ShowSubscriptionPopup,
 }
 
@@ -303,6 +311,19 @@ impl LoadableComponent for ProxmoxAptPackageManager {
                         move |_| link.change_view(view.clone())
                     }),
             )
+            .with_optional_child(props.show_update_changelogs.then(|| {
+                let has_updates = self
+                    .tree_store
+                    .read()
+                    .root()
+                    .is_some_and(|root| root.children().next().is_some());
+                Button::new(tr!("All Changelogs"))
+                    .disabled(!has_updates)
+                    .onclick(
+                        ctx.link()
+                            .change_view_callback(|_| Some(ViewState::ShowUpdateChangelogs)),
+                    )
+            }))
             .with_flex_spacer()
             .with_child({
                 let loading = self.loading();
@@ -330,6 +351,33 @@ impl LoadableComponent for ProxmoxAptPackageManager {
         match view_state {
             ViewState::ShowChangelog(package) => {
                 Some(self.create_show_changelog_dialog(ctx, package))
+            }
+            ViewState::ShowUpdateChangelogs => {
+                let url = format!("{}/update-changelogs", ctx.props().base_url);
+                Some(
+                    DataViewWindow::<Vec<TransactionChangelog>>::new(tr!(
+                        "Changelogs of Pending Updates"
+                    ))
+                    .key(url.clone())
+                    .width(1000)
+                    .height(700)
+                    .resizable(true)
+                    .on_done(ctx.link().change_view_callback(|_| None))
+                    .loader(move || {
+                        let url = url.clone();
+                        async move {
+                            crate::http_get(url, None)
+                                .await
+                                .map_err(crate::apt_history::api_error_message)
+                        }
+                    })
+                    .renderer(|groups| {
+                        TransactionChangelogs::new(Rc::new(groups.clone()))
+                            .empty_text(tr!("No changelog entries for these versions."))
+                            .into()
+                    })
+                    .into(),
+                )
             }
             ViewState::ShowSubscriptionPopup => {
                 let link = ctx.link().clone();

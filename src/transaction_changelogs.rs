@@ -16,11 +16,18 @@ use crate::changelog_entry::{empty_changelog_text, render_entry};
 #[derive(Properties, PartialEq, Clone)]
 pub(crate) struct TransactionChangelogs {
     pub groups: Rc<Vec<TransactionChangelog>>,
+    #[prop_or_default]
+    pub empty_text: Option<AttrValue>,
 }
 
 impl TransactionChangelogs {
     pub fn new(groups: Rc<Vec<TransactionChangelog>>) -> Self {
         yew::props!(Self { groups })
+    }
+
+    pub fn empty_text(mut self, text: impl Into<AttrValue>) -> Self {
+        self.empty_text = Some(text.into());
+        self
     }
 }
 
@@ -98,6 +105,7 @@ impl Component for ProxmoxTransactionChangelogs {
                         <ProxmoxChangelogGroup
                             key={index}
                             groups={groups.clone()}
+                            empty_text={ctx.props().empty_text.clone()}
                             {index}
                             open={self.open[index]}
                             on_toggle={self.on_toggle[index].clone()}
@@ -129,6 +137,7 @@ impl From<TransactionChangelogs> for VNode {
 #[derive(Properties, Clone)]
 struct ChangelogGroup {
     groups: Rc<Vec<TransactionChangelog>>,
+    empty_text: Option<AttrValue>,
     index: usize,
     open: bool,
     on_toggle: Callback<bool>,
@@ -142,6 +151,7 @@ impl PartialEq for ChangelogGroup {
             && self.index == other.index
             && self.open == other.open
             && self.on_toggle == other.on_toggle
+            && self.empty_text == other.empty_text
     }
 }
 
@@ -203,7 +213,7 @@ fn ProxmoxChangelogGroup(props: &ChangelogGroup) -> Html {
             .padding_top(1)
             .padding_bottom(2)
             .style("padding-left", "1.6em")
-            .with_child(entries_view(group))
+            .with_child(entries_view(group, props.empty_text.as_deref()))
             .into_html()
     });
     html! {
@@ -240,7 +250,7 @@ fn other_packages(packages: &[PackageChange], name: &str) -> String {
         .join(", ")
 }
 
-fn entries_view(group: &TransactionChangelog) -> Html {
+fn entries_view(group: &TransactionChangelog, empty_text: Option<&str>) -> Html {
     // the summary line only has room for the start of an error
     if let Some(error) = &group.error {
         return html! { {error} };
@@ -249,7 +259,10 @@ fn entries_view(group: &TransactionChangelog) -> Html {
         return html! {};
     }
     if group.entries.is_empty() {
-        return empty_changelog_text().into();
+        return empty_text
+            .map(str::to_owned)
+            .unwrap_or_else(empty_changelog_text)
+            .into();
     }
     let note = group.unlisted_version.then(|| {
         Container::new()
@@ -293,6 +306,7 @@ mod tests {
     fn unchanged_group_props_compare_equal() {
         let props = ChangelogGroup {
             groups: Rc::new(Vec::new()),
+            empty_text: None,
             index: 0,
             open: false,
             on_toggle: Callback::from(|_| ()),
