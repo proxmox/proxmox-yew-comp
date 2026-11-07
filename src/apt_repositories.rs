@@ -394,8 +394,7 @@ fn apt_configuration_to_tree(config: &APTRepositoriesResult) -> SlabTree<TreeEnt
 
 pub enum Msg {
     ToggleEnable,
-    UpdateStatus(APTRepositoriesResult),
-    SubscriptionInfo(Result<Value, Error>),
+    UpdateStatus(APTRepositoriesResult, Result<Value, Error>),
 }
 
 #[derive(Clone, PartialEq)]
@@ -437,21 +436,8 @@ impl LoadableComponent for ProxmoxAptRepositories {
         });
         let status_columns = Self::status_columns(ctx);
 
-        let subscription_url = ctx.props().subscription_url.clone();
-
-        let state = LoadableComponentState::new();
-
-        state.spawn({
-            let link = ctx.link().clone();
-            async move {
-                // TODO: also reload this in load, not only create?!
-                let data = crate::http_get(subscription_url.to_string(), None).await;
-                link.send_message(Msg::SubscriptionInfo(data));
-            }
-        });
-
         Self {
-            state,
+            state: LoadableComponentState::new(),
             tree_store,
             selection,
             columns,
@@ -470,14 +456,21 @@ impl LoadableComponent for ProxmoxAptRepositories {
     ) -> Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>> {
         let props = ctx.props();
         let base_url = props.base_url.clone();
+        let subscription_url = props.subscription_url.clone();
         let tree_store = self.tree_store.clone();
         let link = ctx.link().clone();
 
         Box::pin(async move {
-            let config = apt_configuration(base_url.clone()).await?;
+            // The status depends on both, so they are always loaded together, also for a
+            // subscription that changed since the last load.
+            let (config, subscription) = futures::join!(
+                apt_configuration(base_url.clone()),
+                crate::http_get(subscription_url.to_string(), None),
+            );
+            let config = config?;
             let tree = apt_configuration_to_tree(&config);
             tree_store.write().update_root_tree(tree);
-            link.send_message(Msg::UpdateStatus(config));
+            link.send_message(Msg::UpdateStatus(config, subscription));
             Ok(())
         })
     }
@@ -485,23 +478,8 @@ impl LoadableComponent for ProxmoxAptRepositories {
     fn update(&mut self, ctx: &LoadableComponentContext<Self>, msg: Self::Message) -> bool {
         let props = ctx.props();
         match msg {
-            Msg::SubscriptionInfo(status) => {
-                self.subscription_status = Some(status);
-                if let Some(config) = &self.config {
-                    let active_subscription = self.active_subscription();
-                    update_status_store(
-                        props.product,
-                        &self.status_store,
-                        config,
-                        &self.standard_repos,
-                        active_subscription,
-                    );
-                } else {
-                    self.status_store.clear();
-                }
-                true
-            }
-            Msg::UpdateStatus(config) => {
+            Msg::UpdateStatus(config, subscription) => {
+                self.subscription_status = Some(subscription);
                 let standard_repos: HashMap<String, APTStandardRepository> = config
                     .standard_repos
                     .iter()
@@ -571,7 +549,10 @@ impl LoadableComponent for ProxmoxAptRepositories {
     ) -> bool {
         let props = ctx.props();
 
-        if props.base_url != old_props.base_url || props.product != old_props.product {
+        if props.base_url != old_props.base_url
+            || props.subscription_url != old_props.subscription_url
+            || props.product != old_props.product
+        {
             ctx.link().send_reload();
             true
         } else {
