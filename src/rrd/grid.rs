@@ -66,15 +66,22 @@ impl RrdGrid {
         }
 
         let mut last_date = String::new();
-        for (x, t) in &self.x_points {
+        for (index, (x, t)) in self.x_points.iter().enumerate() {
             let (time, date) = format_time(*t);
+            let anchor = if index == 0 {
+                "start"
+            } else if index == self.x_points.len() - 1 {
+                "end"
+            } else {
+                "middle"
+            };
 
             time_labels.push(
                 Text::new(time)
                     .class("pwt-rrd-label-text")
                     .position(*x as f32, self.y0 as f32)
                     .dy(SvgLength::Px(10.0))
-                    .attribute("text-anchor", "middle")
+                    .attribute("text-anchor", anchor)
                     .into(),
             );
 
@@ -84,7 +91,7 @@ impl RrdGrid {
                         .class("pwt-rrd-label-text")
                         .position(*x as f32, self.y0 as f32)
                         .dy(SvgLength::Px(10.0 + 16.0))
-                        .attribute("text-anchor", "middle")
+                        .attribute("text-anchor", anchor)
                         .into(),
                 );
 
@@ -143,5 +150,65 @@ impl RrdGrid {
         }
 
         grid_path
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn attribute<'a>(label: &'a Html, name: &str) -> &'a str {
+        let Html::VTag(tag) = label else {
+            panic!("expected an SVG text element");
+        };
+        tag.attributes
+            .iter()
+            .find_map(|(key, value)| (key == name).then_some(value))
+            .unwrap()
+    }
+
+    #[test]
+    fn time_labels_anchor_inwards_without_moving_ticks() {
+        for (width, times) in [(320, [0, 360]), (800, [0, 360]), (800, [1, 359])] {
+            let mut space = GraphSpace::default();
+            space.set_width(width);
+            space.update(&times, &[], true, false);
+            let grid = RrdGrid::new(&space);
+            let (_, labels) = grid.to_label_list(
+                |v| v.to_string(),
+                |t| (format!("time {t}"), format!("date {t}")),
+            );
+
+            assert!(grid.x_points.len() > 2);
+            assert_eq!(labels.len(), grid.x_points.len() * 2);
+            for (point, pair) in grid.x_points.iter().zip(labels.chunks_exact(2)) {
+                let (x, time) = point;
+                assert_eq!(*x, space.compute_x(*time));
+                for label in pair {
+                    assert_eq!(attribute(label, "x"), SvgLength::from(*x).to_string());
+                }
+            }
+            for label in &labels[..2] {
+                assert_eq!(attribute(label, "text-anchor"), "start");
+            }
+            for label in &labels[2..labels.len() - 2] {
+                assert_eq!(attribute(label, "text-anchor"), "middle");
+            }
+            for label in &labels[labels.len() - 2..] {
+                assert_eq!(attribute(label, "text-anchor"), "end");
+            }
+        }
+    }
+
+    #[test]
+    fn empty_time_range_has_no_labels() {
+        for times in [&[][..], &[42][..]] {
+            let mut space = GraphSpace::default();
+            space.set_width(800);
+            space.update(times, &[], true, false);
+            let grid = RrdGrid::new(&space);
+            let (_, labels) = grid.to_label_list(|v| v.to_string(), |_| unreachable!());
+            assert!(labels.is_empty());
+        }
     }
 }
