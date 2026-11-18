@@ -88,8 +88,7 @@ pub fn nosmurfs_property(mobile: bool) -> EditableProperty {
 }
 
 pub fn nftables_property(mobile: bool) -> EditableProperty {
-    EditableProperty::new_bool("nftables", tr!("nftables (tech preview)"), false, mobile)
-        .required(true)
+    EditableProperty::new_bool("nftables", "nftables", false, mobile).required(true)
 }
 
 pub fn log_level_property(name: &str, title: String, mobile: bool) -> EditableProperty {
