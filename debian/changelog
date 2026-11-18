@@ -1,3 +1,52 @@
+rust-proxmox-yew-comp (0.8.27) trixie; urgency=medium
+
+  * access log: add a view of a node's API access log behind the new
+    'access-log' feature, listing requests newest first with live mode,
+    time range, search, filters for user, client, method, status and
+    path, a menu to filter by the values of a request and a dialog with
+    its details. A statistics dialog shows request and error counts per
+    client, user, path group, status and user agent, and a histogram;
+    opening a value narrows the view to its requests.
+
+  * loadable component: add an accessor for the currently shown dialog,
+    so components can pause work while a dialog covers them.
+
+  * rrd: graph: keep the first and last time labels inside the graph
+    instead of cutting them off at its edges.
+
+  * apt: add an APT history component listing the past APT transactions
+    of a node, with when and how they were invoked, what they changed and
+    whether they failed. This helps to find the update that could have
+    caused a regression, or what happened during a failed upgrade:
+    - upgrades between major releases of Debian or Ceph are marked, and the
+      list can be filtered by them, by status, time range and changed
+      packages, and searched by command line and user.
+    - the selected transaction shows its package changes, its terminal
+      output with warnings and errors highlighted, and in a separate tab
+      the changelogs of all packages it changed, grouped by source package.
+    - the changelog of a changed package opens limited to the versions of
+      that change, with an adjustable range.
+    - changelog entries are shown as structured lists, linking CVE IDs,
+      closed Debian bugs and, for Proxmox packages, the fixed Bugzilla
+      entries.
+
+  * apt package manager: products can enable a button that shows the
+    changelogs of all pending updates at once, grouped by source package
+    and limited to the new versions.
+
+  * pve qemu hardware panel: wrap long values, like the options of a disk,
+    when the panel is read-only, as there is no editor to show them in full.
+
+  * apt repositories: load the subscription status with the repository
+    configuration on every reload. A view that switches between nodes judged
+    the repositories of one node by the subscription of another, and a
+    changed subscription showed only after recreating the view.
+
+  * require pwt 0.8.22, which keeps the columns hidden by the user when the
+    column headers change.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 18 Nov 2026 02:34:49 +0100
+
 rust-proxmox-yew-comp (0.8.26) trixie; urgency=medium
 
   * http:
